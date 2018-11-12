@@ -89,7 +89,7 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn begin_seq(&mut self) -> Result<(), val::Error> {
+    fn seq_begin(&mut self) -> Result<(), val::Error> {
         self.print(format_args!("["));
         Ok(())
     }
@@ -101,13 +101,13 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn end_seq(&mut self) -> Result<(), val::Error> {
+    fn seq_end(&mut self) -> Result<(), val::Error> {
         self.delim = "";
         self.print(format_args!("]"));
         Ok(())
     }
 
-    fn begin_map(&mut self) -> Result<(), val::Error> {
+    fn map_begin(&mut self) -> Result<(), val::Error> {
         self.print(format_args!("{{"));
         Ok(())
     }
@@ -126,7 +126,7 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn end_map(&mut self) -> Result<(), val::Error> {
+    fn map_end(&mut self) -> Result<(), val::Error> {
         self.delim = "";
         self.print(format_args!("}}"));
         Ok(())

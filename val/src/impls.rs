@@ -7,11 +7,23 @@ use std::{
     }
 };
 
-use crate::{value::Value, Visit, Error};
+use crate::value::{Value, Visit, Error};
 
 impl Value for () {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
         visit.none()
+    }
+}
+
+impl<T> Value for Option<T>
+where
+    T: Value,
+{
+    fn visit(&self, visit: Visit) -> Result<(), Error> {
+        match self {
+            Some(v) => v.visit(visit),
+            None => visit.none(),
+        }
     }
 }
 
