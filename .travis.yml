@@ -1,0 +1,4 @@
+sudo: required
+language: rust
+
+script: ./ci/travis.sh

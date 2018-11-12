@@ -5,5 +5,3 @@ A lightweight serialization API for structured values sort of like [`ser`](https
 It's object-safe, but wraps that object-safe API up in a set of concrete structures that abstract over storage for the trait objects passed as arguments.
 
 Producers of structured values use the `value` module. Consumers of structured values use the `visit` module.
-
-A simple proc macro for custom derive could be built on top of this, that might support scrubbing off the hard work `serde_derive` already does.
