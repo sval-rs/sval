@@ -43,12 +43,14 @@ impl Value for Seq {
 Maps can be visited:
 
 ```
+use std::collections::BTreeMap;
+
 use val::value::{self, Value};
 
 #[derive(Debug)]
 pub struct Map(BTreeMap<String, u64>);
 
-impl Value for Seq {
+impl Value for Map {
     fn visit(&self, visit: value::Visit) -> Result<(), value::Error> {
         let mut map = visit.map()?;
 
@@ -66,7 +68,7 @@ impl Value for Seq {
 Implement the [`visit::Visit`] trait to visit [`Value`]s:
 
 ```
-use std::fmt;
+use std::{fmt, mem};
 use val::visit::{self, Visit};
 
 struct Fmt {
