@@ -143,6 +143,12 @@ impl Value for str {
     }
 }
 
+impl Value for String {
+    fn visit(&self, visit: Visit) -> Result<(), Error> {
+        visit.str(&*self)
+    }
+}
+
 impl<'a> Value for fmt::Arguments<'a> {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
         visit.fmt(self)
