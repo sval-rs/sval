@@ -17,38 +17,49 @@ pub trait Visit {
     fn any(&mut self, v: Value) -> Result<(), Error>;
 
     fn begin_seq(&mut self) -> Result<(), Error>;
-    fn seq_elem(&mut self, v: Value) -> Result<(), Error>;
+    
+    fn seq_elem(&mut self, v: Value) -> Result<(), Error> {
+        v.visit(self)
+    }
+
     fn end_seq(&mut self) -> Result<(), Error>;
 
     fn begin_map(&mut self) -> Result<(), Error>;
-    fn map_key(&mut self, k: Value) -> Result<(), Error>;
-    fn map_value(&mut self, v: Value) -> Result<(), Error>;
+
+    fn map_key(&mut self, k: Value) -> Result<(), Error> {
+        k.visit(self)
+    }
+
+    fn map_value(&mut self, v: Value) -> Result<(), Error> {
+        v.visit(self)
+    }
+
     fn end_map(&mut self) -> Result<(), Error>;
 
     fn i64(&mut self, v: i64) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 
     fn u64(&mut self, v: u64) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 
     #[cfg(feature = "i128")]
     fn i128(&mut self, v: i128) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 
     #[cfg(feature = "i128")]
     fn u128(&mut self, v: u128) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 
     fn f64(&mut self, v: f64) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 
     fn bool(&mut self, v: bool) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 
     fn char(&mut self, v: char) -> Result<(), Error> {
@@ -57,15 +68,15 @@ pub trait Visit {
     }
 
     fn str(&mut self, v: &str) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 
     fn none(&mut self) -> Result<(), Error> {
-        self.any(Value::erased(&()))
+        self.any(Value::new(&()))
     }
 
     fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), Error> {
-        self.any(Value::erased(&v))
+        self.any(Value::new(&v))
     }
 }
 

@@ -1,6 +1,26 @@
 /*!
 A lightweight serialization framework.
 
+# Visiting values
+
+```no_run
+# fn main() -> Result<(), Box<std::error::Error>> {
+val::visit(42, MyVisit)?;
+# Ok(())
+# }
+# use val::visit::{self, Visit};
+# struct MyVisit;
+# impl val::visit::Visit for MyVisit {
+#     fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> { unimplemented!() }
+#     fn begin_seq(&mut self) -> Result<(), visit::Error> { unimplemented!() }
+#     fn end_seq(&mut self) -> Result<(), visit::Error> { unimplemented!() }
+#     fn begin_map(&mut self) -> Result<(), visit::Error> { unimplemented!() }
+#     fn end_map(&mut self) -> Result<(), visit::Error> { unimplemented!() }
+# }
+```
+
+where `42` is a [`value::Value`] and `MyVisit` is a [`visit::Visit`].
+
 # Implementing the `Value` trait
 
 Implement the [`value::Value`] trait for datastructures that can be
@@ -63,9 +83,44 @@ impl Value for Map {
 }
 ```
 
-# Visiting `Value`s
+# Implementing the `Visit` trait
 
 Implement the [`visit::Visit`] trait to visit [`Value`]s:
+
+```
+use val::visit::{self, Visit};
+
+struct Fmt;
+
+impl Visit for Fmt {
+    fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
+        print!("{:?} ", v);
+        Ok(())
+    }
+
+    fn begin_seq(&mut self) -> Result<(), visit::Error> {
+        print!("[ ");
+        Ok(())
+    }
+
+    fn end_seq(&mut self) -> Result<(), visit::Error> {
+        print!("] ");
+        Ok(())
+    }
+
+    fn begin_map(&mut self) -> Result<(), visit::Error> {
+        print!("{{ ");
+        Ok(())
+    }
+
+    fn end_map(&mut self) -> Result<(), visit::Error> {
+        print!("}} ");
+        Ok(())
+    }
+}
+```
+
+There are more methods on `Visit` that can be overriden:
 
 ```
 use std::{fmt, mem};
@@ -214,7 +269,7 @@ impl<'a> fmt::Display for Value<'a> {
 }
 
 /**
-A visitor for an arbitrary value.
+A visitor for a structured value.
 
 The `Visit` type abstracts over storage for a [`visit::Visit`] trait object.
 It also imposes some limitations on the way the internal `Visit` can be called:

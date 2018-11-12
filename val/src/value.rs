@@ -5,7 +5,7 @@ Traits for a structured value.
 use std::fmt;
 
 #[doc(inline)]
-pub use crate::{Visit, Error};
+pub use crate::{Visit, VisitSeq, VisitMap, Error};
 
 /**
 A value that can be visited.
