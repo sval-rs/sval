@@ -6,7 +6,7 @@ cargo test --verbose
 
 BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
 
-if [ "$BRANCH" == "ci" ]; then
+if [ "$BRANCH" == "master" ]; then
     echo "uploading crate docs"
 
     cargo doc -p val
