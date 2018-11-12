@@ -33,7 +33,9 @@ pub trait Visit {
     After the sequence has begun, this `Visit` should only expect
     calls to `seq_elem` until `seq_end` is called.
     */
-    fn seq_begin(&mut self) -> Result<(), Error>;
+    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     Visit an element of a sequence.
@@ -52,7 +54,9 @@ pub trait Visit {
     Each call to `seq_begin` must have a corresponding call
     to `seq_end`. 
     */
-    fn seq_end(&mut self) -> Result<(), Error>;
+    fn seq_end(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     Begin a map.
@@ -60,7 +64,9 @@ pub trait Visit {
     After the map has begun, this `Visit` should only expect
     calls to `map_key` and `map_value` until `map_end` is called.
     */
-    fn map_begin(&mut self) -> Result<(), Error>;
+    fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     Visit a map key.
@@ -88,7 +94,9 @@ pub trait Visit {
     Each call to `map_begin` must have a corresponding call
     to `map_end`. 
     */
-    fn map_end(&mut self) -> Result<(), Error>;
+    fn map_end(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /** Visit a signed integer. */
     fn i64(&mut self, v: i64) -> Result<(), Error> {
@@ -152,8 +160,8 @@ where
         (**self).any(v)
     }
 
-    fn seq_begin(&mut self) -> Result<(), Error> {
-        (**self).seq_begin()
+    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        (**self).seq_begin(len)
     }
 
     fn seq_end(&mut self) -> Result<(), Error> {
@@ -164,8 +172,8 @@ where
         (**self).seq_elem(v)
     }
 
-    fn map_begin(&mut self) -> Result<(), Error> {
-        (**self).map_begin()
+    fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        (**self).map_begin(len)
     }
 
     fn map_end(&mut self) -> Result<(), Error> {

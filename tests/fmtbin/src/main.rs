@@ -26,7 +26,7 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn seq_begin(&mut self) -> Result<(), visit::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), visit::Error> {
         self.print(format_args!("["));
         Ok(())
     }
@@ -44,7 +44,7 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn map_begin(&mut self) -> Result<(), visit::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> Result<(), visit::Error> {
         self.print(format_args!("{{"));
         Ok(())
     }

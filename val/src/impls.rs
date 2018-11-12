@@ -32,7 +32,7 @@ where
     T: Value,
 {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
-        let mut seq = visit.seq()?;
+        let mut seq = visit.seq(Some(self.len()))?;
 
         for v in self {
             seq.elem(v)?;
@@ -57,7 +57,7 @@ where
     V: Value,
 {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
-        let mut map = visit.map()?;
+        let mut map = visit.map(Some(self.len()))?;
 
         for (k, v) in self {
             map.entry(k, v)?;
@@ -73,7 +73,7 @@ where
     V: Value,
 {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
-        let mut map = visit.map()?;
+        let mut map = visit.map(Some(self.len()))?;
 
         for (k, v) in self {
             map.entry(k, v)?;

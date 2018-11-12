@@ -12,10 +12,6 @@ val::visit(42, MyVisit)?;
 # struct MyVisit;
 # impl val::visit::Visit for MyVisit {
 #     fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> { unimplemented!() }
-#     fn seq_begin(&mut self) -> Result<(), visit::Error> { unimplemented!() }
-#     fn seq_end(&mut self) -> Result<(), visit::Error> { unimplemented!() }
-#     fn map_begin(&mut self) -> Result<(), visit::Error> { unimplemented!() }
-#     fn map_end(&mut self) -> Result<(), visit::Error> { unimplemented!() }
 # }
 ```
 
@@ -72,7 +68,7 @@ pub struct Map(BTreeMap<String, u64>);
 
 impl Value for Map {
     fn visit(&self, visit: value::Visit) -> Result<(), value::Error> {
-        let mut map = visit.map()?;
+        let mut map = visit.map(Some(self.0.len()))?;
 
         for (k, v) in &self.0 {
             map.entry(k, v)?;
@@ -85,7 +81,7 @@ impl Value for Map {
 
 # Implementing the `Visit` trait
 
-Implement the [`visit::Visit`] trait to visit [`visit::Value`]s:
+Implement the [`visit::Visit`] trait to visit a [`visit::Value`]:
 
 ```
 use val::visit::{self, Visit};
@@ -94,33 +90,14 @@ struct Fmt;
 
 impl Visit for Fmt {
     fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
-        print!("{:?} ", v);
-        Ok(())
-    }
-
-    fn seq_begin(&mut self) -> Result<(), visit::Error> {
-        print!("[ ");
-        Ok(())
-    }
-
-    fn seq_end(&mut self) -> Result<(), visit::Error> {
-        print!("] ");
-        Ok(())
-    }
-
-    fn map_begin(&mut self) -> Result<(), visit::Error> {
-        print!("{{ ");
-        Ok(())
-    }
-
-    fn map_end(&mut self) -> Result<(), visit::Error> {
-        print!("}} ");
+        println!("{:?}", v);
         Ok(())
     }
 }
 ```
 
-There are more methods on `Visit` that can be overriden:
+There are more methods on `Visit` that can be overriden for more complex
+structures:
 
 ```
 use std::{fmt, mem};
@@ -145,7 +122,7 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn seq_begin(&mut self) -> Result<(), visit::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), visit::Error> {
         self.print(format_args!("["));
         Ok(())
     }
@@ -163,7 +140,7 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn map_begin(&mut self) -> Result<(), visit::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> Result<(), visit::Error> {
         self.print(format_args!("{{"));
         Ok(())
     }
@@ -186,6 +163,37 @@ impl Visit for Fmt {
         self.delim = "";
         self.print(format_args!("}}"));
         Ok(())
+    }
+}
+```
+
+A `Visit` might only care about a single kind of value:
+
+```
+use std::{fmt, mem};
+use val::{
+    value::Value,
+    visit::{self, Visit}
+};
+
+assert!(is_u64(42u64));
+
+pub fn is_u64(v: impl Value) -> bool {
+    let mut visit = IsU64(None);
+    let _ = val::visit(v, &mut visit);
+
+    visit.0.is_some()
+}
+
+struct IsU64(Option<u64>);
+impl Visit for IsU64 {
+    fn u64(&mut self, v: u64) -> Result<(), visit::Error> {
+        self.0 = Some(v);
+        Ok(())
+    }
+
+    fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
+        Err(visit::Error::msg("not a u64"))
     }
 }
 ```
@@ -216,6 +224,14 @@ An error encountered while visiting a value.
 */
 pub struct Error {
     msg: String,
+}
+
+impl Error {
+    pub fn msg(msg: &'static str) -> Self {
+        Error {
+            msg: msg.into(),
+        }
+    }
 }
 
 impl fmt::Debug for Error {

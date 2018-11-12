@@ -117,8 +117,8 @@ impl<'a> Visit<'a> {
         self.inner.as_mut().fmt(v)
     }
 
-    pub fn seq(mut self) -> Result<VisitSeq<'a>, Error> {
-        self.inner.as_mut().seq_begin()?;
+    pub fn seq(mut self, len: Option<usize>) -> Result<VisitSeq<'a>, Error> {
+        self.inner.as_mut().seq_begin(len)?;
 
         Ok(VisitSeq {
             inner: self.inner,
@@ -126,8 +126,8 @@ impl<'a> Visit<'a> {
         })
     }
 
-    pub fn map(mut self) -> Result<VisitMap<'a>, Error> {
-        self.inner.as_mut().map_begin()?;
+    pub fn map(mut self, len: Option<usize>) -> Result<VisitMap<'a>, Error> {
+        self.inner.as_mut().map_begin(len)?;
 
         Ok(VisitMap {
             inner: self.inner,
