@@ -75,48 +75,59 @@ impl<'a> Visit<'a> {
         }
     }
 
+    /** Visit a signed integer. */
     pub fn i64(mut self, v: i64) -> Result<(), Error> {
         self.inner.as_mut().i64(v)
     }
 
+    /** Visit an unsigned integer. */
     pub fn u64(mut self, v: u64) -> Result<(), Error> {
         self.inner.as_mut().u64(v)
     }
 
+    /** Visit a 128bit signed integer. */
     #[cfg(feature = "i128")]
     pub fn i128(mut self, v: i128) -> Result<(), Error> {
         self.inner.as_mut().i128(v)
     }
 
+    /** Visit a 128bit unsigned integer. */
     #[cfg(feature = "i128")]
     pub fn u128(mut self, v: u128) -> Result<(), Error> {
         self.inner.as_mut().u128(v)
     }
 
+    /** Visit a floating-point value. */
     pub fn f64(mut self, v: f64) -> Result<(), Error> {
         self.inner.as_mut().f64(v)
     }
 
+    /** Visit a boolean. */
     pub fn bool(mut self, v: bool) -> Result<(), Error> {
         self.inner.as_mut().bool(v)
     }
 
+    /** Visit a unicode character. */
     pub fn char(mut self, v: char) -> Result<(), Error> {
         self.inner.as_mut().char(v)
     }
 
+    /** Visit a UTF-8 string slice. */
     pub fn str(mut self, v: &str) -> Result<(), Error> {
         self.inner.as_mut().str(v)
     }
 
+    /** Visit an empty value. */
     pub fn none(mut self) -> Result<(), Error> {
         self.inner.as_mut().none()
     }
 
+    /** Visit a format. */
     pub fn fmt(mut self, v: &fmt::Arguments) -> Result<(), Error> {
         self.inner.as_mut().fmt(v)
     }
 
+    /** Visit a sequence. */
     pub fn seq(mut self, len: Option<usize>) -> Result<VisitSeq<'a>, Error> {
         self.inner.as_mut().seq_begin(len)?;
 
@@ -126,12 +137,14 @@ impl<'a> Visit<'a> {
         })
     }
 
+    /** Visit a map. */
     pub fn map(mut self, len: Option<usize>) -> Result<VisitMap<'a>, Error> {
         self.inner.as_mut().map_begin(len)?;
 
         Ok(VisitMap {
             inner: self.inner,
             done: false,
+            visited_key: false,
         })
     }
 }
@@ -161,17 +174,40 @@ A visitor for a map.
 pub struct VisitMap<'a> {
     inner: VisitInner<'a>,
     done: bool,
+    visited_key: bool,
 }
 
 impl<'a> VisitMap<'a> {
     pub fn entry(&mut self, k: impl Value, v: impl Value) -> Result<(), Error> {
-        self.inner.as_mut().map_key(visit::Value::new(&k))?;
-        self.inner.as_mut().map_value(visit::Value::new(&v))?;
+        self.key(k)?;
+        self.value(v)?;
 
         Ok(())
     }
 
+    pub(crate) fn key(&mut self, k: impl Value) -> Result<(), Error> {
+        if self.visited_key {
+            return Err(Error::msg("attempt to visit a key out of order"));
+        }
+
+        self.visited_key = true;
+        self.inner.as_mut().map_key(visit::Value::new(&k))
+    }
+
+    pub(crate) fn value(&mut self, v: impl Value) -> Result<(), Error> {
+        if !self.visited_key {
+            return Err(Error::msg("attempt to visit a key out of order"));
+        }
+
+        self.visited_key = false;
+        self.inner.as_mut().map_value(visit::Value::new(&v))
+    }
+
     pub fn end(mut self) -> Result<(), Error> {
+        if self.visited_key {
+            return Err(Error::msg("visit a key without visiting a value"));
+        }
+
         self.done = true;
         self.inner.as_mut().map_end()
     }

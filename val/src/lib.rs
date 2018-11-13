@@ -35,7 +35,9 @@ impl Value for Id {
 }
 ```
 
-Sequences can be visited:
+## for a sequence
+
+A sequence can be visited by iterating over its elements:
 
 ```
 use val::value::{self, Value};
@@ -45,7 +47,7 @@ pub struct Seq(Vec<u64>);
 
 impl Value for Seq {
     fn visit(&self, visit: value::Visit) -> Result<(), value::Error> {
-        let mut seq = visit.seq()?;
+        let mut seq = visit.seq(Some(self.0.len()))?;
 
         for v in &self.0 {
             seq.elem(v)?;
@@ -56,7 +58,9 @@ impl Value for Seq {
 }
 ```
 
-Maps can be visited:
+## for a map
+
+A map can be visited by iterating over its key-value pairs:
 
 ```
 use std::collections::BTreeMap;
@@ -81,7 +85,8 @@ impl Value for Map {
 
 # Implementing the `Visit` trait
 
-Implement the [`visit::Visit`] trait to visit a [`visit::Value`]:
+Implement the [`visit::Visit`] trait to interogate the structure
+of a [`visit::Value`]:
 
 ```
 use val::visit::{self, Visit};
@@ -97,7 +102,7 @@ impl Visit for Fmt {
 ```
 
 There are more methods on `Visit` that can be overriden for more complex
-structures:
+datastructures like sequences and maps:
 
 ```
 use std::{fmt, mem};
