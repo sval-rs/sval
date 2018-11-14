@@ -34,20 +34,13 @@ impl Visit for Fmt {
         Ok(())
     }
 
-    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), visit::Error> {
-        self.print(v);
-        self.delim = " ";
-
-        Ok(())
-    }
-
     fn seq_begin(&mut self, _: Option<usize>) -> Result<(), visit::Error> {
         self.print(format_args!("["));
         Ok(())
     }
 
     fn seq_elem(&mut self, elem: visit::Value) -> Result<(), visit::Error> {
-        elem.visit(&mut *self)?;
+        elem.visit(self)?;
         self.delim = ", ";
 
         Ok(())
@@ -65,14 +58,14 @@ impl Visit for Fmt {
     }
 
     fn map_key(&mut self, key: visit::Value) -> Result<(), visit::Error> {
-        key.visit(&mut *self)?;
+        key.visit(self)?;
         self.delim = ": ";
 
         Ok(())
     }
 
     fn map_value(&mut self, value: visit::Value) -> Result<(), visit::Error> {
-        value.visit(&mut *self)?;
+        value.visit(self)?;
         self.delim = ", ";
 
         Ok(())

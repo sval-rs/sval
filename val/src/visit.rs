@@ -46,7 +46,7 @@ pub trait Visit {
     `seq_end`.
     */
     fn seq_elem(&mut self, v: Value) -> Result<(), Error> {
-        v.visit(self)
+        v.visit_trait(self)
     }
 
     /**
@@ -78,7 +78,7 @@ pub trait Visit {
     a corresponding call to `map_value`.
     */
     fn map_key(&mut self, k: Value) -> Result<(), Error> {
-        k.visit(self)
+        k.visit_trait(self)
     }
 
     /**
@@ -87,7 +87,7 @@ pub trait Visit {
     This method should only be called after `map_key`.
     */
     fn map_value(&mut self, v: Value) -> Result<(), Error> {
-        v.visit(self)
+        v.visit_trait(self)
     }
 
     /**
@@ -261,8 +261,12 @@ impl<'a> Value<'a> {
         }
     }
 
-    pub fn visit(&self, mut visit: impl Visit) -> Result<(), Error> {
+    fn visit_trait(&self, mut visit: impl Visit) -> Result<(), Error> {
         self.inner.as_ref().visit(value::Visit::new(&mut visit))
+    }
+
+    pub fn visit(&self, visit: &mut impl Visit) -> Result<(), Error> {
+        self.inner.as_ref().visit(value::Visit::new(visit))
     }
 }
 

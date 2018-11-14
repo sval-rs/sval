@@ -133,7 +133,7 @@ impl Visit for Fmt {
     }
 
     fn seq_elem(&mut self, elem: visit::Value) -> Result<(), visit::Error> {
-        self.print(format_args!("{:?}", elem));
+        elem.visit(self)?;
         self.delim = ", ";
 
         Ok(())
@@ -151,14 +151,14 @@ impl Visit for Fmt {
     }
 
     fn map_key(&mut self, key: visit::Value) -> Result<(), visit::Error> {
-        self.print(format_args!("{:?}", key));
+        key.visit(self)?;
         self.delim = ": ";
 
         Ok(())
     }
 
     fn map_value(&mut self, value: visit::Value) -> Result<(), visit::Error> {
-        self.print(format_args!("{:?}", value));
+        value.visit(self)?;
         self.delim = ", ";
 
         Ok(())
@@ -224,6 +224,6 @@ pub use self::error::Error;
 /**
 Value a value with the given visitor.
 */
-pub fn visit(value: impl value::Value, visit: impl visit::Visit) -> Result<(), Error> {
-    visit::Value::new(&value).visit(visit)
+pub fn visit(value: impl value::Value, mut visit: impl visit::Visit) -> Result<(), Error> {
+    visit::Value::new(&value).visit(&mut visit)
 }
