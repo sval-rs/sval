@@ -202,12 +202,21 @@ impl Visit for IsU64 {
     }
 }
 ```
+
+# `serde`
+
+If the `serde_std` or `serde_no_std` feature is enabled, implementations of
+[`value::Value`] can be converted into implementations of `serde::Serialize`.
+See the `serde` module for more details.
 */
 
-use std::{
-    error,
-    fmt,
-};
+#![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(not(feature = "std"))]
+extern crate core as std;
 
 #[cfg(feature = "serde")]
 pub mod serde;
@@ -217,46 +226,13 @@ mod impls;
 pub mod value;
 pub mod visit;
 
+mod error;
+
+pub use self::error::Error;
+
 /**
 Value a value with the given visitor.
 */
 pub fn visit(value: impl value::Value, visit: impl visit::Visit) -> Result<(), Error> {
     visit::Value::new(&value).visit(visit)
-}
-
-/**
-An error encountered while visiting a value.
-*/
-pub struct Error {
-    msg: String,
-}
-
-impl Error {
-    pub fn msg(msg: &'static str) -> Self {
-        Error {
-            msg: msg.into(),
-        }
-    }
-}
-
-impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.msg)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.msg)
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        &self.msg
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
-        None
-    }
 }

@@ -2,9 +2,13 @@
 Consumers of structured values.
 */
 
-use std::fmt;
+use crate::{
+    std::fmt,
+    value,
+};
 
-use crate::value;
+#[cfg(feature = "std")]
+use crate::std::boxed::Box;
 
 #[doc(inline)]
 pub use crate::Error;
@@ -109,13 +113,11 @@ pub trait Visit {
     }
 
     /** Visit a 128bit signed integer. */
-    #[cfg(feature = "i128")]
     fn i128(&mut self, v: i128) -> Result<(), Error> {
         self.any(Value::new(&v))
     }
 
     /** Visit a 128bit unsigned integer. */
-    #[cfg(feature = "i128")]
     fn u128(&mut self, v: u128) -> Result<(), Error> {
         self.any(Value::new(&v))
     }
@@ -196,12 +198,10 @@ where
         (**self).u64(v)
     }
 
-    #[cfg(feature = "i128")]
     fn i128(&mut self, v: i128) -> Result<(), Error> {
         (**self).i128(v)
     }
 
-    #[cfg(feature = "i128")]
     fn u128(&mut self, v: u128) -> Result<(), Error> {
         (**self).u128(v)
     }
@@ -242,6 +242,7 @@ pub struct Value<'a> {
 
 enum ValueInner<'a> {
     Ref(&'a dyn value::Value),
+    #[cfg(feature = "std")]
     Boxed(Box<dyn value::Value + 'a>),
 }
 
@@ -249,6 +250,7 @@ impl<'a> ValueInner<'a> {
     fn as_ref(&self) -> &dyn value::Value {
         match self {
             ValueInner::Ref(value) => value,
+            #[cfg(feature = "std")]
             ValueInner::Boxed(value) => &**value,
         }
     }
@@ -261,6 +263,7 @@ impl<'a> Value<'a> {
         }
     }
 
+    #[cfg(feature = "std")]
     pub fn boxed(value: impl value::Value + 'a) -> Self {
         Value {
             inner: ValueInner::Boxed(Box::new(value))

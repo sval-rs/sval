@@ -1,5 +1,5 @@
 [package]
-name = "typelib"
+name = "val_value"
 version = "0.1.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"

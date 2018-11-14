@@ -1,15 +1,12 @@
 [package]
-name = "val"
+name = "serde_value"
 version = "0.1.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 
-[features]
-std = []
-serde_std = ["std", "serde/std"]
-serde_no_std = ["serde"]
-
 [dependencies.serde]
 version = "~1"
-optional = true
 default-features = false
+
+[dependencies.serde_derive]
+version = "~1"

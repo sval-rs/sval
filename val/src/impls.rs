@@ -1,13 +1,7 @@
-use std::{
-    fmt,
-    hash::Hash,
-    collections::{
-        BTreeMap,
-        HashMap,
-    }
+use crate::{
+    std::fmt,
+    value::{Value, Visit, Error}
 };
-
-use crate::value::{Value, Visit, Error};
 
 impl Value for () {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
@@ -39,47 +33,6 @@ where
         }
 
         seq.end()
-    }
-}
-
-impl<T> Value for Vec<T>
-where
-    T: Value,
-{
-    fn visit(&self, visit: Visit) -> Result<(), Error> {
-        self.as_slice().visit(visit)
-    }
-}
-
-impl<K, V> Value for BTreeMap<K, V>
-where
-    K: Eq + Value,
-    V: Value,
-{
-    fn visit(&self, visit: Visit) -> Result<(), Error> {
-        let mut map = visit.map(Some(self.len()))?;
-
-        for (k, v) in self {
-            map.entry(k, v)?;
-        }
-
-        map.end()
-    }
-}
-
-impl<K, V> Value for HashMap<K, V>
-where
-    K: Hash + Eq + Value,
-    V: Value,
-{
-    fn visit(&self, visit: Visit) -> Result<(), Error> {
-        let mut map = visit.map(Some(self.len()))?;
-
-        for (k, v) in self {
-            map.entry(k, v)?;
-        }
-
-        map.end()
     }
 }
 
@@ -131,6 +84,18 @@ impl Value for i64 {
     }
 }
 
+impl Value for u128 {
+    fn visit(&self, visit: Visit) -> Result<(), Error> {
+        visit.u128(*self)
+    }
+}
+
+impl Value for i128 {
+    fn visit(&self, visit: Visit) -> Result<(), Error> {
+        visit.i128(*self)
+    }
+}
+
 impl Value for f32 {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
         visit.f64(*self as f64)
@@ -155,14 +120,74 @@ impl Value for str {
     }
 }
 
-impl Value for String {
-    fn visit(&self, visit: Visit) -> Result<(), Error> {
-        visit.str(&*self)
-    }
-}
-
 impl<'a> Value for fmt::Arguments<'a> {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
         visit.fmt(self)
+    }
+}
+
+#[cfg(feature = "std")]
+mod std_support {
+    use super::*;
+
+    use crate::std::{
+        boxed::Box,
+        string::{
+            String,
+            ToString,
+        },
+        vec::Vec,
+        hash::Hash,
+        collections::{
+            BTreeMap,
+            HashMap,
+        }
+    };
+
+    impl Value for String {
+        fn visit(&self, visit: Visit) -> Result<(), Error> {
+            visit.str(&*self)
+        }
+    }
+
+    impl<T> Value for Vec<T>
+    where
+        T: Value,
+    {
+        fn visit(&self, visit: Visit) -> Result<(), Error> {
+            self.as_slice().visit(visit)
+        }
+    }
+
+    impl<K, V> Value for BTreeMap<K, V>
+    where
+        K: Eq + Value,
+        V: Value,
+    {
+        fn visit(&self, visit: Visit) -> Result<(), Error> {
+            let mut map = visit.map(Some(self.len()))?;
+
+            for (k, v) in self {
+                map.entry(k, v)?;
+            }
+
+            map.end()
+        }
+    }
+
+    impl<K, V> Value for HashMap<K, V>
+    where
+        K: Hash + Eq + Value,
+        V: Value,
+    {
+        fn visit(&self, visit: Visit) -> Result<(), Error> {
+            let mut map = visit.map(Some(self.len()))?;
+
+            for (k, v) in self {
+                map.entry(k, v)?;
+            }
+
+            map.end()
+        }
     }
 }

@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "val",
-    "tests/typelib",
-    "tests/fmtbin"
+    "tests/val_value",
+    "tests/val_visit",
+    "tests/serde_value",
+    "tests/serde_visit"
 ]

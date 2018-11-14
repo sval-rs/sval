@@ -2,9 +2,13 @@
 Producers of structured values.
 */
 
-use std::fmt;
+use crate::{
+    std::fmt,
+    visit,
+};
 
-use crate::visit;
+#[cfg(feature = "std")]
+use crate::std::boxed::Box;
 
 #[doc(inline)]
 pub use crate::Error;
@@ -50,6 +54,7 @@ pub struct Visit<'a> {
 
 enum VisitInner<'a> {
     Ref(&'a mut dyn visit::Visit),
+    #[cfg(feature = "std")]
     Boxed(Box<dyn visit::Visit + 'a>),
 }
 
@@ -57,6 +62,7 @@ impl<'a> VisitInner<'a> {
     fn as_mut(&mut self) -> &mut dyn visit::Visit {
         match self {
             VisitInner::Ref(visit) => visit,
+            #[cfg(feature = "std")]
             VisitInner::Boxed(visit) => &mut **visit,
         }
     }
@@ -69,6 +75,7 @@ impl<'a> Visit<'a> {
         }
     }
 
+    #[cfg(feature = "std")]
     pub fn boxed(visit: impl visit::Visit + 'a) -> Self {
         Visit {
             inner: VisitInner::Boxed(Box::new(visit))
@@ -86,13 +93,11 @@ impl<'a> Visit<'a> {
     }
 
     /** Visit a 128bit signed integer. */
-    #[cfg(feature = "i128")]
     pub fn i128(mut self, v: i128) -> Result<(), Error> {
         self.inner.as_mut().i128(v)
     }
 
     /** Visit a 128bit unsigned integer. */
-    #[cfg(feature = "i128")]
     pub fn u128(mut self, v: u128) -> Result<(), Error> {
         self.inner.as_mut().u128(v)
     }

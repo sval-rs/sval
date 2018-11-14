@@ -23,12 +23,12 @@ pub trait Visit {
         self.any(&v)
     }
 
-    #[cfg(feature = "i128")]
+    
     fn i128(&mut self, v: i128) -> Result<(), Error> {
         self.any(&v)
     }
 
-    #[cfg(feature = "i128")]
+    
     fn u128(&mut self, v: u128) -> Result<(), Error> {
         self.any(&v)
     }
@@ -83,12 +83,12 @@ where
         (**self).u64(v)
     }
 
-    #[cfg(feature = "i128")]
+    
     fn i128(&mut self, v: i128) -> Result<(), Error> {
         (**self).i128(v)
     }
 
-    #[cfg(feature = "i128")]
+    
     fn u128(&mut self, v: u128) -> Result<(), Error> {
         (**self).u128(v)
     }
