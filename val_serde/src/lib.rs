@@ -173,7 +173,7 @@ mod core_support {
     use super::*;
 
     impl ser::Error for Error {
-        fn custom<E>(e: E) -> Self
+        fn custom<E>(_: E) -> Self
         where
             E: fmt::Display,
         {
