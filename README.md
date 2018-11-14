@@ -1,6 +1,8 @@
 # `val`
 
-[API docs](https://kodraus.github.io/val/val/index.html)
+[API docs for `val`](https://kodraus.github.io/val/val/index.html)
+
+[API docs for `val_serde`](https://kodraus.github.io/val/val_serde/index.html)
 
 A lightweight serialization API for structured values sort of like [`ser`](https://github.com/KodrAus/ser) without baking in `serde` at all.
 

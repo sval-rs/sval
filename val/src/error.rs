@@ -53,36 +53,11 @@ impl fmt::Display for ErrorInner {
     }
 }
 
-#[cfg(feature = "serde")]
-mod serde_support {
-    use super::*;
-
-    use serde;
-
-    impl Error {
-        /** Convert into `serde`. */
-        pub fn into_serde<E>(self) -> E
-        where
-            E: serde::ser::Error,
-        {
-            E::custom(self)
-        }
-    }
-}
-
-#[cfg(feature = "serde")]
-pub use self::serde_support::*;
-
 #[cfg(feature = "std")]
 mod std_support {
     use super::*;
 
-    use crate::std::{
-        io,
-        error,
-        string::ToString,
-        boxed::Box,
-    };
+    use crate::std::{boxed::Box, error, io, string::ToString};
 
     impl Error {
         /** Get an error from a format. */

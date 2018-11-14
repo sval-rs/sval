@@ -6,10 +6,3 @@ edition = "2018"
 
 [features]
 std = []
-serde_std = ["std", "serde/std"]
-serde_no_std = ["serde"]
-
-[dependencies.serde]
-version = "~1"
-optional = true
-default-features = false

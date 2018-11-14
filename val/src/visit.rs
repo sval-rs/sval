@@ -2,10 +2,7 @@
 Consumers of structured values.
 */
 
-use crate::{
-    std::fmt,
-    value,
-};
+use crate::{std::fmt, value};
 
 #[cfg(feature = "std")]
 use crate::std::boxed::Box;
@@ -26,14 +23,14 @@ type for more details.
 pub trait Visit {
     /**
     Visit an arbitrary value.
-
+    
     The value may be formatted using its `Debug` representation.
     */
     fn any(&mut self, v: Value) -> Result<(), Error>;
 
     /**
     Begin a sequence.
-
+    
     After the sequence has begun, this `Visit` should only expect
     calls to `seq_elem` until `seq_end` is called.
     */
@@ -43,7 +40,7 @@ pub trait Visit {
 
     /**
     Visit an element of a sequence.
-
+    
     This method should only be called after `seq_begin` and before
     `seq_end`.
     */
@@ -53,7 +50,7 @@ pub trait Visit {
 
     /**
     End a sequence.
-
+    
     This method should only be called after `seq_begin`.
     Each call to `seq_begin` must have a corresponding call
     to `seq_end`. 
@@ -64,7 +61,7 @@ pub trait Visit {
 
     /**
     Begin a map.
-
+    
     After the map has begun, this `Visit` should only expect
     calls to `map_key` and `map_value` until `map_end` is called.
     */
@@ -74,7 +71,7 @@ pub trait Visit {
 
     /**
     Visit a map key.
-
+    
     This method should only be called after `map_begin` and before
     a corresponding call to `map_value`.
     */
@@ -84,7 +81,7 @@ pub trait Visit {
 
     /**
     Visit a map key.
-
+    
     This method should only be called after `map_key`.
     */
     fn map_value(&mut self, v: Value) -> Result<(), Error> {
@@ -93,7 +90,7 @@ pub trait Visit {
 
     /**
     End a map.
-
+    
     This method should only be called after `map_begin`.
     Each call to `map_begin` must have a corresponding call
     to `map_end`. 
@@ -266,12 +263,16 @@ impl<'a> Value<'a> {
     #[cfg(feature = "std")]
     pub fn boxed(value: impl value::Value + 'a) -> Self {
         Value {
-            inner: ValueInner::Boxed(Box::new(value))
+            inner: ValueInner::Boxed(Box::new(value)),
         }
     }
 
     pub fn visit(&self, mut visit: impl Visit) -> Result<(), Error> {
         self.inner.as_ref().visit(value::Visit::new(&mut visit))
+    }
+
+    pub(crate) fn as_visit(&self) -> &dyn value::Value {
+        self.inner.as_ref()
     }
 }
 

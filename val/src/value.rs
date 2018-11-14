@@ -2,10 +2,7 @@
 Producers of structured values.
 */
 
-use crate::{
-    std::fmt,
-    visit,
-};
+use crate::{std::fmt, visit};
 
 #[cfg(feature = "std")]
 use crate::std::boxed::Box;
@@ -78,7 +75,7 @@ impl<'a> Visit<'a> {
     #[cfg(feature = "std")]
     pub fn boxed(visit: impl visit::Visit + 'a) -> Self {
         Visit {
-            inner: VisitInner::Boxed(Box::new(visit))
+            inner: VisitInner::Boxed(Box::new(visit)),
         }
     }
 

@@ -1,7 +1,14 @@
 use crate::{
     std::fmt,
-    value::{Value, Visit, Error}
+    value::{Error, Value, Visit},
+    visit,
 };
+
+impl<'a> Value for visit::Value<'a> {
+    fn visit(&self, visit: Visit) -> Result<(), Error> {
+        self.as_visit().visit(visit)
+    }
+}
 
 impl Value for () {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
@@ -132,16 +139,10 @@ mod std_support {
 
     use crate::std::{
         boxed::Box,
-        string::{
-            String,
-            ToString,
-        },
-        vec::Vec,
+        collections::{BTreeMap, HashMap},
         hash::Hash,
-        collections::{
-            BTreeMap,
-            HashMap,
-        }
+        string::{String, ToString},
+        vec::Vec,
     };
 
     impl Value for String {

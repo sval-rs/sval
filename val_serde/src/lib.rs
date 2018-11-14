@@ -30,16 +30,23 @@ let my_value = val::serde::to_value(my_serialize);
 ```
 */
 
-#[cfg(not(any(feature = "serde_std", feature = "serde_no_std")))]
-compile_error!("Use either the `serde_std` or `serde_no_std` features to enable `serde` support");
+#![no_std]
 
-use crate::{
-    std::fmt::{self, Debug},
-    value,
-    visit,
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(not(feature = "std"))]
+extern crate core as std;
+
+use crate::std::fmt::{self, Debug};
+
+use val::{value, visit};
+
+use serde::ser::{
+    self, Error as SerError, Serialize, SerializeMap, SerializeSeq, SerializeStruct,
+    SerializeStructVariant, SerializeTuple, SerializeTupleStruct, SerializeTupleVariant,
+    Serializer,
 };
-
-use serde::ser::{self, Serialize, Serializer, SerializeMap, SerializeSeq, SerializeTuple, SerializeTupleStruct, SerializeTupleVariant, SerializeStruct, SerializeStructVariant};
 
 /**
 Convert a `T: Value` into an `impl Serialize + Debug`.
@@ -66,7 +73,7 @@ pub fn to_serialize(value: impl value::Value) -> impl Serialize + Debug {
         where
             S: Serializer,
         {
-            Value::new(&self.0).serialize(serializer)
+            Serde(Value::new(&self.0)).serialize(serializer)
         }
     }
 
@@ -77,7 +84,7 @@ pub fn to_serialize(value: impl value::Value) -> impl Serialize + Debug {
 Convert a `T: Serialize + Debug` into an `impl Value`.
 */
 pub fn to_value(serialize: impl Serialize + Debug) -> impl value::Value {
-    use self::value::{Value, Visit, Error};
+    use self::value::{Error, Value, Visit};
 
     struct ToValue<S>(S);
 
@@ -95,7 +102,10 @@ pub fn to_value(serialize: impl Serialize + Debug) -> impl value::Value {
         S: Serialize + Debug,
     {
         fn visit(&self, visit: Visit) -> Result<(), Error> {
-            self.0.serialize(visit).map_err(err("error visiting serde"))?;
+            self.0
+                .serialize(Serde(visit))
+                .map_err(err("error visiting serde"))?;
+
             Ok(())
         }
     }
@@ -103,7 +113,9 @@ pub fn to_value(serialize: impl Serialize + Debug) -> impl value::Value {
     ToValue(serialize)
 }
 
-impl<'a> Serialize for visit::Value<'a> {
+struct Serde<T>(T);
+
+impl<'a> Serialize for Serde<visit::Value<'a>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -126,35 +138,35 @@ impl<'a> Serialize for visit::Value<'a> {
             fn take_serializer(self) -> Result<S, visit::Error> {
                 match self {
                     Current::Serializer(ser) => Ok(ser),
-                    _ => Err(visit::Error::msg("invalid serializer value"))
+                    _ => Err(visit::Error::msg("invalid serializer value")),
                 }
             }
 
             fn expect_serialize_seq(&mut self) -> Result<&mut S::SerializeSeq, visit::Error> {
                 match self {
                     Current::SerializeSeq(seq) => Ok(seq),
-                    _ => Err(visit::Error::msg("invalid serializer value"))
+                    _ => Err(visit::Error::msg("invalid serializer value")),
                 }
             }
 
             fn take_serialize_seq(self) -> Result<S::SerializeSeq, visit::Error> {
                 match self {
                     Current::SerializeSeq(seq) => Ok(seq),
-                    _ => Err(visit::Error::msg("invalid serializer value"))
+                    _ => Err(visit::Error::msg("invalid serializer value")),
                 }
             }
 
             fn expect_serialize_map(&mut self) -> Result<&mut S::SerializeMap, visit::Error> {
                 match self {
                     Current::SerializeMap(map) => Ok(map),
-                    _ => Err(visit::Error::msg("invalid serializer value"))
+                    _ => Err(visit::Error::msg("invalid serializer value")),
                 }
             }
 
             fn take_serialize_map(self) -> Result<S::SerializeMap, visit::Error> {
                 match self {
                     Current::SerializeMap(map) => Ok(map),
-                    _ => Err(visit::Error::msg("invalid serializer value"))
+                    _ => Err(visit::Error::msg("invalid serializer value")),
                 }
             }
         }
@@ -171,7 +183,10 @@ impl<'a> Serialize for visit::Value<'a> {
         where
             S: Serializer,
         {
-            fn map_serializer<E>(&mut self, f: impl FnOnce(S) -> Result<Current<S>, E>) -> Result<(), visit::Error>
+            fn map_serializer<E>(
+                &mut self,
+                f: impl FnOnce(S) -> Result<Current<S>, E>,
+            ) -> Result<(), visit::Error>
             where
                 E: serde::ser::Error,
             {
@@ -200,18 +215,24 @@ impl<'a> Serialize for visit::Value<'a> {
         {
             fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.collect_str(&v).map_err(err("error collecting string"))?);
+                self.ok = Some(
+                    ser.collect_str(&v)
+                        .map_err(err("error collecting string"))?,
+                );
 
                 Ok(())
             }
 
             fn seq_begin(&mut self, len: Option<usize>) -> Result<(), visit::Error> {
-                self.map_serializer(|ser| ser.serialize_seq(len).map(|seq| Current::SerializeSeq(seq)))
+                self.map_serializer(|ser| {
+                    ser.serialize_seq(len).map(|seq| Current::SerializeSeq(seq))
+                })
             }
 
             fn seq_elem(&mut self, v: visit::Value) -> Result<(), visit::Error> {
                 let seq = self.expect()?.expect_serialize_seq()?;
-                seq.serialize_element(&v).map_err(err("error serializing sequence element"))?;
+                seq.serialize_element(&Serde(v))
+                    .map_err(err("error serializing sequence element"))?;
 
                 Ok(())
             }
@@ -224,19 +245,23 @@ impl<'a> Serialize for visit::Value<'a> {
             }
 
             fn map_begin(&mut self, len: Option<usize>) -> Result<(), visit::Error> {
-                self.map_serializer(|ser| ser.serialize_map(len).map(|map| Current::SerializeMap(map)))
+                self.map_serializer(|ser| {
+                    ser.serialize_map(len).map(|map| Current::SerializeMap(map))
+                })
             }
 
             fn map_key(&mut self, k: visit::Value) -> Result<(), visit::Error> {
                 let map = self.expect()?.expect_serialize_map()?;
-                map.serialize_key(&k).map_err(err("error map serializing key"))?;
+                map.serialize_key(&Serde(k))
+                    .map_err(err("error map serializing key"))?;
 
                 Ok(())
             }
 
             fn map_value(&mut self, v: visit::Value) -> Result<(), visit::Error> {
                 let map = self.expect()?.expect_serialize_map()?;
-                map.serialize_value(&v).map_err(err("error serializing map value"))?;
+                map.serialize_value(&Serde(v))
+                    .map_err(err("error serializing map value"))?;
 
                 Ok(())
             }
@@ -250,71 +275,101 @@ impl<'a> Serialize for visit::Value<'a> {
 
             fn i64(&mut self, v: i64) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_i64(v).map_err(err("error serializing signed integer"))?);
-                
+                self.ok = Some(
+                    ser.serialize_i64(v)
+                        .map_err(err("error serializing signed integer"))?,
+                );
+
                 Ok(())
             }
 
             fn u64(&mut self, v: u64) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_u64(v).map_err(err("error serializing unsigned integer"))?);
-                
+                self.ok = Some(
+                    ser.serialize_u64(v)
+                        .map_err(err("error serializing unsigned integer"))?,
+                );
+
                 Ok(())
             }
 
             fn i128(&mut self, v: i128) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_i128(v).map_err(err("error serializing 128bit signed integer"))?);
-                
+                self.ok = Some(
+                    ser.serialize_i128(v)
+                        .map_err(err("error serializing 128bit signed integer"))?,
+                );
+
                 Ok(())
             }
 
             fn u128(&mut self, v: u128) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_u128(v).map_err(err("error serializing 128bit unsigned integer"))?);
-                
+                self.ok = Some(
+                    ser.serialize_u128(v)
+                        .map_err(err("error serializing 128bit unsigned integer"))?,
+                );
+
                 Ok(())
             }
 
             fn f64(&mut self, v: f64) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_f64(v).map_err(err("error serializing floating-point value"))?);
-                
+                self.ok = Some(
+                    ser.serialize_f64(v)
+                        .map_err(err("error serializing floating-point value"))?,
+                );
+
                 Ok(())
             }
 
             fn bool(&mut self, v: bool) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_bool(v).map_err(err("error serializing boolean"))?);
-                
+                self.ok = Some(
+                    ser.serialize_bool(v)
+                        .map_err(err("error serializing boolean"))?,
+                );
+
                 Ok(())
             }
 
             fn char(&mut self, v: char) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_char(v).map_err(err("error serializing unicode character"))?);
-                
+                self.ok = Some(
+                    ser.serialize_char(v)
+                        .map_err(err("error serializing unicode character"))?,
+                );
+
                 Ok(())
             }
 
             fn str(&mut self, v: &str) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_str(v).map_err(err("error serializing UTF-8 string"))?);
-                
+                self.ok = Some(
+                    ser.serialize_str(v)
+                        .map_err(err("error serializing UTF-8 string"))?,
+                );
+
                 Ok(())
             }
 
             fn none(&mut self) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.serialize_none().map_err(err("error serializing empty value"))?);
-                
+                self.ok = Some(
+                    ser.serialize_none()
+                        .map_err(err("error serializing empty value"))?,
+                );
+
                 Ok(())
             }
 
             fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), visit::Error> {
                 let ser = self.take()?.take_serializer()?;
-                self.ok = Some(ser.collect_str(v).map_err(err("error serializing format"))?);
-                
+                self.ok = Some(
+                    ser.collect_str(v)
+                        .map_err(err("error serializing format"))?,
+                );
+
                 Ok(())
             }
         }
@@ -324,23 +379,23 @@ impl<'a> Serialize for visit::Value<'a> {
             current: Some(Current::Serializer(serializer)),
         };
 
-        self.visit(&mut visit).map_err(|e| e.into_serde())?;
+        self.0.visit(&mut visit).map_err(S::Error::custom)?;
 
         Ok(visit.ok.expect("missing return value"))
     }
 }
 
-impl<'a> Serializer for value::Visit<'a> {
+impl<'a> Serializer for Serde<value::Visit<'a>> {
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = value::VisitSeq<'a>;
-    type SerializeTuple = value::VisitSeq<'a>;
-    type SerializeTupleStruct = value::VisitSeq<'a>;
-    type SerializeTupleVariant = value::VisitSeq<'a>;
-    type SerializeMap = value::VisitMap<'a>;
-    type SerializeStruct = value::VisitMap<'a>;
-    type SerializeStructVariant = value::VisitMap<'a>;
+    type SerializeSeq = Serde<value::VisitSeq<'a>>;
+    type SerializeTuple = Serde<value::VisitSeq<'a>>;
+    type SerializeTupleStruct = Serde<value::VisitSeq<'a>>;
+    type SerializeTupleVariant = Serde<value::VisitSeq<'a>>;
+    type SerializeMap = Serde<value::VisitMap<'a>>;
+    type SerializeStruct = Serde<value::VisitMap<'a>>;
+    type SerializeStructVariant = Serde<value::VisitMap<'a>>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         unimplemented!()
@@ -514,7 +569,7 @@ impl<'a> Serializer for value::Visit<'a> {
     }
 }
 
-impl<'a> SerializeSeq for value::VisitSeq<'a> {
+impl<'a> SerializeSeq for Serde<value::VisitSeq<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -530,7 +585,7 @@ impl<'a> SerializeSeq for value::VisitSeq<'a> {
     }
 }
 
-impl<'a> SerializeTuple for value::VisitSeq<'a> {
+impl<'a> SerializeTuple for Serde<value::VisitSeq<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -546,7 +601,7 @@ impl<'a> SerializeTuple for value::VisitSeq<'a> {
     }
 }
 
-impl<'a> SerializeTupleStruct for value::VisitSeq<'a> {
+impl<'a> SerializeTupleStruct for Serde<value::VisitSeq<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -562,7 +617,7 @@ impl<'a> SerializeTupleStruct for value::VisitSeq<'a> {
     }
 }
 
-impl<'a> SerializeTupleVariant for value::VisitSeq<'a> {
+impl<'a> SerializeTupleVariant for Serde<value::VisitSeq<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -578,7 +633,7 @@ impl<'a> SerializeTupleVariant for value::VisitSeq<'a> {
     }
 }
 
-impl<'a> SerializeMap for value::VisitMap<'a> {
+impl<'a> SerializeMap for Serde<value::VisitMap<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -601,7 +656,7 @@ impl<'a> SerializeMap for value::VisitMap<'a> {
     }
 }
 
-impl<'a> SerializeStruct for value::VisitMap<'a> {
+impl<'a> SerializeStruct for Serde<value::VisitMap<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -617,7 +672,7 @@ impl<'a> SerializeStruct for value::VisitMap<'a> {
     }
 }
 
-impl<'a> SerializeStructVariant for value::VisitMap<'a> {
+impl<'a> SerializeStructVariant for Serde<value::VisitMap<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -636,7 +691,7 @@ impl<'a> SerializeStructVariant for value::VisitMap<'a> {
 /**
 An error encountered during serialization.
 */
-pub struct Error(value::Error);
+struct Error(value::Error);
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -650,18 +705,18 @@ impl fmt::Display for Error {
     }
 }
 
-fn err<E>(msg: &'static str) -> impl FnOnce(E) -> crate::Error
+fn err<E>(msg: &'static str) -> impl FnOnce(E) -> val::Error
 where
     E: ser::Error,
 {
-    #[cfg(feature = "serde_std")]
+    #[cfg(feature = "std")]
     {
-        move |err| visit::Error::from(err)
+        move |err| val::Error::from(err)
     }
 
-    #[cfg(all(feature = "serde_no_std", not(feature = "serde_std")))]
+    #[cfg(not(feature = "std"))]
     {
-        move |_| visit::Error::msg(msg)
+        move |_| val::Error::msg(msg)
     }
 }
 

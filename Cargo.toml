@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "val",
+    "val_serde",
     "tests/val_value",
     "tests/val_visit",
     "tests/serde_value",

@@ -10,7 +10,7 @@ fn main() {
     map.insert(Id::new(1), vec!["Hello", "World"]);
     map.insert(Id::new(2), vec!["World", "Hello"]);
 
-    let json = serde_json::to_string(&val::serde::to_serialize(map)).unwrap();
+    let json = serde_json::to_string(&val_serde::to_serialize(map)).unwrap();
     println!("{}", json);
 
     // A map that implements `serde::Serialize`

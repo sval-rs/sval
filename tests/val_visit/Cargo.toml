@@ -6,7 +6,9 @@ edition = "2018"
 
 [dependencies.val]
 path = "../../val"
-features = ["serde_std"]
+
+[dependencies.val_serde]
+path = "../../val_serde"
 
 [dependencies.val_value]
 path = "../val_value"

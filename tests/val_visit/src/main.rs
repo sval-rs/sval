@@ -1,8 +1,4 @@
-use std::{
-    mem,
-    fmt,
-    collections::BTreeMap,
-};
+use std::{collections::BTreeMap, fmt, mem};
 
 use serde_value::Id as SerdeId;
 use val_value::Id;
@@ -88,6 +84,6 @@ fn main() {
     map.insert(SerdeId::new(1), vec!["Hello", "World"]);
     map.insert(SerdeId::new(2), vec!["World", "Hello"]);
 
-    val::visit(val::serde::to_value(map), Fmt { delim: "" }).unwrap();
+    val::visit(val_serde::to_value(map), Fmt { delim: "" }).unwrap();
     println!();
 }

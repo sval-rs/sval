@@ -202,12 +202,6 @@ impl Visit for IsU64 {
     }
 }
 ```
-
-# `serde`
-
-If the `serde_std` or `serde_no_std` feature is enabled, implementations of
-[`value::Value`] can be converted into implementations of `serde::Serialize`.
-See the `serde` module for more details.
 */
 
 #![no_std]
@@ -217,9 +211,6 @@ extern crate std;
 
 #[cfg(not(feature = "std"))]
 extern crate core as std;
-
-#[cfg(feature = "serde")]
-pub mod serde;
 
 mod impls;
 
