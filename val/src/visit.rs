@@ -270,10 +270,6 @@ impl<'a> Value<'a> {
     pub fn visit(&self, mut visit: impl Visit) -> Result<(), Error> {
         self.inner.as_ref().visit(value::Visit::new(&mut visit))
     }
-
-    pub(crate) fn as_visit(&self) -> &dyn value::Value {
-        self.inner.as_ref()
-    }
 }
 
 impl<'a> fmt::Debug for Value<'a> {

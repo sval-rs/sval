@@ -4,12 +4,6 @@ use crate::{
     visit,
 };
 
-impl<'a> Value for visit::Value<'a> {
-    fn visit(&self, visit: Visit) -> Result<(), Error> {
-        self.as_visit().visit(visit)
-    }
-}
-
 impl Value for () {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
         visit.none()
