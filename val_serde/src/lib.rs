@@ -5,7 +5,7 @@ A type that implements [`val::value::Value`] can be converted into
 a type that implements [`serde::Serialize`]:
 
 ```
-# #[derive(Debug)] struct MyValue;
+# struct MyValue;
 # impl val::value::Value for MyValue {
 #     fn visit(&self, visit: val::value::Visit) -> Result<(), val::value::Error> {
 #         visit.none()
@@ -15,11 +15,11 @@ a type that implements [`serde::Serialize`]:
 let my_serialize = val_serde::to_serialize(my_value);
 ```
 
-A type that implements [`std::fmt::Debug`] and [`serde::Serialize`] can be converted into
+A type that implements [`serde::Serialize`] can be converted into
 a type that implements [`val::value::Value`]:
 
 ```
-# #[derive(Debug)] struct MySerialize;
+# struct MySerialize;
 # impl serde::Serialize for MySerialize {
 #     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
 #         s.serialize_none()
@@ -39,7 +39,6 @@ extern crate std;
 extern crate core as std;
 
 mod error;
-mod debug;
 mod to_serialize;
 mod to_value;
 
@@ -60,9 +59,9 @@ use serde::ser::{
 };
 
 /**
-Convert a `T: Value` into an `impl Serialize + Debug`.
+Convert a `T: Value` into an `impl Serialize`.
 */
-pub fn to_serialize(value: impl Value) -> impl Serialize + Debug {
+pub fn to_serialize(value: impl Value) -> impl Serialize {
     struct ToSerialize<V>(V);
 
     impl<V> Debug for ToSerialize<V>
@@ -93,23 +92,14 @@ pub fn to_serialize(value: impl Value) -> impl Serialize + Debug {
 }
 
 /**
-Convert a `T: Serialize + Debug` into an `impl Value`.
+Convert a `T: Serialize` into an `impl Value`.
 */
-pub fn to_value(serialize: impl Serialize + Debug) -> impl Value {
+pub fn to_value(serialize: impl Serialize) -> impl Value {
     struct ToValue<S>(S);
-
-    impl<S> Debug for ToValue<S>
-    where
-        S: Debug,
-    {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            self.0.fmt(f)
-        }
-    }
 
     impl<S> Value for ToValue<S>
     where
-        S: Serialize + Debug,
+        S: Serialize,
     {
         fn visit(&self, visit: val::value::Visit) -> Result<(), val::value::Error> {
             self.0

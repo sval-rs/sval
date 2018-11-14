@@ -134,16 +134,6 @@ impl<S> visit::Visit for Visit<S>
 where
     S: Serializer,
 {
-    fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
-        let ser = self.take()?.take_serializer()?;
-        self.ok = Some(
-            ser.collect_str(&v)
-                .map_err(err("error collecting string"))?,
-        );
-
-        Ok(())
-    }
-
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), visit::Error> {
         self.map_serializer(|ser| ser.serialize_seq(len).map(|seq| Current::SerializeSeq(seq)))
     }

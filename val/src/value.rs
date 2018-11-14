@@ -13,7 +13,7 @@ pub use crate::Error;
 /**
 A value that can be visited.
 */
-pub trait Value: fmt::Debug {
+pub trait Value {
     /**
     Visit this value.
     */

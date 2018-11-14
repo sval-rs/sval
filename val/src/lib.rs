@@ -11,7 +11,7 @@ val::visit(42, MyVisit)?;
 # use val::visit::{self, Visit};
 # struct MyVisit;
 # impl val::visit::Visit for MyVisit {
-#     fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> { unimplemented!() }
+#     fn fmt(&mut self, v: visit::Arguments) -> Result<(), visit::Error> { unimplemented!() }
 # }
 ```
 
@@ -25,7 +25,6 @@ visited using a [`value::Visit`]:
 ```
 use val::value::{self, Value};
 
-#[derive(Debug)]
 pub struct Id(u64);
 
 impl Value for Id {
@@ -42,7 +41,6 @@ A sequence can be visited by iterating over its elements:
 ```
 use val::value::{self, Value};
 
-#[derive(Debug)]
 pub struct Seq(Vec<u64>);
 
 impl Value for Seq {
@@ -67,7 +65,6 @@ use std::collections::BTreeMap;
 
 use val::value::{self, Value};
 
-#[derive(Debug)]
 pub struct Map(BTreeMap<String, u64>);
 
 impl Value for Map {
@@ -94,8 +91,8 @@ use val::visit::{self, Visit};
 struct Fmt;
 
 impl Visit for Fmt {
-    fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
-        println!("{:?}", v);
+    fn fmt(&mut self, v: visit::Arguments) -> Result<(), visit::Error> {
+        println!("{}", v);
         Ok(())
     }
 }
@@ -120,7 +117,7 @@ impl Fmt {
 }
 
 impl Visit for Fmt {
-    fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
+    fn fmt(&mut self, v: visit::Arguments) -> Result<(), visit::Error> {
         self.print(format_args!("{:?}", v));
         self.delim = " ";
 
@@ -177,7 +174,7 @@ A `Visit` might only care about a single kind of value:
 ```
 use std::{fmt, mem};
 use val::{
-    value::Value,
+    Value,
     visit::{self, Visit}
 };
 
@@ -197,7 +194,7 @@ impl Visit for IsU64 {
         Ok(())
     }
 
-    fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
+    fn fmt(&mut self, v: visit::Arguments) -> Result<(), visit::Error> {
         Err(visit::Error::msg("not a u64"))
     }
 }

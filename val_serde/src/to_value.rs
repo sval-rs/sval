@@ -1,5 +1,4 @@
 use crate::{
-    debug::Debug,
     error::{err, Error},
     std::fmt,
 };
@@ -23,6 +22,21 @@ pub(crate) struct Serializer<T>(T);
 impl<'a> Serializer<value::Visit<'a>> {
     pub(crate) fn begin(visit: value::Visit<'a>) -> Self {
         Serializer(visit)
+    }
+}
+
+struct Value<T>(T);
+
+impl<T> value::Value for Value<T>
+where
+    T: Serialize,
+{
+    fn visit(&self, visit: value::Visit) -> Result<(), value::Error> {
+        self.0
+            .serialize(Serializer(visit))
+            .map_err(err("error visiting serde"))?;
+
+        Ok(())
     }
 }
 
@@ -253,7 +267,7 @@ impl<'a> SerializeSeq for Serializer<value::VisitSeq<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.elem(Debug(value))?;
+        self.0.elem(Value(value))?;
         Ok(())
     }
 
@@ -271,7 +285,7 @@ impl<'a> SerializeTuple for Serializer<value::VisitSeq<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.elem(Debug(value))?;
+        self.0.elem(Value(value))?;
         Ok(())
     }
 
@@ -289,7 +303,7 @@ impl<'a> SerializeTupleStruct for Serializer<value::VisitSeq<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.elem(Debug(value))?;
+        self.0.elem(Value(value))?;
         Ok(())
     }
 
@@ -308,7 +322,7 @@ impl<'a> SerializeTupleVariant for TupleVariant<'a> {
         T: ?Sized + Serialize,
     {
         self.0
-            .entry(format_args!("field_{}", self.1), Debug(value))?;
+            .entry(format_args!("field_{}", self.1), Value(value))?;
         self.1 += 1;
         Ok(())
     }
@@ -327,7 +341,7 @@ impl<'a> SerializeMap for Serializer<value::VisitMap<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.key(Debug(key))?;
+        self.0.key(Value(key))?;
         Ok(())
     }
 
@@ -335,7 +349,7 @@ impl<'a> SerializeMap for Serializer<value::VisitMap<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.value(Debug(value))?;
+        self.0.value(Value(value))?;
         Ok(())
     }
 
@@ -353,7 +367,7 @@ impl<'a> SerializeStruct for Serializer<value::VisitMap<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.entry(key, Debug(value))?;
+        self.0.entry(key, Value(value))?;
         Ok(())
     }
 
@@ -371,25 +385,12 @@ impl<'a> SerializeStructVariant for Serializer<value::VisitMap<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.entry(format_args!("field_{}", key), Debug(value))?;
+        self.0.entry(format_args!("field_{}", key), Value(value))?;
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.0.end()?;
-        Ok(())
-    }
-}
-
-impl<T> value::Value for Debug<T>
-where
-    T: Serialize,
-{
-    fn visit(&self, visit: value::Visit) -> Result<(), value::Error> {
-        self.0
-            .serialize(Serializer(visit))
-            .map_err(err("error visiting serde"))?;
-
         Ok(())
     }
 }

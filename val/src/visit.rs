@@ -10,6 +10,8 @@ use crate::{
 #[doc(inline)]
 pub use crate::Error;
 
+pub use self::fmt::Arguments;
+
 /**
 A visitor for a value.
 
@@ -21,12 +23,8 @@ guaranteed to be received in a valid way. See the [`value::Visit`]
 type for more details.
 */
 pub trait Visit {
-    /**
-    Visit an arbitrary value.
-    
-    The value may be formatted using its `Debug` representation.
-    */
-    fn any(&mut self, v: Value) -> Result<(), Error>;
+    /** Visit a format. */
+    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), Error>;
 
     /**
     Begin a sequence.
@@ -103,32 +101,32 @@ pub trait Visit {
 
     /** Visit a signed integer. */
     fn i64(&mut self, v: i64) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", v))
     }
 
     /** Visit an unsigned integer. */
     fn u64(&mut self, v: u64) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", v))
     }
 
     /** Visit a 128bit signed integer. */
     fn i128(&mut self, v: i128) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", v))
     }
 
     /** Visit a 128bit unsigned integer. */
     fn u128(&mut self, v: u128) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", v))
     }
 
     /** Visit a floating point value. */
     fn f64(&mut self, v: f64) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", v))
     }
 
     /** Visit a boolean. */
     fn bool(&mut self, v: bool) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", v))
     }
 
     /** Visit a unicode character. */
@@ -139,27 +137,18 @@ pub trait Visit {
 
     /** Visit a UTF-8 string slice. */
     fn str(&mut self, v: &str) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", v))
     }
 
     /** Visit an empty value. */
     fn none(&mut self) -> Result<(), Error> {
-        self.any(Value::new(&()))
-    }
-
-    /** Visit a format. */
-    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), Error> {
-        self.any(Value::new(&v))
+        self.fmt(format_args!("{:?}", ()))
     }
 }
 
 macro_rules! impl_deref {
     ($($header:tt)*) => {
         impl $($header)* {
-            fn any(&mut self, v: Value) -> Result<(), Error> {
-                (**self).any(v)
-            }
-
             fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
                 (**self).seq_begin(len)
             }
@@ -267,18 +256,6 @@ impl<'a> Value<'a> {
 
     pub fn visit(&self, visit: &mut impl Visit) -> Result<(), Error> {
         self.inner.as_ref().visit(value::Visit::new(visit))
-    }
-}
-
-impl<'a> fmt::Debug for Value<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.inner.as_ref().fmt(f)
-    }
-}
-
-impl<'a> fmt::Display for Value<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.inner.as_ref().fmt(f)
     }
 }
 

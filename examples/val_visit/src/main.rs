@@ -27,8 +27,8 @@ impl Fmt {
 }
 
 impl Visit for Fmt {
-    fn any(&mut self, v: visit::Value) -> Result<(), visit::Error> {
-        self.print(format_args!("{:?}", v));
+    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), visit::Error> {
+        self.print(v);
         self.delim = " ";
 
         Ok(())
