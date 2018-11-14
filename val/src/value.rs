@@ -2,7 +2,10 @@
 Producers of structured values.
 */
 
-use crate::{std::fmt, visit};
+use crate::{
+    std::fmt,
+    visit,
+};
 
 #[doc(inline)]
 pub use crate::Error;
@@ -37,8 +40,7 @@ It also imposes some limitations on the way the internal `Visit` can be called:
 `Visit::seq` or `Visit::map`.
 - Sequences and maps must call `end` and cannot visit more elements or entries after
 ending.
-- Map keys are always visited before values, and there's always a value visited after
-a key.
+- Map keys are always visited before values, and there's always either a visited after a key.
 
 Implementations of [`visit::Visit`] can rely on these guarantees being met upstream.
 */

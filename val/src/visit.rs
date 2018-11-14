@@ -2,7 +2,10 @@
 Consumers of structured values.
 */
 
-use crate::{std::fmt, value};
+use crate::{
+    std::fmt,
+    value,
+};
 
 #[doc(inline)]
 pub use crate::Error;

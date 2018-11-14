@@ -1,11 +1,11 @@
+/*!
+An approximate implementation of `Debug` for a `T: Serialize`.
+*/
+
 use crate::{
-    debug::Debug,
-    err,
     std::fmt,
     Error,
 };
-
-use val::value;
 
 use serde::ser::{
     self,
@@ -19,100 +19,110 @@ use serde::ser::{
     SerializeTupleVariant,
 };
 
-pub(crate) struct Serializer<T>(T);
+pub(crate) struct Debug<T>(pub(crate) T);
 
-impl<'a> Serializer<value::Visit<'a>> {
-    pub(crate) fn begin(visit: value::Visit<'a>) -> Self {
-        Serializer(visit)
+impl<T> fmt::Debug for Debug<T>
+where
+    T: Serialize,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.serialize(Formatter(f)).map_err(|_| fmt::Error)
     }
 }
 
-pub(crate) struct TupleVariant<'a>(value::VisitMap<'a>, usize);
+impl<T> Serialize for Debug<T>
+where
+    T: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
 
-impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
+struct Formatter<T>(T);
+
+struct DebugMap<'a, 'b>(fmt::DebugMap<'a, 'b>, usize);
+
+impl<'a, 'b> ser::Serializer for Formatter<&'a mut fmt::Formatter<'b>> {
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = Serializer<value::VisitSeq<'a>>;
-    type SerializeTuple = Serializer<value::VisitSeq<'a>>;
-    type SerializeTupleStruct = Serializer<value::VisitSeq<'a>>;
-    type SerializeTupleVariant = TupleVariant<'a>;
-    type SerializeMap = Serializer<value::VisitMap<'a>>;
-    type SerializeStruct = Serializer<value::VisitMap<'a>>;
-    type SerializeStructVariant = Serializer<value::VisitMap<'a>>;
+    type SerializeSeq = Formatter<fmt::DebugList<'a, 'b>>;
+    type SerializeTuple = Formatter<fmt::DebugTuple<'a, 'b>>;
+    type SerializeTupleStruct = Formatter<fmt::DebugTuple<'a, 'b>>;
+    type SerializeTupleVariant = Formatter<fmt::DebugTuple<'a, 'b>>;
+    type SerializeMap = DebugMap<'a, 'b>;
+    type SerializeStruct = Formatter<fmt::DebugStruct<'a, 'b>>;
+    type SerializeStructVariant = Formatter<fmt::DebugStruct<'a, 'b>>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        self.0.bool(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(i64::from(v))?;
-        Ok(())
+        self.serialize_i64(i64::from(v))
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(i64::from(v))?;
-        Ok(())
+        self.serialize_i64(i64::from(v))
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(i64::from(v))?;
-        Ok(())
+        self.serialize_i64(i64::from(v))
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        self.0.i64(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(u64::from(v))?;
-        Ok(())
+        self.serialize_u64(u64::from(v))
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(u64::from(v))?;
-        Ok(())
+        self.serialize_u64(u64::from(v))
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(u64::from(v))?;
-        Ok(())
+        self.serialize_u64(u64::from(v))
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        self.0.u64(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_i128(self, v: i128) -> Result<Self::Ok, Self::Error> {
-        self.0.i128(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_u128(self, v: u128) -> Result<Self::Ok, Self::Error> {
-        self.0.u128(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_f64(f64::from(v))?;
-        Ok(())
+        self.serialize_f64(f64::from(v))
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        self.0.f64(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        self.0.char(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.0.str(v)?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
@@ -120,40 +130,34 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
     where
         T: ?Sized + fmt::Display,
     {
-        self.0.fmt(format_args!("{}", v))?;
+        write!(self.0, "{}", v)?;
         Ok(())
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        let mut seq = self.0.seq(Some(v.len()))?;
-
-        for b in v {
-            seq.elem(b)?;
-        }
-
-        seq.end()?;
+        write!(self.0, "{:?}", v)?;
         Ok(())
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_unit()
+        write!(self.0, "{:?}", ())?;
+        Ok(())
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        value.serialize(self)?;
-        Ok(())
+        value.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        self.0.none()?;
+        write!(self.0, "{:?}", ())?;
         Ok(())
     }
 
     fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
-        self.serialize_unit()
+        self.serialize_none()
     }
 
     fn serialize_unit_variant(
@@ -178,33 +182,32 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
 
     fn serialize_newtype_variant<T>(
         self,
-        name: &'static str,
-        variant_index: u32,
+        _: &'static str,
+        _: u32,
         variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        let mut ser = self.serialize_tuple_variant(name, variant_index, variant, 1)?;
-        ser.serialize_field(value)?;
-        ser.end()
+        self.0.debug_tuple(variant).field(&Debug(value)).finish()?;
+        Ok(())
     }
 
-    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        Ok(Serializer(self.0.seq(len)?))
+    fn serialize_seq(self, _: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        Ok(Formatter(self.0.debug_list()))
     }
 
-    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        self.serialize_seq(Some(len))
+    fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        Ok(Formatter(self.0.debug_tuple("")))
     }
 
     fn serialize_tuple_struct(
         self,
-        _: &'static str,
-        len: usize,
+        name: &'static str,
+        _: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        self.serialize_seq(Some(len))
+        Ok(Formatter(self.0.debug_tuple(name)))
     }
 
     fn serialize_tuple_variant(
@@ -212,24 +215,21 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
         _: &'static str,
         _: u32,
         variant: &'static str,
-        len: usize,
+        _: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        let mut map = self.0.map(Some(len + 1))?;
-        map.entry(format_args!("variant"), variant)?;
-
-        Ok(TupleVariant(map, 0))
+        Ok(Formatter(self.0.debug_tuple(variant)))
     }
 
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Ok(Serializer(self.0.map(len)?))
+    fn serialize_map(self, _: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        Ok(DebugMap(self.0.debug_map(), 0))
     }
 
     fn serialize_struct(
         self,
-        _: &'static str,
-        len: usize,
+        name: &'static str,
+        _: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        self.serialize_map(Some(len))
+        Ok(Formatter(self.0.debug_struct(name)))
     }
 
     fn serialize_struct_variant(
@@ -237,16 +237,13 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
         _: &'static str,
         _: u32,
         variant: &'static str,
-        len: usize,
+        _: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        let mut map = self.0.map(Some(len + 1))?;
-        map.entry(format_args!("variant"), variant)?;
-
-        Ok(Serializer(map))
+        Ok(Formatter(self.0.debug_struct(variant)))
     }
 }
 
-impl<'a> SerializeSeq for Serializer<value::VisitSeq<'a>> {
+impl<'a, 'b> SerializeSeq for Formatter<fmt::DebugList<'a, 'b>> {
     type Ok = ();
     type Error = Error;
 
@@ -254,17 +251,17 @@ impl<'a> SerializeSeq for Serializer<value::VisitSeq<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.elem(Debug(value))?;
+        self.0.entry(&Debug(value));
         Ok(())
     }
 
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.0.end()?;
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.0.finish()?;
         Ok(())
     }
 }
 
-impl<'a> SerializeTuple for Serializer<value::VisitSeq<'a>> {
+impl<'a, 'b> SerializeTuple for Formatter<fmt::DebugTuple<'a, 'b>> {
     type Ok = ();
     type Error = Error;
 
@@ -272,17 +269,17 @@ impl<'a> SerializeTuple for Serializer<value::VisitSeq<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.elem(Debug(value))?;
+        self.0.field(&Debug(value));
         Ok(())
     }
 
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.0.end()?;
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.0.finish()?;
         Ok(())
     }
 }
 
-impl<'a> SerializeTupleStruct for Serializer<value::VisitSeq<'a>> {
+impl<'a, 'b> SerializeTupleStruct for Formatter<fmt::DebugTuple<'a, 'b>> {
     type Ok = ();
     type Error = Error;
 
@@ -290,17 +287,17 @@ impl<'a> SerializeTupleStruct for Serializer<value::VisitSeq<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.elem(Debug(value))?;
+        self.0.field(&Debug(value));
         Ok(())
     }
 
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.0.end()?;
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.0.finish()?;
         Ok(())
     }
 }
 
-impl<'a> SerializeTupleVariant for TupleVariant<'a> {
+impl<'a, 'b> SerializeTupleVariant for Formatter<fmt::DebugTuple<'a, 'b>> {
     type Ok = ();
     type Error = Error;
 
@@ -308,27 +305,24 @@ impl<'a> SerializeTupleVariant for TupleVariant<'a> {
     where
         T: ?Sized + Serialize,
     {
-        self.0
-            .entry(format_args!("field_{}", self.1), Debug(value))?;
-        self.1 += 1;
+        self.0.field(&Debug(value));
         Ok(())
     }
 
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.0.end()?;
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.0.finish()?;
         Ok(())
     }
 }
 
-impl<'a> SerializeMap for Serializer<value::VisitMap<'a>> {
+impl<'a, 'b> SerializeMap for DebugMap<'a, 'b> {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_key<T>(&mut self, key: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_key<T>(&mut self, _: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        self.0.key(Debug(key))?;
         Ok(())
     }
 
@@ -336,61 +330,50 @@ impl<'a> SerializeMap for Serializer<value::VisitMap<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.value(Debug(value))?;
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.0.end()?;
-        Ok(())
-    }
-}
-
-impl<'a> SerializeStruct for Serializer<value::VisitMap<'a>> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.0.entry(key, Debug(value))?;
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.0.end()?;
-        Ok(())
-    }
-}
-
-impl<'a> SerializeStructVariant for Serializer<value::VisitMap<'a>> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.0.entry(format_args!("field_{}", key), Debug(value))?;
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.0.end()?;
-        Ok(())
-    }
-}
-
-impl<T> value::Value for Debug<T>
-where
-    T: Serialize,
-{
-    fn visit(&self, visit: value::Visit) -> Result<(), value::Error> {
         self.0
-            .serialize(Serializer(visit))
-            .map_err(err("error visiting serde"))?;
+            .entry(&format_args!("field_{}", self.1), &Debug(value));
+        self.1 += 1;
+        Ok(())
+    }
 
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.0.finish()?;
+        Ok(())
+    }
+}
+
+impl<'a, 'b> SerializeStruct for Formatter<fmt::DebugStruct<'a, 'b>> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        self.0.field(key, &Debug(value));
+        Ok(())
+    }
+
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.0.finish()?;
+        Ok(())
+    }
+}
+
+impl<'a, 'b> SerializeStructVariant for Formatter<fmt::DebugStruct<'a, 'b>> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        self.0.field(key, &Debug(value));
+        Ok(())
+    }
+
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.0.finish()?;
         Ok(())
     }
 }

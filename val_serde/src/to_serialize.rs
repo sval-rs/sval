@@ -1,10 +1,15 @@
-use crate::{err, std::fmt, Error};
+use crate::{
+    err,
+    std::fmt,
+};
 
 use val::visit;
 
 use serde::ser::{
-    self, Error as SerError, Serialize, SerializeMap, SerializeSeq, SerializeStruct,
-    SerializeStructVariant, SerializeTuple, SerializeTupleStruct, SerializeTupleVariant,
+    Error as SerError,
+    Serialize,
+    SerializeMap,
+    SerializeSeq,
     Serializer,
 };
 
@@ -42,6 +47,7 @@ where
 }
 
 struct Value<'a>(visit::Value<'a>);
+
 impl<'a> Serialize for Value<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

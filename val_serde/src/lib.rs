@@ -38,18 +38,26 @@ extern crate std;
 #[cfg(not(feature = "std"))]
 extern crate core as std;
 
-use crate::std::fmt::{self, Debug};
+use crate::std::fmt::{
+    self,
+    Debug,
+};
 
+mod debug;
 mod to_serialize;
 mod to_value;
 
 use serde::ser::{
-    self, Error as SerError, Serialize, SerializeMap, SerializeSeq, SerializeStruct,
-    SerializeStructVariant, SerializeTuple, SerializeTupleStruct, SerializeTupleVariant,
+    self,
+    Error as SerError,
+    Serialize,
     Serializer,
 };
 
-use val::value::{self, Value};
+use val::value::{
+    self,
+    Value,
+};
 
 /**
 Convert a `T: Value` into an `impl Serialize + Debug`.
@@ -120,6 +128,18 @@ An error encountered during serialization.
 */
 struct Error(value::Error);
 
+impl From<fmt::Error> for Error {
+    fn from(_: fmt::Error) -> Self {
+        Error(value::Error::msg("error during formatting"))
+    }
+}
+
+impl From<value::Error> for Error {
+    fn from(err: value::Error) -> Self {
+        Error(err)
+    }
+}
+
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&self.0, f)
@@ -138,6 +158,7 @@ where
 {
     #[cfg(feature = "std")]
     {
+        let _ = msg;
         move |err| val::Error::from(err)
     }
 

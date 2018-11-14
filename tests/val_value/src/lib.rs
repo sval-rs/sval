@@ -1,4 +1,7 @@
-use val::value::{self, Value};
+use val::value::{
+    self,
+    Value,
+};
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Id(u64);

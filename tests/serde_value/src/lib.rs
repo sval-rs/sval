@@ -9,3 +9,11 @@ impl Id {
         Id(id)
     }
 }
+
+#[derive(Debug, Serialize)]
+pub enum Complex {
+    Unit,
+    Tuple(i32, i32),
+    NewType(i32),
+    Struct { a: i32, b: i32 },
+}

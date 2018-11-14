@@ -57,7 +57,12 @@ impl fmt::Display for ErrorInner {
 mod std_support {
     use super::*;
 
-    use crate::std::{boxed::Box, error, io, string::ToString};
+    use crate::std::{
+        boxed::Box,
+        error,
+        io,
+        string::ToString,
+    };
 
     impl Error {
         /** Get an error from a format. */
