@@ -1,8 +1,7 @@
 use crate::{
     debug::Debug,
-    err,
+    error::{err, Error},
     std::fmt,
-    Error,
 };
 
 use val::value;

@@ -219,7 +219,11 @@ pub mod visit;
 
 mod error;
 
-pub use self::error::Error;
+pub use self::{
+    error::Error,
+    value::Value,
+    visit::Visit,
+};
 
 /**
 Value a value with the given visitor.

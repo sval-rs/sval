@@ -1,7 +1,7 @@
 /*!
 Convert between `val` and `serde`.
 
-A type that implements [`value::Value`] can be converted into
+A type that implements [`val::value::Value`] can be converted into
 a type that implements [`serde::Serialize`]:
 
 ```
@@ -16,7 +16,7 @@ let my_serialize = val_serde::to_serialize(my_value);
 ```
 
 A type that implements [`std::fmt::Debug`] and [`serde::Serialize`] can be converted into
-a type that implements [`value::Value`]:
+a type that implements [`val::value::Value`]:
 
 ```
 # #[derive(Debug)] struct MySerialize;
@@ -38,25 +38,25 @@ extern crate std;
 #[cfg(not(feature = "std"))]
 extern crate core as std;
 
-use crate::std::fmt::{
-    self,
-    Debug,
-};
-
+mod error;
 mod debug;
 mod to_serialize;
 mod to_value;
 
+use crate::{
+    std::fmt::{
+        self,
+        Debug,
+    },
+    error::err,
+};
+
+use val::value::Value;
+
 use serde::ser::{
-    self,
     Error as SerError,
     Serialize,
     Serializer,
-};
-
-use val::value::{
-    self,
-    Value,
 };
 
 /**
@@ -76,7 +76,7 @@ pub fn to_serialize(value: impl Value) -> impl Serialize + Debug {
 
     impl<V> Serialize for ToSerialize<V>
     where
-        V: value::Value,
+        V: Value,
     {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -111,7 +111,7 @@ pub fn to_value(serialize: impl Serialize + Debug) -> impl Value {
     where
         S: Serialize + Debug,
     {
-        fn visit(&self, visit: value::Visit) -> Result<(), value::Error> {
+        fn visit(&self, visit: val::value::Visit) -> Result<(), val::value::Error> {
             self.0
                 .serialize(to_value::Serializer::begin(visit))
                 .map_err(err("error visiting serde"))?;
@@ -121,89 +121,4 @@ pub fn to_value(serialize: impl Serialize + Debug) -> impl Value {
     }
 
     ToValue(serialize)
-}
-
-/**
-An error encountered during serialization.
-*/
-struct Error(value::Error);
-
-impl From<fmt::Error> for Error {
-    fn from(_: fmt::Error) -> Self {
-        Error(value::Error::msg("error during formatting"))
-    }
-}
-
-impl From<value::Error> for Error {
-    fn from(err: value::Error) -> Self {
-        Error(err)
-    }
-}
-
-impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, f)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
-    }
-}
-
-fn err<E>(msg: &'static str) -> impl FnOnce(E) -> val::Error
-where
-    E: ser::Error,
-{
-    #[cfg(feature = "std")]
-    {
-        let _ = msg;
-        move |err| val::Error::from(err)
-    }
-
-    #[cfg(not(feature = "std"))]
-    {
-        move |_| val::Error::msg(msg)
-    }
-}
-
-#[cfg(not(feature = "std"))]
-mod core_support {
-    use super::*;
-
-    impl ser::Error for Error {
-        fn custom<E>(_: E) -> Self
-        where
-            E: fmt::Display,
-        {
-            Error(value::Error::msg("serialization error"))
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-mod std_support {
-    use super::*;
-
-    use crate::std::error;
-
-    impl error::Error for Error {
-        fn cause(&self) -> Option<&dyn error::Error> {
-            None
-        }
-
-        fn description(&self) -> &str {
-            "serialization error"
-        }
-    }
-
-    impl ser::Error for Error {
-        fn custom<E>(e: E) -> Self
-        where
-            E: fmt::Display,
-        {
-            Error(value::Error::custom(e))
-        }
-    }
 }

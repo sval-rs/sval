@@ -4,7 +4,7 @@ An approximate implementation of `Debug` for a `T: Serialize`.
 
 use crate::{
     std::fmt,
-    Error,
+    error::Error,
 };
 
 use serde::ser::{
