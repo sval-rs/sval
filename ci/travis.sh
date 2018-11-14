@@ -9,7 +9,7 @@ BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; els
 if [ "$BRANCH" == "master" ]; then
     echo "uploading crate docs"
 
-    cargo doc -p val
+    cargo doc -p val --features serde_std
 
     REV=$(git rev-parse --short HEAD)
     cd target/doc
