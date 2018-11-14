@@ -12,7 +12,7 @@ a type that implements `serde::Serialize`:
 #     }
 # }
 # let my_value = MyValue;
-let my_serialize = val::serde::to_serialize(my_value);
+let my_serialize = val_serde::to_serialize(my_value);
 ```
 
 A type that implements `std::fmt::Debug + serde::Serialize` can be converted into
@@ -26,7 +26,7 @@ a type that implements [`value::Value`]:
 #     }
 # }
 # let my_serialize = MySerialize;
-let my_value = val::serde::to_value(my_serialize);
+let my_value = val_serde::to_value(my_serialize);
 ```
 */
 
