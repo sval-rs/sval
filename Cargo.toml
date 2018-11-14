@@ -2,8 +2,8 @@
 members = [
     "val",
     "val_serde",
-    "tests/val_value",
-    "tests/val_visit",
-    "tests/serde_value",
-    "tests/serde_visit"
+    "examples/val_value",
+    "examples/val_visit",
+    "examples/serde_value",
+    "examples/serde_visit"
 ]
