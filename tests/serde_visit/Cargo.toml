@@ -1,8 +1,9 @@
 [package]
 name = "serde_visit"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
+publish = false
 
 [dependencies.val_serde]
 path = "../../val_serde"

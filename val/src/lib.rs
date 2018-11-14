@@ -85,7 +85,7 @@ impl Value for Map {
 
 # Implementing the `Visit` trait
 
-Implement the [`visit::Visit`] trait to interogate the structure
+Implement the [`visit::Visit`] trait to visit the structure
 of a [`visit::Value`]:
 
 ```
