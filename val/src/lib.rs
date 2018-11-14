@@ -1,5 +1,5 @@
 /*!
-A lightweight serialization framework.
+A lightweight serialization-only framework.
 
 # Visiting values
 

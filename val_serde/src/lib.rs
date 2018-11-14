@@ -93,6 +93,10 @@ pub fn to_serialize(value: impl Value) -> impl Serialize {
 
 /**
 Convert a `T: Serialize` into an `impl Value`.
+
+# Limitations
+
+Enum variants are serialized as untagged, so may be ambiguous.
 */
 pub fn to_value(serialize: impl Serialize) -> impl Value {
     struct ToValue<S>(S);

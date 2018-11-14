@@ -40,8 +40,6 @@ where
     }
 }
 
-pub(crate) struct TupleVariant<'a>(value::VisitMap<'a>, usize);
-
 impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
     type Ok = ();
     type Error = Error;
@@ -49,7 +47,7 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
     type SerializeSeq = Serializer<value::VisitSeq<'a>>;
     type SerializeTuple = Serializer<value::VisitSeq<'a>>;
     type SerializeTupleStruct = Serializer<value::VisitSeq<'a>>;
-    type SerializeTupleVariant = TupleVariant<'a>;
+    type SerializeTupleVariant = Serializer<value::VisitSeq<'a>>;
     type SerializeMap = Serializer<value::VisitMap<'a>>;
     type SerializeStruct = Serializer<value::VisitMap<'a>>;
     type SerializeStructVariant = Serializer<value::VisitMap<'a>>;
@@ -191,17 +189,19 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
 
     fn serialize_newtype_variant<T>(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        let mut ser = self.serialize_tuple_variant(name, variant_index, variant, 1)?;
-        ser.serialize_field(value)?;
-        ser.end()
+        let mut seq = self.0.seq(Some(1))?;
+        seq.elem(Value(value))?;
+        seq.end()?;
+
+        Ok(())
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
@@ -224,13 +224,10 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
         self,
         _: &'static str,
         _: u32,
-        variant: &'static str,
+        _: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        let mut map = self.0.map(Some(len + 1))?;
-        map.entry(format_args!("variant"), variant)?;
-
-        Ok(TupleVariant(map, 0))
+        Ok(Serializer(self.0.seq(Some(len))?))
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
@@ -249,13 +246,10 @@ impl<'a> ser::Serializer for Serializer<value::Visit<'a>> {
         self,
         _: &'static str,
         _: u32,
-        variant: &'static str,
+        _: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        let mut map = self.0.map(Some(len + 1))?;
-        map.entry(format_args!("variant"), variant)?;
-
-        Ok(Serializer(map))
+        Ok(Serializer(self.0.map(Some(len))?))
     }
 }
 
@@ -313,7 +307,7 @@ impl<'a> SerializeTupleStruct for Serializer<value::VisitSeq<'a>> {
     }
 }
 
-impl<'a> SerializeTupleVariant for TupleVariant<'a> {
+impl<'a> SerializeTupleVariant for Serializer<value::VisitSeq<'a>> {
     type Ok = ();
     type Error = Error;
 
@@ -321,9 +315,7 @@ impl<'a> SerializeTupleVariant for TupleVariant<'a> {
     where
         T: ?Sized + Serialize,
     {
-        self.0
-            .entry(format_args!("field_{}", self.1), Value(value))?;
-        self.1 += 1;
+        self.0.elem(Value(value))?;
         Ok(())
     }
 
@@ -385,7 +377,7 @@ impl<'a> SerializeStructVariant for Serializer<value::VisitMap<'a>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.entry(format_args!("field_{}", key), Value(value))?;
+        self.0.entry(Value(key), Value(value))?;
         Ok(())
     }
 
