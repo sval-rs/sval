@@ -2,7 +2,7 @@
 Convert between `val` and `serde`.
 
 A type that implements [`value::Value`] can be converted into
-a type that implements `serde::Serialize`:
+a type that implements [`serde::Serialize`]:
 
 ```
 # #[derive(Debug)] struct MyValue;
@@ -15,7 +15,7 @@ a type that implements `serde::Serialize`:
 let my_serialize = val_serde::to_serialize(my_value);
 ```
 
-A type that implements `std::fmt::Debug + serde::Serialize` can be converted into
+A type that implements [`std::fmt::Debug`] and [`serde::Serialize`] can be converted into
 a type that implements [`value::Value`]:
 
 ```
