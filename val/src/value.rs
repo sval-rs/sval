@@ -4,9 +4,6 @@ Producers of structured values.
 
 use crate::{std::fmt, visit};
 
-#[cfg(feature = "std")]
-use crate::std::boxed::Box;
-
 #[doc(inline)]
 pub use crate::Error;
 
@@ -51,31 +48,20 @@ pub struct Visit<'a> {
 
 enum VisitInner<'a> {
     Ref(&'a mut dyn visit::Visit),
-    #[cfg(feature = "std")]
-    Boxed(Box<dyn visit::Visit + 'a>),
 }
 
 impl<'a> VisitInner<'a> {
     fn as_mut(&mut self) -> &mut dyn visit::Visit {
         match self {
             VisitInner::Ref(visit) => visit,
-            #[cfg(feature = "std")]
-            VisitInner::Boxed(visit) => &mut **visit,
         }
     }
 }
 
 impl<'a> Visit<'a> {
-    pub fn new(visit: &'a mut dyn visit::Visit) -> Self {
+    pub(crate) fn new(visit: &'a mut dyn visit::Visit) -> Self {
         Visit {
             inner: VisitInner::Ref(visit),
-        }
-    }
-
-    #[cfg(feature = "std")]
-    pub fn boxed(visit: impl visit::Visit + 'a) -> Self {
-        Visit {
-            inner: VisitInner::Boxed(Box::new(visit)),
         }
     }
 
@@ -212,5 +198,21 @@ impl<'a> VisitMap<'a> {
 
         self.done = true;
         self.inner.as_mut().map_end()
+    }
+}
+
+#[cfg(feature = "std")]
+mod std_support {
+    use super::*;
+
+    use crate::std::boxed::Box;
+
+    impl<T: ?Sized> Value for Box<T>
+    where
+        T: Value,
+    {
+        fn visit(&self, visit: Visit) -> Result<(), Error> {
+            (**self).visit(visit)
+        }
     }
 }

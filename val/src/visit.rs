@@ -4,9 +4,6 @@ Consumers of structured values.
 
 use crate::{std::fmt, value};
 
-#[cfg(feature = "std")]
-use crate::std::boxed::Box;
-
 #[doc(inline)]
 pub use crate::Error;
 
@@ -35,6 +32,7 @@ pub trait Visit {
     calls to `seq_elem` until `seq_end` is called.
     */
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        let _ = len;
         Ok(())
     }
 
@@ -66,6 +64,7 @@ pub trait Visit {
     calls to `map_key` and `map_value` until `map_end` is called.
     */
     fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        let _ = len;
         Ok(())
     }
 
@@ -151,82 +150,85 @@ pub trait Visit {
     }
 }
 
-impl<'a, T: ?Sized> Visit for &'a mut T
-where
-    T: Visit,
-{
-    fn any(&mut self, v: Value) -> Result<(), Error> {
-        (**self).any(v)
-    }
+macro_rules! impl_deref {
+    ($($header:tt)*) => {
+        impl $($header)* {
+            fn any(&mut self, v: Value) -> Result<(), Error> {
+                (**self).any(v)
+            }
 
-    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
-        (**self).seq_begin(len)
-    }
+            fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+                (**self).seq_begin(len)
+            }
 
-    fn seq_end(&mut self) -> Result<(), Error> {
-        (**self).seq_end()
-    }
+            fn seq_end(&mut self) -> Result<(), Error> {
+                (**self).seq_end()
+            }
 
-    fn seq_elem(&mut self, v: Value) -> Result<(), Error> {
-        (**self).seq_elem(v)
-    }
+            fn seq_elem(&mut self, v: Value) -> Result<(), Error> {
+                (**self).seq_elem(v)
+            }
 
-    fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
-        (**self).map_begin(len)
-    }
+            fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+                (**self).map_begin(len)
+            }
 
-    fn map_end(&mut self) -> Result<(), Error> {
-        (**self).map_end()
-    }
+            fn map_end(&mut self) -> Result<(), Error> {
+                (**self).map_end()
+            }
 
-    fn map_key(&mut self, k: Value) -> Result<(), Error> {
-        (**self).map_key(k)
-    }
+            fn map_key(&mut self, k: Value) -> Result<(), Error> {
+                (**self).map_key(k)
+            }
 
-    fn map_value(&mut self, v: Value) -> Result<(), Error> {
-        (**self).map_value(v)
-    }
+            fn map_value(&mut self, v: Value) -> Result<(), Error> {
+                (**self).map_value(v)
+            }
 
-    fn i64(&mut self, v: i64) -> Result<(), Error> {
-        (**self).i64(v)
-    }
+            fn i64(&mut self, v: i64) -> Result<(), Error> {
+                (**self).i64(v)
+            }
 
-    fn u64(&mut self, v: u64) -> Result<(), Error> {
-        (**self).u64(v)
-    }
+            fn u64(&mut self, v: u64) -> Result<(), Error> {
+                (**self).u64(v)
+            }
 
-    fn i128(&mut self, v: i128) -> Result<(), Error> {
-        (**self).i128(v)
-    }
+            fn i128(&mut self, v: i128) -> Result<(), Error> {
+                (**self).i128(v)
+            }
 
-    fn u128(&mut self, v: u128) -> Result<(), Error> {
-        (**self).u128(v)
-    }
+            fn u128(&mut self, v: u128) -> Result<(), Error> {
+                (**self).u128(v)
+            }
 
-    fn f64(&mut self, v: f64) -> Result<(), Error> {
-        (**self).f64(v)
-    }
+            fn f64(&mut self, v: f64) -> Result<(), Error> {
+                (**self).f64(v)
+            }
 
-    fn bool(&mut self, v: bool) -> Result<(), Error> {
-        (**self).bool(v)
-    }
+            fn bool(&mut self, v: bool) -> Result<(), Error> {
+                (**self).bool(v)
+            }
 
-    fn char(&mut self, v: char) -> Result<(), Error> {
-        (**self).char(v)
-    }
+            fn char(&mut self, v: char) -> Result<(), Error> {
+                (**self).char(v)
+            }
 
-    fn str(&mut self, v: &str) -> Result<(), Error> {
-        (**self).str(v)
-    }
+            fn str(&mut self, v: &str) -> Result<(), Error> {
+                (**self).str(v)
+            }
 
-    fn none(&mut self) -> Result<(), Error> {
-        (**self).none()
-    }
+            fn none(&mut self) -> Result<(), Error> {
+                (**self).none()
+            }
 
-    fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), Error> {
-        (**self).fmt(v)
-    }
+            fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), Error> {
+                (**self).fmt(v)
+            }
+        }
+    };
 }
+
+impl_deref!(<'a, T: ?Sized> Visit for &'a mut T where T: Visit);
 
 /**
 A structured value.
@@ -239,31 +241,20 @@ pub struct Value<'a> {
 
 enum ValueInner<'a> {
     Ref(&'a dyn value::Value),
-    #[cfg(feature = "std")]
-    Boxed(Box<dyn value::Value + 'a>),
 }
 
 impl<'a> ValueInner<'a> {
     fn as_ref(&self) -> &dyn value::Value {
         match self {
             ValueInner::Ref(value) => value,
-            #[cfg(feature = "std")]
-            ValueInner::Boxed(value) => &**value,
         }
     }
 }
 
 impl<'a> Value<'a> {
-    pub fn new(value: &'a dyn value::Value) -> Self {
+    pub(crate) fn new(value: &'a dyn value::Value) -> Self {
         Value {
             inner: ValueInner::Ref(value),
-        }
-    }
-
-    #[cfg(feature = "std")]
-    pub fn boxed(value: impl value::Value + 'a) -> Self {
-        Value {
-            inner: ValueInner::Boxed(Box::new(value)),
         }
     }
 
@@ -282,4 +273,13 @@ impl<'a> fmt::Display for Value<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.inner.as_ref().fmt(f)
     }
+}
+
+#[cfg(feature = "std")]
+mod std_support {
+    use super::*;
+
+    use crate::std::boxed::Box;
+
+    impl_deref!(<'a, T: ?Sized> Visit for Box<T> where T: Visit);
 }

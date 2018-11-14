@@ -1,7 +1,6 @@
 use crate::{
     std::fmt,
     value::{Error, Value, Visit},
-    visit,
 };
 
 impl Value for () {
@@ -132,10 +131,9 @@ mod std_support {
     use super::*;
 
     use crate::std::{
-        boxed::Box,
         collections::{BTreeMap, HashMap},
         hash::Hash,
-        string::{String, ToString},
+        string::String,
         vec::Vec,
     };
 
