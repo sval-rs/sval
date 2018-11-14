@@ -122,7 +122,7 @@ impl Value for str {
 
 impl<'a> Value for fmt::Arguments<'a> {
     fn visit(&self, visit: Visit) -> Result<(), Error> {
-        visit.fmt(self)
+        visit.fmt(*self)
     }
 }
 

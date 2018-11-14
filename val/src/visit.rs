@@ -145,7 +145,7 @@ pub trait Visit {
     }
 
     /** Visit a format. */
-    fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), Error> {
+    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), Error> {
         self.any(Value::new(&v))
     }
 }
@@ -221,7 +221,7 @@ macro_rules! impl_deref {
                 (**self).none()
             }
 
-            fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), Error> {
+            fn fmt(&mut self, v: fmt::Arguments) -> Result<(), Error> {
                 (**self).fmt(v)
             }
         }

@@ -41,8 +41,8 @@ where
     }
 }
 
-struct Serde<T>(T);
-impl<'a> Serialize for Serde<visit::Value<'a>> {
+struct Value<'a>(visit::Value<'a>);
+impl<'a> Serialize for Value<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -144,7 +144,7 @@ where
 
     fn seq_elem(&mut self, v: visit::Value) -> Result<(), visit::Error> {
         let seq = self.expect()?.expect_serialize_seq()?;
-        seq.serialize_element(&Serde(v))
+        seq.serialize_element(&Value(v))
             .map_err(err("error serializing sequence element"))?;
 
         Ok(())
@@ -163,7 +163,7 @@ where
 
     fn map_key(&mut self, k: visit::Value) -> Result<(), visit::Error> {
         let map = self.expect()?.expect_serialize_map()?;
-        map.serialize_key(&Serde(k))
+        map.serialize_key(&Value(k))
             .map_err(err("error map serializing key"))?;
 
         Ok(())
@@ -171,7 +171,7 @@ where
 
     fn map_value(&mut self, v: visit::Value) -> Result<(), visit::Error> {
         let map = self.expect()?.expect_serialize_map()?;
-        map.serialize_value(&Serde(v))
+        map.serialize_value(&Value(v))
             .map_err(err("error serializing map value"))?;
 
         Ok(())
@@ -274,10 +274,10 @@ where
         Ok(())
     }
 
-    fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), visit::Error> {
+    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), visit::Error> {
         let ser = self.take()?.take_serializer()?;
         self.ok = Some(
-            ser.collect_str(v)
+            ser.collect_str(&v)
                 .map_err(err("error serializing format"))?,
         );
 

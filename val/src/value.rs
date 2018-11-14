@@ -111,7 +111,7 @@ impl<'a> Visit<'a> {
     }
 
     /** Visit a format. */
-    pub fn fmt(mut self, v: &fmt::Arguments) -> Result<(), Error> {
+    pub fn fmt(mut self, v: fmt::Arguments) -> Result<(), Error> {
         self.inner.as_mut().fmt(v)
     }
 
@@ -173,7 +173,7 @@ impl<'a> VisitMap<'a> {
         Ok(())
     }
 
-    pub(crate) fn key(&mut self, k: impl Value) -> Result<(), Error> {
+    pub fn key(&mut self, k: impl Value) -> Result<(), Error> {
         if self.visited_key {
             return Err(Error::msg("attempt to visit a key out of order"));
         }
@@ -182,7 +182,7 @@ impl<'a> VisitMap<'a> {
         self.inner.as_mut().map_key(visit::Value::new(&k))
     }
 
-    pub(crate) fn value(&mut self, v: impl Value) -> Result<(), Error> {
+    pub fn value(&mut self, v: impl Value) -> Result<(), Error> {
         if !self.visited_key {
             return Err(Error::msg("attempt to visit a key out of order"));
         }

@@ -54,7 +54,7 @@ pub trait Visit {
         self.any(&())
     }
 
-    fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), Error> {
+    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), Error> {
         self.any(&v)
     }
 }
@@ -113,7 +113,7 @@ where
         (**self).none()
     }
 
-    fn fmt(&mut self, v: &fmt::Arguments) -> Result<(), Error> {
+    fn fmt(&mut self, v: fmt::Arguments) -> Result<(), Error> {
         (**self).fmt(v)
     }
 }
