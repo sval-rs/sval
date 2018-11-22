@@ -81,19 +81,19 @@ impl Visit for Fmt {
 fn main() {
     // A map that implements `val::value::Value`
     let mut map = BTreeMap::new();
-    
+
     map.insert(Id::new(1), vec!["Hello", "World"]);
     map.insert(Id::new(2), vec!["World", "Hello"]);
-    
+
     val::visit(map, Fmt { delim: "" }).unwrap();
     println!();
-    
+
     // A map that implements `serde::Serialize`
     let mut map = BTreeMap::new();
-    
+
     map.insert(SerdeId::new(1), vec!["Hello", "World"]);
     map.insert(SerdeId::new(2), vec!["World", "Hello"]);
-    
+
     // A map that implements `serde::Serialize`
     let mut map = BTreeMap::new();
 

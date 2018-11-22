@@ -1,13 +1,18 @@
 use crate::{
-    test::{Bencher, black_box},
-    value, stream
+    std::fmt,
+    stream,
+    test::{
+        black_box,
+        Bencher,
+    },
+    value,
 };
 
 struct EmptyStream;
 
 impl stream::Stream for EmptyStream {
     #[inline(never)]
-    fn fmt(&mut self, _: stream::Pos, _: std::fmt::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, _: stream::Pos, _: fmt::Arguments) -> Result<(), stream::Error> {
         Ok(())
     }
 
@@ -37,7 +42,6 @@ impl stream::Stream for EmptyStream {
     }
 }
 
-
 #[bench]
 fn checked_begin(b: &mut Bencher) {
     b.iter(|| {
@@ -55,16 +59,16 @@ fn stack_map(b: &mut Bencher) {
 
         stack.map_begin().unwrap();
 
-        stack.key().unwrap();
-        stack.primitive().unwrap();
-        
-        stack.value().unwrap();
-        stack.map_begin().unwrap();
-        
-        stack.key().unwrap();
+        stack.map_key().unwrap();
         stack.primitive().unwrap();
 
-        stack.value().unwrap();
+        stack.map_value().unwrap();
+        stack.map_begin().unwrap();
+
+        stack.map_key().unwrap();
+        stack.primitive().unwrap();
+
+        stack.map_value().unwrap();
         stack.primitive().unwrap();
 
         stack.map_end().unwrap();
@@ -98,7 +102,7 @@ fn checked_stream_map(b: &mut Bencher) {
 
             stream.map_begin(None).unwrap();
             stream.map_key().unwrap().u64(1).unwrap();
-            
+
             stream.map_value().unwrap().map_begin(None).unwrap();
             stream.map_key().unwrap().u64(2).unwrap();
             stream.map_value().unwrap().u64(42).unwrap();
@@ -119,7 +123,7 @@ fn unchecked_stream_map(b: &mut Bencher) {
 
         stream.map_begin(stream::Pos::Root, None).unwrap();
         stream.u64(stream::Pos::Key, 1).unwrap();
-        
+
         stream.map_begin(stream::Pos::Value, None).unwrap();
         stream.u64(stream::Pos::Key, 2).unwrap();
         stream.u64(stream::Pos::Value, 42).unwrap();

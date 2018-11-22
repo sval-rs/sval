@@ -1,5 +1,8 @@
 use crate::{
-    error::{err, Error},
+    error::{
+        err,
+        Error,
+    },
     std::fmt,
 };
 

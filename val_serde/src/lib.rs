@@ -43,11 +43,11 @@ mod to_serialize;
 mod to_value;
 
 use crate::{
+    error::err,
     std::fmt::{
         self,
         Debug,
     },
-    error::err,
 };
 
 use val::value::Value;
