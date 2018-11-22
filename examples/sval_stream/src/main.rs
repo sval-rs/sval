@@ -6,7 +6,10 @@ use std::{
 
 use sval_value::Id;
 
-use sval::stream::{self, Stream};
+use sval::stream::{
+    self,
+    Stream,
+};
 
 struct Fmt {
     delim: &'static str,

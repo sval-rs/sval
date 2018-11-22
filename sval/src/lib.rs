@@ -15,11 +15,11 @@ sval::stream(42, MyStream)?;
 # }
 ```
 
-where `42` is a [`value::Value`] and `MyStream` is a [`stream::Stream`].
+where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 
 # Implementing the `Value` trait
 
-Implement the [`value::Value`] trait for datastructures that can be
+Implement the [`Value`] trait for datastructures that can be
 visited using a [`value::Stream`]:
 
 ```
@@ -83,8 +83,7 @@ impl Value for Map {
 
 # Implementing the `Stream` trait
 
-Implement the [`stream::Stream`] trait to visit the structure
-of a [`stream::Value`]:
+Implement the [`Stream`] trait to visit the structure of a [`Value`]:
 
 ```
 use sval::stream::{self, Stream};

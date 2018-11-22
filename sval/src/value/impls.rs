@@ -2,12 +2,13 @@ use crate::{
     std::fmt,
     value::{
         Error,
-        Value,
         Stream,
+        Value,
     },
 };
 
 impl Value for () {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.none()
     }
@@ -41,90 +42,105 @@ where
 }
 
 impl Value for u8 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.u64(*self as u64)
     }
 }
 
 impl Value for u16 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.u64(*self as u64)
     }
 }
 
 impl Value for u32 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.u64(*self as u64)
     }
 }
 
 impl Value for u64 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.u64(*self)
     }
 }
 
 impl Value for i8 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.i64(*self as i64)
     }
 }
 
 impl Value for i16 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.i64(*self as i64)
     }
 }
 
 impl Value for i32 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.i64(*self as i64)
     }
 }
 
 impl Value for i64 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.i64(*self)
     }
 }
 
 impl Value for u128 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.u128(*self)
     }
 }
 
 impl Value for i128 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.i128(*self)
     }
 }
 
 impl Value for f32 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.f64(*self as f64)
     }
 }
 
 impl Value for f64 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.f64(*self)
     }
 }
 
 impl Value for bool {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.bool(*self)
     }
 }
 
 impl Value for str {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.str(self)
     }
 }
 
 impl<'a> Value for fmt::Arguments<'a> {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.fmt(*self)
     }
@@ -145,6 +161,7 @@ mod std_support {
     };
 
     impl Value for String {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             stream.str(&*self)
         }

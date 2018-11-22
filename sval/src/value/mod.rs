@@ -299,7 +299,7 @@ impl Slot {
 
     const MAP_VAL: u8 = Self::MAP | Self::VAL;
     const MAP_VAL_DONE: u8 = Self::MAP_VAL | Self::DONE;
-    
+
     const SEQ_ELEM: u8 = Self::SEQ | Self::ELEM;
     const SEQ_ELEM_DONE: u8 = Self::SEQ_ELEM | Self::DONE;
 
@@ -529,8 +529,11 @@ mod tests {
     #[cfg(feature = "std")]
     mod std_support {
         use crate::{
+            std::{
+                mem,
+                vec::Vec,
+            },
             value::*,
-            std::{mem, vec::Vec}
         };
 
         #[test]
