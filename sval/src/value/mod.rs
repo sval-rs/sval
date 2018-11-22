@@ -8,7 +8,11 @@ use crate::{
 
 use std::fmt;
 
+/**
+A value with a streamable structure.
+*/
 pub trait Value {
+    /** Stream this value. */
     fn stream(&self, stream: Stream) -> Result<(), Error>;
 }
 
@@ -25,11 +29,13 @@ impl<'a> Stream<'a> {
     Begin a new value stream.
     */
     #[inline]
-    pub(crate) fn begin(stream: &'a mut dyn stream::Stream) -> Self {
-        Stream {
+    pub(crate) fn begin(stream: &'a mut dyn stream::Stream) -> Result<Self, Error> {
+        stream.begin()?;
+
+        Ok(Stream {
             stack: Stack::default(),
             stream,
-        }
+        })
     }
 
     /**
@@ -37,8 +43,8 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn fmt(&mut self, f: std::fmt::Arguments) -> Result<(), Error> {
-        let expect = self.stack.primitive()?;
-        self.stream.fmt(expect, f)?;
+        let pos = self.stack.primitive()?;
+        self.stream.fmt(pos, f)?;
 
         Ok(())
     }
@@ -48,8 +54,8 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn u64(&mut self, v: u64) -> Result<(), Error> {
-        let expect = self.stack.primitive()?;
-        self.stream.u64(expect, v)?;
+        let pos = self.stack.primitive()?;
+        self.stream.u64(pos, v)?;
 
         Ok(())
     }
@@ -59,8 +65,8 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_begin(&mut self, len: Option<usize>) -> Result<&mut Stream<'a>, Error> {
-        let expect = self.stack.map_begin()?;
-        self.stream.map_begin(expect, len)?;
+        let pos = self.stack.map_begin()?;
+        self.stream.map_begin(pos, len)?;
 
         Ok(self)
     }
@@ -90,8 +96,8 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_end(&mut self) -> Result<&mut Stream<'a>, Error> {
-        let expect = self.stack.map_end()?;
-        self.stream.map_end(expect)?;
+        let pos = self.stack.map_end()?;
+        self.stream.map_end(pos)?;
 
         Ok(self)
     }
@@ -106,14 +112,14 @@ impl<'a> Stream<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct Stack {
     inner: [Slot; Stack::SIZE],
     len: usize,
 }
 
 impl Stack {
-    const SIZE: usize = 8;
+    const SIZE: usize = 16;
     const MAX_LEN: usize = Self::SIZE - 1;
 }
 
@@ -147,12 +153,12 @@ impl Slot {
     }
 
     #[inline]
-    fn expect(&self) -> stream::Expect {
+    fn pos(&self) -> stream::Pos {
         match self.0 & Slot::MASK_EXPECT {
-            Slot::ROOT => stream::Expect::Root,
-            Slot::KEY => stream::Expect::Key,
-            Slot::VAL => stream::Expect::Value,
-            Slot::ELEM => stream::Expect::Elem,
+            Slot::ROOT => stream::Pos::Root,
+            Slot::KEY => stream::Pos::Key,
+            Slot::VAL => stream::Pos::Value,
+            Slot::ELEM => stream::Pos::Elem,
             _ => unreachable!(),
         }
     }
@@ -183,21 +189,21 @@ impl Stack {
     }
 
     #[inline]
-    fn primitive(&mut self) -> Result<stream::Expect, Error> {
+    fn primitive(&mut self) -> Result<stream::Pos, Error> {
         let mut curr = self.current_mut();
 
         match curr.0 & Slot::DONE {
             Slot::EMPTY => {
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.expect())
+                Ok(curr.pos())
             }
             _ => bail(format!("invalid attempt to write primitive: {:?}", curr)),
         }
     }
 
     #[inline]
-    fn map_begin(&mut self) -> Result<stream::Expect, Error> {
+    fn map_begin(&mut self) -> Result<stream::Pos, Error> {
         if self.len >= Self::MAX_LEN {
             bail("nesting limit reached")?;
         }
@@ -209,7 +215,7 @@ impl Stack {
                 self.len += 1;
                 self.current_mut().0 = Slot::MAP;
 
-                Ok(curr.expect())
+                Ok(curr.pos())
             }
             _ => bail(format!("invalid attempt to begin map: {:?}", curr)),
         }
@@ -244,7 +250,7 @@ impl Stack {
     }
 
     #[inline]
-    fn map_end(&mut self) -> Result<stream::Expect, Error> {
+    fn map_end(&mut self) -> Result<stream::Pos, Error> {
         let curr = self.current();
 
         match curr.0 {
@@ -254,7 +260,7 @@ impl Stack {
                 let mut curr = self.current_mut();
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.expect())
+                Ok(curr.pos())
             }
             _ => bail(format!("invalid attempt to end map: {:?}", curr)),
         }
@@ -306,3 +312,15 @@ impl fmt::Debug for Slot {
 
 #[cfg(test)]
 mod benches;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::mem;
+
+    #[test]
+    fn stack_is_not_bigger_than_vec() {
+        assert!(mem::size_of::<Stack>() <= mem::size_of::<Vec<Slot>>());
+    }
+}

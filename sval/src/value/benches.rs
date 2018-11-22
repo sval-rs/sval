@@ -7,12 +7,17 @@ struct EmptyStream;
 
 impl stream::Stream for EmptyStream {
     #[inline(never)]
-    fn fmt(&mut self, _: stream::Expect, _: std::fmt::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, _: stream::Pos, _: std::fmt::Arguments) -> Result<(), stream::Error> {
         Ok(())
     }
 
     #[inline(never)]
-    fn u64(&mut self, _: stream::Expect, _: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, _: stream::Pos, _: u64) -> Result<(), stream::Error> {
+        Ok(())
+    }
+
+    #[inline(never)]
+    fn begin(&mut self) -> Result<(), stream::Error> {
         Ok(())
     }
 
@@ -22,12 +27,12 @@ impl stream::Stream for EmptyStream {
     }
 
     #[inline(never)]
-    fn map_begin(&mut self, _: stream::Expect, _: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
         Ok(())
     }
 
     #[inline(never)]
-    fn map_end(&mut self, _: stream::Expect) -> Result<(), stream::Error> {
+    fn map_end(&mut self, _: stream::Pos) -> Result<(), stream::Error> {
         Ok(())
     }
 }
@@ -37,7 +42,7 @@ impl stream::Stream for EmptyStream {
 fn checked_begin(b: &mut Bencher) {
     b.iter(|| {
         let mut stream = EmptyStream;
-        let stream = value::Stream::begin(&mut stream);
+        let stream = value::Stream::begin(&mut stream).unwrap();
 
         black_box(stream);
     })
@@ -89,7 +94,7 @@ fn checked_stream_map(b: &mut Bencher) {
         let mut stream = EmptyStream;
 
         {
-            let mut stream = value::Stream::begin(&mut stream);
+            let mut stream = value::Stream::begin(&mut stream).unwrap();
 
             stream.map_begin(None).unwrap();
             stream.map_key().unwrap().u64(1).unwrap();
@@ -112,15 +117,15 @@ fn unchecked_stream_map(b: &mut Bencher) {
     b.iter(|| {
         let stream: &mut dyn stream::Stream = &mut EmptyStream;
 
-        stream.map_begin(stream::Expect::Root, None).unwrap();
-        stream.u64(stream::Expect::Key, 1).unwrap();
+        stream.map_begin(stream::Pos::Root, None).unwrap();
+        stream.u64(stream::Pos::Key, 1).unwrap();
         
-        stream.map_begin(stream::Expect::Value, None).unwrap();
-        stream.u64(stream::Expect::Key, 2).unwrap();
-        stream.u64(stream::Expect::Value, 42).unwrap();
-        stream.map_end(stream::Expect::Value).unwrap();
+        stream.map_begin(stream::Pos::Value, None).unwrap();
+        stream.u64(stream::Pos::Key, 2).unwrap();
+        stream.u64(stream::Pos::Value, 42).unwrap();
+        stream.map_end(stream::Pos::Value).unwrap();
 
-        stream.map_end(stream::Expect::Root).unwrap();
+        stream.map_end(stream::Pos::Root).unwrap();
         stream.end().unwrap();
 
         black_box(stream);

@@ -15,6 +15,11 @@ pub use self::{
     stream::Stream,
 };
 
+/**
+Stream the structure of a [`Value`] using the given [`Stream`]. 
+*/
 pub fn stream(value: impl Value, mut stream: impl Stream) -> Result<(), Error> {
-    value.stream(value::Stream::begin(&mut stream))
+    let stream = value::Stream::begin(&mut stream)?;
+    
+    value.stream(stream)
 }
