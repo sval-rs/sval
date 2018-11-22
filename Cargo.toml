@@ -5,5 +5,7 @@ members = [
     "examples/val_value",
     "examples/val_visit",
     "examples/serde_value",
-    "examples/serde_visit"
+    "examples/serde_visit",
+
+    "sval"
 ]
