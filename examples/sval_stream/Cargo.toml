@@ -1,0 +1,12 @@
+[package]
+name = "sval_stream"
+version = "0.0.0"
+authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
+edition = "2018"
+publish = false
+
+[dependencies.sval]
+path = "../../sval"
+
+[dependencies.sval_value]
+path = "../sval_value"

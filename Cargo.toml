@@ -7,5 +7,7 @@ members = [
     "examples/serde_value",
     "examples/serde_visit",
 
-    "sval"
+    "sval",
+    "examples/sval_value",
+    "examples/sval_stream",
 ]

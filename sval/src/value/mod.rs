@@ -1,3 +1,5 @@
+mod impls;
+
 #[doc(inline)]
 pub use crate::Error;
 
@@ -526,8 +528,10 @@ mod benches;
 mod tests {
     #[cfg(feature = "std")]
     mod std_support {
-        use super::*;
-        use crate::std::{mem, vec::Vec};
+        use crate::{
+            value::*,
+            std::{mem, vec::Vec}
+        };
 
         #[test]
         fn stack_is_not_bigger_than_vec() {

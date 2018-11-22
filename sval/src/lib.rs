@@ -48,7 +48,7 @@ impl Value for Seq {
         stream.seq_begin(Some(self.0.len()))?;
 
         for v in &self.0 {
-            stream.seq_elem(v)?;
+            stream.seq_elem()?.any(v)?;
         }
 
         stream.seq_end()
@@ -110,55 +110,64 @@ struct Fmt {
     delim: &'static str,
 }
 
-impl Fmt {
-    fn print(&mut self, args: fmt::Arguments) {
-        let delim = mem::replace(&mut self.delim, "");
-        print!("{}{}", delim, args);
+impl Stream for Fmt {
+    // Print a single value.
+    fn fmt(&mut self, pos: stream::Pos, v: stream::Arguments) -> Result<(), stream::Error> {
+        let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
+        print!("{}{:?}", delim, v);
+
+        Ok(())
     }
 
-    fn set_delim(&mut self, pos: stream::Pos) {
-        use sval::stream::Pos::*;
+    // Begin a sequence.
+    fn seq_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
+        let delim = mem::replace(&mut self.delim, "");
+        print!("{}[", delim);
 
-        self.delim = match pos {
-            Root => "",
-            Key => ": ",
-            Value | Elem => ", ",
-        };
+        Ok(())
+    }
+
+    // End a sequence.
+    fn seq_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
+        self.delim = Self::next_delim(pos);
+        print!("]");
+
+        Ok(())
+    }
+
+    // Begin a map.
+    fn map_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
+        let delim = mem::replace(&mut self.delim, "");
+        print!("{}{{", delim);
+
+        Ok(())
+    }
+
+    // End a map.
+    fn map_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
+        self.delim = Self::next_delim(pos);
+        print!("}}");
+
+        Ok(())
+    }
+
+    // End the stream.
+    fn end(&mut self) -> Result<(), stream::Error> {
+        println!();
+
+        Ok(())
     }
 }
 
-impl Stream for Fmt {
-    fn fmt(&mut self, pos: stream::Pos, v: stream::Arguments) -> Result<(), stream::Error> {
-        self.print(format_args!("{:?}", v));
-        self.set_delim(pos);
+impl Fmt {
+    fn next_delim(pos: stream::Pos) -> &'static str {
+        use sval::stream::Pos::*;
 
-        Ok(())
-    }
-
-    fn seq_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
-        self.print(format_args!("["));
-        Ok(())
-    }
-
-    fn seq_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
-        self.delim = "";
-        self.print(format_args!("]"));
-        self.set_delim(pos);
-
-        Ok(())
-    }
-
-    fn map_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
-        self.print(format_args!("{{"));
-        Ok(())
-    }
-
-    fn map_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
-        self.delim = "";
-        self.print(format_args!("}}"));
-        self.set_delim(pos);
-
-        Ok(())
+        match pos {
+            Root => "",
+            Key => ": ",
+            Value | Elem => ", ",
+        }
     }
 }
 ```

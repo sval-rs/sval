@@ -9,6 +9,7 @@ BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; els
 if [ "$BRANCH" == "master" ]; then
     echo "uploading crate docs"
 
+    cargo doc -p sval --features std
     cargo doc -p val --features std
     cargo doc -p val_serde --features std
 
