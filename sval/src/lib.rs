@@ -11,7 +11,14 @@ sval::stream(42, MyStream)?;
 # use sval::stream::{self, Stream};
 # struct MyStream;
 # impl Stream for MyStream {
-#     fn fmt(&mut self, _: stream::Pos, _: stream::Arguments) -> Result<(), stream::Error> { unimplemented!() }
+#     fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> { unimplemented!() }
+#     fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> { unimplemented!() }
+#     fn seq_elem(&mut self) -> Result<(), stream::Error> { unimplemented!() }
+#     fn seq_end(&mut self) -> Result<(), stream::Error> { unimplemented!() }
+#     fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> { unimplemented!() }
+#     fn map_key(&mut self) -> Result<(), stream::Error> { unimplemented!() }
+#     fn map_value(&mut self) -> Result<(), stream::Error> { unimplemented!() }
+#     fn map_end(&mut self) -> Result<(), stream::Error> { unimplemented!() }
 # }
 ```
 
@@ -91,8 +98,37 @@ use sval::stream::{self, Stream};
 struct Fmt;
 
 impl Stream for Fmt {
-    fn fmt(&mut self, _: stream::Pos, v: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
         println!("{}", v);
+
+        Ok(())
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        Ok(())
+    }
+
+    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> Result<(), stream::Error> {
+        Ok(())
+    }
+
+    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        Ok(())
+    }
+
+    fn map_key(&mut self) -> Result<(), stream::Error> {
+        Ok(())
+    }
+
+    fn map_value(&mut self) -> Result<(), stream::Error> {
+        Ok(())
+    }
+
+    fn map_end(&mut self) -> Result<(), stream::Error> {
         Ok(())
     }
 }
@@ -106,56 +142,8 @@ use std::{fmt, mem};
 use sval::stream::{self, Stream};
 
 struct Fmt {
+    stack: stream::Stack,
     delim: &'static str,
-}
-
-impl Stream for Fmt {
-    // Print a single value.
-    fn fmt(&mut self, pos: stream::Pos, v: stream::Arguments) -> Result<(), stream::Error> {
-        let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
-        print!("{}{:?}", delim, v);
-
-        Ok(())
-    }
-
-    // Begin a sequence.
-    fn seq_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
-        let delim = mem::replace(&mut self.delim, "");
-        print!("{}[", delim);
-
-        Ok(())
-    }
-
-    // End a sequence.
-    fn seq_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
-        self.delim = Self::next_delim(pos);
-        print!("]");
-
-        Ok(())
-    }
-
-    // Begin a map.
-    fn map_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
-        let delim = mem::replace(&mut self.delim, "");
-        print!("{}{{", delim);
-
-        Ok(())
-    }
-
-    // End a map.
-    fn map_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
-        self.delim = Self::next_delim(pos);
-        print!("}}");
-
-        Ok(())
-    }
-
-    // End the stream.
-    fn end(&mut self) -> Result<(), stream::Error> {
-        println!();
-
-        Ok(())
-    }
 }
 
 impl Fmt {
@@ -167,6 +155,79 @@ impl Fmt {
             Key => ": ",
             Value | Elem => ", ",
         }
+    }
+}
+
+impl Stream for Fmt {
+    fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
+        let pos = self.stack.primitive()?;
+
+        let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
+        print!("{}{:?}", delim, v);
+
+        Ok(())
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        self.stack.seq_begin()?;
+
+        let delim = mem::replace(&mut self.delim, "");
+        print!("{}[", delim);
+
+        Ok(())
+    }
+
+    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+        self.stack.seq_elem()?;
+
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> Result<(), stream::Error> {
+        let pos = self.stack.seq_end()?;
+
+        self.delim = Self::next_delim(pos);
+        print!("]");
+
+        Ok(())
+    }
+
+    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        self.stack.map_begin()?;
+
+        let delim = mem::replace(&mut self.delim, "");
+        print!("{}{{", delim);
+
+        Ok(())
+    }
+
+    fn map_key(&mut self) -> Result<(), stream::Error> {
+        self.stack.map_key()?;
+
+        Ok(())
+    }
+
+    fn map_value(&mut self) -> Result<(), stream::Error> {
+        self.stack.map_value()?;
+
+        Ok(())
+    }
+
+    fn map_end(&mut self) -> Result<(), stream::Error> {
+        let pos = self.stack.map_end()?;
+
+        self.delim = Self::next_delim(pos);
+        print!("}}");
+
+        Ok(())
+    }
+
+    fn end(&mut self) -> Result<(), stream::Error> {
+        self.stack.end()?;
+
+        println!();
+
+        Ok(())
     }
 }
 ```
@@ -191,19 +252,46 @@ pub fn is_u64(v: impl Value) -> bool {
 
 struct IsU64(Option<u64>);
 impl Stream for IsU64 {
-    fn u64(&mut self, _: stream::Pos, v: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
         self.0 = Some(v);
         Ok(())
     }
 
-    fn fmt(&mut self, _: stream::Pos, _: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+
+    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+
+    fn seq_end(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+
+    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+
+    fn map_key(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+
+    fn map_value(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+
+    fn map_end(&mut self) -> Result<(), stream::Error> {
         Err(stream::Error::msg("not a u64"))
     }
 }
 ```
 */
 
-#![cfg_attr(test, feature(test))]
 #![no_std]
 
 #[cfg(feature = "std")]
@@ -211,9 +299,6 @@ extern crate std;
 
 #[cfg(not(feature = "std"))]
 extern crate core as std;
-
-#[cfg(test)]
-extern crate test;
 
 #[macro_use]
 mod error;

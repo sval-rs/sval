@@ -1,6 +1,5 @@
 use std::{
     collections::BTreeMap,
-    fmt,
     mem,
 };
 
@@ -12,6 +11,7 @@ use sval::stream::{
 };
 
 struct Fmt {
+    stack: stream::Stack,
     delim: &'static str,
 }
 
@@ -28,35 +28,63 @@ impl Fmt {
 }
 
 impl Stream for Fmt {
-    fn fmt(&mut self, pos: stream::Pos, v: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
+        let pos = self.stack.primitive()?;
+
         let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
         print!("{}{:?}", delim, v);
 
         Ok(())
     }
 
-    fn seq_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        self.stack.seq_begin()?;
+
         let delim = mem::replace(&mut self.delim, "");
         print!("{}[", delim);
 
         Ok(())
     }
 
-    fn seq_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
+    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+        self.stack.seq_elem()?;
+
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> Result<(), stream::Error> {
+        let pos = self.stack.seq_end()?;
+
         self.delim = Self::next_delim(pos);
         print!("]");
 
         Ok(())
     }
 
-    fn map_begin(&mut self, _: stream::Pos, _: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        self.stack.map_begin()?;
+
         let delim = mem::replace(&mut self.delim, "");
         print!("{}{{", delim);
 
         Ok(())
     }
 
-    fn map_end(&mut self, pos: stream::Pos) -> Result<(), stream::Error> {
+    fn map_key(&mut self) -> Result<(), stream::Error> {
+        self.stack.map_key()?;
+
+        Ok(())
+    }
+
+    fn map_value(&mut self) -> Result<(), stream::Error> {
+        self.stack.map_value()?;
+
+        Ok(())
+    }
+
+    fn map_end(&mut self) -> Result<(), stream::Error> {
+        let pos = self.stack.map_end()?;
+
         self.delim = Self::next_delim(pos);
         print!("}}");
 
@@ -64,6 +92,8 @@ impl Stream for Fmt {
     }
 
     fn end(&mut self) -> Result<(), stream::Error> {
+        self.stack.end()?;
+
         println!();
 
         Ok(())
@@ -77,5 +107,12 @@ fn main() {
     map.insert(Id::new(1), vec!["Hello", "World"]);
     map.insert(Id::new(2), vec!["World", "Hello"]);
 
-    sval::stream(map, Fmt { delim: "" }).unwrap();
+    sval::stream(
+        map,
+        Fmt {
+            stack: Default::default(),
+            delim: "",
+        },
+    )
+    .unwrap();
 }
