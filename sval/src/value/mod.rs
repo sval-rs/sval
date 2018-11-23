@@ -169,11 +169,11 @@ impl<'a> Stream<'a> {
     Begin a map.
     */
     #[inline]
-    pub fn map_begin(&mut self, len: Option<usize>) -> Result<&mut Stream<'a>, Error> {
+    pub fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
         let pos = self.stack.map_begin()?;
         self.stream.map_begin(pos, len)?;
 
-        Ok(self)
+        Ok(())
     }
 
     /**
@@ -211,11 +211,11 @@ impl<'a> Stream<'a> {
     Begin a sequence.
     */
     #[inline]
-    pub fn seq_begin(&mut self, len: Option<usize>) -> Result<&mut Stream<'a>, Error> {
+    pub fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
         let pos = self.stack.seq_begin()?;
         self.stream.seq_begin(pos, len)?;
 
-        Ok(self)
+        Ok(())
     }
 
     /**
