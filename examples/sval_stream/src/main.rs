@@ -28,6 +28,13 @@ impl Fmt {
 }
 
 impl Stream for Fmt {
+    fn begin(&mut self) -> Result<(), stream::Error> {
+        // Begin the stack
+        self.stack.begin()?;
+
+        Ok(())
+    }
+
     fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 

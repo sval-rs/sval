@@ -115,30 +115,6 @@ fn stack_primitive(b: &mut Bencher) {
 }
 
 #[bench]
-fn checked_stream_map(b: &mut Bencher) {
-    b.iter(|| {
-        let mut stream = EmptyStream;
-
-        {
-            let mut stream = value::Stream::begin(&mut stream).unwrap();
-
-            stream.map_begin(None).unwrap();
-            stream.map_key().unwrap().u64(1).unwrap();
-
-            stream.map_value().unwrap().map_begin(None).unwrap();
-            stream.map_key().unwrap().u64(2).unwrap();
-            stream.map_value().unwrap().u64(42).unwrap();
-            stream.map_end().unwrap();
-
-            stream.map_end().unwrap();
-            stream.end().unwrap();
-        }
-
-        black_box(stream);
-    })
-}
-
-#[bench]
 fn unchecked_stream_map(b: &mut Bencher) {
     b.iter(|| {
         let stream: &mut dyn stream::Stream = &mut EmptyStream;

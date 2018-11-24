@@ -9,86 +9,127 @@ pub use self::fmt::Arguments;
 A value stream.
 
 The `Stream` trait has a flat structure, but it may need to work with
-nested values. The caller is expected to provide a [`Pos`] that tells
-the stream how to interpret the values it's being given.
+nested values. Implementations can use a [`Stack`] to track state
+for them.
 */
 pub trait Stream {
-    /** Begin the stream. */
+    /**
+    Begin the stream.
+
+    This method must be called before interacting with the stream
+    in any other way.
+    */
     fn begin(&mut self) -> Result<(), Error> {
         Ok(())
     }
 
-    /** Stream a format. */
+    /**
+    Stream a format.
+    */
     fn fmt(&mut self, args: Arguments) -> Result<(), Error>;
 
-    /** Stream a signed integer. */
+    /**
+    Stream a signed integer.
+    */
     fn i64(&mut self, v: i64) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", v))
     }
 
-    /** Stream an unsigned integer. */
+    /**
+    Stream an unsigned integer.
+    */
     fn u64(&mut self, v: u64) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", v))
     }
 
-    /** Stream a 128bit signed integer. */
+    /**
+    Stream a 128bit signed integer.
+    */
     fn i128(&mut self, v: i128) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", v))
     }
 
-    /** Stream a 128bit unsigned integer. */
+    /**
+    Stream a 128bit unsigned integer.
+    */
     fn u128(&mut self, v: u128) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", v))
     }
 
-    /** Stream a floating point value. */
+    /**
+    Stream a floating point value.
+    */
     fn f64(&mut self, v: f64) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", v))
     }
 
-    /** Stream a boolean. */
+    /**
+    Stream a boolean.
+    */
     fn bool(&mut self, v: bool) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", v))
     }
 
-    /** Stream a unicode character. */
+    /**
+    Stream a unicode character.
+    */
     fn char(&mut self, v: char) -> Result<(), Error> {
         let mut b = [0; 4];
         self.str(&*v.encode_utf8(&mut b))
     }
 
-    /** Stream a UTF-8 string slice. */
+    /**
+    Stream a UTF-8 string slice.
+    */
     fn str(&mut self, v: &str) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", v))
     }
 
-    /** Stream an empty value. */
+    /**
+    Stream an empty value.
+    */
     fn none(&mut self) -> Result<(), Error> {
         self.fmt(format_args!("{:?}", ()))
     }
 
-    /** Begin a map. */
+    /**
+    Begin a map.
+    */
     fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error>;
 
-    /** Begin a map key. */
+    /**
+    Begin a map key.
+    */
     fn map_key(&mut self) -> Result<(), Error>;
 
-    /** Begin a map value. */
+    /**
+    Begin a map value.
+    */
     fn map_value(&mut self) -> Result<(), Error>;
 
-    /** End a map. */
+    /**
+    End a map.
+    */
     fn map_end(&mut self) -> Result<(), Error>;
 
-    /** Begin a sequence. */
+    /**
+    Begin a sequence.
+    */
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error>;
 
-    /** Begin a sequence element. */
+    /**
+    Begin a sequence element.
+    */
     fn seq_elem(&mut self) -> Result<(), Error>;
 
-    /** End a sequence. */
+    /**
+    End a sequence.
+    */
     fn seq_end(&mut self) -> Result<(), Error>;
 
-    /** End the stream. */
+    /**
+    End the stream.
+    */
     fn end(&mut self) -> Result<(), Error> {
         Ok(())
     }
@@ -193,18 +234,13 @@ pub enum Pos {
 /**
 A container for the stream state.
 
+Implementations of the [`Stream`] trait are encouraged to use a
+stack for validating their input.
+
 The stack is stateful, and keeps track of open maps and sequences.
 It serves as validation for operations performed on the stream and
 as a way for a flat, stateless stream to know what it's currently
 looking at.
-
-It puts an arbitrary limit on the map and sequence depth so that
-it doesn't need an allocator to work. For individual values in
-a structured log this limit is ok, but might be a problem for a
-truly general-purpose serialization framework.
-
-The stack is designed to be no larger than a standard `Vec`.
-The state of each slot encoded in a single byte.
 */
 #[derive(Clone, Copy)]
 pub struct Stack {
@@ -267,6 +303,9 @@ impl Default for Stack {
 }
 
 impl Stack {
+    /**
+    Create a new stack.
+    */
     pub fn new() -> Self {
         Stack {
             inner: [Slot::root(); Self::SIZE],
@@ -284,6 +323,42 @@ impl Stack {
         unsafe { *self.inner.get_unchecked(self.len) }
     }
 
+    /**
+    Ensure the stack is ready for a new value.
+
+    This method only needs to be called by [`Stream`]s that
+    can be re-used.
+    */
+    #[inline]
+    pub fn begin(&mut self) -> Result<(), Error> {
+        // The stack must be on the root slot
+        // It doesn't matter if the slot is
+        // marked as done or not
+
+        if self.len == 0 {
+            // Clear the `DONE` bit so the stack
+            // can be re-used
+            self.current_mut().0 = Slot::ROOT;
+            
+            Ok(())
+        } else {
+            Err(Error::msg("stack is not empty"))
+        }
+    }
+
+    /**
+    Push a primitive.
+
+    A primitive is a simple value that isn't a map or sequence.
+    That includes:
+
+    - [`Arguments`]
+    - `u64`, `i64`, `u128`, `i128`
+    - `f64`
+    - `bool`
+    - `char`, `&str`
+    - `Option<T>`
+    */
     #[inline]
     pub fn primitive(&mut self) -> Result<Pos, Error> {
         let mut curr = self.current_mut();
@@ -301,6 +376,9 @@ impl Stack {
         }
     }
 
+    /**
+    Begin a new map.
+    */
     #[inline]
     pub fn map_begin(&mut self) -> Result<Pos, Error> {
         if self.len >= Self::MAX_LEN {
@@ -327,6 +405,12 @@ impl Stack {
         }
     }
 
+    /**
+    Begin a map key.
+
+    The key will be implicitly completed by the value
+    that follows it.
+    */
     #[inline]
     pub fn map_key(&mut self) -> Result<(), Error> {
         let mut curr = self.current_mut();
@@ -345,6 +429,12 @@ impl Stack {
         }
     }
 
+    /**
+    Begin a map value.
+
+    The value will be implicitly completed by the value
+    that follows it.
+    */
     #[inline]
     pub fn map_value(&mut self) -> Result<(), Error> {
         let mut curr = self.current_mut();
@@ -362,6 +452,9 @@ impl Stack {
         }
     }
 
+    /**
+    Complete the current map.
+    */
     #[inline]
     pub fn map_end(&mut self) -> Result<Pos, Error> {
         let curr = self.current();
@@ -383,6 +476,9 @@ impl Stack {
         }
     }
 
+    /**
+    Begin a new sequence.
+    */
     #[inline]
     pub fn seq_begin(&mut self) -> Result<Pos, Error> {
         if self.len >= Self::MAX_LEN {
@@ -409,6 +505,12 @@ impl Stack {
         }
     }
 
+    /**
+    Begin a sequence element.
+
+    The element will be implicitly completed by the value
+    that follows it.
+    */
     #[inline]
     pub fn seq_elem(&mut self) -> Result<(), Error> {
         let mut curr = self.current_mut();
@@ -427,6 +529,9 @@ impl Stack {
         }
     }
 
+    /**
+    Complete the current sequence.
+    */
     #[inline]
     pub fn seq_end(&mut self) -> Result<Pos, Error> {
         let curr = self.current();
@@ -448,6 +553,12 @@ impl Stack {
         }
     }
 
+    /**
+    Complete the stack.
+
+    This stack may be re-used after being completed
+    by calling `begin`.
+    */
     #[inline]
     pub fn end(&mut self) -> Result<(), Error> {
         // The stack must be on the root slot
@@ -455,6 +566,10 @@ impl Stack {
         // marked as done or not
 
         if self.len == 0 {
+            // Set the slot to done so it
+            // can't be re-used without calling begin
+            self.current_mut().0 |= Slot::DONE;
+
             Ok(())
         } else {
             Err(Error::msg("stack is not empty"))

@@ -10,6 +10,8 @@ use crate::{
 
 /**
 A value with a streamable structure.
+
+Use the [`sval::stream`] function to stream a value.
 */
 pub trait Value {
     /** Stream this value. */
@@ -39,7 +41,7 @@ impl<'a> Stream<'a> {
     Begin a new value stream.
     */
     #[inline]
-    pub fn begin(stream: &'a mut dyn stream::Stream) -> Result<Self, Error> {
+    pub(crate) fn begin(stream: &'a mut dyn stream::Stream) -> Result<Self, Error> {
         stream.begin()?;
 
         Ok(Stream {
@@ -282,7 +284,7 @@ impl<'a> Stream<'a> {
     End the stream.
     */
     #[inline]
-    pub fn end(mut self) -> Result<(), Error> {
+    pub(crate) fn end(mut self) -> Result<(), Error> {
         #[cfg(any(debug_assertions, test))]
         self.stack.end()?;
 
