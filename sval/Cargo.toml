@@ -8,7 +8,14 @@ publish = false
 [features]
 std = []
 
-[dependencies.serde]
+# Default `serde` support requires `std`
+# because `serde::ser::Error` needs extra
+# trait bounds when compiled with the `std`
+# feature, which is the default for `serde`.
+serde = ["std", "serde_lib"]
+
+[dependencies.serde_lib]
 version = "1"
 optional = true
 default-features = false
+package = "serde"

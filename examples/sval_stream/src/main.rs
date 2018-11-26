@@ -3,6 +3,7 @@ use std::{
     mem,
 };
 
+use serde_value::Id as SerdeId;
 use sval_value::Id;
 
 use sval::stream::{
@@ -114,8 +115,31 @@ fn main() {
     map.insert(Id::new(1), vec!["Hello", "World"]);
     map.insert(Id::new(2), vec!["World", "Hello"]);
 
+    // Write the map using `sval`
     sval::stream(
-        map,
+        &map,
+        Fmt {
+            stack: Default::default(),
+            delim: "",
+        },
+    )
+    .unwrap();
+
+    // Write the map using `serde_json`
+    println!("{}\n", serde_json::to_string(&sval::serde::to_serialize(&map)).unwrap());
+
+    // A map that implements `serde::Serialize`
+    let mut map = BTreeMap::new();
+
+    // Write the map using `serde_json`
+    println!("{}\n", serde_json::to_string(&map).unwrap());
+
+    map.insert(SerdeId::new(1), vec!["Hello", "World"]);
+    map.insert(SerdeId::new(2), vec!["World", "Hello"]);
+
+    // Write the map using `sval`
+    sval::serde::stream(
+        &map,
         Fmt {
             stack: Default::default(),
             delim: "",

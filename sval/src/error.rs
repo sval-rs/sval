@@ -11,7 +11,15 @@ pub struct Error(ErrorInner);
 impl Error {
     /** Capture a static message as an error. */
     pub fn msg(msg: &'static str) -> Self {
-        Error(ErrorInner::Static(msg))
+        #[cfg(debug_assertions)]
+        {
+            panic!(msg)
+        }
+
+        #[cfg(not(debug_assertions))]
+        {
+            Error(ErrorInner::Static(msg))
+        }
     }
 }
 
@@ -124,31 +132,6 @@ mod std_support {
             match self {
                 ErrorInner::Static(msg) => msg,
                 ErrorInner::Owned(msg) => msg,
-            }
-        }
-    }
-}
-
-#[cfg(feature = "serde")]
-mod serde_support {
-    use super::*;
-
-    use serde::ser;
-
-    impl ser::Error for Error {
-        fn custom<D>(err: D) -> Self
-        where
-            D: fmt::Display,
-        {
-            #[cfg(feature = "std")]
-            {
-                Error::custom(err)
-            }
-
-            #[cfg(not(feature = "std"))]
-            {
-                let _ = err;
-                Error::msg("serde serialization failed")
             }
         }
     }

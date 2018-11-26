@@ -7,6 +7,13 @@ publish = false
 
 [dependencies.sval]
 path = "../../sval"
+features = ["serde"]
 
 [dependencies.sval_value]
 path = "../sval_value"
+
+[dependencies.serde_value]
+path = "../serde_value"
+
+[dependencies.serde_json]
+version = "~1"

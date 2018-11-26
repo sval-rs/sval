@@ -295,9 +295,11 @@ impl Stream for IsU64 {
 #![no_std]
 
 #[cfg(feature = "std")]
+#[macro_use]
 extern crate std;
 
 #[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate core as std;
 
 #[macro_use]

@@ -4,9 +4,10 @@ use crate::{
     value,
 };
 
-use super::err;
+use super::error::err;
 
-use serde::ser::{
+use serde_lib::ser::{
+    self,
     Error as SerError,
     Serialize,
     SerializeMap,
@@ -31,6 +32,12 @@ where
     }
 }
 
+// NOTE: This impl doesn't actually work
+// We can't guarantee that any `Value` can
+// be serialized by any `Serializer`
+// because keys, values, and elements
+// can't be materialized unless they're
+// primitives.
 struct Stream<S>
 where
     S: Serializer,
@@ -73,35 +80,35 @@ where
     fn take_serializer(self) -> Result<S, stream::Error> {
         match self {
             Current::Serializer(ser) => Ok(ser),
-            _ => Err(stream::Error::msg("invalid serializer value")),
+            _ => Err(stream::Error::msg("invalid serializer value (expected a serializer)")),
         }
     }
 
     fn expect_serialize_seq(&mut self) -> Result<&mut S::SerializeSeq, stream::Error> {
         match self {
             Current::SerializeSeq(seq) => Ok(seq),
-            _ => Err(stream::Error::msg("invalid serializer value")),
+            _ => Err(stream::Error::msg("invalid serializer value (expected a sequence)")),
         }
     }
 
     fn take_serialize_seq(self) -> Result<S::SerializeSeq, stream::Error> {
         match self {
             Current::SerializeSeq(seq) => Ok(seq),
-            _ => Err(stream::Error::msg("invalid serializer value")),
+            _ => Err(stream::Error::msg("invalid serializer value (expected a sequence)")),
         }
     }
 
     fn expect_serialize_map(&mut self) -> Result<&mut S::SerializeMap, stream::Error> {
         match self {
             Current::SerializeMap(map) => Ok(map),
-            _ => Err(stream::Error::msg("invalid serializer value")),
+            _ => Err(stream::Error::msg("invalid serializer value (expected a map)")),
         }
     }
 
     fn take_serialize_map(self) -> Result<S::SerializeMap, stream::Error> {
         match self {
             Current::SerializeMap(map) => Ok(map),
-            _ => Err(stream::Error::msg("invalid serializer value")),
+            _ => Err(stream::Error::msg("invalid serializer value (expected a map)")),
         }
     }
 }
@@ -115,10 +122,10 @@ where
         f: impl FnOnce(S) -> Result<Current<S>, E>,
     ) -> Result<(), stream::Error>
     where
-        E: serde::ser::Error,
+        E: ser::Error,
     {
         let serializer = self.take()?.take_serializer()?;
-        self.current = Some(f(serializer).map_err(err("error maping serializer"))?);
+        self.current = Some(f(serializer).map_err(err("error mapping serializer"))?);
 
         Ok(())
     }
@@ -126,13 +133,13 @@ where
     fn take(&mut self) -> Result<Current<S>, stream::Error> {
         self.current
             .take()
-            .ok_or(stream::Error::msg("attempt to use an invalid serializer"))
+            .ok_or_else(|| stream::Error::msg("attempt to use an invalid serializer"))
     }
 
     fn expect(&mut self) -> Result<&mut Current<S>, stream::Error> {
         self.current
             .as_mut()
-            .ok_or(stream::Error::msg("attempt to use an invalid serializer"))
+            .ok_or_else(|| stream::Error::msg("attempt to use an invalid serializer"))
     }
 
     fn primitive(&mut self, v: impl Serialize) -> Result<(), stream::Error> {
@@ -177,6 +184,7 @@ where
     S: Serializer,
 {
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
+        // TODO: This isn't valid once we've begun a map
         self.map_serializer(|ser| ser.serialize_seq(len).map(|seq| Current::SerializeSeq(seq)))
     }
 

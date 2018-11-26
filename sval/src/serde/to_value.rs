@@ -1,12 +1,11 @@
 use crate::{
     std::fmt,
     value,
-    Error,
 };
 
-use super::err;
+use super::error::{Error, err};
 
-use serde::ser::{
+use serde_lib::ser::{
     self,
     Serialize,
     SerializeMap,
