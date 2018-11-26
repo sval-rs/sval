@@ -321,7 +321,12 @@ pub use self::{
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
 pub fn stream(value: impl Value, mut stream: impl Stream) -> Result<(), Error> {
-    let mut stream = value::Stream::begin(&mut stream)?;
+    let mut stack = stream::Stack::default();
+    let mut stream = value::Stream::new(&mut stack, &mut stream)?;
+
+    stream.begin()?;
     value.stream(&mut stream)?;
-    stream.end()
+    stream.end()?;
+
+    Ok(())
 }

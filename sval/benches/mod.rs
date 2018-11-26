@@ -142,3 +142,29 @@ fn unchecked_stream_map(b: &mut Bencher) {
         black_box(stream);
     })
 }
+
+#[bench]
+fn unchecked_stream_map_collect(b: &mut Bencher) {
+    b.iter(|| {
+        let stream: &mut dyn stream::Stream = &mut EmptyStream;
+
+        stream.map_begin(None).unwrap();
+
+        stream.map_key_collect(1).unwrap();
+
+        stream.map_value().unwrap();
+        stream.map_begin(None).unwrap();
+
+        stream.map_key_collect(2).unwrap();
+
+        stream.map_value_collect(42).unwrap();
+
+        stream.map_end().unwrap();
+
+        stream.map_end().unwrap();
+
+        stream.end().unwrap();
+
+        black_box(stream);
+    })
+}

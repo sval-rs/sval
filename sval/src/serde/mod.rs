@@ -36,9 +36,9 @@ mod to_serialize;
 mod to_value;
 
 use crate::{
+    Error,
     Stream,
     Value,
-    Error,
 };
 
 use serde_lib::ser::{

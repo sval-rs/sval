@@ -116,6 +116,7 @@ fn main() {
     map.insert(Id::new(2), vec!["World", "Hello"]);
 
     // Write the map using `sval`
+    println!("sval -> sval:");
     sval::stream(
         &map,
         Fmt {
@@ -126,18 +127,25 @@ fn main() {
     .unwrap();
 
     // Write the map using `serde_json`
-    println!("{}\n", serde_json::to_string(&sval::serde::to_serialize(&map)).unwrap());
+    println!(
+        "sval -> serde:\n{}\n",
+        serde_json::to_string(&sval::serde::to_serialize(&map)).unwrap()
+    );
 
     // A map that implements `serde::Serialize`
     let mut map = BTreeMap::new();
 
-    // Write the map using `serde_json`
-    println!("{}\n", serde_json::to_string(&map).unwrap());
-
     map.insert(SerdeId::new(1), vec!["Hello", "World"]);
     map.insert(SerdeId::new(2), vec!["World", "Hello"]);
 
+    // Write the map using `serde_json`
+    println!(
+        "serde -> serde:\n{}\n",
+        serde_json::to_string(&map).unwrap()
+    );
+
     // Write the map using `sval`
+    println!("serde -> sval:");
     sval::serde::stream(
         &map,
         Fmt {

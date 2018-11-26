@@ -1,5 +1,8 @@
 use crate::{
-    std::fmt,
+    std::{
+        cell::Cell,
+        fmt,
+    },
     stream,
     value,
 };
@@ -32,12 +35,32 @@ where
     }
 }
 
-// NOTE: This impl doesn't actually work
-// We can't guarantee that any `Value` can
-// be serialized by any `Serializer`
-// because keys, values, and elements
-// can't be materialized unless they're
-// primitives.
+struct Value<'a>(Cell<Option<stream::Value<'a>>>);
+
+impl<'a> Value<'a> {
+    fn new(v: stream::Value<'a>) -> Self {
+        Value(Cell::new(Some(v)))
+    }
+}
+
+impl<'a> Serialize for Value<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut stream = Stream::begin(serializer);
+
+        let value = self
+            .0
+            .take()
+            .ok_or_else(|| stream::Error::msg("attempt to re-use value"))
+            .map_err(S::Error::custom)?;
+        value.stream(&mut stream).map_err(S::Error::custom)?;
+
+        Ok(stream.expect_ok())
+    }
+}
+
 struct Stream<S>
 where
     S: Serializer,
@@ -80,35 +103,45 @@ where
     fn take_serializer(self) -> Result<S, stream::Error> {
         match self {
             Current::Serializer(ser) => Ok(ser),
-            _ => Err(stream::Error::msg("invalid serializer value (expected a serializer)")),
+            _ => Err(stream::Error::msg(
+                "invalid serializer value (expected a serializer)",
+            )),
         }
     }
 
     fn expect_serialize_seq(&mut self) -> Result<&mut S::SerializeSeq, stream::Error> {
         match self {
             Current::SerializeSeq(seq) => Ok(seq),
-            _ => Err(stream::Error::msg("invalid serializer value (expected a sequence)")),
+            _ => Err(stream::Error::msg(
+                "invalid serializer value (expected a sequence)",
+            )),
         }
     }
 
     fn take_serialize_seq(self) -> Result<S::SerializeSeq, stream::Error> {
         match self {
             Current::SerializeSeq(seq) => Ok(seq),
-            _ => Err(stream::Error::msg("invalid serializer value (expected a sequence)")),
+            _ => Err(stream::Error::msg(
+                "invalid serializer value (expected a sequence)",
+            )),
         }
     }
 
     fn expect_serialize_map(&mut self) -> Result<&mut S::SerializeMap, stream::Error> {
         match self {
             Current::SerializeMap(map) => Ok(map),
-            _ => Err(stream::Error::msg("invalid serializer value (expected a map)")),
+            _ => Err(stream::Error::msg(
+                "invalid serializer value (expected a map)",
+            )),
         }
     }
 
     fn take_serialize_map(self) -> Result<S::SerializeMap, stream::Error> {
         match self {
             Current::SerializeMap(map) => Ok(map),
-            _ => Err(stream::Error::msg("invalid serializer value (expected a map)")),
+            _ => Err(stream::Error::msg(
+                "invalid serializer value (expected a map)",
+            )),
         }
     }
 }
@@ -169,8 +202,10 @@ where
             }
             Some(Root) => {
                 let ser = self.take()?.take_serializer()?;
-                v.serialize(ser)
-                    .map_err(err("error serializing 128bit signed integer"))?;
+                self.ok = Some(
+                    v.serialize(ser)
+                        .map_err(err("error serializing primitive value"))?,
+                );
 
                 Ok(())
             }
@@ -185,11 +220,21 @@ where
 {
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
         // TODO: This isn't valid once we've begun a map
+        // We need to be able to switch into an allocating mode
+        // where values have to be materialized before being streamed
         self.map_serializer(|ser| ser.serialize_seq(len).map(|seq| Current::SerializeSeq(seq)))
     }
 
     fn seq_elem(&mut self) -> Result<(), stream::Error> {
         self.pos = Some(stream::Pos::Elem);
+
+        Ok(())
+    }
+
+    fn seq_elem_collect(&mut self, v: stream::Value) -> Result<(), stream::Error> {
+        let seq = self.expect()?.expect_serialize_seq()?;
+        seq.serialize_element(&Value::new(v))
+            .map_err(err("error serializing sequence element"))?;
 
         Ok(())
     }
@@ -211,8 +256,24 @@ where
         Ok(())
     }
 
+    fn map_key_collect(&mut self, k: stream::Value) -> Result<(), stream::Error> {
+        let map = self.expect()?.expect_serialize_map()?;
+        map.serialize_key(&Value::new(k))
+            .map_err(err("error map serializing key"))?;
+
+        Ok(())
+    }
+
     fn map_value(&mut self) -> Result<(), stream::Error> {
         self.pos = Some(stream::Pos::Value);
+
+        Ok(())
+    }
+
+    fn map_value_collect(&mut self, v: stream::Value) -> Result<(), stream::Error> {
+        let map = self.expect()?.expect_serialize_map()?;
+        map.serialize_value(&Value::new(v))
+            .map_err(err("error serializing map value"))?;
 
         Ok(())
     }

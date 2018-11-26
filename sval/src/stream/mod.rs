@@ -1,7 +1,10 @@
 #[doc(inline)]
 pub use crate::Error;
 
-use crate::std::fmt;
+use crate::{
+    std::fmt,
+    value,
+};
 
 pub use self::fmt::Arguments;
 
@@ -102,10 +105,24 @@ pub trait Stream {
     */
     fn map_key(&mut self) -> Result<(), Error>;
 
+    fn map_key_collect(&mut self, k: Value) -> Result<(), Error> {
+        self.map_key()?;
+        k.stream(self)?;
+
+        Ok(())
+    }
+
     /**
     Begin a map value.
     */
     fn map_value(&mut self) -> Result<(), Error>;
+
+    fn map_value_collect(&mut self, v: Value) -> Result<(), Error> {
+        self.map_value()?;
+        v.stream(self)?;
+
+        Ok(())
+    }
 
     /**
     End a map.
@@ -121,6 +138,13 @@ pub trait Stream {
     Begin a sequence element.
     */
     fn seq_elem(&mut self) -> Result<(), Error>;
+
+    fn seq_elem_collect(&mut self, v: Value) -> Result<(), Error> {
+        self.seq_elem()?;
+        v.stream(self)?;
+
+        Ok(())
+    }
 
     /**
     End a sequence.
@@ -191,8 +215,16 @@ where
         (**self).map_key()
     }
 
+    fn map_key_collect(&mut self, k: Value) -> Result<(), Error> {
+        (**self).map_key_collect(k)
+    }
+
     fn map_value(&mut self) -> Result<(), Error> {
         (**self).map_value()
+    }
+
+    fn map_value_collect(&mut self, v: Value) -> Result<(), Error> {
+        (**self).map_value_collect(v)
     }
 
     fn map_end(&mut self) -> Result<(), Error> {
@@ -207,12 +239,58 @@ where
         (**self).seq_elem()
     }
 
+    fn seq_elem_collect(&mut self, v: Value) -> Result<(), Error> {
+        (**self).seq_elem_collect(v)
+    }
+
     fn seq_end(&mut self) -> Result<(), Error> {
         (**self).seq_end()
     }
 
     fn end(&mut self) -> Result<(), Error> {
         (**self).end()
+    }
+}
+
+/**
+A streamable value.
+*/
+pub struct Value<'a> {
+    #[cfg(any(debug_assertions, test))]
+    stack: &'a mut Stack,
+    value: &'a dyn value::Value,
+}
+
+impl<'a> Value<'a> {
+    #[cfg(any(debug_assertions, test))]
+    pub(crate) fn new(stack: &'a mut Stack, value: &'a impl value::Value) -> Self {
+        Value { stack, value }
+    }
+
+    #[cfg(all(not(debug_assertions), not(test)))]
+    pub(crate) fn new(value: &'a impl value::Value) -> Self {
+        Value { value }
+    }
+
+    /**
+    Stream this value.
+    */
+    pub fn stream(mut self, mut stream: impl Stream) -> Result<(), Error> {
+        let mut stream = {
+            #[cfg(any(debug_assertions, test))]
+            {
+                value::Stream::new(&mut self.stack, &mut stream)
+            }
+
+            #[cfg(all(not(debug_assertions), not(test)))]
+            {
+                value::Stream::new(&mut stream)
+            }
+        }?;
+
+        stream.any(self.value)?;
+
+        Ok(())
     }
 }
 

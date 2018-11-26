@@ -34,7 +34,7 @@ where
         stream.seq_begin(Some(self.len()))?;
 
         for v in self {
-            stream.seq_elem()?.any(v)?;
+            stream.seq_elem(v)?;
         }
 
         stream.seq_end()
@@ -185,8 +185,8 @@ mod std_support {
             stream.map_begin(Some(self.len()))?;
 
             for (k, v) in self {
-                stream.map_key()?.any(k)?;
-                stream.map_value()?.any(v)?;
+                stream.map_key(k)?;
+                stream.map_value(v)?;
             }
 
             stream.map_end()
@@ -202,8 +202,8 @@ mod std_support {
             stream.map_begin(Some(self.len()))?;
 
             for (k, v) in self {
-                stream.map_key()?.any(k)?;
-                stream.map_value()?.any(v)?;
+                stream.map_key(k)?;
+                stream.map_value(v)?;
             }
 
             stream.map_end()
