@@ -339,7 +339,7 @@ impl Stack {
             // Clear the `DONE` bit so the stack
             // can be re-used
             self.current_mut().0 = Slot::ROOT;
-            
+
             Ok(())
         } else {
             Err(Error::msg("stack is not empty"))

@@ -28,7 +28,7 @@ pub trait Visit {
 
     /**
     Begin a sequence.
-    
+
     After the sequence has begun, this `Visit` should only expect
     calls to `seq_elem` until `seq_end` is called.
     */
@@ -39,7 +39,7 @@ pub trait Visit {
 
     /**
     Visit an element of a sequence.
-    
+
     This method should only be called after `seq_begin` and before
     `seq_end`.
     */
@@ -49,10 +49,10 @@ pub trait Visit {
 
     /**
     End a sequence.
-    
+
     This method should only be called after `seq_begin`.
     Each call to `seq_begin` must have a corresponding call
-    to `seq_end`. 
+    to `seq_end`.
     */
     fn seq_end(&mut self) -> Result<(), Error> {
         Ok(())
@@ -60,7 +60,7 @@ pub trait Visit {
 
     /**
     Begin a map.
-    
+
     After the map has begun, this `Visit` should only expect
     calls to `map_key` and `map_value` until `map_end` is called.
     */
@@ -71,7 +71,7 @@ pub trait Visit {
 
     /**
     Visit a map key.
-    
+
     This method should only be called after `map_begin` and before
     a corresponding call to `map_value`.
     */
@@ -81,7 +81,7 @@ pub trait Visit {
 
     /**
     Visit a map key.
-    
+
     This method should only be called after `map_key`.
     */
     fn map_value(&mut self, v: Value) -> Result<(), Error> {
@@ -90,10 +90,10 @@ pub trait Visit {
 
     /**
     End a map.
-    
+
     This method should only be called after `map_begin`.
     Each call to `map_begin` must have a corresponding call
-    to `map_end`. 
+    to `map_end`.
     */
     fn map_end(&mut self) -> Result<(), Error> {
         Ok(())

@@ -303,6 +303,9 @@ extern crate core as std;
 #[macro_use]
 mod error;
 
+#[cfg(feature = "serde")]
+pub mod serde;
+
 pub mod stream;
 pub mod value;
 
@@ -313,7 +316,7 @@ pub use self::{
 };
 
 /**
-Stream the structure of a [`Value`] using the given [`Stream`]. 
+Stream the structure of a [`Value`] using the given [`Stream`].
 */
 pub fn stream(value: impl Value, mut stream: impl Stream) -> Result<(), Error> {
     let mut stream = value::Stream::begin(&mut stream)?;

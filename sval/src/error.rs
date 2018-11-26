@@ -128,3 +128,28 @@ mod std_support {
         }
     }
 }
+
+#[cfg(feature = "serde")]
+mod serde_support {
+    use super::*;
+
+    use serde::ser;
+
+    impl ser::Error for Error {
+        fn custom<D>(err: D) -> Self
+        where
+            D: fmt::Display,
+        {
+            #[cfg(feature = "std")]
+            {
+                Error::custom(err)
+            }
+
+            #[cfg(not(feature = "std"))]
+            {
+                let _ = err;
+                Error::msg("serde serialization failed")
+            }
+        }
+    }
+}
