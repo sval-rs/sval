@@ -1,3 +1,11 @@
+/*!
+Extensions for `stream::Stream` for collecting
+keys, values, and sequences that are known upfront.
+
+This is useful for `serde` integration where we can avoid
+allocating for nested datastructures that are already known.
+*/
+
 use crate::{
     stream::{
         self,
@@ -32,9 +40,6 @@ where
     }
 }
 
-/**
-A streamable value.
-*/
 pub(crate) struct Value<'a> {
     #[cfg(any(debug_assertions, test))]
     stack: crate::std::cell::Cell<Option<&'a mut stream::Stack>>,

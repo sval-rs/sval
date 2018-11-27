@@ -1,3 +1,7 @@
+/*!
+A stream for datastructures.
+*/
+
 #[doc(inline)]
 pub use crate::Error;
 
@@ -95,43 +99,59 @@ pub trait Stream {
     /**
     Begin a map.
     */
-    fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error>;
+    fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        let _ = len;
+        Ok(())
+    }
 
     /**
     Begin a map key.
 
     The key will be implicitly ended by the stream methods that follow it.
     */
-    fn map_key(&mut self) -> Result<(), Error>;
+    fn map_key(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     Begin a map value.
 
     The value will be implicitly ended by the stream methods that follow it.
     */
-    fn map_value(&mut self) -> Result<(), Error>;
+    fn map_value(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     End a map.
     */
-    fn map_end(&mut self) -> Result<(), Error>;
+    fn map_end(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     Begin a sequence.
     */
-    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error>;
+    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+        let _ = len;
+        Ok(())
+    }
 
     /**
     Begin a sequence element.
 
     The element will be implicitly ended by the stream methods that follow it.
     */
-    fn seq_elem(&mut self) -> Result<(), Error>;
+    fn seq_elem(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     End a sequence.
     */
-    fn seq_end(&mut self) -> Result<(), Error>;
+    fn seq_end(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /**
     End the stream.

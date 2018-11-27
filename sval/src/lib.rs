@@ -1,5 +1,5 @@
 /*!
-A lightweight serialization-only framework.
+A small, no-std, serialization-only framework.
 
 # Streaming values
 
@@ -12,13 +12,6 @@ sval::stream(42, MyStream)?;
 # struct MyStream;
 # impl Stream for MyStream {
 #     fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> { unimplemented!() }
-#     fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> { unimplemented!() }
-#     fn seq_elem(&mut self) -> Result<(), stream::Error> { unimplemented!() }
-#     fn seq_end(&mut self) -> Result<(), stream::Error> { unimplemented!() }
-#     fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> { unimplemented!() }
-#     fn map_key(&mut self) -> Result<(), stream::Error> { unimplemented!() }
-#     fn map_value(&mut self) -> Result<(), stream::Error> { unimplemented!() }
-#     fn map_end(&mut self) -> Result<(), stream::Error> { unimplemented!() }
 # }
 ```
 
@@ -55,7 +48,7 @@ impl Value for Seq {
         stream.seq_begin(Some(self.0.len()))?;
 
         for v in &self.0 {
-            stream.seq_elem()?.any(v)?;
+            stream.seq_elem(v)?;
         }
 
         stream.seq_end()
@@ -79,8 +72,8 @@ impl Value for Map {
         stream.map_begin(Some(self.0.len()))?;
 
         for (k, v) in &self.0 {
-            stream.map_key()?.any(k)?;
-            stream.map_value()?.any(v)?;
+            stream.map_key(k)?;
+            stream.map_value(v)?;
         }
 
         stream.map_end()
@@ -103,39 +96,13 @@ impl Stream for Fmt {
 
         Ok(())
     }
-
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        Ok(())
-    }
-
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
-        Ok(())
-    }
-
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
-        Ok(())
-    }
-
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        Ok(())
-    }
-
-    fn map_key(&mut self) -> Result<(), stream::Error> {
-        Ok(())
-    }
-
-    fn map_value(&mut self) -> Result<(), stream::Error> {
-        Ok(())
-    }
-
-    fn map_end(&mut self) -> Result<(), stream::Error> {
-        Ok(())
-    }
 }
 ```
 
 There are more methods on `Stream` that can be overriden for more complex
-datastructures like sequences and maps:
+datastructures like sequences and maps. The following example uses a
+[`stream::Stack`] to track the state of any sequences and maps and ensure
+they're valid:
 
 ```
 use std::{fmt, mem};
@@ -232,7 +199,9 @@ impl Stream for Fmt {
 }
 ```
 
-A `Stream` might only care about a single kind of value:
+A `Stream` might only care about a single kind of value.
+The following example overrides the provided `u64` method
+to see whether a given value is a `u64`:
 
 ```
 use std::{fmt, mem};
@@ -260,35 +229,16 @@ impl Stream for IsU64 {
     fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> {
         Err(stream::Error::msg("not a u64"))
     }
-
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
-
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
-
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
-
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
-
-    fn map_key(&mut self) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
-
-    fn map_value(&mut self) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
-
-    fn map_end(&mut self) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
 }
+```
+
+# `serde` integration
+
+Use the `serde` Cargo feature to enable integration with `serde`:
+
+```toml,no_run
+[dependencies.sval]
+features = "serde"
 ```
 */
 

@@ -1,3 +1,7 @@
+/*!
+A streamable value.
+*/
+
 mod impls;
 
 pub(crate) mod collect;
