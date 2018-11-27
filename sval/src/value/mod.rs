@@ -37,9 +37,22 @@ pub struct Stream<'a> {
 
 impl<'a> Stream<'a> {
     #[inline]
+    #[cfg(any(debug_assertions, test))]
     pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
         let mut stack = stream::Stack::default();
         let mut stream = Stream::new(&mut stack, &mut stream);
+
+        stream.begin()?;
+        value.stream(&mut stream)?;
+        stream.end()?;
+
+        Ok(())
+    }
+
+    #[inline]
+    #[cfg(all(not(debug_assertions), not(test)))]
+    pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
+        let mut stream = Stream::new(&mut stream);
 
         stream.begin()?;
         value.stream(&mut stream)?;

@@ -1,5 +1,4 @@
 use crate::{
-    std::cell::Cell,
     stream::{
         self,
         Stream as StreamTrait,
@@ -38,7 +37,7 @@ A streamable value.
 */
 pub(crate) struct Value<'a> {
     #[cfg(any(debug_assertions, test))]
-    stack: Cell<Option<&'a mut stream::Stack>>,
+    stack: crate::std::cell::Cell<Option<&'a mut stream::Stack>>,
     value: &'a dyn value::Value,
 }
 
@@ -47,14 +46,14 @@ impl<'a> Value<'a> {
     #[inline]
     pub(crate) fn new(stack: &'a mut stream::Stack, value: &'a impl value::Value) -> Self {
         Value {
-            stack: Cell::new(Some(stack)),
+            stack: crate::std::cell::Cell::new(Some(stack)),
             value,
         }
     }
 
     #[cfg(all(not(debug_assertions), not(test)))]
     #[inline]
-    pub(crate) fn new(value: &'a impl Value) -> Self {
+    pub(crate) fn new(value: &'a impl value::Value) -> Self {
         Value { value }
     }
 
