@@ -1,12 +1,11 @@
 mod impls;
 
+pub(crate) mod collect;
+
 #[doc(inline)]
 pub use crate::Error;
 
-use crate::{
-    std::fmt,
-    stream,
-};
+use crate::stream;
 
 /**
 A value with a streamable structure.
@@ -33,20 +32,29 @@ A value stream.
 pub struct Stream<'a> {
     #[cfg(any(debug_assertions, test))]
     stack: &'a mut stream::Stack,
-    stream: &'a mut dyn stream::Stream,
+    stream: &'a mut dyn collect::Stream,
 }
 
 impl<'a> Stream<'a> {
+    #[inline]
+    pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
+        let mut stack = stream::Stack::default();
+        let mut stream = Stream::new(&mut stack, &mut stream);
+
+        stream.begin()?;
+        value.stream(&mut stream)?;
+        stream.end()?;
+
+        Ok(())
+    }
+
     /**
     Begin a new value stream.
     */
     #[inline]
     #[cfg(any(debug_assertions, test))]
-    pub(crate) fn new(
-        stack: &'a mut stream::Stack,
-        stream: &'a mut dyn stream::Stream,
-    ) -> Result<Self, Error> {
-        Ok(Stream { stack, stream })
+    fn new(stack: &'a mut stream::Stack, stream: &'a mut dyn collect::Stream) -> Self {
+        Stream { stack, stream }
     }
 
     /**
@@ -54,11 +62,11 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     #[cfg(all(not(debug_assertions), not(test)))]
-    pub(crate) fn new(stream: &'a mut dyn stream::Stream) -> Result<Self, Error> {
-        Ok(Stream { stream })
+    fn new(stream: &'a mut dyn collect::Stream) -> Self {
+        Stream { stream }
     }
 
-    pub(crate) fn begin(&mut self) -> Result<(), Error> {
+    fn begin(&mut self) -> Result<(), Error> {
         self.stream.begin()?;
 
         Ok(())
@@ -76,7 +84,7 @@ impl<'a> Stream<'a> {
     Stream format arguments.
     */
     #[inline]
-    pub fn fmt(&mut self, f: fmt::Arguments) -> Result<(), Error> {
+    pub fn fmt(&mut self, f: stream::Arguments) -> Result<(), Error> {
         #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
@@ -226,11 +234,11 @@ impl<'a> Stream<'a> {
         let value = {
             #[cfg(any(debug_assertions, test))]
             {
-                stream::Value::new(&mut self.stack, &k)
+                collect::Value::new(&mut self.stack, &k)
             }
             #[cfg(all(not(debug_assertions), not(test)))]
             {
-                stream::Value::new(&k)
+                collect::Value::new(&k)
             }
         };
 
@@ -243,18 +251,18 @@ impl<'a> Stream<'a> {
     Stream a map value.
     */
     #[inline]
-    pub fn map_value(&mut self, k: impl Value) -> Result<(), Error> {
+    pub fn map_value(&mut self, v: impl Value) -> Result<(), Error> {
         #[cfg(any(debug_assertions, test))]
         self.stack.map_value()?;
 
         let value = {
             #[cfg(any(debug_assertions, test))]
             {
-                stream::Value::new(&mut self.stack, &k)
+                collect::Value::new(&mut self.stack, &v)
             }
             #[cfg(all(not(debug_assertions), not(test)))]
             {
-                stream::Value::new(&k)
+                collect::Value::new(&v)
             }
         };
 
@@ -293,18 +301,18 @@ impl<'a> Stream<'a> {
     Stream a sequence element.
     */
     #[inline]
-    pub fn seq_elem(&mut self, k: impl Value) -> Result<(), Error> {
+    pub fn seq_elem(&mut self, v: impl Value) -> Result<(), Error> {
         #[cfg(any(debug_assertions, test))]
         self.stack.seq_elem()?;
 
         let value = {
             #[cfg(any(debug_assertions, test))]
             {
-                stream::Value::new(&mut self.stack, &k)
+                collect::Value::new(&mut self.stack, &v)
             }
             #[cfg(all(not(debug_assertions), not(test)))]
             {
-                stream::Value::new(&k)
+                collect::Value::new(&v)
             }
         };
 
@@ -330,7 +338,7 @@ impl<'a> Stream<'a> {
     End the stream.
     */
     #[inline]
-    pub(crate) fn end(self) -> Result<(), Error> {
+    fn end(self) -> Result<(), Error> {
         #[cfg(any(debug_assertions, test))]
         self.stack.end()?;
 

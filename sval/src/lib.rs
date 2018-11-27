@@ -295,11 +295,9 @@ impl Stream for IsU64 {
 #![no_std]
 
 #[cfg(feature = "std")]
-#[macro_use]
 extern crate std;
 
 #[cfg(not(feature = "std"))]
-#[macro_use]
 extern crate core as std;
 
 #[macro_use]
@@ -320,13 +318,6 @@ pub use self::{
 /**
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
-pub fn stream(value: impl Value, mut stream: impl Stream) -> Result<(), Error> {
-    let mut stack = stream::Stack::default();
-    let mut stream = value::Stream::new(&mut stack, &mut stream)?;
-
-    stream.begin()?;
-    value.stream(&mut stream)?;
-    stream.end()?;
-
-    Ok(())
+pub fn stream(value: impl Value, stream: impl Stream) -> Result<(), Error> {
+    value::Stream::stream(value, value::collect::Default(stream))
 }

@@ -11,15 +11,7 @@ pub struct Error(ErrorInner);
 impl Error {
     /** Capture a static message as an error. */
     pub fn msg(msg: &'static str) -> Self {
-        #[cfg(debug_assertions)]
-        {
-            panic!(msg)
-        }
-
-        #[cfg(not(debug_assertions))]
-        {
-            Error(ErrorInner::Static(msg))
-        }
+        Error(ErrorInner::Static(msg))
     }
 }
 

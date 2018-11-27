@@ -1,8 +1,5 @@
 use crate::{
-    std::{
-        cell::Cell,
-        fmt,
-    },
+    std::fmt,
     stream,
     value,
 };
@@ -29,33 +26,20 @@ where
         S: Serializer,
     {
         let mut stream = Stream::begin(serializer);
-        crate::stream(&self.0, &mut stream).map_err(S::Error::custom)?;
+        value::Stream::stream(&self.0, &mut stream).map_err(S::Error::custom)?;
 
         Ok(stream.expect_ok())
     }
 }
 
-struct Value<'a>(Cell<Option<stream::Value<'a>>>);
-
-impl<'a> Value<'a> {
-    fn new(v: stream::Value<'a>) -> Self {
-        Value(Cell::new(Some(v)))
-    }
-}
-
-impl<'a> Serialize for Value<'a> {
+impl<'a> Serialize for ToSerialize<value::collect::Value<'a>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut stream = Stream::begin(serializer);
 
-        let value = self
-            .0
-            .take()
-            .ok_or_else(|| stream::Error::msg("attempt to re-use value"))
-            .map_err(S::Error::custom)?;
-        value.stream(&mut stream).map_err(S::Error::custom)?;
+        self.0.stream(&mut stream).map_err(S::Error::custom)?;
 
         Ok(stream.expect_ok())
     }
@@ -214,29 +198,47 @@ where
     }
 }
 
+impl<S> value::collect::Stream for Stream<S>
+where
+    S: Serializer,
+{
+    fn seq_elem_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
+        let seq = self.expect()?.expect_serialize_seq()?;
+        seq.serialize_element(&ToSerialize(v))
+            .map_err(err("error serializing sequence element"))?;
+
+        Ok(())
+    }
+
+    fn map_key_collect(&mut self, k: value::collect::Value) -> Result<(), stream::Error> {
+        let map = self.expect()?.expect_serialize_map()?;
+        map.serialize_key(&ToSerialize(k))
+            .map_err(err("error map serializing key"))?;
+
+        Ok(())
+    }
+
+    fn map_value_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
+        let map = self.expect()?.expect_serialize_map()?;
+        map.serialize_value(&ToSerialize(v))
+            .map_err(err("error serializing map value"))?;
+
+        Ok(())
+    }
+}
+
 impl<S> stream::Stream for Stream<S>
 where
     S: Serializer,
 {
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
-        // TODO: This isn't valid once we've begun a map
-        // We need to be able to switch into an allocating mode
-        // where values have to be materialized before being streamed
         self.map_serializer(|ser| ser.serialize_seq(len).map(|seq| Current::SerializeSeq(seq)))
     }
 
     fn seq_elem(&mut self) -> Result<(), stream::Error> {
         self.pos = Some(stream::Pos::Elem);
 
-        Ok(())
-    }
-
-    fn seq_elem_collect(&mut self, v: stream::Value) -> Result<(), stream::Error> {
-        let seq = self.expect()?.expect_serialize_seq()?;
-        seq.serialize_element(&Value::new(v))
-            .map_err(err("error serializing sequence element"))?;
-
-        Ok(())
+        unimplemented!();
     }
 
     fn seq_end(&mut self) -> Result<(), stream::Error> {
@@ -253,29 +255,13 @@ where
     fn map_key(&mut self) -> Result<(), stream::Error> {
         self.pos = Some(stream::Pos::Key);
 
-        Ok(())
-    }
-
-    fn map_key_collect(&mut self, k: stream::Value) -> Result<(), stream::Error> {
-        let map = self.expect()?.expect_serialize_map()?;
-        map.serialize_key(&Value::new(k))
-            .map_err(err("error map serializing key"))?;
-
-        Ok(())
+        unimplemented!();
     }
 
     fn map_value(&mut self) -> Result<(), stream::Error> {
         self.pos = Some(stream::Pos::Value);
 
-        Ok(())
-    }
-
-    fn map_value_collect(&mut self, v: stream::Value) -> Result<(), stream::Error> {
-        let map = self.expect()?.expect_serialize_map()?;
-        map.serialize_value(&Value::new(v))
-            .map_err(err("error serializing map value"))?;
-
-        Ok(())
+        unimplemented!();
     }
 
     fn map_end(&mut self) -> Result<(), stream::Error> {
