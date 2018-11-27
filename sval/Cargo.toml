@@ -12,7 +12,7 @@ std = []
 # because `serde::ser::Error` needs extra
 # trait bounds when compiled with the `std`
 # feature, which is the default for `serde`.
-serde = ["std", "serde_lib"]
+serde = ["std", "serde_lib/std"]
 
 [dependencies.serde_lib]
 version = "1"

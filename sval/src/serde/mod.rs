@@ -1,7 +1,7 @@
 /*!
 Integration between `sval` and `serde`.
 
-A type that implements [`sval::value::Value`] can be converted into
+A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into
 a type that implements [`serde::Serialize`]:
 
 ```
@@ -16,7 +16,7 @@ let my_serialize = sval::serde::to_serialize(my_value);
 ```
 
 A type that implements [`serde::Serialize`] can be converted into
-a type that implements [`sval::value::Value`]:
+a type that implements [`sval::Value`](../value/trait.Value.html):
 
 ```
 # struct MySerialize;

@@ -102,9 +102,14 @@ pub trait Stream {
 
     /**
     Begin a map key.
+
+    The key will be implicitly ended by the stream methods that follow it.
     */
     fn map_key(&mut self) -> Result<(), Error>;
 
+    /**
+    Collect a map key.
+    */
     fn map_key_collect(&mut self, k: Value) -> Result<(), Error> {
         self.map_key()?;
         k.stream(self)?;
@@ -114,9 +119,14 @@ pub trait Stream {
 
     /**
     Begin a map value.
+
+    The value will be implicitly ended by the stream methods that follow it.
     */
     fn map_value(&mut self) -> Result<(), Error>;
 
+    /**
+    Collect a map value.
+    */
     fn map_value_collect(&mut self, v: Value) -> Result<(), Error> {
         self.map_value()?;
         v.stream(self)?;
@@ -136,9 +146,14 @@ pub trait Stream {
 
     /**
     Begin a sequence element.
+
+    The element will be implicitly ended by the stream methods that follow it.
     */
     fn seq_elem(&mut self) -> Result<(), Error>;
 
+    /**
+    Collect a sequence element.
+    */
     fn seq_elem_collect(&mut self, v: Value) -> Result<(), Error> {
         self.seq_elem()?;
         v.stream(self)?;

@@ -11,7 +11,7 @@ use crate::{
 /**
 A value with a streamable structure.
 
-Use the [`sval::stream`] function to stream a value.
+Use the [`sval::stream`](../fn.stream.html) function to stream a value.
 */
 pub trait Value {
     /** Stream this value. */
@@ -216,19 +216,6 @@ impl<'a> Stream<'a> {
     }
 
     /**
-    Begin a map key.
-    */
-    #[inline]
-    pub fn map_key_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
-        #[cfg(any(debug_assertions, test))]
-        self.stack.map_key()?;
-
-        self.stream.map_key()?;
-
-        Ok(self)
-    }
-
-    /**
     Stream a map key.
     */
     #[inline]
@@ -250,19 +237,6 @@ impl<'a> Stream<'a> {
         self.stream.map_key_collect(value)?;
 
         Ok(())
-    }
-
-    /**
-    Begin a map value.
-    */
-    #[inline]
-    pub fn map_value_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
-        #[cfg(any(debug_assertions, test))]
-        self.stack.map_value()?;
-
-        self.stream.map_value()?;
-
-        Ok(self)
     }
 
     /**
@@ -316,19 +290,6 @@ impl<'a> Stream<'a> {
     }
 
     /**
-    Begin a sequence element.
-    */
-    #[inline]
-    pub fn seq_elem_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
-        #[cfg(any(debug_assertions, test))]
-        self.stack.seq_elem()?;
-
-        self.stream.seq_elem()?;
-
-        Ok(self)
-    }
-
-    /**
     Stream a sequence element.
     */
     #[inline]
@@ -374,5 +335,46 @@ impl<'a> Stream<'a> {
         self.stack.end()?;
 
         self.stream.end()
+    }
+}
+
+impl<'a> Stream<'a> {
+    /**
+    Begin a map key.
+    */
+    #[inline]
+    pub fn map_key_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
+        #[cfg(any(debug_assertions, test))]
+        self.stack.map_key()?;
+
+        self.stream.map_key()?;
+
+        Ok(self)
+    }
+
+    /**
+    Begin a map value.
+    */
+    #[inline]
+    pub fn map_value_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
+        #[cfg(any(debug_assertions, test))]
+        self.stack.map_value()?;
+
+        self.stream.map_value()?;
+
+        Ok(self)
+    }
+
+    /**
+    Begin a sequence element.
+    */
+    #[inline]
+    pub fn seq_elem_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
+        #[cfg(any(debug_assertions, test))]
+        self.stack.seq_elem()?;
+
+        self.stream.seq_elem()?;
+
+        Ok(self)
     }
 }
