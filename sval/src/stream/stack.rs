@@ -374,7 +374,7 @@ mod tests {
                 mem,
                 vec::Vec,
             },
-            stream::*,
+            stream::stack::*,
         };
 
         #[test]

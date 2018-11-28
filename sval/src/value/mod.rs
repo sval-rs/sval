@@ -9,11 +9,11 @@ mod impls;
 
 pub(crate) mod collect;
 
+pub(crate) use self::stream::stream;
+
 #[doc(inline)]
 pub use crate::Error;
 pub use self::stream::Stream;
-
-pub(crate) use self::stream::stream;
 
 /**
 A value with a streamable structure.
