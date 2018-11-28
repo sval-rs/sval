@@ -3,10 +3,7 @@
 extern crate sval;
 extern crate test;
 
-use sval::{
-    stream,
-    value,
-};
+use sval::stream;
 
 use std::fmt;
 
@@ -103,12 +100,20 @@ fn stack_map(b: &mut Bencher) {
 }
 
 #[bench]
+fn stack_new(b: &mut Bencher) {
+    b.iter(|| {
+        let stack = stream::Stack::new();
+
+        black_box(stack);
+    })
+}
+
+#[bench]
 fn stack_primitive(b: &mut Bencher) {
     b.iter(|| {
         let mut stack = stream::Stack::new();
 
         stack.primitive().unwrap();
-        stack.end().unwrap();
 
         black_box(stack);
     })
@@ -132,32 +137,6 @@ fn unchecked_stream_map(b: &mut Bencher) {
 
         stream.map_value().unwrap();
         stream.u64(42).unwrap();
-
-        stream.map_end().unwrap();
-
-        stream.map_end().unwrap();
-
-        stream.end().unwrap();
-
-        black_box(stream);
-    })
-}
-
-#[bench]
-fn unchecked_stream_map_collect(b: &mut Bencher) {
-    b.iter(|| {
-        let stream: &mut dyn stream::Stream = &mut EmptyStream;
-
-        stream.map_begin(None).unwrap();
-
-        stream.map_key_collect(1).unwrap();
-
-        stream.map_value().unwrap();
-        stream.map_begin(None).unwrap();
-
-        stream.map_key_collect(2).unwrap();
-
-        stream.map_value_collect(42).unwrap();
 
         stream.map_end().unwrap();
 

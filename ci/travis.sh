@@ -14,7 +14,7 @@ if [ "$BRANCH" == "master" ]; then
     popd
 
     pushd val
-    cargo doc val --features std
+    cargo doc --features std
     popd
 
     pushd val_serde
