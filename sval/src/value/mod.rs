@@ -33,3 +33,13 @@ where
         (**self).stream(stream)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn value_is_object_safe() {
+        fn _safe(_: &dyn Value) { }
+    }
+}

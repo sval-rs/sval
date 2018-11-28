@@ -245,3 +245,13 @@ where
         (**self).end()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stream_is_object_safe() {
+        fn _safe(_: &mut dyn Stream) { }
+    }
+}

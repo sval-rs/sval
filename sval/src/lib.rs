@@ -1,5 +1,5 @@
 /*!
-A small, no-std, serialization-only framework.
+A small, no-std, object-safe, serialization-only framework.
 
 # Streaming values
 
@@ -81,7 +81,35 @@ impl Value for Map {
 }
 ```
 
+## for values that aren't known upfront
+
+Types can stream a structure that's different than what they use internally.
+In the following example, the `Map` type doesn't have any keys or values,
+but serializes a nested map like `{"nested": {"key": 42}}`:
+
+```
+use sval::value::{self, Value};
+
+pub struct Map;
+
+impl Value for Map {
+    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+        stream.map_begin(Some(1))?;
+
+        stream.map_key_begin()?.str("nested")?;
+        stream.map_value_begin()?.map_begin(Some(1))?;
+        stream.map_key_begin()?.str("key")?;
+        stream.map_value_begin()?.u64(42)?;
+        stream.map_end()?;
+
+        stream.map_end()
+    }
+}
+```
+
 # Implementing the `Stream` trait
+
+## without state
 
 Implement the [`Stream`] trait to visit the structure of a [`Value`]:
 
@@ -98,6 +126,42 @@ impl Stream for Fmt {
     }
 }
 ```
+
+A `Stream` might only care about a single kind of value.
+The following example overrides the provided `u64` method
+to see whether a given value is a `u64`:
+
+```
+use sval::{
+    Value,
+    stream::{self, Stream}
+};
+
+assert!(is_u64(42u64));
+
+pub fn is_u64(v: impl Value) -> bool {
+    let mut stream = IsU64(None);
+
+    sval::stream(v, &mut stream)
+        .map(|_| stream.0.is_some())
+        .unwrap_or(false)
+}
+
+struct IsU64(Option<u64>);
+impl Stream for IsU64 {
+    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+        self.0 = Some(v);
+
+        Ok(())
+    }
+
+    fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("not a u64"))
+    }
+}
+```
+
+## with state
 
 There are more methods on `Stream` that can be overriden for more complex
 datastructures like sequences and maps. The following example uses a
@@ -199,39 +263,6 @@ impl Stream for Fmt {
 }
 ```
 
-A `Stream` might only care about a single kind of value.
-The following example overrides the provided `u64` method
-to see whether a given value is a `u64`:
-
-```
-use std::{fmt, mem};
-use sval::{
-    Value,
-    stream::{self, Stream}
-};
-
-assert!(is_u64(42u64));
-
-pub fn is_u64(v: impl Value) -> bool {
-    let mut stream = IsU64(None);
-    let _ = sval::stream(v, &mut stream);
-
-    stream.0.is_some()
-}
-
-struct IsU64(Option<u64>);
-impl Stream for IsU64 {
-    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
-        self.0 = Some(v);
-        Ok(())
-    }
-
-    fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> {
-        Err(stream::Error::msg("not a u64"))
-    }
-}
-```
-
 # `serde` integration
 
 Use the `serde` Cargo feature to enable integration with `serde`:
@@ -253,11 +284,10 @@ extern crate core as std;
 #[macro_use]
 mod error;
 
-#[cfg(feature = "serde")]
-pub mod serde;
-
 pub mod stream;
 pub mod value;
+#[cfg(feature = "serde")]
+pub mod serde;
 
 pub use self::{
     error::Error,

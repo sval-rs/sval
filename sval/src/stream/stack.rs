@@ -22,7 +22,7 @@ pub enum Pos {
 /**
 A container for the stream state.
 
-Implementations of the [`Stream`] trait are encouraged to use a
+Implementations of the [`Stream`](trait.Stream.html) trait are encouraged to use a
 stack for validating their input.
 
 The stack is stateful, and keeps track of open maps and sequences.
