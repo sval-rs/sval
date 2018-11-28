@@ -14,7 +14,10 @@ pub use crate::Error;
 
 use crate::{
     std::marker::PhantomData,
-    stream,
+    stream::{
+        Arguments,
+        Stack,
+    },
 };
 
 /**
@@ -46,43 +49,14 @@ pub struct Stream<'a> {
 
 impl<'a> Stream<'a> {
     #[inline]
-    pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
-        cfg_debug_stack! {
-            if #[debug_stack] {
-                let mut stack = stream::Stack::default();
-                let mut stream = Stream {
-                    stack: DebugStack {
-                        stack: &mut stack,
-                        _m: PhantomData
-                    },
-                    stream: &mut stream
-                };
-
-                stream.begin()?;
-                value.stream(&mut stream)?;
-                stream.end()?;
-            }
-            else {
-                let mut stream = Stream {
-                    stack: DebugStack {
-                        _m: PhantomData
-                    },
-                    stream: &mut stream
-                };
-
-                stream.begin()?;
-                value.stream(&mut stream)?;
-                stream.end()?;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn begin(&mut self) -> Result<(), Error> {
+    fn stream(mut self, value: impl Value) -> Result<(), Error> {
         self.stack.begin()?;
-
         self.stream.begin()?;
+
+        value.stream(&mut self)?;
+
+        self.stack.end()?;
+        self.stream.end()?;
 
         Ok(())
     }
@@ -99,7 +73,7 @@ impl<'a> Stream<'a> {
     Stream format arguments.
     */
     #[inline]
-    pub fn fmt(&mut self, f: stream::Arguments) -> Result<(), Error> {
+    pub fn fmt(&mut self, f: Arguments) -> Result<(), Error> {
         self.stack.primitive()?;
 
         self.stream.fmt(f)?;
@@ -301,16 +275,6 @@ impl<'a> Stream<'a> {
 
         Ok(())
     }
-
-    /**
-    End the stream.
-    */
-    #[inline]
-    fn end(mut self) -> Result<(), Error> {
-        self.stack.end()?;
-
-        self.stream.end()
-    }
 }
 
 impl<'a> Stream<'a> {
@@ -351,10 +315,38 @@ impl<'a> Stream<'a> {
     }
 }
 
+#[inline]
+pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
+    cfg_debug_stack! {
+        if #[debug_stack] {
+            let mut stack = Stack::default();
+            let stream = Stream {
+                stack: DebugStack {
+                    stack: &mut stack,
+                    _m: PhantomData
+                },
+                stream: &mut stream
+            };
+
+            stream.stream(value)
+        }
+        else {
+            let stream = Stream {
+                stack: DebugStack {
+                    _m: PhantomData
+                },
+                stream: &mut stream
+            };
+
+            stream.stream(value)
+        }
+    }
+}
+
 struct DebugStack<'a> {
     #[cfg(any(debug_assertions, test))]
-    stack: &'a mut stream::Stack,
-    _m: PhantomData<&'a mut stream::Stack>,
+    stack: &'a mut Stack,
+    _m: PhantomData<&'a mut Stack>,
 }
 
 impl<'a> DebugStack<'a> {

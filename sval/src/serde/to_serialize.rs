@@ -26,7 +26,7 @@ where
         S: Serializer,
     {
         let mut stream = Stream::begin(serializer);
-        value::Stream::stream(&self.0, &mut stream).map_err(S::Error::custom)?;
+        value::stream(&self.0, &mut stream).map_err(S::Error::custom)?;
 
         Ok(stream.expect_ok())
     }

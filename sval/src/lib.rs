@@ -269,5 +269,5 @@ pub use self::{
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
 pub fn stream(value: impl Value, stream: impl Stream) -> Result<(), Error> {
-    value::Stream::stream(value, value::collect::Default(stream))
+    value::stream(value, value::collect::Default(stream))
 }
