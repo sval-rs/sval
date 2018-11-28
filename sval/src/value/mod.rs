@@ -2,6 +2,9 @@
 A streamable value.
 */
 
+#[macro_use]
+mod macros;
+
 mod impls;
 
 pub(crate) mod collect;
@@ -9,7 +12,10 @@ pub(crate) mod collect;
 #[doc(inline)]
 pub use crate::Error;
 
-use crate::stream;
+use crate::{
+    std::marker::PhantomData,
+    stream,
+};
 
 /**
 A value with a streamable structure.
@@ -34,56 +40,48 @@ where
 A value stream.
 */
 pub struct Stream<'a> {
-    #[cfg(any(debug_assertions, test))]
-    stack: &'a mut stream::Stack,
+    stack: DebugStack<'a>,
     stream: &'a mut dyn collect::Stream,
 }
 
 impl<'a> Stream<'a> {
     #[inline]
-    #[cfg(any(debug_assertions, test))]
     pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
-        let mut stack = stream::Stack::default();
-        let mut stream = Stream::new(&mut stack, &mut stream);
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                let mut stack = stream::Stack::default();
+                let mut stream = Stream {
+                    stack: DebugStack {
+                        stack: &mut stack,
+                        _m: PhantomData
+                    },
+                    stream: &mut stream
+                };
 
-        stream.begin()?;
-        value.stream(&mut stream)?;
-        stream.end()?;
+                stream.begin()?;
+                value.stream(&mut stream)?;
+                stream.end()?;
+            }
+            else {
+                let mut stream = Stream {
+                    stack: DebugStack {
+                        _m: PhantomData
+                    },
+                    stream: &mut stream
+                };
+
+                stream.begin()?;
+                value.stream(&mut stream)?;
+                stream.end()?;
+            }
+        }
 
         Ok(())
-    }
-
-    #[inline]
-    #[cfg(all(not(debug_assertions), not(test)))]
-    pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
-        let mut stream = Stream::new(&mut stream);
-
-        stream.begin()?;
-        value.stream(&mut stream)?;
-        stream.end()?;
-
-        Ok(())
-    }
-
-    /**
-    Begin a new value stream.
-    */
-    #[inline]
-    #[cfg(any(debug_assertions, test))]
-    fn new(stack: &'a mut stream::Stack, stream: &'a mut dyn collect::Stream) -> Self {
-        Stream { stack, stream }
-    }
-
-    /**
-    Begin a new value stream.
-    */
-    #[inline]
-    #[cfg(all(not(debug_assertions), not(test)))]
-    fn new(stream: &'a mut dyn collect::Stream) -> Self {
-        Stream { stream }
     }
 
     fn begin(&mut self) -> Result<(), Error> {
+        self.stack.begin()?;
+
         self.stream.begin()?;
 
         Ok(())
@@ -102,7 +100,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn fmt(&mut self, f: stream::Arguments) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.fmt(f)?;
@@ -115,7 +112,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn i64(&mut self, v: i64) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.i64(v)?;
@@ -128,7 +124,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn u64(&mut self, v: u64) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.u64(v)?;
@@ -141,7 +136,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn i128(&mut self, v: i128) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.i128(v)?;
@@ -154,7 +148,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn u128(&mut self, v: u128) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.u128(v)?;
@@ -167,7 +160,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn f64(&mut self, v: f64) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.f64(v)?;
@@ -180,7 +172,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn bool(&mut self, v: bool) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.bool(v)?;
@@ -193,7 +184,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn char(&mut self, v: char) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.char(v)?;
@@ -206,7 +196,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn str(&mut self, v: &str) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.str(v)?;
@@ -219,7 +208,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn none(&mut self) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.primitive()?;
 
         self.stream.none()?;
@@ -232,7 +220,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.map_begin()?;
 
         self.stream.map_begin(len)?;
@@ -245,21 +232,10 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_key(&mut self, k: impl Value) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.map_key()?;
 
-        let value = {
-            #[cfg(any(debug_assertions, test))]
-            {
-                collect::Value::new(&mut self.stack, &k)
-            }
-            #[cfg(all(not(debug_assertions), not(test)))]
-            {
-                collect::Value::new(&k)
-            }
-        };
-
-        self.stream.map_key_collect(value)?;
+        self.stream
+            .map_key_collect(collect::Value::new(self.stack.borrow_mut(), &k))?;
 
         Ok(())
     }
@@ -269,21 +245,10 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_value(&mut self, v: impl Value) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.map_value()?;
 
-        let value = {
-            #[cfg(any(debug_assertions, test))]
-            {
-                collect::Value::new(&mut self.stack, &v)
-            }
-            #[cfg(all(not(debug_assertions), not(test)))]
-            {
-                collect::Value::new(&v)
-            }
-        };
-
-        self.stream.map_value_collect(value)?;
+        self.stream
+            .map_value_collect(collect::Value::new(self.stack.borrow_mut(), &v))?;
 
         Ok(())
     }
@@ -293,7 +258,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_end(&mut self) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.map_end()?;
 
         self.stream.map_end()?;
@@ -306,7 +270,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.seq_begin()?;
 
         self.stream.seq_begin(len)?;
@@ -319,21 +282,10 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_elem(&mut self, v: impl Value) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.seq_elem()?;
 
-        let value = {
-            #[cfg(any(debug_assertions, test))]
-            {
-                collect::Value::new(&mut self.stack, &v)
-            }
-            #[cfg(all(not(debug_assertions), not(test)))]
-            {
-                collect::Value::new(&v)
-            }
-        };
-
-        self.stream.seq_elem_collect(value)?;
+        self.stream
+            .seq_elem_collect(collect::Value::new(self.stack.borrow_mut(), &v))?;
 
         Ok(())
     }
@@ -343,7 +295,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_end(&mut self) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.seq_end()?;
 
         self.stream.seq_end()?;
@@ -355,8 +306,7 @@ impl<'a> Stream<'a> {
     End the stream.
     */
     #[inline]
-    fn end(self) -> Result<(), Error> {
-        #[cfg(any(debug_assertions, test))]
+    fn end(mut self) -> Result<(), Error> {
         self.stack.end()?;
 
         self.stream.end()
@@ -369,7 +319,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_key_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.map_key()?;
 
         self.stream.map_key()?;
@@ -382,7 +331,6 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_value_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.map_value()?;
 
         self.stream.map_value()?;
@@ -395,11 +343,145 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_elem_begin(&mut self) -> Result<&mut Stream<'a>, Error> {
-        #[cfg(any(debug_assertions, test))]
         self.stack.seq_elem()?;
 
         self.stream.seq_elem()?;
 
         Ok(self)
+    }
+}
+
+struct DebugStack<'a> {
+    #[cfg(any(debug_assertions, test))]
+    stack: &'a mut stream::Stack,
+    _m: PhantomData<&'a mut stream::Stack>,
+}
+
+impl<'a> DebugStack<'a> {
+    #[inline]
+    fn borrow_mut(&mut self) -> DebugStack {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                DebugStack {
+                    stack: self.stack,
+                    _m: PhantomData,
+                }
+            }
+            else {
+                DebugStack {
+                    _m: PhantomData,
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn begin(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.begin()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn primitive(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.primitive()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_begin(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.map_begin()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_key(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.map_key()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_value(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.map_value()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_end(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.map_end()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn seq_begin(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.seq_begin()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn seq_elem(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.seq_elem()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn seq_end(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.seq_end()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn end(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack.end()?;
+            }
+        }
+
+        Ok(())
     }
 }

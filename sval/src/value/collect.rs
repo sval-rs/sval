@@ -7,6 +7,7 @@ allocating for nested datastructures that are already known.
 */
 
 use crate::{
+    std::marker::PhantomData,
     stream::{
         self,
         Stream as StreamTrait,
@@ -41,25 +42,17 @@ where
 }
 
 pub(crate) struct Value<'a> {
-    #[cfg(any(debug_assertions, test))]
-    stack: crate::std::cell::Cell<Option<&'a mut stream::Stack>>,
+    stack: DebugStack<'a>,
     value: &'a dyn value::Value,
 }
 
 impl<'a> Value<'a> {
-    #[cfg(any(debug_assertions, test))]
     #[inline]
-    pub(crate) fn new(stack: &'a mut stream::Stack, value: &'a impl value::Value) -> Self {
+    pub(super) fn new(stack: value::DebugStack<'a>, value: &'a impl value::Value) -> Self {
         Value {
-            stack: crate::std::cell::Cell::new(Some(stack)),
+            stack: DebugStack::new(stack),
             value,
         }
-    }
-
-    #[cfg(all(not(debug_assertions), not(test)))]
-    #[inline]
-    pub(crate) fn new(value: &'a impl value::Value) -> Self {
-        Value { value }
     }
 
     /**
@@ -70,21 +63,10 @@ impl<'a> Value<'a> {
     */
     #[inline]
     pub(crate) fn stream(&self, mut stream: impl Stream) -> Result<(), Error> {
-        let mut stream = {
-            #[cfg(any(debug_assertions, test))]
-            {
-                let stack = self
-                    .stack
-                    .take()
-                    .ok_or_else(|| Error::msg("attempt to re-use value"))?;
-
-                value::Stream::new(stack, &mut stream)
-            }
-
-            #[cfg(all(not(debug_assertions), not(test)))]
-            {
-                value::Stream::new(&mut stream)
-            }
+        let stack = self.stack.take()?;
+        let mut stream = value::Stream {
+            stack,
+            stream: &mut stream,
         };
 
         stream.any(&self.value)?;
@@ -199,5 +181,46 @@ where
 
     fn end(&mut self) -> Result<(), Error> {
         self.0.end()
+    }
+}
+
+struct DebugStack<'a> {
+    #[cfg(any(debug_assertions, test))]
+    stack: crate::std::cell::Cell<Option<value::DebugStack<'a>>>,
+    _m: PhantomData<&'a mut stream::Stack>,
+}
+
+impl<'a> DebugStack<'a> {
+    fn new(stack: value::DebugStack<'a>) -> Self {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                DebugStack {
+                    stack: crate::std::cell::Cell::new(Some(stack)),
+                    _m: PhantomData,
+                }
+            }
+            else {
+                let _ = stack;
+
+                DebugStack {
+                    _m: PhantomData,
+                }
+            }
+        }
+    }
+
+    fn take(&self) -> Result<value::DebugStack<'a>, Error> {
+        cfg_debug_stack! {
+            if #[debug_stack] {
+                self.stack
+                    .take()
+                    .ok_or_else(|| Error::msg("attempt to re-use value"))
+            }
+            else {
+                Ok(value::DebugStack {
+                    _m: PhantomData,
+                })
+            }
+        }
     }
 }

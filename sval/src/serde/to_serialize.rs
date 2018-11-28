@@ -1,7 +1,5 @@
 use crate::{
-    std::{
-        fmt,
-    },
+    std::fmt,
     stream,
     value,
 };
@@ -237,7 +235,7 @@ where
         // TODO: If we don't have a serializer, then
         // we need to collect the rest of our tokens
         // and serialize the sequence.
-        // 
+        //
         // Serializing should pop tokens until we reach
         // the end of the value we started with.
         // We can use `serde` as the stack. Allocations
