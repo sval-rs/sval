@@ -1,0 +1,1 @@
+This directory contains some alternative API designs that I'm not ready to toss into the void of git history yet.

@@ -8,11 +8,5 @@ publish = false
 [dependencies.val]
 path = "../../val"
 
-[dependencies.val_serde]
-path = "../../val_serde"
-
 [dependencies.val_value]
 path = "../val_value"
-
-[dependencies.serde_value]
-path = "../serde_value"

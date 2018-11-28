@@ -4,10 +4,6 @@ use std::{
     mem,
 };
 
-use serde_value::{
-    Complex,
-    Id as SerdeId,
-};
 use val_value::Id;
 
 use val::visit::{
@@ -86,19 +82,5 @@ fn main() {
     map.insert(Id::new(2), vec!["World", "Hello"]);
 
     val::visit(map, Fmt { delim: "" }).unwrap();
-    println!();
-
-    // A map that implements `serde::Serialize`
-    let mut map = BTreeMap::new();
-
-    map.insert(SerdeId::new(1), vec!["Hello", "World"]);
-    map.insert(SerdeId::new(2), vec!["World", "Hello"]);
-
-    // A map that implements `serde::Serialize`
-    let mut map = BTreeMap::new();
-
-    map.insert(SerdeId::new(1), vec![Complex::Struct { a: 1, b: 2 }]);
-
-    val::visit(val_serde::to_value(map), Fmt { delim: "" }).unwrap();
     println!();
 }

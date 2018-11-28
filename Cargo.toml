@@ -1,13 +1,7 @@
 [workspace]
 members = [
-    "val",
-    "val_serde",
-    "examples/val_value",
-    "examples/val_visit",
-    "examples/serde_value",
-    "examples/serde_visit",
-
     "sval",
+    "examples/serde_value",
     "examples/sval_value",
     "examples/sval_stream",
 ]

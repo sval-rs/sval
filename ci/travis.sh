@@ -13,14 +13,6 @@ if [ "$BRANCH" == "master" ]; then
     cargo doc --features "std serde"
     popd
 
-    pushd val
-    cargo doc --features std
-    popd
-
-    pushd val_serde
-    cargo doc --features std
-    popd
-
     REV=$(git rev-parse --short HEAD)
     cd target/doc
     git init
