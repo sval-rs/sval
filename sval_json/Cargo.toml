@@ -15,15 +15,3 @@ version = "0.2"
 
 [dependencies.itoa]
 version = "0.4"
-
-[dev-dependencies.serde]
-version = "1"
-
-[dev-dependencies.serde_derive]
-version = "1"
-
-[dev-dependencies.serde_json]
-version = "1"
-
-[dev-dependencies.miniserde]
-version = "0.1"

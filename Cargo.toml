@@ -3,6 +3,7 @@ members = [
     "sval",
     "sval_derive",
     "sval_json",
+    "sval_json/benches",
     "examples/serde_value",
     "examples/sval_value",
     "examples/sval_stream",

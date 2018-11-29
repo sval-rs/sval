@@ -1,5 +1,12 @@
 use crate::{
-    std::fmt,
+    std::{
+        collections::VecDeque,
+        fmt,
+        string::{
+            String,
+            ToString,
+        },
+    },
     stream,
     value,
 };
@@ -50,7 +57,7 @@ where
     S: Serializer,
 {
     ok: Option<S::Ok>,
-    pos: Option<stream::Pos>,
+    buffered: Option<Tokens>,
     current: Option<Current<S>>,
 }
 
@@ -70,7 +77,7 @@ where
     fn begin(ser: S) -> Self {
         Stream {
             ok: None,
-            pos: Some(stream::Pos::Root),
+            buffered: None,
             current: Some(Current::Serializer(ser)),
         }
     }
@@ -134,17 +141,33 @@ impl<S> Stream<S>
 where
     S: Serializer,
 {
-    fn map_serializer<E>(
-        &mut self,
-        f: impl FnOnce(S) -> Result<Current<S>, E>,
-    ) -> Result<(), stream::Error>
-    where
-        E: ser::Error,
-    {
-        let serializer = self.take()?.take_serializer()?;
-        self.current = Some(f(serializer).map_err(err("error mapping serializer"))?);
+    fn buffer_begin(&mut self, token: Token) {
+        match self.buffered {
+            Some(ref mut buffered) => {
+                buffered.push(token);
+            }
+            None => {
+                let mut tokens = Tokens::new();
+                tokens.push(token);
 
-        Ok(())
+                self.buffered = Some(Tokens::new());
+            }
+        }
+    }
+
+    fn buffer_end(&mut self, token: Token) -> Option<Tokens> {
+        match self.buffered {
+            Some(ref mut buffered) => {
+                buffered.push(token);
+
+                if buffered.depth == 0 {
+                    self.buffered.take()
+                } else {
+                    None
+                }
+            }
+            None => None,
+        }
     }
 
     fn take(&mut self) -> Result<Current<S>, stream::Error> {
@@ -160,41 +183,13 @@ where
     }
 
     fn primitive(&mut self, v: impl Serialize) -> Result<(), stream::Error> {
-        use self::stream::Pos::*;
+        let ser = self.take()?.take_serializer()?;
+        self.ok = Some(
+            v.serialize(ser)
+                .map_err(err("error serializing primitive value"))?,
+        );
 
-        match self.pos.take() {
-            Some(Key) => {
-                let map = self.expect()?.expect_serialize_map()?;
-                map.serialize_key(&v)
-                    .map_err(err("error map serializing key"))?;
-
-                Ok(())
-            }
-            Some(Value) => {
-                let map = self.expect()?.expect_serialize_map()?;
-                map.serialize_value(&v)
-                    .map_err(err("error serializing map value"))?;
-
-                Ok(())
-            }
-            Some(Elem) => {
-                let seq = self.expect()?.expect_serialize_seq()?;
-                seq.serialize_element(&v)
-                    .map_err(err("error serializing sequence element"))?;
-
-                Ok(())
-            }
-            Some(Root) => {
-                let ser = self.take()?.take_serializer()?;
-                self.ok = Some(
-                    v.serialize(ser)
-                        .map_err(err("error serializing primitive value"))?,
-                );
-
-                Ok(())
-            }
-            None => Err(stream::Error::msg("attempt to use an invalid serializer")),
-        }
+        Ok(())
     }
 }
 
@@ -203,24 +198,27 @@ where
     S: Serializer,
 {
     fn seq_elem_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
-        let seq = self.expect()?.expect_serialize_seq()?;
-        seq.serialize_element(&ToSerialize(v))
+        self.expect()?
+            .expect_serialize_seq()?
+            .serialize_element(&ToSerialize(v))
             .map_err(err("error serializing sequence element"))?;
 
         Ok(())
     }
 
     fn map_key_collect(&mut self, k: value::collect::Value) -> Result<(), stream::Error> {
-        let map = self.expect()?.expect_serialize_map()?;
-        map.serialize_key(&ToSerialize(k))
+        self.expect()?
+            .expect_serialize_map()?
+            .serialize_key(&ToSerialize(k))
             .map_err(err("error map serializing key"))?;
 
         Ok(())
     }
 
     fn map_value_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
-        let map = self.expect()?.expect_serialize_map()?;
-        map.serialize_value(&ToSerialize(v))
+        self.expect()?
+            .expect_serialize_map()?
+            .serialize_value(&ToSerialize(v))
             .map_err(err("error serializing map value"))?;
 
         Ok(())
@@ -232,91 +230,200 @@ where
     S: Serializer,
 {
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
-        // TODO: If we don't have a serializer, then
-        // we need to collect the rest of our tokens
-        // and serialize the sequence.
-        //
-        // Serializing should pop tokens until we reach
-        // the end of the value we started with.
-        // We can use `serde` as the stack. Allocations
-        // will come from a `VecDeque<Token>`, and for
-        // any `String`s.
-        self.map_serializer(|ser| ser.serialize_seq(len).map(Current::SerializeSeq))
-    }
-
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
-        self.pos = Some(stream::Pos::Elem);
+        match self.take()? {
+            Current::Serializer(ser) => {
+                let seq = ser.serialize_seq(len).map(Current::SerializeSeq)?;
+                self.current = Some(seq);
+            }
+            current => {
+                self.buffer_begin(Token::SeqBegin);
+                self.current = Some(current);
+            }
+        }
 
         Ok(())
     }
 
     fn seq_end(&mut self) -> Result<(), stream::Error> {
-        let seq = self.take()?.take_serialize_seq()?;
-        self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
+        match self.buffer_end(Token::SeqEnd) {
+            Some(tokens) => unimplemented!("serialize the tokens"),
+            None => {
+                let seq = self.take()?.take_serialize_seq()?;
+                self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
 
-        Ok(())
+                Ok(())
+            }
+        }
     }
 
     fn map_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
-        self.map_serializer(|ser| ser.serialize_map(len).map(Current::SerializeMap))
-    }
-
-    fn map_key(&mut self) -> Result<(), stream::Error> {
-        self.pos = Some(stream::Pos::Key);
-
-        Ok(())
-    }
-
-    fn map_value(&mut self) -> Result<(), stream::Error> {
-        self.pos = Some(stream::Pos::Value);
+        match self.take()? {
+            Current::Serializer(ser) => {
+                let map = ser.serialize_map(len).map(Current::SerializeMap)?;
+                self.current = Some(map);
+            }
+            current => {
+                self.buffer_begin(Token::MapBegin);
+                self.current = Some(current);
+            }
+        }
 
         Ok(())
     }
 
     fn map_end(&mut self) -> Result<(), stream::Error> {
-        let map = self.take()?.take_serialize_map()?;
-        self.ok = Some(map.end().map_err(err("error completing map"))?);
+        match self.buffer_end(Token::MapEnd) {
+            Some(tokens) => unimplemented!("serialize the tokens"),
+            None => {
+                let map = self.take()?.take_serialize_map()?;
+                self.ok = Some(map.end().map_err(err("error completing map"))?);
 
-        Ok(())
+                Ok(())
+            }
+        }
     }
 
     fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::Signed(v));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::Unsigned(v));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn i128(&mut self, v: i128) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::BigSigned(v));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn u128(&mut self, v: u128) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::BigUnsigned(v));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::Float(v));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::Bool(v));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn char(&mut self, v: char) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::Char(v));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn str(&mut self, v: &str) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::Str(v.to_string()));
+
+            return Ok(());
+        }
+
         self.primitive(v)
     }
 
     fn none(&mut self) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::None);
+
+            return Ok(());
+        }
+
         self.primitive(Option::None::<()>)
     }
 
     fn fmt(&mut self, v: fmt::Arguments) -> Result<(), stream::Error> {
+        if let Some(buffered) = &mut self.buffered {
+            buffered.push(Token::Str(v.to_string()));
+
+            return Ok(());
+        }
+
         self.primitive(v)
+    }
+}
+
+struct Tokens {
+    depth: usize,
+    tokens: VecDeque<Token>,
+}
+
+enum Token {
+    MapBegin,
+    MapEnd,
+    SeqBegin,
+    SeqEnd,
+    Signed(i64),
+    Unsigned(u64),
+    Float(f64),
+    BigSigned(i128),
+    BigUnsigned(u128),
+    Bool(bool),
+    Str(String),
+    Char(char),
+    None,
+}
+
+impl Tokens {
+    fn new() -> Tokens {
+        Tokens {
+            depth: 0,
+            tokens: VecDeque::new(),
+        }
+    }
+
+    fn push(&mut self, token: Token) {
+        match token {
+            Token::MapBegin | Token::SeqBegin => {
+                self.depth += 1;
+            }
+            Token::MapEnd | Token::SeqEnd => {
+                self.depth -= 1;
+            }
+            _ => (),
+        }
+
+        self.tokens.push_back(token);
     }
 }

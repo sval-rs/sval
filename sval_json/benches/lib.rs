@@ -1,4 +1,3 @@
-#![cfg(feature = "std")]
 #![feature(test)]
 
 #[macro_use]
@@ -17,7 +16,7 @@ extern crate test;
 use test::Bencher;
 
 fn input_json() -> String {
-    std::fs::read_to_string("benches/twitter.json").unwrap()
+    std::fs::read_to_string("twitter.json").unwrap()
 }
 
 fn input_struct() -> Twitter {
@@ -26,7 +25,7 @@ fn input_struct() -> Twitter {
 }
 
 #[test]
-fn json_is_valid() {
+fn sval_json_is_valid() {
     let s = input_struct();
 
     let json = sval_json::to_string(&s).unwrap();
@@ -42,7 +41,7 @@ fn primitive_miniserde(b: &mut Bencher) {
 }
 
 #[bench]
-fn primitive_serdejson(b: &mut Bencher) {
+fn primitive_serde(b: &mut Bencher) {
     b.iter(|| {
         serde_json::to_string(&42).unwrap();
     });
@@ -64,7 +63,7 @@ fn twitter_miniserde(b: &mut Bencher) {
 }
 
 #[bench]
-fn twitter_serdejson(b: &mut Bencher) {
+fn twitter_serde(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         serde_json::to_string(&s).unwrap();
@@ -76,6 +75,22 @@ fn twitter_sval(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         sval_json::to_string(&s).unwrap();
+    });
+}
+
+#[bench]
+fn twitter_sval_to_serde(b: &mut Bencher) {
+    let s = input_struct();
+    b.iter(|| {
+        serde_json::to_string(&sval::serde::to_serialize(&s)).unwrap();
+    });
+}
+
+#[bench]
+fn twitter_serde_to_sval(b: &mut Bencher) {
+    let s = input_struct();
+    b.iter(|| {
+        sval_json::to_string(sval::serde::to_value(&s)).unwrap();
     });
 }
 
