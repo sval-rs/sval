@@ -35,7 +35,28 @@ fn json_is_valid() {
 }
 
 #[bench]
-fn serialize_miniserde(b: &mut Bencher) {
+fn primitive_miniserde(b: &mut Bencher) {
+    b.iter(|| {
+        miniserde::json::to_string(&42);
+    });
+}
+
+#[bench]
+fn primitive_serdejson(b: &mut Bencher) {
+    b.iter(|| {
+        serde_json::to_string(&42).unwrap();
+    });
+}
+
+#[bench]
+fn primitive_sval(b: &mut Bencher) {
+    b.iter(|| {
+        sval_json::to_string(&42).unwrap();
+    });
+}
+
+#[bench]
+fn twitter_miniserde(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         miniserde::json::to_string(&s);
@@ -43,7 +64,7 @@ fn serialize_miniserde(b: &mut Bencher) {
 }
 
 #[bench]
-fn serialize_serdejson(b: &mut Bencher) {
+fn twitter_serdejson(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         serde_json::to_string(&s).unwrap();
@@ -51,7 +72,7 @@ fn serialize_serdejson(b: &mut Bencher) {
 }
 
 #[bench]
-fn serialize_sval(b: &mut Bencher) {
+fn twitter_sval(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         sval_json::to_string(&s).unwrap();
