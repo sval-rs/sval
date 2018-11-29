@@ -155,7 +155,7 @@ where
     fn char(&mut self, v: char) -> Result<(), stream::Error> {
         self.0.char(v)
     }
-    
+
     #[inline]
     fn str(&mut self, v: &str) -> Result<(), stream::Error> {
         self.0.str(v)

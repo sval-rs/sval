@@ -1,4 +1,9 @@
-use syn::{Field, Lit, Meta, NestedMeta};
+use syn::{
+    Field,
+    Lit,
+    Meta,
+    NestedMeta,
+};
 
 pub fn name_of_field(field: &Field) -> String {
     let mut rename = None;

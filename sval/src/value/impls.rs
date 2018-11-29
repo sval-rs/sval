@@ -166,6 +166,7 @@ mod std_support {
     use super::*;
 
     use crate::std::{
+        boxed::Box,
         collections::{
             BTreeMap,
             HashMap,
@@ -176,7 +177,6 @@ mod std_support {
         },
         string::String,
         vec::Vec,
-        boxed::Box,
     };
 
     impl<T: ?Sized> Value for Box<T>

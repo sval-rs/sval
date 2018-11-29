@@ -3,7 +3,7 @@ This `derive` implementation has been shamelessly lifted from dtolnay's `miniser
 https://github.com/dtolnay/miniserde
 */
 
-#![recursion_limit="128"]
+#![recursion_limit = "128"]
 
 #[macro_use]
 extern crate quote;

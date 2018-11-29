@@ -16,10 +16,6 @@ version = "0.2"
 [dependencies.itoa]
 version = "0.4"
 
-[dev-dependencies.sval]
-path = "../sval"
-features = ["serde"]
-
 [dev-dependencies.serde]
 version = "1"
 

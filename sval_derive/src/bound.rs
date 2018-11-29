@@ -1,6 +1,8 @@
 use proc_macro2::TokenStream;
 use syn::{
-    Generics, WhereClause, WherePredicate,
+    Generics,
+    WhereClause,
+    WherePredicate,
 };
 
 pub fn where_clause_with_bound(generics: &Generics, bound: TokenStream) -> WhereClause {

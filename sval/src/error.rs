@@ -54,6 +54,19 @@ impl fmt::Display for ErrorInner {
     }
 }
 
+#[cfg(not(feature = "std"))]
+mod no_std_support {
+    use super::*;
+
+    use crate::std::fmt;
+
+    impl From<fmt::Error> for Error {
+        fn from(_: fmt::Error) -> Self {
+            Error::msg("writing format failed")
+        }
+    }
+}
+
 #[cfg(feature = "std")]
 mod std_support {
     use super::*;
@@ -127,5 +140,17 @@ mod std_support {
                 ErrorInner::Owned(msg) => msg,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::std::fmt;
+
+    use super::*;
+
+    #[test]
+    fn convert_fmt_error_into_error() {
+        let _ = Error::from(fmt::Error);
     }
 }

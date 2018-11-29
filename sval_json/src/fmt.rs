@@ -1,7 +1,13 @@
-use sval::stream::{self, Stream};
+use sval::stream::{
+    self,
+    Stream,
+};
 
 use crate::std::{
-    fmt::{self, Write},
+    fmt::{
+        self,
+        Write,
+    },
     mem,
 };
 
@@ -62,7 +68,9 @@ where
         let pos = self.stack.primitive()?;
 
         if let stream::Pos::Key = pos {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -78,7 +86,9 @@ where
         let pos = self.stack.primitive()?;
 
         if let stream::Pos::Key = pos {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -94,7 +104,9 @@ where
         let pos = self.stack.primitive()?;
 
         if let stream::Pos::Key = pos {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -110,7 +122,9 @@ where
         let pos = self.stack.primitive()?;
 
         if let stream::Pos::Key = pos {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -126,7 +140,9 @@ where
         let pos = self.stack.primitive()?;
 
         if let stream::Pos::Key = pos {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -154,7 +170,9 @@ where
         let pos = self.stack.primitive()?;
 
         if let stream::Pos::Key = pos {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -168,7 +186,9 @@ where
 
     fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
         if let stream::Pos::Key = self.stack.seq_begin()? {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = self.delim.take() {
@@ -197,7 +217,9 @@ where
 
     fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
         if let stream::Pos::Key = self.stack.map_begin()? {
-            return Err(stream::Error::msg("only strings are supported as json keys"));
+            return Err(stream::Error::msg(
+                "only strings are supported as json keys",
+            ));
         }
 
         if let Some(delim) = self.delim.take() {

@@ -1,7 +1,16 @@
+use crate::{
+    attr,
+    bound,
+};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use syn::{Data, DataStruct, DeriveInput, Fields, Ident};
-use crate::{attr, bound};
+use syn::{
+    Data,
+    DataStruct,
+    DeriveInput,
+    Fields,
+    Ident,
+};
 
 pub fn derive(input: DeriveInput) -> TokenStream {
     let fields = match input.data {
