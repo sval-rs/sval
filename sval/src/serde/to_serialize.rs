@@ -241,7 +241,7 @@ where
         // We can use `serde` as the stack. Allocations
         // will come from a `VecDeque<Token>`, and for
         // any `String`s.
-        self.map_serializer(|ser| ser.serialize_seq(len).map(|seq| Current::SerializeSeq(seq)))
+        self.map_serializer(|ser| ser.serialize_seq(len).map(Current::SerializeSeq))
     }
 
     fn seq_elem(&mut self) -> Result<(), stream::Error> {
@@ -258,7 +258,7 @@ where
     }
 
     fn map_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
-        self.map_serializer(|ser| ser.serialize_map(len).map(|map| Current::SerializeMap(map)))
+        self.map_serializer(|ser| ser.serialize_map(len).map(Current::SerializeMap))
     }
 
     fn map_key(&mut self) -> Result<(), stream::Error> {

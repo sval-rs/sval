@@ -284,10 +284,10 @@ extern crate core as std;
 #[macro_use]
 mod error;
 
-pub mod stream;
-pub mod value;
 #[cfg(feature = "serde")]
 pub mod serde;
+pub mod stream;
+pub mod value;
 
 pub use self::{
     error::Error,

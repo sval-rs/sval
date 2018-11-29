@@ -11,7 +11,10 @@ pub use crate::Error;
 
 pub use self::{
     fmt::Arguments,
-    stack::{Stack, Pos},
+    stack::{
+        Pos,
+        Stack,
+    },
 };
 
 /**
@@ -252,6 +255,6 @@ mod tests {
 
     #[test]
     fn stream_is_object_safe() {
-        fn _safe(_: &mut dyn Stream) { }
+        fn _safe(_: &mut dyn Stream) {}
     }
 }

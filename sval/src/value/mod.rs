@@ -4,16 +4,16 @@ A streamable value.
 
 #[macro_use]
 mod macros;
-mod stream;
 mod impls;
+mod stream;
 
 pub(crate) mod collect;
 
 pub(crate) use self::stream::stream;
 
+pub use self::stream::Stream;
 #[doc(inline)]
 pub use crate::Error;
-pub use self::stream::Stream;
 
 /**
 A value with a streamable structure.
@@ -40,6 +40,6 @@ mod tests {
 
     #[test]
     fn value_is_object_safe() {
-        fn _safe(_: &dyn Value) { }
+        fn _safe(_: &dyn Value) {}
     }
 }

@@ -44,21 +44,21 @@ where
 impl Value for u8 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
-        stream.u64(*self as u64)
+        stream.u64(u64::from(*self))
     }
 }
 
 impl Value for u16 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
-        stream.u64(*self as u64)
+        stream.u64(u64::from(*self))
     }
 }
 
 impl Value for u32 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
-        stream.u64(*self as u64)
+        stream.u64(u64::from(*self))
     }
 }
 
@@ -72,21 +72,21 @@ impl Value for u64 {
 impl Value for i8 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
-        stream.i64(*self as i64)
+        stream.i64(i64::from(*self))
     }
 }
 
 impl Value for i16 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
-        stream.i64(*self as i64)
+        stream.i64(i64::from(*self))
     }
 }
 
 impl Value for i32 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
-        stream.i64(*self as i64)
+        stream.i64(i64::from(*self))
     }
 }
 
@@ -114,7 +114,7 @@ impl Value for i128 {
 impl Value for f32 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
-        stream.f64(*self as f64)
+        stream.f64(f64::from(*self))
     }
 }
 
@@ -155,7 +155,10 @@ mod std_support {
             BTreeMap,
             HashMap,
         },
-        hash::Hash,
+        hash::{
+            BuildHasher,
+            Hash,
+        },
         string::String,
         vec::Vec,
     };
@@ -193,10 +196,11 @@ mod std_support {
         }
     }
 
-    impl<K, V> Value for HashMap<K, V>
+    impl<K, V, H> Value for HashMap<K, V, H>
     where
         K: Hash + Eq + Value,
         V: Value,
+        H: BuildHasher,
     {
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             stream.map_begin(Some(self.len()))?;

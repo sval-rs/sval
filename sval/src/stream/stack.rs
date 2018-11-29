@@ -30,7 +30,7 @@ It serves as validation for operations performed on the stream and
 as a way for a flat, stateless stream to know what it's currently
 looking at.
 */
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Stack {
     inner: [Slot; Stack::SIZE],
     len: usize,
@@ -45,19 +45,19 @@ impl Stack {
 struct Slot(u8);
 
 impl Slot {
-    const EMPTY: u8 = 0b00000000;
+    const EMPTY: u8 = 0b0000_0000;
 
-    const DONE: u8 = 0b00000001;
+    const DONE: u8 = 0b0000_0001;
 
-    const ROOT: u8 = 0b10000000;
-    const MAP: u8 = 0b01000000;
-    const SEQ: u8 = 0b00100000;
+    const ROOT: u8 = 0b1000_0000;
+    const MAP: u8 = 0b0100_0000;
+    const SEQ: u8 = 0b0010_0000;
 
-    const KEY: u8 = 0b00010000;
-    const VAL: u8 = 0b00001000;
-    const ELEM: u8 = 0b00000100;
+    const KEY: u8 = 0b0001_0000;
+    const VAL: u8 = 0b0000_1000;
+    const ELEM: u8 = 0b0000_0100;
 
-    const MASK_EXPECT: u8 = 0b10011100;
+    const MASK_EXPECT: u8 = 0b1001_1100;
 
     const MAP_KEY: u8 = Self::MAP | Self::KEY;
     const MAP_KEY_DONE: u8 = Self::MAP_KEY | Self::DONE;
@@ -73,7 +73,7 @@ impl Slot {
     }
 
     #[inline]
-    fn pos(&self) -> Result<Pos, Error> {
+    fn pos(self) -> Result<Pos, Error> {
         match self.0 & Slot::MASK_EXPECT {
             Slot::ROOT => Ok(Pos::Root),
             Slot::KEY => Ok(Pos::Key),

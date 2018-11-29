@@ -1,13 +1,13 @@
 use crate::{
     std::marker::PhantomData,
-    value::{
-        Value,
-        collect,
-        Error,
-    },
     stream::{
         Arguments,
         Stack,
+    },
+    value::{
+        collect,
+        Error,
+        Value,
     },
 };
 
@@ -22,10 +22,7 @@ pub struct Stream<'a> {
 impl<'a> Stream<'a> {
     #[inline]
     pub(super) fn new(stack: DebugStack<'a>, stream: &'a mut dyn collect::Stream) -> Self {
-        Stream {
-            stack,
-            stream,
-        }
+        Stream { stack, stream }
     }
 
     #[inline]
