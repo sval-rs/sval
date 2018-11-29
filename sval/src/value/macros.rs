@@ -1,16 +1,16 @@
 macro_rules! cfg_debug_stack {
-    (if #[debug_stack] { $($with:tt)* }) => {
-        #[cfg(any(debug_assertions, test))]
+    (if #[debug_assertions] { $($with:tt)* }) => {
+        #[cfg(debug_assertions)]
         {
             $($with)*
         }
     };
-    (if #[debug_stack] { $($with:tt)* } else { $($without:tt)* }) => {
-        #[cfg(any(debug_assertions, test))]
+    (if #[debug_assertions] { $($with:tt)* } else { $($without:tt)* }) => {
+        #[cfg(debug_assertions)]
         {
             $($with)*
         }
-        #[cfg(all(not(debug_assertions), not(test)))]
+        #[cfg(not(debug_assertions))]
         {
             $($without)*
         }

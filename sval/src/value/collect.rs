@@ -189,7 +189,7 @@ where
 }
 
 struct DebugStack<'a> {
-    #[cfg(any(debug_assertions, test))]
+    #[cfg(debug_assertions)]
     stack: crate::std::cell::Cell<Option<value::stream::DebugStack<'a>>>,
     _m: PhantomData<&'a mut stream::Stack>,
 }
@@ -197,7 +197,7 @@ struct DebugStack<'a> {
 impl<'a> DebugStack<'a> {
     fn new(stack: value::stream::DebugStack<'a>) -> Self {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 DebugStack {
                     stack: crate::std::cell::Cell::new(Some(stack)),
                     _m: PhantomData,
@@ -215,7 +215,7 @@ impl<'a> DebugStack<'a> {
 
     fn take(&self) -> Result<value::stream::DebugStack<'a>, Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack
                     .take()
                     .ok_or_else(|| Error::msg("attempt to re-use value"))
@@ -226,5 +226,17 @@ impl<'a> DebugStack<'a> {
                 })
             }
         }
+    }
+}
+
+#[cfg(all(test, not(debug_assertions)))]
+mod tests {
+    use super::*;
+
+    use crate::std::mem;
+
+    #[test]
+    fn debug_stack_is_zero_sized() {
+        assert_eq!(0, mem::size_of::<DebugStack>());
     }
 }

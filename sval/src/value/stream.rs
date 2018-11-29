@@ -295,7 +295,7 @@ impl<'a> Stream<'a> {
 #[inline]
 pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
     cfg_debug_stack! {
-        if #[debug_stack] {
+        if #[debug_assertions] {
             let mut stack = Stack::default();
 
             let stream = Stream::new(
@@ -313,7 +313,7 @@ pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Res
 }
 
 pub(super) struct DebugStack<'a> {
-    #[cfg(any(debug_assertions, test))]
+    #[cfg(debug_assertions)]
     stack: &'a mut Stack,
     pub(super) _m: PhantomData<&'a mut Stack>,
 }
@@ -322,7 +322,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     fn borrow_mut(&mut self) -> DebugStack {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 DebugStack {
                     stack: self.stack,
                     _m: PhantomData,
@@ -339,7 +339,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn begin(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.begin()?;
             }
         }
@@ -350,7 +350,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn primitive(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.primitive()?;
             }
         }
@@ -361,7 +361,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn map_begin(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.map_begin()?;
             }
         }
@@ -372,7 +372,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn map_key(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.map_key()?;
             }
         }
@@ -383,7 +383,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn map_value(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.map_value()?;
             }
         }
@@ -394,7 +394,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn map_end(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.map_end()?;
             }
         }
@@ -405,7 +405,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn seq_begin(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.seq_begin()?;
             }
         }
@@ -416,7 +416,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn seq_elem(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.seq_elem()?;
             }
         }
@@ -427,7 +427,7 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn seq_end(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.seq_end()?;
             }
         }
@@ -438,11 +438,23 @@ impl<'a> DebugStack<'a> {
     #[inline]
     pub fn end(&mut self) -> Result<(), Error> {
         cfg_debug_stack! {
-            if #[debug_stack] {
+            if #[debug_assertions] {
                 self.stack.end()?;
             }
         }
 
         Ok(())
+    }
+}
+
+#[cfg(all(test, not(debug_assertions)))]
+mod tests {
+    use super::*;
+
+    use crate::std::mem;
+
+    #[test]
+    fn debug_stack_is_zero_sized() {
+        assert_eq!(0, mem::size_of::<DebugStack>());
     }
 }
