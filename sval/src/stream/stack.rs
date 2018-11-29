@@ -68,6 +68,7 @@ impl Slot {
     const SEQ_ELEM: u8 = Self::SEQ | Self::ELEM;
     const SEQ_ELEM_DONE: u8 = Self::SEQ_ELEM | Self::DONE;
 
+    #[inline]
     fn root() -> Self {
         Slot(Slot::ROOT)
     }
@@ -94,6 +95,7 @@ impl Stack {
     /**
     Create a new stack.
     */
+    #[inline]
     pub fn new() -> Self {
         Stack {
             inner: [Slot::root(); Self::SIZE],

@@ -6,5 +6,4 @@ members = [
     "examples/serde_value",
     "examples/sval_value",
     "examples/sval_stream",
-    "benches/json",
 ]

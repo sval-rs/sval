@@ -10,6 +10,7 @@ pub struct Error(ErrorInner);
 
 impl Error {
     /** Capture a static message as an error. */
+    #[inline]
     pub fn msg(msg: &'static str) -> Self {
         Error(ErrorInner::Static(msg))
     }

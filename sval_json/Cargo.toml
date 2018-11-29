@@ -4,6 +4,9 @@ version = "0.0.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 
+[features]
+std = ["sval/std"]
+
 [dependencies.sval]
 path = "../sval"
 
@@ -12,3 +15,19 @@ version = "0.2"
 
 [dependencies.itoa]
 version = "0.4"
+
+[dev-dependencies.sval]
+path = "../sval"
+features = ["serde"]
+
+[dev-dependencies.serde]
+version = "1"
+
+[dev-dependencies.serde_derive]
+version = "1"
+
+[dev-dependencies.serde_json]
+version = "1"
+
+[dev-dependencies.miniserde]
+version = "0.1"

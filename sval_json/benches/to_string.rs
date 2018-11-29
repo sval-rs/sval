@@ -1,3 +1,4 @@
+#![cfg(feature = "std")]
 #![feature(test)]
 
 #[macro_use]
@@ -16,7 +17,7 @@ extern crate test;
 use test::Bencher;
 
 fn input_json() -> String {
-    std::fs::read_to_string("twitter.json").unwrap()
+    std::fs::read_to_string("benches/twitter.json").unwrap()
 }
 
 fn input_struct() -> Twitter {
@@ -24,8 +25,17 @@ fn input_struct() -> Twitter {
     serde_json::from_str(&j).unwrap()
 }
 
+#[test]
+fn json_is_valid() {
+    let s = input_struct();
+
+    let json = sval_json::to_string(&s).unwrap();
+
+    serde_json::from_str::<Twitter>(&json).unwrap();
+}
+
 #[bench]
-fn bench_serialize_miniserde(b: &mut Bencher) {
+fn serialize_miniserde(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         miniserde::json::to_string(&s);
@@ -33,7 +43,7 @@ fn bench_serialize_miniserde(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_serialize_serdejson(b: &mut Bencher) {
+fn serialize_serdejson(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         serde_json::to_string(&s).unwrap();
@@ -41,20 +51,11 @@ fn bench_serialize_serdejson(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_serialize_sval(b: &mut Bencher) {
+fn serialize_sval(b: &mut Bencher) {
     let s = input_struct();
     b.iter(|| {
         sval_json::to_string(&s).unwrap();
     });
-}
-
-#[test]
-fn sval_produces_valid_json() {
-    let s = input_struct();
-
-    let json = sval_json::to_string(&s).unwrap();
-
-    serde_json::from_str::<Twitter>(&json).unwrap();
 }
 
 #[derive(Serialize, Deserialize, MiniSerialize, Value)]

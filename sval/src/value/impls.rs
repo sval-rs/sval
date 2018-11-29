@@ -183,7 +183,6 @@ mod std_support {
     where
         T: Value,
     {
-        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             (**self).stream(stream)
         }
@@ -200,7 +199,6 @@ mod std_support {
     where
         T: Value,
     {
-        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             self.as_slice().stream(stream)
         }

@@ -111,78 +111,97 @@ impl<S> stream::Stream for Default<S>
 where
     S: stream::Stream,
 {
+    #[inline]
     fn begin(&mut self) -> Result<(), stream::Error> {
         self.0.begin()
     }
 
+    #[inline]
     fn fmt(&mut self, args: stream::Arguments) -> Result<(), stream::Error> {
         self.0.fmt(args)
     }
 
+    #[inline]
     fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
         self.0.i64(v)
     }
 
+    #[inline]
     fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
         self.0.u64(v)
     }
 
+    #[inline]
     fn i128(&mut self, v: i128) -> Result<(), stream::Error> {
         self.0.i128(v)
     }
 
+    #[inline]
     fn u128(&mut self, v: u128) -> Result<(), stream::Error> {
         self.0.u128(v)
     }
 
+    #[inline]
     fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
         self.0.f64(v)
     }
 
+    #[inline]
     fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
         self.0.bool(v)
     }
 
+    #[inline]
     fn char(&mut self, v: char) -> Result<(), stream::Error> {
         self.0.char(v)
     }
-
+    
+    #[inline]
     fn str(&mut self, v: &str) -> Result<(), stream::Error> {
         self.0.str(v)
     }
 
+    #[inline]
     fn none(&mut self) -> Result<(), stream::Error> {
         self.0.none()
     }
 
+    #[inline]
     fn map_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
         self.0.map_begin(len)
     }
 
+    #[inline]
     fn map_key(&mut self) -> Result<(), stream::Error> {
         self.0.map_key()
     }
 
+    #[inline]
     fn map_value(&mut self) -> Result<(), stream::Error> {
         self.0.map_value()
     }
 
+    #[inline]
     fn map_end(&mut self) -> Result<(), stream::Error> {
         self.0.map_end()
     }
 
+    #[inline]
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
         self.0.seq_begin(len)
     }
 
+    #[inline]
     fn seq_elem(&mut self) -> Result<(), stream::Error> {
         self.0.seq_elem()
     }
 
+    #[inline]
     fn seq_end(&mut self) -> Result<(), stream::Error> {
         self.0.seq_end()
     }
 
+    #[inline]
     fn end(&mut self) -> Result<(), stream::Error> {
         self.0.end()
     }
@@ -195,6 +214,7 @@ struct DebugStack<'a> {
 }
 
 impl<'a> DebugStack<'a> {
+    #[inline]
     fn new(stack: value::stream::DebugStack<'a>) -> Self {
         cfg_debug_stack! {
             if #[debug_assertions] {
@@ -213,6 +233,7 @@ impl<'a> DebugStack<'a> {
         }
     }
 
+    #[inline]
     fn take(&self) -> Result<value::stream::DebugStack<'a>, Error> {
         cfg_debug_stack! {
             if #[debug_assertions] {
