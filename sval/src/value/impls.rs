@@ -41,6 +41,21 @@ where
     }
 }
 
+impl<T, U> Value for (T, U)
+where
+    T: Value,
+    U: Value,
+{
+    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        stream.seq_begin(Some(2))?;
+
+        stream.seq_elem(&self.0)?;
+        stream.seq_elem(&self.1)?;
+
+        stream.seq_end()
+    }
+}
+
 impl Value for u8 {
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
@@ -161,7 +176,18 @@ mod std_support {
         },
         string::String,
         vec::Vec,
+        boxed::Box,
     };
+
+    impl<T: ?Sized> Value for Box<T>
+    where
+        T: Value,
+    {
+        #[inline]
+        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+            (**self).stream(stream)
+        }
+    }
 
     impl Value for String {
         #[inline]
@@ -174,6 +200,7 @@ mod std_support {
     where
         T: Value,
     {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             self.as_slice().stream(stream)
         }

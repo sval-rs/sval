@@ -1,0 +1,14 @@
+[package]
+name = "sval_json"
+version = "0.0.0"
+authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
+edition = "2018"
+
+[dependencies.sval]
+path = "../sval"
+
+[dependencies.ryu]
+version = "0.2"
+
+[dependencies.itoa]
+version = "0.4"

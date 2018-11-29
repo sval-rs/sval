@@ -275,6 +275,9 @@ features = "serde"
 
 #![no_std]
 
+#[doc(hidden)]
+pub use sval_derive::*;
+
 #[cfg(feature = "std")]
 extern crate std;
 

@@ -315,7 +315,7 @@ pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Res
 pub(super) struct DebugStack<'a> {
     #[cfg(any(debug_assertions, test))]
     stack: &'a mut Stack,
-    _m: PhantomData<&'a mut Stack>,
+    pub(super) _m: PhantomData<&'a mut Stack>,
 }
 
 impl<'a> DebugStack<'a> {

@@ -1,7 +1,0 @@
-[workspace]
-members = [
-    "val",
-    "val_serde",
-    "examples/val_value",
-    "examples/val_visit",
-]

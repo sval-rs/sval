@@ -1,0 +1,13 @@
+[package]
+name = "sval_derive"
+version = "0.0.0"
+authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "0.15"
+quote = "0.6"
+proc-macro2 = "0.4"
