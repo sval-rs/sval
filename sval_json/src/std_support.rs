@@ -4,6 +4,9 @@ use crate::std::{
     io::Write,
 };
 
+/**
+Write a [`sval::Value`] to a string.
+*/
 pub fn to_string(v: impl sval::Value) -> Result<String, sval::Error> {
     let mut out = String::new();
 
@@ -12,6 +15,9 @@ pub fn to_string(v: impl sval::Value) -> Result<String, sval::Error> {
     Ok(out)
 }
 
+/**
+Write a [`sval::Value`] to a writer.
+*/
 pub fn to_writer(writer: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
     crate::to_fmt(Writer(writer), v)
 }

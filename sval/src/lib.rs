@@ -19,8 +19,19 @@ where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 
 # Implementing the `Value` trait
 
-Implement the [`Value`] trait for datastructures that can be
-visited using a [`value::Stream`]:
+Derive the [`Value`] trait for structures:
+
+```
+use sval::Value;
+
+#[derive(Value)]
+pub struct Data {
+    id: u32,
+    title: String,
+}
+```
+
+The trait can also be implemented manually:
 
 ```
 use sval::value::{self, Value};

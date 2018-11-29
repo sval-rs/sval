@@ -1,3 +1,7 @@
+/*!
+A small, no-std, object-safe, serialization-only json library.
+*/
+
 #![no_std]
 
 #[cfg(feature = "std")]

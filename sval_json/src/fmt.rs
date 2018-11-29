@@ -11,6 +11,9 @@ use crate::std::{
     mem,
 };
 
+/**
+Write a [`sval::Value`] to a formatter.
+*/
 pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
     let mut fmt = Fmt {
         stack: stream::Stack::new(),

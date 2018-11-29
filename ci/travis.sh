@@ -13,6 +13,10 @@ if [ "$BRANCH" == "master" ]; then
     cargo doc --features "std serde"
     popd
 
+    pushd sval_json
+    cargo doc --features "std"
+    popd
+
     REV=$(git rev-parse --short HEAD)
     cd target/doc
     git init
