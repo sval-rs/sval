@@ -5,12 +5,9 @@ authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 publish = false
 
-[lib]
-path = "lib.rs"
-
 [dependencies.sval]
 path = "../../sval"
-features = ["serde"]
+features = ["derive", "serde"]
 
 [dependencies.sval_json]
 path = "../"
@@ -18,12 +15,13 @@ features = ["std"]
 
 [dependencies.serde]
 version = "1"
-
-[dependencies.serde_derive]
-version = "1"
+features = ["derive"]
 
 [dependencies.serde_json]
 version = "1"
 
 [dependencies.miniserde]
 version = "0.1"
+
+[dependencies.erased-serde]
+version = "0.3"

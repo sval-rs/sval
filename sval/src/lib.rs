@@ -190,13 +190,15 @@ struct Fmt {
 
 impl Fmt {
     fn next_delim(pos: stream::Pos) -> &'static str {
-        use sval::stream::Pos::*;
-
-        match pos {
-            Root => "",
-            Key => ": ",
-            Value | Elem => ", ",
+        if pos.is_key() {
+            return ": ";
         }
+
+        if pos.is_value() || pos.is_elem() {
+            return ", ";
+        }
+
+        return "";
     }
 }
 
@@ -286,7 +288,8 @@ features = "serde"
 
 #![no_std]
 
-#[doc(hidden)]
+#[doc(inline)]
+#[cfg(feature = "derive")]
 pub use sval_derive::*;
 
 #[cfg(feature = "std")]

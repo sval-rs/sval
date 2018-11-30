@@ -35,13 +35,15 @@ where
     W: Write,
 {
     fn next_delim(pos: stream::Pos) -> Option<char> {
-        use sval::stream::Pos::*;
-
-        match pos {
-            Root => None,
-            Key => Some(':'),
-            Value | Elem => Some(','),
+        if pos.is_value() || pos.is_elem() {
+            return Some(',');
         }
+
+        if pos.is_key() {
+            return Some(':');
+        }
+
+        return None;
     }
 }
 
@@ -70,7 +72,7 @@ where
     fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
-        if let stream::Pos::Key = pos {
+        if pos.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));
@@ -88,7 +90,7 @@ where
     fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
-        if let stream::Pos::Key = pos {
+        if pos.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));
@@ -106,7 +108,7 @@ where
     fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
-        if let stream::Pos::Key = pos {
+        if pos.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));
@@ -124,7 +126,7 @@ where
     fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
-        if let stream::Pos::Key = pos {
+        if pos.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));
@@ -142,7 +144,7 @@ where
     fn char(&mut self, v: char) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
-        if let stream::Pos::Key = pos {
+        if pos.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));
@@ -172,7 +174,7 @@ where
     fn none(&mut self) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
-        if let stream::Pos::Key = pos {
+        if pos.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));
@@ -188,7 +190,7 @@ where
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        if let stream::Pos::Key = self.stack.seq_begin()? {
+        if self.stack.seq_begin()?.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));
@@ -219,7 +221,7 @@ where
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        if let stream::Pos::Key = self.stack.map_begin()? {
+        if self.stack.map_begin()?.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
             ));

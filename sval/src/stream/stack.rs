@@ -7,16 +7,53 @@ use super::Error;
 /**
 The expected position in the stream.
 */
-#[derive(Clone, Copy)]
-pub enum Pos {
-    /** The root of the stream. */
-    Root,
-    /** A key within a map. */
-    Key,
-    /** A value within a map. */
-    Value,
-    /** An element within a sequence. */
-    Elem,
+#[derive(Clone)]
+pub struct Pos(u8);
+
+impl Pos {
+    #[inline]
+    pub(crate) fn root() -> Self {
+        Pos(Slot::ROOT)
+    }
+
+    #[inline]
+    pub(crate) fn key() -> Self {
+        Pos(Slot::KEY)
+    }
+
+    #[inline]
+    pub(crate) fn value() -> Self {
+        Pos(Slot::VAL)
+    }
+
+    #[inline]
+    pub(crate) fn elem() -> Self {
+        Pos(Slot::ELEM)
+    }
+
+    /**
+    Whether the current position is a map key.
+    */
+    #[inline]
+    pub fn is_key(&self) -> bool {
+        self.0 == Slot::KEY
+    }
+
+    /**
+    Whether the current position is a map value.
+    */
+    #[inline]
+    pub fn is_value(&self) -> bool {
+        self.0 == Slot::VAL
+    }
+
+    /**
+    Whether the current position is a sequence element.
+    */
+    #[inline]
+    pub fn is_elem(&self) -> bool {
+        self.0 == Slot::ELEM
+    }
 }
 
 /**
@@ -74,14 +111,8 @@ impl Slot {
     }
 
     #[inline]
-    fn pos(self) -> Result<Pos, Error> {
-        match self.0 & Slot::MASK_EXPECT {
-            Slot::ROOT => Ok(Pos::Root),
-            Slot::KEY => Ok(Pos::Key),
-            Slot::VAL => Ok(Pos::Value),
-            Slot::ELEM => Ok(Pos::Elem),
-            _ => Err(Error::msg("invalid position")),
-        }
+    fn pos(self) -> Pos {
+        Pos(self.0 & Slot::MASK_EXPECT)
     }
 }
 
@@ -160,7 +191,7 @@ impl Stack {
             Slot::EMPTY => {
                 curr.0 |= Slot::DONE;
 
-                curr.pos()
+                Ok(curr.pos())
             }
             _ => Err(Error::msg("invalid attempt to write primitive")),
         }
@@ -189,7 +220,7 @@ impl Stack {
                 self.len += 1;
                 self.current_mut().0 = Slot::MAP;
 
-                curr.pos()
+                Ok(curr.pos())
             }
             _ => Err(Error::msg("invalid attempt to begin map")),
         }
@@ -260,7 +291,7 @@ impl Stack {
                 let mut curr = self.current_mut();
                 curr.0 |= Slot::DONE;
 
-                curr.pos()
+                Ok(curr.pos())
             }
             _ => Err(Error::msg("invalid attempt to end map")),
         }
@@ -289,7 +320,7 @@ impl Stack {
                 self.len += 1;
                 self.current_mut().0 = Slot::SEQ;
 
-                curr.pos()
+                Ok(curr.pos())
             }
             _ => Err(Error::msg("invalid attempt to begin sequence")),
         }
@@ -337,7 +368,7 @@ impl Stack {
                 let mut curr = self.current_mut();
                 curr.0 |= Slot::DONE;
 
-                curr.pos()
+                Ok(curr.pos())
             }
             _ => Err(Error::msg("invalid attempt to end sequence")),
         }
