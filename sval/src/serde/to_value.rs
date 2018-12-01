@@ -188,15 +188,21 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         self,
         _: &'static str,
         _: u32,
-        _: &'static str,
+        variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        self.0.seq_begin(Some(1))?;
+        self.0.map_begin(Some(1))?;
+        self.0.map_key(variant)?;
+
+        self.0.map_value_begin()?.seq_begin(Some(1))?;
         self.0.seq_elem(ToValue(value))?;
         self.0.seq_end()?;
+
+        self.0.map_end()?;
+
         Ok(())
     }
 
@@ -223,10 +229,14 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         self,
         _: &'static str,
         _: u32,
-        _: &'static str,
+        variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        self.0.seq_begin(Some(len))?;
+        self.0.map_begin(Some(1))?;
+        self.0.map_key(variant)?;
+
+        self.0.map_value_begin()?.seq_begin(Some(len))?;
+
         Ok(self)
     }
 
@@ -248,10 +258,14 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         self,
         _: &'static str,
         _: u32,
-        _: &'static str,
+        variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.0.map_begin(Some(len))?;
+        self.0.map_begin(Some(1))?;
+        self.0.map_key(variant)?;
+
+        self.0.map_value_begin()?.map_begin(Some(len))?;
+
         Ok(self)
     }
 }
@@ -324,6 +338,8 @@ impl<'a, 'b> SerializeTupleVariant for Serializer<&'a mut value::Stream<'b>> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.0.seq_end()?;
+        self.0.map_end()?;
+
         Ok(())
     }
 }
@@ -388,6 +404,8 @@ impl<'a, 'b> SerializeStructVariant for Serializer<&'a mut value::Stream<'b>> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.0.map_end()?;
+        self.0.map_end()?;
+
         Ok(())
     }
 }

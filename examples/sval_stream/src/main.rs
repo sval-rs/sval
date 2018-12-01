@@ -18,7 +18,7 @@ struct Fmt {
 
 impl Fmt {
     fn next_delim(pos: stream::Pos) -> &'static str {
-         if pos.is_key() {
+        if pos.is_key() {
             return ": ";
         }
 
