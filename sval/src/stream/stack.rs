@@ -11,26 +11,6 @@ The expected position in the stream.
 pub struct Pos(u8);
 
 impl Pos {
-    #[inline]
-    pub(crate) fn root() -> Self {
-        Pos(Slot::ROOT)
-    }
-
-    #[inline]
-    pub(crate) fn key() -> Self {
-        Pos(Slot::KEY)
-    }
-
-    #[inline]
-    pub(crate) fn value() -> Self {
-        Pos(Slot::VAL)
-    }
-
-    #[inline]
-    pub(crate) fn elem() -> Self {
-        Pos(Slot::ELEM)
-    }
-
     /**
     Whether the current position is a map key.
     */
@@ -395,6 +375,29 @@ impl Stack {
         } else {
             Err(Error::msg("stack is not empty"))
         }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Pos {
+    #[inline]
+    pub(crate) fn root() -> Self {
+        Pos(Slot::ROOT)
+    }
+
+    #[inline]
+    pub(crate) fn key() -> Self {
+        Pos(Slot::KEY)
+    }
+
+    #[inline]
+    pub(crate) fn value() -> Self {
+        Pos(Slot::VAL)
+    }
+
+    #[inline]
+    pub(crate) fn elem() -> Self {
+        Pos(Slot::ELEM)
     }
 }
 

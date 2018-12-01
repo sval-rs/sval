@@ -9,9 +9,13 @@ mod stream;
 
 pub(crate) mod collect;
 
+#[cfg(feature = "std")]
+pub mod owned;
+
 pub(crate) use self::stream::stream;
 
 pub use self::stream::Stream;
+
 #[doc(inline)]
 pub use crate::Error;
 

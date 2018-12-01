@@ -1,5 +1,4 @@
 #![cfg(test)]
-
 #![feature(test)]
 
 #[macro_use]

@@ -175,11 +175,31 @@ mod std_support {
             BuildHasher,
             Hash,
         },
+        rc::Rc,
         string::String,
+        sync::Arc,
         vec::Vec,
     };
 
     impl<T: ?Sized> Value for Box<T>
+    where
+        T: Value,
+    {
+        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+            (**self).stream(stream)
+        }
+    }
+
+    impl<T: ?Sized> Value for Arc<T>
+    where
+        T: Value,
+    {
+        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+            (**self).stream(stream)
+        }
+    }
+
+    impl<T: ?Sized> Value for Rc<T>
     where
         T: Value,
     {

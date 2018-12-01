@@ -28,6 +28,7 @@ impl fmt::Display for Error {
     }
 }
 
+#[derive(Clone)]
 enum ErrorInner {
     Static(&'static str),
     #[cfg(feature = "std")]
