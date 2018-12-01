@@ -17,6 +17,7 @@ use crate::{
     },
     value::{
         self,
+        Value,
         Error,
     },
 };
@@ -24,30 +25,30 @@ use crate::{
 /**
 An owned value.
 */
-pub struct Value(ValueInner);
+pub struct OwnedValue(ValueInner);
 
-impl Value {
-    pub fn new(v: impl value::Value) -> Self {
+impl OwnedValue {
+    pub fn collect(v: impl Value) -> Self {
         let mut buf = Buf::new();
 
         match crate::stream(v, &mut buf) {
-            Ok(()) => Value(ValueInner::Stream(buf.tokens)),
-            Err(error) => Value(ValueInner::Error(error)),
+            Ok(()) => OwnedValue(ValueInner::Stream(buf.tokens)),
+            Err(error) => OwnedValue(ValueInner::Error(error)),
         }
     }
 
-    pub fn shared(v: impl Into<Arc<dyn value::Value + Send + Sync>>) -> Self {
-        Value(ValueInner::Shared(v.into()))
+    pub fn shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
+        OwnedValue(ValueInner::Shared(v.into()))
     }
 }
 
 enum ValueInner {
     Error(value::Error),
-    Shared(Arc<dyn value::Value + Send + Sync>),
+    Shared(Arc<dyn Value + Send + Sync>),
     Stream(Vec<Token>),
 }
 
-impl value::Value for Value {
+impl Value for OwnedValue {
     fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
         use self::Kind::*;
 
@@ -66,7 +67,7 @@ impl value::Value for Value {
                         Str(ref v) => stream.str(&*v)?,
                         Char(v) => stream.char(v)?,
                         None => stream.none()?,
-                        MapBegin => stream.map_begin(Option::None)?,
+                        MapBegin(len) => stream.map_begin(len)?,
                         MapKey => {
                             stream.map_key_begin()?;
                         }
@@ -74,7 +75,7 @@ impl value::Value for Value {
                             stream.map_value_begin()?;
                         }
                         MapEnd => stream.map_end()?,
-                        SeqBegin => stream.seq_begin(Option::None)?,
+                        SeqBegin(len) => stream.seq_begin(len)?,
                         SeqElem => {
                             stream.seq_elem_begin()?;
                         }
@@ -93,19 +94,20 @@ pub(crate) struct Buf {
     tokens: Vec<Token>,
 }
 
+#[derive(Debug, PartialEq)]
 pub(crate) struct Token {
     #[cfg(feature = "serde")]
     depth: usize,
     kind: Kind,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum Kind {
-    MapBegin,
+    MapBegin(Option<usize>),
     MapKey,
     MapValue,
     MapEnd,
-    SeqBegin,
+    SeqBegin(Option<usize>),
     SeqElem,
     SeqEnd,
     Signed(i64),
@@ -129,7 +131,7 @@ impl Buf {
 
     pub(crate) fn push(&mut self, kind: Kind) {
         match kind {
-            Kind::MapBegin | Kind::SeqBegin => {
+            Kind::MapBegin(_) | Kind::SeqBegin(_) => {
                 self.tokens.push(Token {
                     #[cfg(feature = "serde")]
                     depth: self.depth,
@@ -217,8 +219,8 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        self.push(Kind::MapBegin);
+    fn map_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
+        self.push(Kind::MapBegin(len));
 
         Ok(())
     }
@@ -241,8 +243,8 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
-        self.push(Kind::SeqBegin);
+    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
+        self.push(Kind::SeqBegin(len));
 
         Ok(())
     }
@@ -284,5 +286,133 @@ impl Buf {
 
     pub(crate) fn tokens(&self) -> &[Token] {
         &self.tokens
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::test;
+
+    impl OwnedValue {
+        pub(crate) fn into_tokens(self) -> Vec<Kind> {
+            match self.0 {
+                ValueInner::Stream(tokens) => tokens.into_iter().map(|t| t.kind).collect(),
+                ValueInner::Error(err) => Err(err).unwrap(),
+                _ => vec![],
+            }
+        }
+    }
+
+    struct Map;
+
+    impl Value for Map {
+        fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+            stream.map_begin(Some(2))?;
+
+            stream.map_key(1)?;
+            stream.map_value(11)?;
+
+            stream.map_key(2)?;
+            stream.map_value(22)?;
+
+            stream.map_end()
+        }
+    }
+
+    struct Seq;
+
+    impl Value for Seq {
+        fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+            stream.seq_begin(Some(2))?;
+
+            stream.seq_elem(1)?;
+            stream.seq_elem(2)?;
+
+            stream.seq_end()
+        }
+    }
+
+    #[test]
+    fn owned_value_is_send_sync() {
+        fn is_send_sync<T: Send + Sync>() {}
+
+        is_send_sync::<OwnedValue>();
+    }
+
+    #[test]
+    fn owned_primitive() {
+        assert_eq!(
+            vec![Kind::Str("a format 1".into())],
+            test::tokens(format_args!("a format {}", 1)));
+        
+        assert_eq!(
+            vec![Kind::Str("a string".into())],
+            test::tokens("a string"));
+
+        assert_eq!(
+            vec![Kind::Unsigned(42u64)],
+            test::tokens(42u64));
+
+        assert_eq!(vec![
+            Kind::Signed(42i64)],
+            test::tokens(42i64));
+
+        assert_eq!(
+            vec![Kind::BigUnsigned(42u128)],
+            test::tokens(42u128));
+
+        assert_eq!(
+            vec![Kind::BigSigned(42i128)],
+            test::tokens(42i128));
+
+        assert_eq!(vec![
+            Kind::Float(42f64)],
+            test::tokens(42f64));
+
+        assert_eq!(
+            vec![Kind::Bool(true)],
+            test::tokens(true));
+
+        assert_eq!(
+            vec![Kind::Char('a')],
+            test::tokens('a'));
+
+        assert_eq!(
+            vec![Kind::None],
+            test::tokens(Option::None::<()>));
+    }
+
+    #[test]
+    fn owned_map() {
+        let v = test::tokens(Map);
+
+        assert_eq!(vec![
+            Kind::MapBegin(Some(2)),
+            Kind::MapKey,
+            Kind::Signed(1),
+            Kind::MapValue,
+            Kind::Signed(11),
+            Kind::MapKey,
+            Kind::Signed(2),
+            Kind::MapValue,
+            Kind::Signed(22),
+            Kind::MapEnd,
+        ], v);
+    }
+
+    #[test]
+    fn owned_seq() {
+        let v = test::tokens(Seq);
+
+        assert_eq!(vec![
+            Kind::SeqBegin(Some(2)),
+            Kind::SeqElem,
+            Kind::Signed(1),
+            Kind::SeqElem,
+            Kind::Signed(2),
+            Kind::SeqEnd,
+        ], v);
     }
 }

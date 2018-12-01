@@ -10,11 +10,14 @@ mod stream;
 pub(crate) mod collect;
 
 #[cfg(feature = "std")]
-pub mod owned;
+pub(crate) mod owned;
 
 pub(crate) use self::stream::stream;
 
 pub use self::stream::Stream;
+
+#[cfg(feature = "std")]
+pub use self::owned::OwnedValue;
 
 #[doc(inline)]
 pub use crate::Error;
@@ -27,6 +30,12 @@ Use the [`sval::stream`](../fn.stream.html) function to stream a value.
 pub trait Value {
     /** Stream this value. */
     fn stream(&self, stream: &mut Stream) -> Result<(), Error>;
+
+    /** Get an owned value. */
+    #[cfg(feature = "std")]
+    fn to_owned(&self) -> OwnedValue {
+        OwnedValue::collect(self)
+    }
 }
 
 impl<'a, T: ?Sized> Value for &'a T
@@ -35,6 +44,11 @@ where
 {
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         (**self).stream(stream)
+    }
+
+    #[cfg(feature = "std")]
+    fn to_owned(&self) -> OwnedValue {
+        (**self).to_owned()
     }
 }
 

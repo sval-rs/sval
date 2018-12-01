@@ -585,8 +585,8 @@ impl<'a> Serialize for Tokens<'a> {
 
                     serializer.serialize_none()
                 }
-                Kind::MapBegin => {
-                    let mut map = serializer.serialize_map(None)?;
+                Kind::MapBegin(len) => {
+                    let mut map = serializer.serialize_map(len)?;
 
                     while reader.has_more() {
                         let key = reader
@@ -607,8 +607,8 @@ impl<'a> Serialize for Tokens<'a> {
 
                     map.end()
                 }
-                Kind::SeqBegin => {
-                    let mut seq = serializer.serialize_seq(None)?;
+                Kind::SeqBegin(len) => {
+                    let mut seq = serializer.serialize_seq(len)?;
 
                     while reader.has_more() {
                         let elem = reader

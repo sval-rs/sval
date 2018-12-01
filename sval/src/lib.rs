@@ -4,6 +4,9 @@ A small, no-std, object-safe, serialization-only framework.
 # Streaming values
 
 ```no_run
+# #[cfg(not(feature = "std"))]
+# fn main() {}
+# #[cfg(feature = "std")]
 # fn main() -> Result<(), Box<std::error::Error>> {
 sval::stream(42, MyStream)?;
 # Ok(())
@@ -22,6 +25,9 @@ where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 Derive the [`Value`] trait for structures:
 
 ```
+# fn main() {}
+# #[cfg(feature = "derive")]
+# mod test {
 use sval::Value;
 
 #[derive(Value)]
@@ -29,6 +35,7 @@ pub struct Data {
     id: u32,
     title: String,
 }
+# }
 ```
 
 The trait can also be implemented manually:
@@ -72,8 +79,10 @@ impl Value for Seq {
 A map can be visited by iterating over its key-value pairs:
 
 ```
+# fn main() {}
+# #[cfg(feature = "std")]
+# mod test {
 use std::collections::BTreeMap;
-
 use sval::value::{self, Value};
 
 pub struct Map(BTreeMap<String, u64>);
@@ -90,6 +99,7 @@ impl Value for Map {
         stream.map_end()
     }
 }
+# }
 ```
 
 ## for values that aren't known upfront
@@ -293,13 +303,20 @@ features = "serde"
 pub use sval_derive::*;
 
 #[cfg(feature = "std")]
+#[macro_use]
+#[allow(unused_imports)]
 extern crate std;
 
 #[cfg(not(feature = "std"))]
+#[macro_use]
+#[allow(unused_imports)]
 extern crate core as std;
 
 #[macro_use]
 mod error;
+
+#[cfg(test)]
+mod test;
 
 #[cfg(feature = "serde")]
 pub mod serde;
