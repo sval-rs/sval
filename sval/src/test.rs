@@ -2,7 +2,10 @@
 mod std_support {
     use crate::{
         std::vec::Vec,
-        value::{self, Value},
+        value::{
+            self,
+            Value,
+        },
     };
 
     pub(crate) use self::value::owned::Kind;

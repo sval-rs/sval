@@ -17,8 +17,8 @@ use crate::{
     },
     value::{
         self,
-        Value,
         Error,
+        Value,
     },
 };
 
@@ -87,6 +87,14 @@ impl Value for OwnedValue {
             }
         }
     }
+
+    fn to_owned(&self) -> OwnedValue {
+        match self.0 {
+            ValueInner::Error(ref e) => OwnedValue(ValueInner::Error(Error::custom(e))),
+            ValueInner::Shared(ref v) => OwnedValue(ValueInner::Shared(v.clone())),
+            ValueInner::Stream(ref v) => OwnedValue(ValueInner::Stream((*v).clone())),
+        }
+    }
 }
 
 pub(crate) struct Buf {
@@ -94,14 +102,14 @@ pub(crate) struct Buf {
     tokens: Vec<Token>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Token {
     #[cfg(feature = "serde")]
     depth: usize,
     kind: Kind,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Kind {
     MapBegin(Option<usize>),
     MapKey,
@@ -345,74 +353,63 @@ mod tests {
     fn owned_primitive() {
         assert_eq!(
             vec![Kind::Str("a format 1".into())],
-            test::tokens(format_args!("a format {}", 1)));
-        
-        assert_eq!(
-            vec![Kind::Str("a string".into())],
-            test::tokens("a string"));
+            test::tokens(format_args!("a format {}", 1))
+        );
 
-        assert_eq!(
-            vec![Kind::Unsigned(42u64)],
-            test::tokens(42u64));
+        assert_eq!(vec![Kind::Str("a string".into())], test::tokens("a string"));
 
-        assert_eq!(vec![
-            Kind::Signed(42i64)],
-            test::tokens(42i64));
+        assert_eq!(vec![Kind::Unsigned(42u64)], test::tokens(42u64));
 
-        assert_eq!(
-            vec![Kind::BigUnsigned(42u128)],
-            test::tokens(42u128));
+        assert_eq!(vec![Kind::Signed(42i64)], test::tokens(42i64));
 
-        assert_eq!(
-            vec![Kind::BigSigned(42i128)],
-            test::tokens(42i128));
+        assert_eq!(vec![Kind::BigUnsigned(42u128)], test::tokens(42u128));
 
-        assert_eq!(vec![
-            Kind::Float(42f64)],
-            test::tokens(42f64));
+        assert_eq!(vec![Kind::BigSigned(42i128)], test::tokens(42i128));
 
-        assert_eq!(
-            vec![Kind::Bool(true)],
-            test::tokens(true));
+        assert_eq!(vec![Kind::Float(42f64)], test::tokens(42f64));
 
-        assert_eq!(
-            vec![Kind::Char('a')],
-            test::tokens('a'));
+        assert_eq!(vec![Kind::Bool(true)], test::tokens(true));
 
-        assert_eq!(
-            vec![Kind::None],
-            test::tokens(Option::None::<()>));
+        assert_eq!(vec![Kind::Char('a')], test::tokens('a'));
+
+        assert_eq!(vec![Kind::None], test::tokens(Option::None::<()>));
     }
 
     #[test]
     fn owned_map() {
         let v = test::tokens(Map);
 
-        assert_eq!(vec![
-            Kind::MapBegin(Some(2)),
-            Kind::MapKey,
-            Kind::Signed(1),
-            Kind::MapValue,
-            Kind::Signed(11),
-            Kind::MapKey,
-            Kind::Signed(2),
-            Kind::MapValue,
-            Kind::Signed(22),
-            Kind::MapEnd,
-        ], v);
+        assert_eq!(
+            vec![
+                Kind::MapBegin(Some(2)),
+                Kind::MapKey,
+                Kind::Signed(1),
+                Kind::MapValue,
+                Kind::Signed(11),
+                Kind::MapKey,
+                Kind::Signed(2),
+                Kind::MapValue,
+                Kind::Signed(22),
+                Kind::MapEnd,
+            ],
+            v
+        );
     }
 
     #[test]
     fn owned_seq() {
         let v = test::tokens(Seq);
 
-        assert_eq!(vec![
-            Kind::SeqBegin(Some(2)),
-            Kind::SeqElem,
-            Kind::Signed(1),
-            Kind::SeqElem,
-            Kind::Signed(2),
-            Kind::SeqEnd,
-        ], v);
+        assert_eq!(
+            vec![
+                Kind::SeqBegin(Some(2)),
+                Kind::SeqElem,
+                Kind::Signed(1),
+                Kind::SeqElem,
+                Kind::Signed(2),
+                Kind::SeqEnd,
+            ],
+            v
+        );
     }
 }

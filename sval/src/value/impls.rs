@@ -197,6 +197,7 @@ mod std_support {
         }
     }
 
+    // FIXME: It'd be a shame not to optimize `Value::to_owned` for `Arc`
     impl<T: ?Sized> Value for Arc<T>
     where
         T: Value,
@@ -273,162 +274,130 @@ mod tests {
     mod std_support {
         use crate::{
             std::{
-                vec::Vec,
-                string::String,
-                rc::Rc,
-                sync::Arc,
                 boxed::Box,
-                collections::{HashMap, BTreeMap},
+                collections::{
+                    BTreeMap,
+                    HashMap,
+                },
+                rc::Rc,
+                string::String,
+                sync::Arc,
+                vec::Vec,
             },
-            test::{self, Kind},
+            test::{
+                self,
+                Kind,
+            },
         };
 
         #[test]
         fn stream_unsigned() {
-            assert_eq!(
-                vec![Kind::Unsigned(1)],
-                test::tokens(1u8));
-            
-            assert_eq!(
-                vec![Kind::Unsigned(1)],
-                test::tokens(1u16));
-            
-            assert_eq!(
-                vec![Kind::Unsigned(1)],
-                test::tokens(1u32));
-            
-            assert_eq!(
-                vec![Kind::Unsigned(1)],
-                test::tokens(1u64));
+            assert_eq!(vec![Kind::Unsigned(1)], test::tokens(1u8));
 
-            assert_eq!(
-                vec![Kind::BigUnsigned(1)],
-                test::tokens(1u128));
+            assert_eq!(vec![Kind::Unsigned(1)], test::tokens(1u16));
+
+            assert_eq!(vec![Kind::Unsigned(1)], test::tokens(1u32));
+
+            assert_eq!(vec![Kind::Unsigned(1)], test::tokens(1u64));
+
+            assert_eq!(vec![Kind::BigUnsigned(1)], test::tokens(1u128));
         }
 
         #[test]
         fn stream_signed() {
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(1i8));
-            
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(1i16));
-            
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(1i32));
-            
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(1i64));
-            
-            assert_eq!(
-                vec![Kind::BigSigned(1)],
-                test::tokens(1i128));
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(1i8));
+
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(1i16));
+
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(1i32));
+
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(1i64));
+
+            assert_eq!(vec![Kind::BigSigned(1)], test::tokens(1i128));
         }
 
         #[test]
         fn stream_float() {
-            assert_eq!(
-                vec![Kind::Float(1.0)],
-                test::tokens(1f32));
-            
-            assert_eq!(
-                vec![Kind::Float(1.0)],
-                test::tokens(1f64));
+            assert_eq!(vec![Kind::Float(1.0)], test::tokens(1f32));
+
+            assert_eq!(vec![Kind::Float(1.0)], test::tokens(1f64));
         }
 
         #[test]
         fn stream_bool() {
-            assert_eq!(
-                vec![Kind::Bool(false)],
-                test::tokens(false));
+            assert_eq!(vec![Kind::Bool(false)], test::tokens(false));
         }
 
         #[test]
         fn stream_str() {
-            assert_eq!(
-                vec![Kind::Str("a string".into())],
-                test::tokens("a string"));
-            
-            assert_eq!(
-                vec![Kind::Str("a string".into())],
-                test::tokens(String::from("a string")));
-            
-            assert_eq!(
-                vec![Kind::Str("a format 1".into())],
-                test::tokens(format_args!("a format {}", 1)));
+            assert_eq!(vec![Kind::Str("a string".into())], test::tokens("a string"));
 
             assert_eq!(
-                vec![Kind::Char('a')],
-                test::tokens('a'));
+                vec![Kind::Str("a string".into())],
+                test::tokens(String::from("a string"))
+            );
+
+            assert_eq!(
+                vec![Kind::Str("a format 1".into())],
+                test::tokens(format_args!("a format {}", 1))
+            );
+
+            assert_eq!(vec![Kind::Char('a')], test::tokens('a'));
         }
 
         #[test]
         fn stream_option() {
-            assert_eq!(
-                vec![Kind::None],
-                test::tokens(Option::None::<i32>));
-            
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(Some(1)));
+            assert_eq!(vec![Kind::None], test::tokens(Option::None::<i32>));
+
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(Some(1)));
         }
 
         #[test]
         fn stream_vec() {
             let v = test::tokens(&[] as &[i32]);
-            assert_eq!(vec![
-                Kind::SeqBegin(Some(0)),
-                Kind::SeqEnd
-            ], v);
+            assert_eq!(vec![Kind::SeqBegin(Some(0)), Kind::SeqEnd], v);
 
             let v = test::tokens(&[1, 2, 3] as &[i32]);
-            assert_eq!(vec![
-                Kind::SeqBegin(Some(3)),
-                Kind::SeqElem,
-                Kind::Signed(1),
-                Kind::SeqElem,
-                Kind::Signed(2),
-                Kind::SeqElem,
-                Kind::Signed(3),
-                Kind::SeqEnd,
-            ], v);
+            assert_eq!(
+                vec![
+                    Kind::SeqBegin(Some(3)),
+                    Kind::SeqElem,
+                    Kind::Signed(1),
+                    Kind::SeqElem,
+                    Kind::Signed(2),
+                    Kind::SeqElem,
+                    Kind::Signed(3),
+                    Kind::SeqEnd,
+                ],
+                v
+            );
 
             let v = test::tokens(Vec::<i32>::new());
-            assert_eq!(vec![
-                Kind::SeqBegin(Some(0)),
-                Kind::SeqEnd
-            ], v);
+            assert_eq!(vec![Kind::SeqBegin(Some(0)), Kind::SeqEnd], v);
 
             let v = test::tokens(vec![1, 2, 3]);
-            assert_eq!(vec![
-                Kind::SeqBegin(Some(3)),
-                Kind::SeqElem,
-                Kind::Signed(1),
-                Kind::SeqElem,
-                Kind::Signed(2),
-                Kind::SeqElem,
-                Kind::Signed(3),
-                Kind::SeqEnd,
-            ], v);
+            assert_eq!(
+                vec![
+                    Kind::SeqBegin(Some(3)),
+                    Kind::SeqElem,
+                    Kind::Signed(1),
+                    Kind::SeqElem,
+                    Kind::Signed(2),
+                    Kind::SeqElem,
+                    Kind::Signed(3),
+                    Kind::SeqEnd,
+                ],
+                v
+            );
         }
 
         #[test]
         fn stream_map() {
             let v = test::tokens(HashMap::<i32, i32>::new());
-            assert_eq!(vec![
-                Kind::MapBegin(Some(0)),
-                Kind::MapEnd
-            ], v);
+            assert_eq!(vec![Kind::MapBegin(Some(0)), Kind::MapEnd], v);
 
             let v = test::tokens(BTreeMap::<i32, i32>::new());
-            assert_eq!(vec![
-                Kind::MapBegin(Some(0)),
-                Kind::MapEnd
-            ], v);
+            assert_eq!(vec![Kind::MapBegin(Some(0)), Kind::MapEnd], v);
 
             let v = test::tokens({
                 let mut map = BTreeMap::new();
@@ -436,36 +405,33 @@ mod tests {
                 map.insert(2, 22);
                 map
             });
-            assert_eq!(vec![
-                Kind::MapBegin(Some(2)),
-                Kind::MapKey,
-                Kind::Signed(1),
-                Kind::MapValue,
-                Kind::Signed(11),
-                Kind::MapKey,
-                Kind::Signed(2),
-                Kind::MapValue,
-                Kind::Signed(22),
-                Kind::MapEnd,
-            ], v);
+            assert_eq!(
+                vec![
+                    Kind::MapBegin(Some(2)),
+                    Kind::MapKey,
+                    Kind::Signed(1),
+                    Kind::MapValue,
+                    Kind::Signed(11),
+                    Kind::MapKey,
+                    Kind::Signed(2),
+                    Kind::MapValue,
+                    Kind::Signed(22),
+                    Kind::MapEnd,
+                ],
+                v
+            );
         }
 
         #[test]
         fn stream_box() {
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(Box::new(1i8)));
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(Box::new(1i8)));
         }
 
         #[test]
         fn stream_rc() {
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(Rc::new(1i8)));
-            
-            assert_eq!(
-                vec![Kind::Signed(1)],
-                test::tokens(Arc::new(1i8)));
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(Rc::new(1i8)));
+
+            assert_eq!(vec![Kind::Signed(1)], test::tokens(Arc::new(1i8)));
         }
     }
 }
