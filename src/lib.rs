@@ -315,8 +315,8 @@ extern crate core as std;
 #[macro_use]
 mod error;
 
-#[cfg(test)]
-mod test;
+#[cfg(any(test, feature = "test"))]
+pub mod test;
 
 #[cfg(feature = "serde")]
 pub mod serde;

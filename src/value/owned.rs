@@ -24,28 +24,50 @@ use crate::{
 
 /**
 An owned value.
+
+Owned values are safe to share and are cheap to clone.
 */
 pub struct OwnedValue(ValueInner);
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum Kind {
+    MapBegin(Option<usize>),
+    MapKey,
+    MapValue,
+    MapEnd,
+    SeqBegin(Option<usize>),
+    SeqElem,
+    SeqEnd,
+    Signed(i64),
+    Unsigned(u64),
+    Float(f64),
+    BigSigned(i128),
+    BigUnsigned(u128),
+    Bool(bool),
+    Str(String),
+    Char(char),
+    None,
+}
+
 impl OwnedValue {
-    pub fn collect(v: impl Value) -> Self {
+    pub fn from_value(v: impl Value) -> Self {
         let mut buf = Buf::new();
 
         match crate::stream(v, &mut buf) {
-            Ok(()) => OwnedValue(ValueInner::Stream(buf.tokens)),
-            Err(error) => OwnedValue(ValueInner::Error(error)),
+            Ok(()) => OwnedValue(ValueInner::Stream(buf.tokens.into())),
+            Err(error) => OwnedValue(ValueInner::Error(Arc::new(error))),
         }
     }
 
-    pub fn shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
+    pub fn from_shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
         OwnedValue(ValueInner::Shared(v.into()))
     }
 }
 
 enum ValueInner {
-    Error(value::Error),
+    Error(Arc<value::Error>),
     Shared(Arc<dyn Value + Send + Sync>),
-    Stream(Vec<Token>),
+    Stream(Arc<[Token]>),
 }
 
 impl Value for OwnedValue {
@@ -56,7 +78,7 @@ impl Value for OwnedValue {
             ValueInner::Error(ref e) => Err(Error::custom(e)),
             ValueInner::Shared(ref v) => v.stream(stream),
             ValueInner::Stream(ref v) => {
-                for token in v {
+                for token in v.iter() {
                     match token.kind {
                         Signed(v) => stream.i64(v)?,
                         Unsigned(v) => stream.u64(v)?,
@@ -87,14 +109,6 @@ impl Value for OwnedValue {
             }
         }
     }
-
-    fn to_owned(&self) -> OwnedValue {
-        match self.0 {
-            ValueInner::Error(ref e) => OwnedValue(ValueInner::Error(Error::custom(e))),
-            ValueInner::Shared(ref v) => OwnedValue(ValueInner::Shared(v.clone())),
-            ValueInner::Stream(ref v) => OwnedValue(ValueInner::Stream((*v).clone())),
-        }
-    }
 }
 
 pub(crate) struct Buf {
@@ -107,26 +121,6 @@ pub(crate) struct Token {
     #[cfg(feature = "serde")]
     depth: usize,
     kind: Kind,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Kind {
-    MapBegin(Option<usize>),
-    MapKey,
-    MapValue,
-    MapEnd,
-    SeqBegin(Option<usize>),
-    SeqElem,
-    SeqEnd,
-    Signed(i64),
-    Unsigned(u64),
-    Float(f64),
-    BigSigned(i128),
-    BigUnsigned(u128),
-    Bool(bool),
-    Str(String),
-    Char(char),
-    None,
 }
 
 impl Buf {
@@ -297,21 +291,20 @@ impl Buf {
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+pub fn tokens(v: impl Value) -> Vec<Kind> {
+    match OwnedValue::from_value(v).0 {
+        ValueInner::Stream(tokens) => tokens.into_iter().map(|t| t.kind.clone()).collect(),
+        ValueInner::Error(err) => Err(err).unwrap(),
+        _ => vec![],
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::test;
-
-    impl OwnedValue {
-        pub(crate) fn into_tokens(self) -> Vec<Kind> {
-            match self.0 {
-                ValueInner::Stream(tokens) => tokens.into_iter().map(|t| t.kind).collect(),
-                ValueInner::Error(err) => Err(err).unwrap(),
-                _ => vec![],
-            }
-        }
-    }
+    use crate::test::{self, Token};
 
     struct Map;
 
@@ -352,27 +345,27 @@ mod tests {
     #[test]
     fn owned_primitive() {
         assert_eq!(
-            vec![Kind::Str("a format 1".into())],
+            vec![Token::Str("a format 1".into())],
             test::tokens(format_args!("a format {}", 1))
         );
 
-        assert_eq!(vec![Kind::Str("a string".into())], test::tokens("a string"));
+        assert_eq!(vec![Token::Str("a string".into())], test::tokens("a string"));
 
-        assert_eq!(vec![Kind::Unsigned(42u64)], test::tokens(42u64));
+        assert_eq!(vec![Token::Unsigned(42u64)], test::tokens(42u64));
 
-        assert_eq!(vec![Kind::Signed(42i64)], test::tokens(42i64));
+        assert_eq!(vec![Token::Signed(42i64)], test::tokens(42i64));
 
-        assert_eq!(vec![Kind::BigUnsigned(42u128)], test::tokens(42u128));
+        assert_eq!(vec![Token::BigUnsigned(42u128)], test::tokens(42u128));
 
-        assert_eq!(vec![Kind::BigSigned(42i128)], test::tokens(42i128));
+        assert_eq!(vec![Token::BigSigned(42i128)], test::tokens(42i128));
 
-        assert_eq!(vec![Kind::Float(42f64)], test::tokens(42f64));
+        assert_eq!(vec![Token::Float(42f64)], test::tokens(42f64));
 
-        assert_eq!(vec![Kind::Bool(true)], test::tokens(true));
+        assert_eq!(vec![Token::Bool(true)], test::tokens(true));
 
-        assert_eq!(vec![Kind::Char('a')], test::tokens('a'));
+        assert_eq!(vec![Token::Char('a')], test::tokens('a'));
 
-        assert_eq!(vec![Kind::None], test::tokens(Option::None::<()>));
+        assert_eq!(vec![Token::None], test::tokens(Option::None::<()>));
     }
 
     #[test]
@@ -381,16 +374,16 @@ mod tests {
 
         assert_eq!(
             vec![
-                Kind::MapBegin(Some(2)),
-                Kind::MapKey,
-                Kind::Signed(1),
-                Kind::MapValue,
-                Kind::Signed(11),
-                Kind::MapKey,
-                Kind::Signed(2),
-                Kind::MapValue,
-                Kind::Signed(22),
-                Kind::MapEnd,
+                Token::MapBegin(Some(2)),
+                Token::MapKey,
+                Token::Signed(1),
+                Token::MapValue,
+                Token::Signed(11),
+                Token::MapKey,
+                Token::Signed(2),
+                Token::MapValue,
+                Token::Signed(22),
+                Token::MapEnd,
             ],
             v
         );
@@ -402,12 +395,12 @@ mod tests {
 
         assert_eq!(
             vec![
-                Kind::SeqBegin(Some(2)),
-                Kind::SeqElem,
-                Kind::Signed(1),
-                Kind::SeqElem,
-                Kind::Signed(2),
-                Kind::SeqEnd,
+                Token::SeqBegin(Some(2)),
+                Token::SeqElem,
+                Token::Signed(1),
+                Token::SeqElem,
+                Token::Signed(2),
+                Token::SeqEnd,
             ],
             v
         );

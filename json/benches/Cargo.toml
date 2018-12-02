@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies.sval]
-path = "../../sval"
+path = "../../"
 features = ["derive", "serde"]
 
 [dependencies.sval_json]

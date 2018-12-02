@@ -30,12 +30,6 @@ Use the [`sval::stream`](../fn.stream.html) function to stream a value.
 pub trait Value {
     /** Stream this value. */
     fn stream(&self, stream: &mut Stream) -> Result<(), Error>;
-
-    /** Get an owned value. */
-    #[cfg(feature = "std")]
-    fn to_owned(&self) -> OwnedValue {
-        OwnedValue::collect(self)
-    }
 }
 
 impl<'a, T: ?Sized> Value for &'a T
@@ -44,11 +38,6 @@ where
 {
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         (**self).stream(stream)
-    }
-
-    #[cfg(feature = "std")]
-    fn to_owned(&self) -> OwnedValue {
-        (**self).to_owned()
     }
 }
 
