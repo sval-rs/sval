@@ -1,7 +1,7 @@
-/**
-Helpers for testing [`sval::Value`] implementations.
+/*!
+Helpers for testing value implementations.
 
-> NOTE: The [`Token`] enum is expected to be non-exhaustively
+> NOTE: The [`Token`](enum.Token.html) enum is expected to be non-exhaustively
 used in tests, so additional members aren't considered
 a breaking `semver` change.
 */
@@ -12,16 +12,17 @@ mod std_support {
         value,
     };
 
+    // TODO: Inline the enum and method
+    // TODO: Scrape out the key, value, and elem variants
+
     /**
     The kind of token being produced.
     */
-    #[doc(inline)]
     pub use self::value::owned::Kind as Token;
 
     /**
     Collect a value into a sequence of tokens.
     */
-    #[doc(inline)]
     pub use self::value::owned::tokens;
 }
 

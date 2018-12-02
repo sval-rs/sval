@@ -14,18 +14,6 @@ use sval::{
 use serde_test::{assert_ser_tokens, Token as SerdeToken};
 
 #[derive(Serialize)]
-struct UnitTuple();
-
-#[derive(Serialize)]
-struct NewType(i32);
-
-#[derive(Serialize)]
-struct UnitStruct;
-
-#[derive(Serialize)]
-struct EmptyStruct {}
-
-#[derive(Serialize)]
 enum Tagged {
     Unit,
     NewType(i32),
@@ -37,6 +25,12 @@ enum Tagged {
 struct Struct {
     a: i32,
     b: i32,
+    c: Nested,
+}
+
+#[derive(Value, Serialize)]
+struct Nested {
+    a: i32,
 }
 
 struct Anonymous;
@@ -65,6 +59,40 @@ impl Value for Anonymous {
 
         stream.map_end()
     }
+}
+
+#[test]
+fn sval_derive() {
+    use self::SvalToken as Token;
+
+    let v = sval::test::tokens(Struct {
+        a: 1,
+        b: 2,
+        c: Nested {
+            a: 3,
+        }
+    });
+    assert_eq!(vec![
+        Token::MapBegin(Some(3)),
+        Token::MapKey,
+        Token::Str(String::from("a")),
+        Token::MapValue,
+        Token::Signed(1),
+        Token::MapKey,
+        Token::Str(String::from("b")),
+        Token::MapValue,
+        Token::Signed(2),
+        Token::MapKey,
+        Token::Str(String::from("c")),
+        Token::MapValue,
+        Token::MapBegin(Some(1)),
+        Token::MapKey,
+        Token::Str(String::from("a")),
+        Token::MapValue,
+        Token::Signed(3),
+        Token::MapEnd,
+        Token::MapEnd,
+    ], v);
 }
 
 #[test]
@@ -135,7 +163,10 @@ fn sval_to_serde_anonymous() {
         Token::I64(2),
         Token::Seq { len: None },
         Token::I64(3),
+        Token::SeqEnd,
+        Token::MapEnd,
         Token::I64(11),
         Token::I64(111),
+        Token::MapEnd,
     ]);
 }

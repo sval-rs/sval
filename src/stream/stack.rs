@@ -115,6 +115,19 @@ impl Stack {
     }
 
     #[inline]
+    pub fn depth(&self) -> usize {
+        self.len
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        *self = Stack {
+            inner: [Slot::root(); Self::SIZE],
+            len: 0,
+        };
+    }
+
+    #[inline]
     fn current_mut(&mut self) -> &mut Slot {
         unsafe { self.inner.get_unchecked_mut(self.len) }
     }
