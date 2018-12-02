@@ -1,5 +1,7 @@
 use sval::stream::{
     self,
+    stack,
+    Stack,
     Stream,
 };
 
@@ -16,7 +18,7 @@ Write a [`sval::Value`] to a formatter.
 */
 pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
     let mut fmt = Fmt {
-        stack: stream::Stack::new(),
+        stack: Stack::new(),
         delim: None,
         out: fmt,
     };
@@ -25,7 +27,7 @@ pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
 }
 
 struct Fmt<W> {
-    stack: stream::Stack,
+    stack: Stack,
     delim: Option<char>,
     out: W,
 }
@@ -34,7 +36,7 @@ impl<W> Fmt<W>
 where
     W: Write,
 {
-    fn next_delim(pos: stream::Pos) -> Option<char> {
+    fn next_delim(pos: stack::Pos) -> Option<char> {
         if pos.is_value() || pos.is_elem() {
             return Some(',');
         }

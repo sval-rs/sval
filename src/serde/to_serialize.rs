@@ -2,6 +2,7 @@ use crate::{
     std::fmt,
     stream::{
         self,
+        stack,
         Stream as SvalStream,
     },
     value,
@@ -52,7 +53,7 @@ where
     S: Serializer,
 {
     ok: Option<S::Ok>,
-    pos: Option<stream::Pos>,
+    pos: Option<Pos>,
     buffered: Option<value::owned::Buf>,
     current: Option<Current<S>>,
 }
@@ -174,7 +175,7 @@ where
     */
     fn buffer(&mut self) -> Option<&mut value::owned::Buf> {
         match self.buffered {
-            Some(ref mut buffered) if buffered.depth() > 0 => Some(buffered),
+            Some(ref mut buffered) if buffered.tokens().len() > 0 => Some(buffered),
             _ => None,
         }
     }
@@ -192,27 +193,12 @@ where
     }
 
     fn serialize_any(&mut self, v: impl Serialize) -> Result<(), stream::Error> {
-        let pos = self.pos.take().unwrap_or_else(stream::Pos::root);
-
-        if pos.is_key() {
-            self.serialize_key(v)?;
-
-            return Ok(());
+        match self.pos.take() {
+            Some(Pos::Key) => self.serialize_key(v),
+            Some(Pos::Value) => self.serialize_value(v),
+            Some(Pos::Elem) => self.serialize_elem(v),
+            None => self.serialize_primitive(v),
         }
-
-        if pos.is_value() {
-            self.serialize_value(v)?;
-
-            return Ok(());
-        }
-
-        if pos.is_elem() {
-            self.serialize_elem(v)?;
-
-            return Ok(());
-        }
-
-        self.serialize_primitive(v)
     }
 
     fn serialize_elem(&mut self, v: impl Serialize) -> Result<(), stream::Error> {
@@ -254,9 +240,7 @@ where
 {
     fn map_key_collect(&mut self, k: value::collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => {
-                self.serialize_key(&ToSerialize(k))
-            }
+            None => self.serialize_key(&ToSerialize(k)),
             Some(buffered) => {
                 buffered.map_key()?;
                 k.stream(value::collect::Default(buffered))
@@ -266,9 +250,7 @@ where
 
     fn map_value_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => {
-                self.serialize_value(&ToSerialize(v))
-            }
+            None => self.serialize_value(&ToSerialize(v)),
             Some(buffered) => {
                 buffered.map_value()?;
                 v.stream(value::collect::Default(buffered))
@@ -278,9 +260,7 @@ where
 
     fn seq_elem_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => {
-                self.serialize_elem(&ToSerialize(v))
-            }
+            None => self.serialize_elem(&ToSerialize(v)),
             Some(buffered) => {
                 buffered.seq_elem()?;
                 v.stream(value::collect::Default(buffered))
@@ -317,7 +297,7 @@ where
     fn seq_elem(&mut self) -> Result<(), stream::Error> {
         match self.buffer() {
             None => {
-                self.pos = Some(stream::Pos::elem());
+                self.pos = Some(Pos::Elem);
 
                 Ok(())
             }
@@ -336,7 +316,7 @@ where
             Some(buffered) => {
                 buffered.seq_end()?;
 
-                if buffered.depth() == 0 {
+                if buffered.is_streamable() {
                     self.buffer_end()?;
                 }
 
@@ -368,26 +348,22 @@ where
     fn map_key(&mut self) -> Result<(), stream::Error> {
         match self.buffer() {
             None => {
-                self.pos = Some(stream::Pos::key());
+                self.pos = Some(Pos::Key);
 
                 Ok(())
             }
-            Some(buffered) => {
-                buffered.map_key()
-            },
+            Some(buffered) => buffered.map_key(),
         }
     }
 
     fn map_value(&mut self) -> Result<(), stream::Error> {
         match self.buffer() {
             None => {
-                self.pos = Some(stream::Pos::value());
+                self.pos = Some(Pos::Value);
 
                 Ok(())
             }
-            Some(buffered) => {
-                buffered.map_value()
-            },
+            Some(buffered) => buffered.map_value(),
         }
     }
 
@@ -402,7 +378,7 @@ where
             Some(buffered) => {
                 buffered.map_end()?;
 
-                if buffered.depth() == 0 {
+                if buffered.is_streamable() {
                     self.buffer_end()?;
                 }
 
@@ -482,7 +458,12 @@ where
     }
 }
 
-#[derive(Debug)]
+enum Pos {
+    Key,
+    Value,
+    Elem,
+}
+
 struct Tokens<'a>(&'a [value::owned::Token]);
 
 struct TokensReader<'a> {
@@ -500,13 +481,13 @@ impl<'a> Tokens<'a> {
 }
 
 impl<'a> TokensReader<'a> {
-    fn next_serializable(&mut self, depth: usize) -> Tokens<'a> {
+    fn next_serializable(&mut self, depth: stack::Depth) -> Tokens<'a> {
         let start = self.idx;
 
         let take = self.tokens[self.idx..]
             .iter()
             .enumerate()
-            .take_while(|(_, t)| t.depth() > depth)
+            .take_while(|(_, t)| t.depth > depth)
             .fuse()
             .last()
             .map(|(idx, _)| idx + 1)
@@ -547,103 +528,108 @@ impl<'a> Serialize for Tokens<'a> {
         let mut reader = self.reader();
 
         match reader.next() {
-            Some(token) => match token.kind() {
-                Kind::Signed(v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::Unsigned(v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::BigSigned(v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::BigUnsigned(v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::Float(v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::Bool(v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::Char(v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::Str(ref v) => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    v.serialize(serializer)
-                }
-                Kind::None => {
-                    reader.expect_empty().map_err(S::Error::custom)?;
-
-                    serializer.serialize_none()
-                }
-                Kind::MapBegin(len) => {
-                    let mut map = serializer.serialize_map(*len)?;
-
-                    while let Some(next) = reader.next() {
-                        match next.kind() {
-                            Kind::MapKey => {
-                                let key = next.depth();
-                                let key = reader.next_serializable(key);
-
-                                map.serialize_key(&key)?;
-                            },
-                            Kind::MapValue => {
-                                let value = next.depth();
-                                let value = reader.next_serializable(value);
-
-                                map.serialize_value(&value)?;
-                            },
-                            Kind::MapEnd => {
-                                reader.expect_empty().map_err(S::Error::custom)?;
-                                break;
-                            },
-                            kind => return Err(S::Error::custom(format_args!("unexpected token value ({:?})", kind))),
-                        }
-                    }
-
-                    map.end()
-                }
-                Kind::SeqBegin(len) => {
-                    let mut seq = serializer.serialize_seq(*len)?;
-
-                    while let Some(next) = reader.next() {
-                        match next.kind() {
-                            Kind::SeqElem => {
-                                let elem = next.depth();
-                                let elem = reader.next_serializable(elem);
-
-                                seq.serialize_element(&elem)?;
-                            },
-                            Kind::SeqEnd => {
-                                reader.expect_empty().map_err(S::Error::custom)?;
-                                break;
-                            },
-                            kind => return Err(S::Error::custom(format_args!("unexpected token value ({:?})", kind))),
-                        }
-                    }
-
-                    seq.end()
-                }
-                kind => Err(S::Error::custom(format_args!("unexpected token value ({:?})", kind))),
-            },
             None => serializer.serialize_none(),
+            Some(token) => {
+                match token.kind {
+                    Kind::Signed(v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::Unsigned(v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::BigSigned(v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::BigUnsigned(v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::Float(v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::Bool(v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::Char(v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::Str(ref v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        v.serialize(serializer)
+                    }
+                    Kind::None => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        serializer.serialize_none()
+                    }
+                    Kind::MapBegin(len) => {
+                        let mut map = serializer.serialize_map(len)?;
+
+                        while let Some(next) = reader.next() {
+                            match next.kind {
+                                Kind::MapKey => {
+                                    let key = reader.next_serializable(next.depth.clone());
+
+                                    map.serialize_key(&key)?;
+                                }
+                                Kind::MapValue => {
+                                    let value = reader.next_serializable(next.depth.clone());
+
+                                    map.serialize_value(&value)?;
+                                }
+                                Kind::MapEnd => {
+                                    reader.expect_empty().map_err(S::Error::custom)?;
+                                    break;
+                                }
+                                _ => return Err(S::Error::custom(
+                                    "unexpected token value (expected a key, value, or map end)",
+                                )),
+                            }
+                        }
+
+                        map.end()
+                    }
+                    Kind::SeqBegin(len) => {
+                        let mut seq = serializer.serialize_seq(len)?;
+
+                        while let Some(next) = reader.next() {
+                            match next.kind {
+                                Kind::SeqElem => {
+                                    let elem = reader.next_serializable(next.depth.clone());
+
+                                    seq.serialize_element(&elem)?;
+                                }
+                                Kind::SeqEnd => {
+                                    reader.expect_empty().map_err(S::Error::custom)?;
+                                    break;
+                                }
+                                _ => return Err(S::Error::custom(
+                                    "unexpected token value (expected an element, or sequence end)",
+                                )),
+                            }
+                        }
+
+                        seq.end()
+                    }
+                    _ => Err(S::Error::custom(
+                        "unexpected token value (expected a primitive, map, or sequence)",
+                    )),
+                }
+            }
         }
     }
 }

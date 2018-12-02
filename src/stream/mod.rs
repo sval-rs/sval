@@ -2,7 +2,7 @@
 A stream for datastructures.
 */
 
-mod stack;
+pub mod stack;
 
 use crate::std::fmt;
 
@@ -11,10 +11,7 @@ pub use crate::Error;
 
 pub use self::{
     fmt::Arguments,
-    stack::{
-        Pos,
-        Stack,
-    },
+    stack::Stack,
 };
 
 /**

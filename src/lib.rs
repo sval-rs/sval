@@ -191,7 +191,7 @@ they're valid:
 
 ```
 use std::{fmt, mem};
-use sval::stream::{self, Stream};
+use sval::stream::{self, stack, Stream, Stack};
 
 struct Fmt {
     stack: stream::Stack,
@@ -199,7 +199,7 @@ struct Fmt {
 }
 
 impl Fmt {
-    fn next_delim(pos: stream::Pos) -> &'static str {
+    fn next_delim(pos: stack::Pos) -> &'static str {
         if pos.is_key() {
             return ": ";
         }

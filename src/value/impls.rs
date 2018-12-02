@@ -330,7 +330,10 @@ mod tests {
 
         #[test]
         fn stream_str() {
-            assert_eq!(vec![Token::Str("a string".into())], test::tokens("a string"));
+            assert_eq!(
+                vec![Token::Str("a string".into())],
+                test::tokens("a string")
+            );
 
             assert_eq!(
                 vec![Token::Str("a string".into())],
@@ -361,11 +364,8 @@ mod tests {
             assert_eq!(
                 vec![
                     Token::SeqBegin(Some(3)),
-                    Token::SeqElem,
                     Token::Signed(1),
-                    Token::SeqElem,
                     Token::Signed(2),
-                    Token::SeqElem,
                     Token::Signed(3),
                     Token::SeqEnd,
                 ],
@@ -379,11 +379,8 @@ mod tests {
             assert_eq!(
                 vec![
                     Token::SeqBegin(Some(3)),
-                    Token::SeqElem,
                     Token::Signed(1),
-                    Token::SeqElem,
                     Token::Signed(2),
-                    Token::SeqElem,
                     Token::Signed(3),
                     Token::SeqEnd,
                 ],
@@ -408,13 +405,9 @@ mod tests {
             assert_eq!(
                 vec![
                     Token::MapBegin(Some(2)),
-                    Token::MapKey,
                     Token::Signed(1),
-                    Token::MapValue,
                     Token::Signed(11),
-                    Token::MapKey,
                     Token::Signed(2),
-                    Token::MapValue,
                     Token::Signed(22),
                     Token::MapEnd,
                 ],

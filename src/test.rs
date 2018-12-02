@@ -9,21 +9,63 @@ a breaking `semver` change.
 #[cfg(feature = "std")]
 mod std_support {
     use crate::{
-        value,
+        std::{
+            string::String,
+            vec::Vec,
+        },
+        value::{
+            owned::Kind,
+            OwnedValue,
+            Value,
+        },
     };
-
-    // TODO: Inline the enum and method
-    // TODO: Scrape out the key, value, and elem variants
 
     /**
     The kind of token being produced.
     */
-    pub use self::value::owned::Kind as Token;
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum Token {
+        MapBegin(Option<usize>),
+        MapEnd,
+        SeqBegin(Option<usize>),
+        SeqEnd,
+        Signed(i64),
+        Unsigned(u64),
+        Float(f64),
+        BigSigned(i128),
+        BigUnsigned(u128),
+        Bool(bool),
+        Str(String),
+        Char(char),
+        None,
+    }
 
     /**
     Collect a value into a sequence of tokens.
     */
-    pub use self::value::owned::tokens;
+    pub fn tokens(v: impl Value) -> Vec<Token> {
+        OwnedValue::from_value(v)
+            .tokens()
+            .unwrap()
+            .iter()
+            .filter_map(|token| match token.kind {
+                Kind::MapBegin(len) => Some(Token::MapBegin(len)),
+                Kind::MapEnd => Some(Token::MapEnd),
+                Kind::SeqBegin(len) => Some(Token::SeqBegin(len)),
+                Kind::SeqEnd => Some(Token::SeqEnd),
+                Kind::Signed(v) => Some(Token::Signed(v)),
+                Kind::Unsigned(v) => Some(Token::Unsigned(v)),
+                Kind::BigSigned(v) => Some(Token::BigSigned(v)),
+                Kind::BigUnsigned(v) => Some(Token::BigUnsigned(v)),
+                Kind::Float(v) => Some(Token::Float(v)),
+                Kind::Bool(v) => Some(Token::Bool(v)),
+                Kind::Char(v) => Some(Token::Char(v)),
+                Kind::Str(ref v) => Some(Token::Str((*v).clone())),
+                Kind::None => Some(Token::None),
+                _ => None,
+            })
+            .collect()
+    }
 }
 
 #[cfg(feature = "std")]

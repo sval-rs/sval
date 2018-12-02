@@ -8,7 +8,16 @@ use super::Error;
 The expected position in the stream.
 */
 #[derive(Clone)]
-pub struct Pos(u8);
+pub struct Pos {
+    slot: u8,
+    depth: usize,
+}
+
+/**
+The depth of the position.
+*/
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Depth(usize);
 
 impl Pos {
     /**
@@ -16,7 +25,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_key(&self) -> bool {
-        self.0 == Slot::KEY
+        self.slot == Slot::KEY
     }
 
     /**
@@ -24,7 +33,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_value(&self) -> bool {
-        self.0 == Slot::VAL
+        self.slot == Slot::VAL
     }
 
     /**
@@ -32,7 +41,15 @@ impl Pos {
     */
     #[inline]
     pub fn is_elem(&self) -> bool {
-        self.0 == Slot::ELEM
+        self.slot == Slot::ELEM
+    }
+
+    /**
+    The depth of this position.
+    */
+    #[inline]
+    pub fn depth(&self) -> Depth {
+        Depth(self.depth)
     }
 }
 
@@ -50,7 +67,7 @@ looking at.
 #[derive(Clone)]
 pub struct Stack {
     inner: [Slot; Stack::SIZE],
-    len: usize,
+    depth: usize,
 }
 
 impl Stack {
@@ -91,8 +108,11 @@ impl Slot {
     }
 
     #[inline]
-    fn pos(self) -> Pos {
-        Pos(self.0 & Slot::MASK_EXPECT)
+    fn pos(self, depth: usize) -> Pos {
+        Pos {
+            slot: self.0 & Slot::MASK_EXPECT,
+            depth,
+        }
     }
 }
 
@@ -110,31 +130,31 @@ impl Stack {
     pub fn new() -> Self {
         Stack {
             inner: [Slot::root(); Self::SIZE],
-            len: 0,
+            depth: 0,
         }
     }
 
-    #[inline]
-    pub fn depth(&self) -> usize {
-        self.len
-    }
+    /**
+    Clear the stack so that it can be re-used.
 
+    Any state it currently contains will be lost.
+    */
     #[inline]
     pub fn clear(&mut self) {
         *self = Stack {
             inner: [Slot::root(); Self::SIZE],
-            len: 0,
+            depth: 0,
         };
     }
 
     #[inline]
     fn current_mut(&mut self) -> &mut Slot {
-        unsafe { self.inner.get_unchecked_mut(self.len) }
+        unsafe { self.inner.get_unchecked_mut(self.depth) }
     }
 
     #[inline]
     fn current(&self) -> Slot {
-        unsafe { *self.inner.get_unchecked(self.len) }
+        unsafe { *self.inner.get_unchecked(self.depth) }
     }
 
     /**
@@ -149,7 +169,7 @@ impl Stack {
         // It doesn't matter if the slot is
         // marked as done or not
 
-        if self.len == 0 {
+        if self.depth == 0 {
             // Clear the `DONE` bit so the stack
             // can be re-used
             self.current_mut().0 = Slot::ROOT;
@@ -184,7 +204,7 @@ impl Stack {
             Slot::EMPTY => {
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.pos())
+                Ok(curr.pos(self.depth))
             }
             _ => Err(Error::msg("invalid attempt to write primitive")),
         }
@@ -195,7 +215,7 @@ impl Stack {
     */
     #[inline]
     pub fn map_begin(&mut self) -> Result<Pos, Error> {
-        if self.len >= Self::MAX_LEN {
+        if self.depth >= Self::MAX_LEN {
             return Err(Error::msg("nesting limit reached"));
         }
 
@@ -210,10 +230,10 @@ impl Stack {
 
         match curr.0 {
             Slot::ROOT | Slot::MAP_KEY | Slot::MAP_VAL | Slot::SEQ_ELEM => {
-                self.len += 1;
+                self.depth += 1;
                 self.current_mut().0 = Slot::MAP;
 
-                Ok(curr.pos())
+                Ok(curr.pos(self.depth))
             }
             _ => Err(Error::msg("invalid attempt to begin map")),
         }
@@ -226,7 +246,7 @@ impl Stack {
     that follows it.
     */
     #[inline]
-    pub fn map_key(&mut self) -> Result<(), Error> {
+    pub fn map_key(&mut self) -> Result<Pos, Error> {
         let mut curr = self.current_mut();
 
         // The current slot must:
@@ -237,7 +257,7 @@ impl Stack {
             Slot::MAP | Slot::MAP_VAL_DONE => {
                 curr.0 = Slot::MAP_KEY;
 
-                Ok(())
+                Ok(curr.pos(self.depth))
             }
             _ => Err(Error::msg("invalid attempt to begin key")),
         }
@@ -250,7 +270,7 @@ impl Stack {
     that follows it.
     */
     #[inline]
-    pub fn map_value(&mut self) -> Result<(), Error> {
+    pub fn map_value(&mut self) -> Result<Pos, Error> {
         let mut curr = self.current_mut();
 
         // The current slot must:
@@ -260,7 +280,7 @@ impl Stack {
             Slot::MAP_KEY_DONE => {
                 curr.0 = Slot::MAP_VAL;
 
-                Ok(())
+                Ok(curr.pos(self.depth))
             }
             _ => Err(Error::msg("invalid attempt to begin value")),
         }
@@ -279,12 +299,12 @@ impl Stack {
 
         match curr.0 {
             Slot::MAP | Slot::MAP_VAL_DONE => {
-                self.len -= 1;
+                self.depth -= 1;
 
                 let mut curr = self.current_mut();
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.pos())
+                Ok(curr.pos(self.depth + 1))
             }
             _ => Err(Error::msg("invalid attempt to end map")),
         }
@@ -295,7 +315,7 @@ impl Stack {
     */
     #[inline]
     pub fn seq_begin(&mut self) -> Result<Pos, Error> {
-        if self.len >= Self::MAX_LEN {
+        if self.depth >= Self::MAX_LEN {
             return Err(Error::msg("nesting limit reached"));
         }
 
@@ -310,10 +330,10 @@ impl Stack {
 
         match curr.0 {
             Slot::ROOT | Slot::MAP_KEY | Slot::MAP_VAL | Slot::SEQ_ELEM => {
-                self.len += 1;
+                self.depth += 1;
                 self.current_mut().0 = Slot::SEQ;
 
-                Ok(curr.pos())
+                Ok(curr.pos(self.depth))
             }
             _ => Err(Error::msg("invalid attempt to begin sequence")),
         }
@@ -326,7 +346,7 @@ impl Stack {
     that follows it.
     */
     #[inline]
-    pub fn seq_elem(&mut self) -> Result<(), Error> {
+    pub fn seq_elem(&mut self) -> Result<Pos, Error> {
         let mut curr = self.current_mut();
 
         // The current slot must:
@@ -337,7 +357,7 @@ impl Stack {
             Slot::SEQ | Slot::SEQ_ELEM_DONE => {
                 curr.0 = Slot::SEQ_ELEM;
 
-                Ok(())
+                Ok(curr.pos(self.depth))
             }
             _ => Err(Error::msg("invalid attempt to begin element")),
         }
@@ -356,15 +376,20 @@ impl Stack {
 
         match curr.0 {
             Slot::SEQ | Slot::SEQ_ELEM_DONE => {
-                self.len -= 1;
+                self.depth -= 1;
 
                 let mut curr = self.current_mut();
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.pos())
+                Ok(curr.pos(self.depth + 1))
             }
             _ => Err(Error::msg("invalid attempt to end sequence")),
         }
+    }
+
+    #[inline]
+    pub fn can_end(&self) -> bool {
+        self.depth == 0
     }
 
     /**
@@ -379,7 +404,7 @@ impl Stack {
         // It doesn't matter if the slot is
         // marked as done or not
 
-        if self.len == 0 {
+        if self.depth == 0 {
             // Set the slot to done so it
             // can't be re-used without calling begin
             self.current_mut().0 |= Slot::DONE;
@@ -388,29 +413,6 @@ impl Stack {
         } else {
             Err(Error::msg("stack is not empty"))
         }
-    }
-}
-
-#[cfg(feature = "serde")]
-impl Pos {
-    #[inline]
-    pub(crate) fn root() -> Self {
-        Pos(Slot::ROOT)
-    }
-
-    #[inline]
-    pub(crate) fn key() -> Self {
-        Pos(Slot::KEY)
-    }
-
-    #[inline]
-    pub(crate) fn value() -> Self {
-        Pos(Slot::VAL)
-    }
-
-    #[inline]
-    pub(crate) fn elem() -> Self {
-        Pos(Slot::ELEM)
     }
 }
 
