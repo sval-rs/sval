@@ -387,6 +387,9 @@ impl Stack {
         }
     }
 
+    /**
+    Whether or not the stack has seen a valid stream. 
+    */
     #[inline]
     pub fn can_end(&self) -> bool {
         self.depth == 0

@@ -169,78 +169,97 @@ impl<'a, T: ?Sized> Stream for &'a mut T
 where
     T: Stream,
 {
+    #[inline]
     fn begin(&mut self) -> Result<(), Error> {
         (**self).begin()
     }
 
+    #[inline]
     fn fmt(&mut self, args: Arguments) -> Result<(), Error> {
         (**self).fmt(args)
     }
 
+    #[inline]
     fn i64(&mut self, v: i64) -> Result<(), Error> {
         (**self).i64(v)
     }
 
+    #[inline]
     fn u64(&mut self, v: u64) -> Result<(), Error> {
         (**self).u64(v)
     }
 
+    #[inline]
     fn i128(&mut self, v: i128) -> Result<(), Error> {
         (**self).i128(v)
     }
 
+    #[inline]
     fn u128(&mut self, v: u128) -> Result<(), Error> {
         (**self).u128(v)
     }
 
+    #[inline]
     fn f64(&mut self, v: f64) -> Result<(), Error> {
         (**self).f64(v)
     }
 
+    #[inline]
     fn bool(&mut self, v: bool) -> Result<(), Error> {
         (**self).bool(v)
     }
 
+    #[inline]
     fn char(&mut self, v: char) -> Result<(), Error> {
         (**self).char(v)
     }
 
+    #[inline]
     fn str(&mut self, v: &str) -> Result<(), Error> {
         (**self).str(v)
     }
 
+    #[inline]
     fn none(&mut self) -> Result<(), Error> {
         (**self).none()
     }
 
+    #[inline]
     fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
         (**self).map_begin(len)
     }
 
+    #[inline]
     fn map_key(&mut self) -> Result<(), Error> {
         (**self).map_key()
     }
 
+    #[inline]
     fn map_value(&mut self) -> Result<(), Error> {
         (**self).map_value()
     }
 
+    #[inline]
     fn map_end(&mut self) -> Result<(), Error> {
         (**self).map_end()
     }
 
+    #[inline]
     fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
         (**self).seq_begin(len)
     }
 
+    #[inline]
     fn seq_elem(&mut self) -> Result<(), Error> {
         (**self).seq_elem()
     }
 
+    #[inline]
     fn seq_end(&mut self) -> Result<(), Error> {
         (**self).seq_end()
     }
 
+    #[inline]
     fn end(&mut self) -> Result<(), Error> {
         (**self).end()
     }

@@ -36,6 +36,7 @@ impl<W> Fmt<W>
 where
     W: Write,
 {
+    #[inline]
     fn next_delim(pos: stack::Pos) -> Option<char> {
         if pos.is_value() || pos.is_elem() {
             return Some(',');
@@ -53,12 +54,14 @@ impl<W> Stream for Fmt<W>
 where
     W: Write,
 {
+    #[inline]
     fn begin(&mut self) -> Result<(), stream::Error> {
         self.stack.begin()?;
 
         Ok(())
     }
 
+    #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -71,6 +74,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -89,6 +93,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -107,6 +112,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -125,6 +131,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -143,6 +150,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn char(&mut self, v: char) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -161,6 +169,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn str(&mut self, v: &str) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -173,6 +182,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn none(&mut self) -> Result<(), stream::Error> {
         let pos = self.stack.primitive()?;
 
@@ -191,6 +201,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
         if self.stack.seq_begin()?.is_key() {
             return Err(stream::Error::msg(
@@ -207,12 +218,14 @@ where
         Ok(())
     }
 
+    #[inline]
     fn seq_elem(&mut self) -> Result<(), stream::Error> {
         self.stack.seq_elem()?;
 
         Ok(())
     }
 
+    #[inline]
     fn seq_end(&mut self) -> Result<(), stream::Error> {
         let pos = self.stack.seq_end()?;
 
@@ -222,6 +235,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
         if self.stack.map_begin()?.is_key() {
             return Err(stream::Error::msg(
@@ -238,18 +252,21 @@ where
         Ok(())
     }
 
+    #[inline]
     fn map_key(&mut self) -> Result<(), stream::Error> {
         self.stack.map_key()?;
 
         Ok(())
     }
 
+    #[inline]
     fn map_value(&mut self) -> Result<(), stream::Error> {
         self.stack.map_value()?;
 
         Ok(())
     }
 
+    #[inline]
     fn map_end(&mut self) -> Result<(), stream::Error> {
         let pos = self.stack.map_end()?;
 
@@ -259,6 +276,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn end(&mut self) -> Result<(), stream::Error> {
         self.stack.end()?;
 
@@ -271,6 +289,7 @@ This `escape_str` implementation has been shamelessly lifted from dtolnay's `min
 https://github.com/dtolnay/miniserde
 */
 
+#[inline]
 fn escape_str(value: &str, mut out: impl Write) -> Result<(), fmt::Error> {
     out.write_char('"')?;
 

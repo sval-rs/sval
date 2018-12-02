@@ -292,7 +292,6 @@ impl<'a> Stream<'a> {
     }
 }
 
-#[inline]
 pub(crate) fn stream(value: impl Value, mut stream: impl collect::Stream) -> Result<(), Error> {
     cfg_debug_stack! {
         if #[debug_assertions] {

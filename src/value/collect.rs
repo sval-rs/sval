@@ -30,14 +30,17 @@ impl<'a, S: ?Sized> Stream for &'a mut S
 where
     S: Stream,
 {
+    #[inline]
     fn map_key_collect(&mut self, k: Value) -> Result<(), stream::Error> {
         (**self).map_key_collect(k)
     }
 
+    #[inline]
     fn map_value_collect(&mut self, v: Value) -> Result<(), stream::Error> {
         (**self).map_value_collect(v)
     }
 
+    #[inline]
     fn seq_elem_collect(&mut self, v: Value) -> Result<(), stream::Error> {
         (**self).seq_elem_collect(v)
     }
@@ -85,6 +88,7 @@ impl<S> Stream for Default<S>
 where
     S: stream::Stream,
 {
+    #[inline]
     fn map_key_collect(&mut self, k: Value) -> Result<(), stream::Error> {
         stream::Stream::map_key(self)?;
         k.stream(self)?;
@@ -92,6 +96,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn map_value_collect(&mut self, v: Value) -> Result<(), stream::Error> {
         stream::Stream::map_value(self)?;
         v.stream(self)?;
@@ -99,6 +104,7 @@ where
         Ok(())
     }
 
+    #[inline]
     fn seq_elem_collect(&mut self, v: Value) -> Result<(), stream::Error> {
         stream::Stream::seq_elem(self)?;
         v.stream(self)?;

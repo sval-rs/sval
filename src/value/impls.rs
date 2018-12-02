@@ -18,6 +18,7 @@ impl<T> Value for Option<T>
 where
     T: Value,
 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         match self {
             Some(v) => v.stream(stream),
@@ -30,6 +31,7 @@ impl<T> Value for [T]
 where
     T: Value,
 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.seq_begin(Some(self.len()))?;
 
@@ -46,6 +48,7 @@ where
     T: Value,
     U: Value,
 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         stream.seq_begin(Some(2))?;
 
@@ -192,6 +195,7 @@ mod std_support {
     where
         T: Value,
     {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             (**self).stream(stream)
         }
@@ -202,6 +206,7 @@ mod std_support {
     where
         T: Value,
     {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             (**self).stream(stream)
         }
@@ -211,6 +216,7 @@ mod std_support {
     where
         T: Value,
     {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             (**self).stream(stream)
         }
@@ -227,6 +233,7 @@ mod std_support {
     where
         T: Value,
     {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             self.as_slice().stream(stream)
         }
@@ -237,6 +244,7 @@ mod std_support {
         K: Eq + Value,
         V: Value,
     {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             stream.map_begin(Some(self.len()))?;
 
@@ -255,6 +263,7 @@ mod std_support {
         V: Value,
         H: BuildHasher,
     {
+        #[inline]
         fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
             stream.map_begin(Some(self.len()))?;
 

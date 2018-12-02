@@ -36,6 +36,7 @@ impl<'a, T: ?Sized> Value for &'a T
 where
     T: Value,
 {
+    #[inline]
     fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
         (**self).stream(stream)
     }

@@ -33,3 +33,6 @@ package = "serde"
 [dependencies.sval_derive]
 path = "./derive"
 optional = true
+
+[profile.release]
+debug = true
