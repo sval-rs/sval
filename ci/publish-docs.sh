@@ -8,17 +8,17 @@ if [ "$BRANCH" == "master" ]; then
     echo "uploading crate docs"
 
     pushd json
-    cargo doc --features "std"
+    cargo doc --no-deps --features "std"
     popd
 
-    cargo doc --features "std serde"
+    cargo doc --no-deps --features "std serde"
 
     REV=$(git rev-parse --short HEAD)
     cd target/doc
     git init
-    git remote add upstream "https://$GH_TOKEN@github.com/KodrAus/val"
-    git config user.name "val"
-    git config user.email "travis@val.rs"
+    git remote add upstream "https://$GH_TOKEN@github.com/KodrAus/sval"
+    git config user.name "sval"
+    git config user.email "travis@sval.rs"
     git add -A .
     git commit -qm "Build docs at ${TRAVIS_REPO_SLUG}@${REV}"
 
