@@ -1,4 +1,4 @@
-/**
+/*!
 Derive `sval::Value`.
 
 Use the `derive` feature of `sval` instead of depending on this library directly:
