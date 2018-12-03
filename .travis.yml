@@ -5,7 +5,8 @@ matrix:
   include:
     - rust: nightly
       script:
-        - ./ci/travis.sh
-        - cargo bench --all --no-run
+      - ./ci/travis.sh
+      - cargo bench --all --no-run
     - rust: beta
-        - ./ci/travis.sh
+      script:
+      - ./ci/travis.sh

@@ -9,6 +9,8 @@ Producers of structured values use the `value` module. Consumers of structured v
 
 This library is designed to plug a no-std-object-safe sized hole in Rust's current serialization ecosystem. The driving use-case is structured logging, where individual events are typically small, and there's no complete schema that can tie values in any one event to values in another.
 
+**`sval_json` and `sval_derive` are mostly pilfered from dtolnay's [excellent `miniserde` project](https://github.com/dtolnay/miniserde).**
+
 # Minimum `rustc`
 
 This library requires Rust `1.31.0`, which is currently in `beta`.
