@@ -28,15 +28,16 @@ enum Tagged {
 }
 
 #[derive(Value, Serialize)]
-struct Struct {
+struct Struct<'a> {
     a: i32,
     b: i32,
-    c: Nested,
+    c: Nested<'a>,
 }
 
 #[derive(Value, Serialize)]
-struct Nested {
+struct Nested<'a> {
     a: i32,
+    b: &'a str,
 }
 
 struct Anonymous;
@@ -74,7 +75,10 @@ fn sval_derive() {
     let v = sval::test::tokens(Struct {
         a: 1,
         b: 2,
-        c: Nested { a: 3 },
+        c: Nested {
+            a: 3,
+            b: "Hello!",
+        },
     });
     assert_eq!(
         vec![
@@ -84,9 +88,11 @@ fn sval_derive() {
             Token::Str(String::from("b")),
             Token::Signed(2),
             Token::Str(String::from("c")),
-            Token::MapBegin(Some(1)),
+            Token::MapBegin(Some(2)),
             Token::Str(String::from("a")),
             Token::Signed(3),
+            Token::Str(String::from("b")),
+            Token::Str(String::from("Hello!")),
             Token::MapEnd,
             Token::MapEnd,
         ],
