@@ -118,7 +118,7 @@ pub(crate) struct Buf {
 }
 
 pub(crate) struct Token {
-    #[cfg(feature = "serde")]
+    #[allow(dead_code)]
     pub(crate) depth: stack::Depth,
     pub(crate) kind: Kind,
 }
