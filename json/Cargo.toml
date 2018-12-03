@@ -20,6 +20,7 @@ travis-ci = { repository = "KodrAus/sval" }
 std = ["sval/std"]
 
 [dependencies.sval]
+version = "0.0.0"
 path = "../"
 
 [dependencies.ryu]

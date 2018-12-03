@@ -50,6 +50,7 @@ default-features = false
 package = "serde"
 
 [dependencies.sval_derive]
+version = "0.0.0"
 path = "./derive"
 optional = true
 
