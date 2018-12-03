@@ -4,6 +4,8 @@ language: rust
 matrix:
   include:
     - rust: nightly
+      script:
+        - ./ci/travis.sh
+        - cargo bench --all --no-run
     - rust: beta
-
-script: ./ci/travis.sh
+        - ./ci/travis.sh
