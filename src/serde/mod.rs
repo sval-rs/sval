@@ -52,6 +52,10 @@ use serde_lib::ser::{
 
 /**
 Convert a [`Value`] into a [`Serialize`].
+
+If the `Value` uses nested maps or sequences where the keys, values
+or elements aren't known upfront then this method will need to allocate
+for them.
 */
 pub fn to_serialize(value: impl Value) -> impl Serialize {
     to_serialize::ToSerialize(value)

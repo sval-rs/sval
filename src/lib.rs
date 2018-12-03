@@ -1,6 +1,15 @@
 /*!
 A small, no-std, object-safe, serialization-only framework.
 
+# Getting started
+
+Add `sval` to your `Cargo.toml`:
+
+```toml,ignore
+[dependencies.sval]
+version = "0.0.0"
+```
+
 # Streaming values
 
 ```no_run
@@ -22,7 +31,14 @@ where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 
 # Implementing the `Value` trait
 
-Derive the [`Value`] trait for structures:
+Use the `derive` Cargo feature to allow `Value` to be derived:
+
+```toml,ignore
+[dependencies.sval]
+features = ["derive"]
+```
+
+Then derive the [`Value`] trait for simple datastructures:
 
 ```
 # fn main() {}
@@ -285,6 +301,9 @@ impl Stream for Fmt {
     }
 }
 ```
+
+The `Stack` type has a fixed depth, so deeply nested structures
+aren't supported.
 
 # `serde` integration
 

@@ -1,5 +1,5 @@
 [package]
-name = "sval_json_benches"
+name = "sval_json_tests"
 version = "0.0.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
@@ -13,9 +13,6 @@ features = ["derive", "serde"]
 path = "../"
 features = ["std"]
 
-[dependencies.sval_json_tests]
-path = "../tests"
-
 [dependencies.serde]
 version = "1"
 features = ["derive"]
@@ -25,6 +22,3 @@ version = "1"
 
 [dependencies.miniserde]
 version = "0.1"
-
-[dependencies.erased-serde]
-version = "0.3"

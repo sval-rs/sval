@@ -1,5 +1,8 @@
 /*!
-A small, no-std, object-safe, serialization-only json library.
+Json support for `sval`.
+
+This library is no-std, so it can be run in environments
+that don't have access to an allocator.
 */
 
 #![no_std]

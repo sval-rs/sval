@@ -56,13 +56,19 @@ impl Pos {
 /**
 A container for the stream state.
 
-Implementations of the [`Stream`](trait.Stream.html) trait are encouraged to use a
+Implementations of the [`Stream`](../trait.Stream.html) trait are encouraged to use a
 stack for validating their input.
 
 The stack is stateful, and keeps track of open maps and sequences.
 It serves as validation for operations performed on the stream and
 as a way for a flat, stateless stream to know what it's currently
-looking at.
+looking at. The stack enforces:
+
+- Map keys and values aren't received outside of a map.
+- Map keys are received before map values, and every key has a corresponding value.
+- Sequence elements aren't received outside of a sequence.
+- Every map and sequence is ended, and in the right order.
+- Every map key, map value, and sequence element is followed by valid data.
 */
 #[derive(Clone)]
 pub struct Stack {
