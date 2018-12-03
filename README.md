@@ -1,6 +1,7 @@
 # `sval`
 
 [![Build Status](https://travis-ci.com/KodrAus/sval.svg?branch=master)](https://travis-ci.com/KodrAus/sval)
+[![Latest version](https://img.shields.io/crates/v/sval.svg)](https://crates.io/crates/sval)
 [![Documentation](https://docs.rs/sval/badge.svg)](https://docs.rs/sval)
 
 A prototype, lightweight, no-std, object-safe, serialization-only API for structured values with `serde` support.
