@@ -7,11 +7,9 @@ BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; els
 if [ "$BRANCH" == "ci/docs" ]; then
     echo "uploading crate docs"
 
-    pushd sval
     cargo doc --features "std serde"
-    popd
 
-    pushd sval_json
+    pushd json
     cargo doc --features "std"
     popd
 
