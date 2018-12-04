@@ -11,7 +11,7 @@ if [ "$BRANCH" == "master" ]; then
     cargo doc --no-deps --features "std"
     popd
 
-    cargo doc --no-deps --features "std serde"
+    cargo doc --no-deps --features "std serde test"
 
     REV=$(git rev-parse --short HEAD)
     cd target/doc

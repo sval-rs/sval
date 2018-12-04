@@ -14,7 +14,10 @@ pub struct Pos {
 }
 
 /**
-The depth of the position.
+The depth of a position.
+
+All positions within a map or sequence are guaranteed
+to have the same depth or greater.
 */
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Depth(usize);
@@ -394,7 +397,7 @@ impl Stack {
     }
 
     /**
-    Whether or not the stack has seen a valid stream. 
+    Whether or not the stack has seen a complete and valid stream. 
     */
     #[inline]
     pub fn can_end(&self) -> bool {
