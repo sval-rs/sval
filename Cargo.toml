@@ -10,12 +10,13 @@ members = [
 
 [package]
 name = "sval"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 documentation = "https://sval-rs.github.io/sval/sval/index.html"
 description = "A no-std, object-safe serialization framework"
 repository = "https://github.com/sval-rs/sval"
+readme = "README.md"
 exclude = [
     ".travis.yml"
 ]
@@ -50,7 +51,7 @@ default-features = false
 package = "serde"
 
 [dependencies.sval_derive]
-version = "0.0.3"
+version = "0.0.4"
 path = "./derive"
 optional = true
 
