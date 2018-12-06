@@ -7,7 +7,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval]
-version = "0.0.2"
+version = "0.0.3"
 ```
 
 # Streaming values
