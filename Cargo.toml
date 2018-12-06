@@ -27,7 +27,7 @@ categories = ["encoding", "no-std"]
 features = ["derive", "serde"]
 
 [badges]
-travis-ci = { repository = "KodrAus/sval" }
+travis-ci = { repository = "sval-rs/sval" }
 
 [features]
 # Support the standard library
