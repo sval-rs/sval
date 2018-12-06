@@ -5,7 +5,7 @@ authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 documentation = "https://docs.rs/sval_derive"
 description = "Custom derive for sval"
-repository = "https://github.com/KodrAus/sval"
+repository = "https://github.com/sval-rs/sval"
 license = "Apache-2.0 OR MIT"
 
 [lib]
