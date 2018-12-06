@@ -4,7 +4,7 @@ set -o errexit -o nounset
 
 BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
 
-if [ "$BRANCH" == "master" ]; then
+if [ "$BRANCH" == "ci/docs" ]; then
     echo "uploading crate docs"
 
     pushd json
@@ -16,7 +16,7 @@ if [ "$BRANCH" == "master" ]; then
     REV=$(git rev-parse --short HEAD)
     cd target/doc
     git init
-    git remote add upstream "https://$GH_TOKEN@github.com/KodrAus/sval"
+    git remote add upstream "https://$GH_TOKEN@github.com/sval-rs/sval"
     git config user.name "sval"
     git config user.email "travis@sval.rs"
     git add -A .
