@@ -15,7 +15,7 @@ authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 documentation = "https://docs.rs/sval"
 description = "A no-std, object-safe serialization framework"
-repository = "https://github.com/KodrAus/sval"
+repository = "https://github.com/sval-rs/sval"
 exclude = [
     ".travis.yml"
 ]
