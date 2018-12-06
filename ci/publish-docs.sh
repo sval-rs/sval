@@ -4,7 +4,7 @@ set -o errexit -o nounset
 
 BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
 
-if [ "$BRANCH" == "ci/docs" ]; then
+if [ "$BRANCH" == "master" ]; then
     echo "uploading crate docs"
 
     pushd json
