@@ -1,6 +1,6 @@
 # `sval`
 
-[![Build Status](https://travis-ci.com/KodrAus/sval.svg?branch=master)](https://travis-ci.com/KodrAus/sval)
+[![Build Status](https://travis-ci.com/sval-rs/sval.svg?branch=master)](https://travis-ci.com/sval-rs/sval)
 [![Latest version](https://img.shields.io/crates/v/sval.svg)](https://crates.io/crates/sval)
 [![Documentation Latest](https://docs.rs/sval/badge.svg)](https://docs.rs/sval)
 [![Documentation Master](https://img.shields.io/badge/docs-master-lightgrey.svg)](https://sval-rs.github.io/sval/sval/index.html)
