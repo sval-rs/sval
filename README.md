@@ -15,7 +15,7 @@ This library is designed to plug a no-std-object-safe sized hole in Rust's curre
 
 # Minimum `rustc`
 
-This library requires Rust `1.31.0`, which is currently in `beta`.
+This library requires Rust `1.31.0`.
 
 # See also
 

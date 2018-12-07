@@ -11,3 +11,6 @@ matrix:
     - rust: beta
       script:
       - ./ci/travis.sh
+    - rust: stable
+      script:
+      - ./ci/travis.sh
