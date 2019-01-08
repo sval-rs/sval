@@ -470,11 +470,9 @@ mod inner {
     use super::{Slot, Error};
 
     #[derive(Clone)]
-    pub(super) struct Stack(SmallVec<[Slot; Self::SLOTS]>);
+    pub(super) struct Stack(SmallVec<[Slot; 16]>);
 
     impl Stack {
-        const SLOTS: usize = 16;
-
         #[inline]
         pub(super) fn new() -> Self {
             let mut slots = SmallVec::new();
@@ -514,25 +512,6 @@ mod inner {
         #[inline]
         pub(super) fn current(&self) -> Slot {
             *self.0.last().expect("missing stack slot")
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "std")]
-    mod std_support {
-        use crate::{
-            std::{
-                mem,
-                vec::Vec,
-            },
-            stream::stack::*,
-        };
-
-        #[test]
-        fn stack_is_not_bigger_than_vec() {
-            assert!(mem::size_of::<Stack>() <= mem::size_of::<Vec<Slot>>());
         }
     }
 }
