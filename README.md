@@ -72,6 +72,7 @@ The `sval_json` crate can format any `sval::Value` as json:
 ```toml
 [dependencies.sval_json]
 version = "0.0.4"
+features = ["std"]
 ```
 
 ```rust
