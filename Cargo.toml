@@ -34,6 +34,9 @@ travis-ci = { repository = "sval-rs/sval" }
 # Support the standard library
 std = []
 
+# Support stacks with an arbitrary depth
+arbitrary-depth = ["std", "smallvec"]
+
 # Add a custom derive for `Value`
 derive = ["sval_derive"]
 
@@ -43,6 +46,10 @@ test = ["std"]
 
 # Support integration with `serde`
 serde = ["std", "serde_lib/std"]
+
+[dependencies.smallvec]
+version = "0.6"
+optional = true
 
 [dependencies.serde_lib]
 version = "1"
