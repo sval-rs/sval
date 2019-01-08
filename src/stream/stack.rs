@@ -448,16 +448,20 @@ mod inner {
 
         #[inline]
         pub(super) fn pop_depth(&mut self) {
-            self.depth -= 1;
+            self.depth.saturating_sub(1);
         }
 
         #[inline]
         pub(super) fn current_mut(&mut self) -> &mut Slot {
+            // The depth is guaranteed to be in-bounds
+            // and pointing to initialized memory
             unsafe { self.slots.get_unchecked_mut(self.depth) }
         }
 
         #[inline]
         pub(super) fn current(&self) -> Slot {
+            // The depth is guaranteed to be in-bounds
+            // and pointing to initialized memory
             unsafe { *self.slots.get_unchecked(self.depth) }
         }
     }
