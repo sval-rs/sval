@@ -465,19 +465,19 @@ mod inner {
 
 #[cfg(feature = "std")]
 mod inner {
-    use crate::std::vec::Vec;
+    use smallvec::SmallVec;
 
     use super::{Slot, Error};
 
     #[derive(Clone)]
-    pub(super) struct Stack(Vec<Slot>);
+    pub(super) struct Stack(SmallVec<[Slot; Self::SLOTS]>);
 
     impl Stack {
         const SLOTS: usize = 16;
 
         #[inline]
         pub(super) fn new() -> Self {
-            let mut slots = Vec::with_capacity(Self::SLOTS);
+            let mut slots = SmallVec::new();
             slots.push(Slot::root());
 
             Stack(slots)
