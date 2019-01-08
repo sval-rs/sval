@@ -75,13 +75,7 @@ looking at. The stack enforces:
 */
 #[derive(Clone)]
 pub struct Stack {
-    inner: [Slot; Stack::SIZE],
-    depth: usize,
-}
-
-impl Stack {
-    const SIZE: usize = 16;
-    const MAX_LEN: usize = Self::SIZE - 1;
+    inner: inner::Stack,
 }
 
 #[derive(Clone, Copy)]
@@ -138,8 +132,7 @@ impl Stack {
     #[inline]
     pub fn new() -> Self {
         Stack {
-            inner: [Slot::root(); Self::SIZE],
-            depth: 0,
+            inner: inner::Stack::new(),
         }
     }
 
@@ -150,20 +143,7 @@ impl Stack {
     */
     #[inline]
     pub fn clear(&mut self) {
-        *self = Stack {
-            inner: [Slot::root(); Self::SIZE],
-            depth: 0,
-        };
-    }
-
-    #[inline]
-    fn current_mut(&mut self) -> &mut Slot {
-        unsafe { self.inner.get_unchecked_mut(self.depth) }
-    }
-
-    #[inline]
-    fn current(&self) -> Slot {
-        unsafe { *self.inner.get_unchecked(self.depth) }
+        self.inner.clear();
     }
 
     /**
@@ -178,10 +158,10 @@ impl Stack {
         // It doesn't matter if the slot is
         // marked as done or not
 
-        if self.depth == 0 {
+        if self.inner.depth() == 0 {
             // Clear the `DONE` bit so the stack
             // can be re-used
-            self.current_mut().0 = Slot::ROOT;
+            self.inner.current_mut().0 = Slot::ROOT;
 
             Ok(())
         } else {
@@ -204,7 +184,7 @@ impl Stack {
     */
     #[inline]
     pub fn primitive(&mut self) -> Result<Pos, Error> {
-        let mut curr = self.current_mut();
+        let mut curr = self.inner.current_mut();
 
         // The current slot must:
         // - not be done
@@ -213,7 +193,7 @@ impl Stack {
             Slot::EMPTY => {
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.pos(self.depth))
+                Ok(curr.pos(self.inner.depth()))
             }
             _ => Err(Error::msg("invalid attempt to write primitive")),
         }
@@ -224,11 +204,7 @@ impl Stack {
     */
     #[inline]
     pub fn map_begin(&mut self) -> Result<Pos, Error> {
-        if self.depth >= Self::MAX_LEN {
-            return Err(Error::msg("nesting limit reached"));
-        }
-
-        let curr = self.current();
+        let curr = self.inner.current();
 
         // The current slot must:
         // - not be done and
@@ -239,10 +215,10 @@ impl Stack {
 
         match curr.0 {
             Slot::ROOT | Slot::MAP_KEY | Slot::MAP_VAL | Slot::SEQ_ELEM => {
-                self.depth += 1;
-                self.current_mut().0 = Slot::MAP;
+                self.inner.push_depth()?;
+                self.inner.current_mut().0 = Slot::MAP;
 
-                Ok(curr.pos(self.depth))
+                Ok(curr.pos(self.inner.depth()))
             }
             _ => Err(Error::msg("invalid attempt to begin map")),
         }
@@ -256,7 +232,7 @@ impl Stack {
     */
     #[inline]
     pub fn map_key(&mut self) -> Result<Pos, Error> {
-        let mut curr = self.current_mut();
+        let mut curr = self.inner.current_mut();
 
         // The current slot must:
         // - be a fresh map (with no key or value) or
@@ -266,7 +242,7 @@ impl Stack {
             Slot::MAP | Slot::MAP_VAL_DONE => {
                 curr.0 = Slot::MAP_KEY;
 
-                Ok(curr.pos(self.depth))
+                Ok(curr.pos(self.inner.depth()))
             }
             _ => Err(Error::msg("invalid attempt to begin key")),
         }
@@ -280,7 +256,7 @@ impl Stack {
     */
     #[inline]
     pub fn map_value(&mut self) -> Result<Pos, Error> {
-        let mut curr = self.current_mut();
+        let mut curr = self.inner.current_mut();
 
         // The current slot must:
         // - be a map with a done key
@@ -289,7 +265,7 @@ impl Stack {
             Slot::MAP_KEY_DONE => {
                 curr.0 = Slot::MAP_VAL;
 
-                Ok(curr.pos(self.depth))
+                Ok(curr.pos(self.inner.depth()))
             }
             _ => Err(Error::msg("invalid attempt to begin value")),
         }
@@ -300,7 +276,7 @@ impl Stack {
     */
     #[inline]
     pub fn map_end(&mut self) -> Result<Pos, Error> {
-        let curr = self.current();
+        let curr = self.inner.current();
 
         // The current slot must:
         // - be a fresh map or
@@ -308,12 +284,12 @@ impl Stack {
 
         match curr.0 {
             Slot::MAP | Slot::MAP_VAL_DONE => {
-                self.depth -= 1;
+                self.inner.pop_depth();
 
-                let mut curr = self.current_mut();
+                let mut curr = self.inner.current_mut();
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.pos(self.depth + 1))
+                Ok(curr.pos(self.inner.depth() + 1))
             }
             _ => Err(Error::msg("invalid attempt to end map")),
         }
@@ -324,11 +300,7 @@ impl Stack {
     */
     #[inline]
     pub fn seq_begin(&mut self) -> Result<Pos, Error> {
-        if self.depth >= Self::MAX_LEN {
-            return Err(Error::msg("nesting limit reached"));
-        }
-
-        let curr = self.current();
+        let curr = self.inner.current();
 
         // The current slot must:
         // - not be done and
@@ -339,10 +311,10 @@ impl Stack {
 
         match curr.0 {
             Slot::ROOT | Slot::MAP_KEY | Slot::MAP_VAL | Slot::SEQ_ELEM => {
-                self.depth += 1;
-                self.current_mut().0 = Slot::SEQ;
+                self.inner.push_depth()?;
+                self.inner.current_mut().0 = Slot::SEQ;
 
-                Ok(curr.pos(self.depth))
+                Ok(curr.pos(self.inner.depth()))
             }
             _ => Err(Error::msg("invalid attempt to begin sequence")),
         }
@@ -356,7 +328,7 @@ impl Stack {
     */
     #[inline]
     pub fn seq_elem(&mut self) -> Result<Pos, Error> {
-        let mut curr = self.current_mut();
+        let mut curr = self.inner.current_mut();
 
         // The current slot must:
         // - be a fresh sequence (with no element) or
@@ -366,7 +338,7 @@ impl Stack {
             Slot::SEQ | Slot::SEQ_ELEM_DONE => {
                 curr.0 = Slot::SEQ_ELEM;
 
-                Ok(curr.pos(self.depth))
+                Ok(curr.pos(self.inner.depth()))
             }
             _ => Err(Error::msg("invalid attempt to begin element")),
         }
@@ -377,7 +349,7 @@ impl Stack {
     */
     #[inline]
     pub fn seq_end(&mut self) -> Result<Pos, Error> {
-        let curr = self.current();
+        let curr = self.inner.current();
 
         // The current slot must:
         // - be a fresh sequence or
@@ -385,12 +357,12 @@ impl Stack {
 
         match curr.0 {
             Slot::SEQ | Slot::SEQ_ELEM_DONE => {
-                self.depth -= 1;
+                self.inner.pop_depth();
 
-                let mut curr = self.current_mut();
+                let mut curr = self.inner.current_mut();
                 curr.0 |= Slot::DONE;
 
-                Ok(curr.pos(self.depth + 1))
+                Ok(curr.pos(self.inner.depth() + 1))
             }
             _ => Err(Error::msg("invalid attempt to end sequence")),
         }
@@ -401,7 +373,7 @@ impl Stack {
     */
     #[inline]
     pub fn can_end(&self) -> bool {
-        self.depth == 0
+        self.inner.depth() == 0
     }
 
     /**
@@ -416,14 +388,132 @@ impl Stack {
         // It doesn't matter if the slot is
         // marked as done or not
 
-        if self.depth == 0 {
+        if self.inner.depth() == 0 {
             // Set the slot to done so it
             // can't be re-used without calling begin
-            self.current_mut().0 |= Slot::DONE;
+            self.inner.current_mut().0 |= Slot::DONE;
 
             Ok(())
         } else {
             Err(Error::msg("stack is not empty"))
+        }
+    }
+}
+
+#[cfg(not(feature = "std"))]
+mod inner {
+    use super::{Slot, Error};
+
+    #[derive(Clone)]
+    pub(super) struct Stack {
+        slots: [Slot; Self::SLOTS],
+        depth: usize,
+    }
+
+    impl Stack {
+        const SLOTS: usize = 16;
+        const MAX_DEPTH: usize = Self::SLOTS - 1;
+
+        #[inline]
+        pub(super) fn new() -> Self {
+            Stack {
+                slots: [Slot::root(); Self::SLOTS],
+                depth: 0,
+            }
+        }
+
+        #[inline]
+        pub(super) fn clear(&mut self) {
+            *self = Stack {
+                slots: [Slot::root(); Self::SLOTS],
+                depth: 0,
+            }
+        }
+
+        #[inline]
+        pub(super) fn depth(&self) -> usize {
+            self.depth
+        }
+
+        #[inline]
+        pub(super) fn push_depth(&mut self) -> Result<(), Error> {
+            if self.depth >= Self::MAX_DEPTH {
+                return Err(Error::msg("nesting limit reached"));
+            }
+
+            self.depth += 1;
+
+            Ok(())
+        }
+
+        #[inline]
+        pub(super) fn pop_depth(&mut self) {
+            self.depth -= 1;
+        }
+
+        #[inline]
+        pub(super) fn current_mut(&mut self) -> &mut Slot {
+            unsafe { self.slots.get_unchecked_mut(self.depth) }
+        }
+
+        #[inline]
+        pub(super) fn current(&self) -> Slot {
+            unsafe { *self.slots.get_unchecked(self.depth) }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+mod inner {
+    use crate::std::vec::Vec;
+
+    use super::{Slot, Error};
+
+    #[derive(Clone)]
+    pub(super) struct Stack(Vec<Slot>);
+
+    impl Stack {
+        const SLOTS: usize = 16;
+
+        #[inline]
+        pub(super) fn new() -> Self {
+            let mut slots = Vec::with_capacity(Self::SLOTS);
+            slots.push(Slot::root());
+
+            Stack(slots)
+        }
+
+        #[inline]
+        pub(super) fn clear(&mut self) {
+            self.0.clear();
+            self.0.push(Slot::root());
+        }
+
+        #[inline]
+        pub(super) fn depth(&self) -> usize {
+            self.0.len() - 1
+        }
+
+        #[inline]
+        pub(super) fn push_depth(&mut self) -> Result<(), Error> {
+            self.0.push(Slot::root());
+
+            Ok(())
+        }
+
+        #[inline]
+        pub(super) fn pop_depth(&mut self) {
+            self.0.pop();
+        }
+
+        #[inline]
+        pub(super) fn current_mut(&mut self) -> &mut Slot {
+            self.0.last_mut().expect("missing stack slot")
+        }
+
+        #[inline]
+        pub(super) fn current(&self) -> Slot {
+            *self.0.last().expect("missing stack slot")
         }
     }
 }
