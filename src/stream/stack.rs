@@ -284,7 +284,10 @@ impl Stack {
 
         match curr.0 {
             Slot::MAP | Slot::MAP_VAL_DONE => {
-                self.inner.pop_depth();
+                // The fact that the slot is not `Slot::ROOT`
+                // guarantees that `depth > 0` and so this
+                // will not overflow
+                unsafe { self.inner.pop_depth(); }
 
                 let mut curr = self.inner.current_mut();
                 curr.0 |= Slot::DONE;
@@ -357,7 +360,10 @@ impl Stack {
 
         match curr.0 {
             Slot::SEQ | Slot::SEQ_ELEM_DONE => {
-                self.inner.pop_depth();
+                // The fact that the slot is not `Slot::ROOT`
+                // guarantees that `depth > 0` and so this
+                // will not overflow
+                unsafe { self.inner.pop_depth(); }
 
                 let mut curr = self.inner.current_mut();
                 curr.0 |= Slot::DONE;
@@ -400,7 +406,7 @@ impl Stack {
     }
 }
 
-#[cfg(not(feature = "std"))]
+#[cfg(not(feature = "arbitrary-depth"))]
 mod inner {
     use super::{Slot, Error};
 
@@ -446,9 +452,10 @@ mod inner {
             Ok(())
         }
 
+        // Callers must ensure `self.depth() > 0`
         #[inline]
-        pub(super) fn pop_depth(&mut self) {
-            self.depth.saturating_sub(1);
+        pub(super) unsafe fn pop_depth(&mut self) {
+            self.depth -= 1;
         }
 
         #[inline]
@@ -467,7 +474,7 @@ mod inner {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "arbitrary-depth")]
 mod inner {
     use smallvec::SmallVec;
 
@@ -504,7 +511,7 @@ mod inner {
         }
 
         #[inline]
-        pub(super) fn pop_depth(&mut self) {
+        pub(super) unsafe fn pop_depth(&mut self) {
             self.0.pop();
         }
 

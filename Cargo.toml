@@ -32,7 +32,10 @@ travis-ci = { repository = "sval-rs/sval" }
 
 [features]
 # Support the standard library
-std = ["smallvec"]
+std = []
+
+# Support stacks with an arbitrary depth
+arbitrary-depth = ["std", "smallvec"]
 
 # Add a custom derive for `Value`
 derive = ["sval_derive"]
