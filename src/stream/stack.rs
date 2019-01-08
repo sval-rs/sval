@@ -412,7 +412,7 @@ mod inner {
 
     #[derive(Clone)]
     pub(super) struct Stack {
-        slots: [Slot; Self::SLOTS],
+        slots: [Slot; Stack::SLOTS],
         depth: usize,
     }
 

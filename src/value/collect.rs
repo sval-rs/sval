@@ -15,6 +15,12 @@ use crate::{
     },
 };
 
+// FIXME: Moving the `*_collect` methods onto the base `Stream`
+// trait is a little more efficient (a few % improvement against `serde`)
+// in the general case because it can save a virtual call per key/value/elem.
+// The reason this hasn't been done already is just to reduce
+// the API surface area for now. It should be revisited sometime.
+
 /**
 An extension to `stream::Stream` for items that are known upfront.
 */
