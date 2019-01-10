@@ -251,7 +251,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         self.0.seq_begin(Some(len))?;
         Ok(self)
     }
-    
+
     #[inline]
     fn serialize_tuple_variant(
         self,

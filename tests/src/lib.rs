@@ -75,10 +75,7 @@ fn sval_derive() {
     let v = sval::test::tokens(Struct {
         a: 1,
         b: 2,
-        c: Nested {
-            a: 3,
-            b: "Hello!",
-        },
+        c: Nested { a: 3, b: "Hello!" },
     });
     assert_eq!(
         vec![

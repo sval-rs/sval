@@ -173,7 +173,5 @@ fn stream_map(b: &mut Bencher) {
         }
     }
 
-    b.iter(|| {
-        sval::stream(Map, EmptyStream)
-    })
+    b.iter(|| sval::stream(Map, EmptyStream))
 }
