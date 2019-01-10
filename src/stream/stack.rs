@@ -587,46 +587,44 @@ mod tests {
             }
         }
 
-        #[test]
-        fn stack_does_not_panic() {
-            quickcheck! {
-                fn check(cmd: Vec<Command>) -> bool {
-                    let mut stack = Stack::new();
+        quickcheck! {
+            fn stack_does_not_panic(cmd: Vec<Command>) -> bool {
+                let mut stack = Stack::new();
 
-                    for cmd in cmd {
-                        match cmd {
-                            Command::Primitive => {
-                                let _ = stack.primitive();
-                            },
-                            Command::MapBegin => {
-                                let _ = stack.map_begin();
-                            },
-                            Command::MapKey => {
-                                let _ = stack.map_key();
-                            },
-                            Command::MapValue => {
-                                let _ = stack.map_value();
-                            },
-                            Command::MapEnd => {
-                                let _ = stack.map_end();
-                            },
-                            Command::SeqBegin => {
-                                let _ = stack.seq_begin();
-                            },
-                            Command::SeqElem => {
-                                let _ = stack.seq_elem();
-                            },
-                            Command::SeqEnd => {
-                                let _ = stack.seq_end();
-                            },
-                            Command::End => {
-                                let _ = stack.end();
-                            },
-                        }
+                for cmd in cmd {
+                    match cmd {
+                        Command::Primitive => {
+                            let _ = stack.primitive();
+                        },
+                        Command::MapBegin => {
+                            let _ = stack.map_begin();
+                        },
+                        Command::MapKey => {
+                            let _ = stack.map_key();
+                        },
+                        Command::MapValue => {
+                            let _ = stack.map_value();
+                        },
+                        Command::MapEnd => {
+                            let _ = stack.map_end();
+                        },
+                        Command::SeqBegin => {
+                            let _ = stack.seq_begin();
+                        },
+                        Command::SeqElem => {
+                            let _ = stack.seq_elem();
+                        },
+                        Command::SeqEnd => {
+                            let _ = stack.seq_end();
+                        },
+                        Command::End => {
+                            let _ = stack.end();
+                        },
                     }
-
-                    stack.can_end()
                 }
+
+                // So long as the stack doesn't panic we're happy
+                true
             }
         }
     }
