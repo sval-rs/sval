@@ -3,14 +3,15 @@ language: rust
 
 matrix:
   include:
-    - rust: nightly
-      script:
-      - ./ci/travis.sh
-      - cargo bench --all --no-run
-      - ./ci/publish-docs.sh
     - rust: beta
       script:
       - ./ci/travis.sh
     - rust: stable
       script:
       - ./ci/travis.sh
+  allow_failures:
+    - rust: nightly
+      script:
+      - ./ci/travis.sh
+      - cargo bench --all --no-run
+      - ./ci/publish-docs.sh
