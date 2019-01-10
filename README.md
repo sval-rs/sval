@@ -28,7 +28,7 @@ Add `sval` to your crate dependencies:
 
 ```toml
 [dependencies.sval]
-version = "0.0.4"
+version = "0.0.5"
 ```
 
 ## To support my datastructures
@@ -71,7 +71,7 @@ The `sval_json` crate can format any `sval::Value` as json:
 
 ```toml
 [dependencies.sval_json]
-version = "0.0.4"
+version = "0.0.5"
 features = ["std"]
 ```
 
@@ -88,8 +88,14 @@ let my_json = sval_json::to_string(my_data)?;
 features = ["serde"]
 ```
 
-Then convert between `serde` and `sval`:
+Use the `to_serialize` function to turn any `sval::Value` into a `serde::Serialize`:
 
 ```rust
 let my_serialize = sval::serde::to_serialize(my_data);
+```
+
+Use the `to_value` function to turn any `serde::Serialize` into a `sval::Value`:
+
+```rust
+let my_value = sval::serde::to_value(my_data);
 ```

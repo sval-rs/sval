@@ -291,7 +291,9 @@ impl Stack {
                 // The fact that the slot is not `Slot::ROOT`
                 // guarantees that `depth > 0` and so this
                 // will not overflow
-                unsafe { self.inner.pop_depth(); }
+                unsafe {
+                    self.inner.pop_depth();
+                }
 
                 let mut curr = self.inner.current_mut();
                 curr.0 |= Slot::DONE;
@@ -367,7 +369,9 @@ impl Stack {
                 // The fact that the slot is not `Slot::ROOT`
                 // guarantees that `depth > 0` and so this
                 // will not overflow
-                unsafe { self.inner.pop_depth(); }
+                unsafe {
+                    self.inner.pop_depth();
+                }
 
                 let mut curr = self.inner.current_mut();
                 curr.0 |= Slot::DONE;
@@ -379,7 +383,7 @@ impl Stack {
     }
 
     /**
-    Whether or not the stack has seen a complete and valid stream. 
+    Whether or not the stack has seen a complete and valid stream.
     */
     #[inline]
     pub fn can_end(&self) -> bool {
@@ -412,7 +416,10 @@ impl Stack {
 
 #[cfg(not(feature = "arbitrary-depth"))]
 mod inner {
-    use super::{Slot, Error};
+    use super::{
+        Error,
+        Slot,
+    };
 
     #[derive(Clone)]
     pub(super) struct Stack {
@@ -496,7 +503,10 @@ mod inner {
 mod inner {
     use smallvec::SmallVec;
 
-    use super::{Slot, Error};
+    use super::{
+        Error,
+        Slot,
+    };
 
     #[derive(Clone)]
     pub(super) struct Stack(SmallVec<[Slot; 16]>);
@@ -555,7 +565,11 @@ mod tests {
 
         use crate::std::vec::Vec;
 
-        use quickcheck::{quickcheck, Gen, Arbitrary};
+        use quickcheck::{
+            quickcheck,
+            Arbitrary,
+            Gen,
+        };
 
         #[derive(Clone, Copy, Debug)]
         enum Command {
@@ -718,7 +732,7 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.map_begin().unwrap();
-        
+
         assert!(stack.seq_end().is_err());
     }
 
@@ -774,7 +788,6 @@ mod tests {
 
         assert!(stack.map_value().is_err());
     }
-
 
     #[test]
     fn error_end_incomplete_map() {

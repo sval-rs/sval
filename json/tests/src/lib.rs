@@ -9,7 +9,8 @@ extern crate miniserde;
 
 #[test]
 fn sval_json_is_valid() {
-    let s: Twitter = serde_json::from_str(&std::fs::read_to_string("twitter.json").unwrap()).unwrap();
+    let s: Twitter =
+        serde_json::from_str(&std::fs::read_to_string("twitter.json").unwrap()).unwrap();
 
     let json = sval_json::to_string(&s).unwrap();
 
