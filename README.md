@@ -88,8 +88,6 @@ let my_json = sval_json::to_string(my_data)?;
 features = ["serde"]
 ```
 
-Then convert between `serde` and `sval`.
-
 Use the `to_serialize` function to turn any `sval::Value` into a `serde::Serialize`:
 
 ```rust
