@@ -94,13 +94,17 @@ impl Slot {
     const VAL: u8 = 0b0000_1000;
     const ELEM: u8 = 0b0000_0100;
 
-    const MASK_EXPECT: u8 = 0b1001_1100;
+    const MASK_POS: u8 = 0b1001_1100;
+
+    const MAP_DONE: u8 = Self::MAP | Self::DONE;
 
     const MAP_KEY: u8 = Self::MAP | Self::KEY;
     const MAP_KEY_DONE: u8 = Self::MAP_KEY | Self::DONE;
 
     const MAP_VAL: u8 = Self::MAP | Self::VAL;
     const MAP_VAL_DONE: u8 = Self::MAP_VAL | Self::DONE;
+
+    const SEQ_DONE: u8 = Self::SEQ | Self::DONE;
 
     const SEQ_ELEM: u8 = Self::SEQ | Self::ELEM;
     const SEQ_ELEM_DONE: u8 = Self::SEQ_ELEM | Self::DONE;
@@ -113,7 +117,7 @@ impl Slot {
     #[inline]
     fn pos(self, depth: usize) -> Pos {
         Pos {
-            slot: self.0 & Slot::MASK_EXPECT,
+            slot: self.0 & Slot::MASK_POS,
             depth,
         }
     }
@@ -216,7 +220,7 @@ impl Stack {
         match curr.0 {
             Slot::ROOT | Slot::MAP_KEY | Slot::MAP_VAL | Slot::SEQ_ELEM => {
                 self.inner.push_depth()?;
-                self.inner.current_mut().0 = Slot::MAP;
+                self.inner.current_mut().0 = Slot::MAP_DONE;
 
                 Ok(curr.pos(self.inner.depth()))
             }
@@ -239,7 +243,7 @@ impl Stack {
         // - be a map with a done value
 
         match curr.0 {
-            Slot::MAP | Slot::MAP_VAL_DONE => {
+            Slot::MAP_DONE | Slot::MAP_VAL_DONE => {
                 curr.0 = Slot::MAP_KEY;
 
                 Ok(curr.pos(self.inner.depth()))
@@ -283,7 +287,7 @@ impl Stack {
         // - be a map with a done value
 
         match curr.0 {
-            Slot::MAP | Slot::MAP_VAL_DONE => {
+            Slot::MAP_DONE | Slot::MAP_VAL_DONE => {
                 // The fact that the slot is not `Slot::ROOT`
                 // guarantees that `depth > 0` and so this
                 // will not overflow
@@ -315,7 +319,7 @@ impl Stack {
         match curr.0 {
             Slot::ROOT | Slot::MAP_KEY | Slot::MAP_VAL | Slot::SEQ_ELEM => {
                 self.inner.push_depth()?;
-                self.inner.current_mut().0 = Slot::SEQ;
+                self.inner.current_mut().0 = Slot::SEQ_DONE;
 
                 Ok(curr.pos(self.inner.depth()))
             }
@@ -338,7 +342,7 @@ impl Stack {
         // - be a sequence with a done element
 
         match curr.0 {
-            Slot::SEQ | Slot::SEQ_ELEM_DONE => {
+            Slot::SEQ_DONE | Slot::SEQ_ELEM_DONE => {
                 curr.0 = Slot::SEQ_ELEM;
 
                 Ok(curr.pos(self.inner.depth()))
@@ -359,7 +363,7 @@ impl Stack {
         // - be a sequence with a done element
 
         match curr.0 {
-            Slot::SEQ | Slot::SEQ_ELEM_DONE => {
+            Slot::SEQ_DONE | Slot::SEQ_ELEM_DONE => {
                 // The fact that the slot is not `Slot::ROOT`
                 // guarantees that `depth > 0` and so this
                 // will not overflow
@@ -524,5 +528,314 @@ mod inner {
         pub(super) fn current(&self) -> Slot {
             *self.0.last().expect("missing stack slot")
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "std")]
+    mod prop_test {
+        use super::*;
+
+        use crate::std::vec::Vec;
+
+        use quickcheck::{quickcheck, Gen, Arbitrary};
+
+        #[derive(Clone, Copy, Debug)]
+        enum Command {
+            Primitive,
+            MapBegin,
+            MapKey,
+            MapValue,
+            MapEnd,
+            SeqBegin,
+            SeqElem,
+            SeqEnd,
+            End,
+        }
+
+        impl Arbitrary for Command {
+            fn arbitrary<G: Gen>(g: &mut G) -> Command {
+                match g.next_u32() % 9 {
+                    0 => Command::Primitive,
+                    1 => Command::MapBegin,
+                    2 => Command::MapKey,
+                    3 => Command::MapValue,
+                    4 => Command::MapEnd,
+                    5 => Command::SeqBegin,
+                    6 => Command::SeqElem,
+                    7 => Command::SeqEnd,
+                    8 => Command::End,
+                    _ => unreachable!(),
+                }
+            }
+        }
+
+        #[test]
+        fn stack_does_not_panic() {
+            quickcheck! {
+                fn check(cmd: Vec<Command>) -> bool {
+                    let mut stack = Stack::new();
+
+                    for cmd in cmd {
+                        match cmd {
+                            Command::Primitive => {
+                                let _ = stack.primitive();
+                            },
+                            Command::MapBegin => {
+                                let _ = stack.map_begin();
+                            },
+                            Command::MapKey => {
+                                let _ = stack.map_key();
+                            },
+                            Command::MapValue => {
+                                let _ = stack.map_value();
+                            },
+                            Command::MapEnd => {
+                                let _ = stack.map_end();
+                            },
+                            Command::SeqBegin => {
+                                let _ = stack.seq_begin();
+                            },
+                            Command::SeqElem => {
+                                let _ = stack.seq_elem();
+                            },
+                            Command::SeqEnd => {
+                                let _ = stack.seq_end();
+                            },
+                            Command::End => {
+                                let _ = stack.end();
+                            },
+                        }
+                    }
+
+                    stack.can_end()
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "arbitrary-depth")]
+    mod arbitrary_depth {
+        use super::*;
+
+        #[test]
+        fn stack_spills_to_heap_on_overflow() {
+            let mut stack = Stack::new();
+
+            for _ in 0..64 {
+                stack.map_begin().unwrap();
+                stack.map_key().unwrap();
+            }
+        }
+    }
+
+    #[cfg(not(feature = "arbitrary-depth"))]
+    mod fixed_depth {
+        use super::*;
+
+        #[test]
+        fn error_overflow_stack() {
+            let mut stack = Stack::new();
+
+            for _ in 0..15 {
+                stack.map_begin().unwrap();
+                stack.map_key().unwrap();
+            }
+
+            // The 16th attempt to begin a map should fail
+            assert!(stack.map_begin().is_err());
+        }
+    }
+
+    #[test]
+    fn primitive() {
+        let mut stack = Stack::new();
+
+        stack.primitive().unwrap();
+        stack.end().unwrap();
+    }
+
+    #[test]
+    fn end_empty_stack() {
+        let mut stack = Stack::new();
+
+        stack.end().unwrap();
+    }
+
+    #[test]
+    fn error_double_primitive() {
+        let mut stack = Stack::new();
+
+        stack.primitive().unwrap();
+
+        assert!(stack.primitive().is_err());
+    }
+
+    #[test]
+    fn simple_map() {
+        let mut stack = Stack::new();
+
+        stack.map_begin().unwrap();
+
+        stack.map_key().unwrap();
+        stack.primitive().unwrap();
+
+        stack.map_value().unwrap();
+        stack.primitive().unwrap();
+
+        stack.map_end().unwrap();
+
+        stack.end().unwrap();
+    }
+
+    #[test]
+    fn empty_map() {
+        let mut stack = Stack::new();
+
+        stack.map_begin().unwrap();
+        stack.map_end().unwrap();
+
+        stack.end().unwrap();
+    }
+
+    #[test]
+    fn error_end_map_as_seq() {
+        let mut stack = Stack::new();
+
+        stack.map_begin().unwrap();
+        
+        assert!(stack.seq_end().is_err());
+    }
+
+    #[test]
+    fn error_end_seq_as_map() {
+        let mut stack = Stack::new();
+
+        stack.seq_begin().unwrap();
+
+        assert!(stack.map_end().is_err());
+    }
+
+    #[test]
+    fn error_end_map_at_root_depth() {
+        let mut stack = Stack::new();
+
+        assert!(stack.map_end().is_err());
+    }
+
+    #[test]
+    fn error_end_seq_at_root_depth() {
+        let mut stack = Stack::new();
+
+        assert!(stack.seq_end().is_err());
+    }
+
+    #[test]
+    fn error_primitive_without_map_key() {
+        let mut stack = Stack::new();
+
+        stack.map_begin().unwrap();
+
+        assert!(stack.primitive().is_err());
+    }
+
+    #[test]
+    fn error_primitive_without_map_value() {
+        let mut stack = Stack::new();
+
+        stack.map_begin().unwrap();
+
+        stack.map_key().unwrap();
+        stack.primitive().unwrap();
+
+        assert!(stack.primitive().is_err());
+    }
+
+    #[test]
+    fn error_map_value_without_map_key() {
+        let mut stack = Stack::new();
+
+        stack.map_begin().unwrap();
+
+        assert!(stack.map_value().is_err());
+    }
+
+
+    #[test]
+    fn error_end_incomplete_map() {
+        let mut stack = Stack::new();
+
+        stack.map_begin().unwrap();
+        stack.map_key().unwrap();
+
+        assert!(stack.map_end().is_err());
+    }
+
+    #[test]
+    fn error_map_key_outside_map() {
+        let mut stack = Stack::new();
+
+        assert!(stack.map_key().is_err());
+    }
+
+    #[test]
+    fn error_map_value_outside_map() {
+        let mut stack = Stack::new();
+
+        assert!(stack.map_value().is_err());
+    }
+
+    #[test]
+    fn simple_seq() {
+        let mut stack = Stack::new();
+
+        stack.seq_begin().unwrap();
+
+        stack.seq_elem().unwrap();
+        stack.primitive().unwrap();
+
+        stack.seq_end().unwrap();
+
+        stack.end().unwrap();
+    }
+
+    #[test]
+    fn empty_seq() {
+        let mut stack = Stack::new();
+
+        stack.seq_begin().unwrap();
+        stack.seq_end().unwrap();
+
+        stack.end().unwrap();
+    }
+
+    #[test]
+    fn error_primitive_without_seq_elem() {
+        let mut stack = Stack::new();
+
+        stack.seq_begin().unwrap();
+
+        assert!(stack.primitive().is_err());
+    }
+
+    #[test]
+    fn error_end_incomplete_seq() {
+        let mut stack = Stack::new();
+
+        stack.seq_begin().unwrap();
+
+        stack.seq_elem().unwrap();
+
+        assert!(stack.seq_end().is_err());
+    }
+
+    #[test]
+    fn error_seq_elem_outside_seq() {
+        let mut stack = Stack::new();
+
+        assert!(stack.seq_elem().is_err());
     }
 }
