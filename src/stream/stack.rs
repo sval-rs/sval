@@ -464,16 +464,30 @@ mod inner {
 
         #[inline]
         pub(super) fn current_mut(&mut self) -> &mut Slot {
-            // The depth is guaranteed to be in-bounds
-            // and pointing to initialized memory
-            unsafe { self.slots.get_unchecked_mut(self.depth) }
+            #[cfg(debug_assertions)]
+            {
+                self.slots.get_mut(self.depth).expect("depth out of bounds")
+            }
+            #[cfg(not(debug_assertions))]
+            {
+                // The depth is guaranteed to be in-bounds
+                // and pointing to initialized memory
+                unsafe { self.slots.get_unchecked_mut(self.depth) }
+            }
         }
 
         #[inline]
         pub(super) fn current(&self) -> Slot {
-            // The depth is guaranteed to be in-bounds
-            // and pointing to initialized memory
-            unsafe { *self.slots.get_unchecked(self.depth) }
+            #[cfg(debug_assertions)]
+            {
+                *self.slots.get(self.depth).expect("depth out of bounds")
+            }
+            #[cfg(not(debug_assertions))]
+            {
+                // The depth is guaranteed to be in-bounds
+                // and pointing to initialized memory
+                unsafe { *self.slots.get_unchecked(self.depth) }
+            }
         }
     }
 }
