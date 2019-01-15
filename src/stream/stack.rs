@@ -587,6 +587,7 @@ mod tests {
 
         #[derive(Clone, Copy, Debug)]
         enum Command {
+            Begin,
             Primitive,
             MapBegin,
             MapKey,
@@ -600,7 +601,7 @@ mod tests {
 
         impl Arbitrary for Command {
             fn arbitrary<G: Gen>(g: &mut G) -> Command {
-                match g.next_u32() % 9 {
+                match g.next_u32() % 10 {
                     0 => Command::Primitive,
                     1 => Command::MapBegin,
                     2 => Command::MapKey,
@@ -610,6 +611,7 @@ mod tests {
                     6 => Command::SeqElem,
                     7 => Command::SeqEnd,
                     8 => Command::End,
+                    9 => Command::Begin,
                     _ => unreachable!(),
                 }
             }
@@ -621,6 +623,9 @@ mod tests {
 
                 for cmd in cmd {
                     match cmd {
+                        Command::Begin => {
+                            let _ = stack.begin();
+                        },
                         Command::Primitive => {
                             let _ = stack.primitive();
                         },
