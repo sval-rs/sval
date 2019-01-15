@@ -32,6 +32,19 @@ Owned values are safe to share and are cheap to clone.
 pub struct OwnedValue(ValueInner);
 
 impl OwnedValue {
+    /**
+    Get an owned value from an arbitrary [`Value`].
+
+    The given value doesn't need to be `Send + Sync + 'static`.
+
+    The structure of the given value will be streamed into
+    a shared datastructure. That means this method is more
+    expensive for more complex values.
+
+    Prefer the `from_shared` method where possible.
+
+    [`Value`]: struct.Value.html
+    */
     pub fn from_value(v: impl Value) -> Self {
         let mut buf = Buf::new();
 
@@ -41,6 +54,13 @@ impl OwnedValue {
         }
     }
 
+    /**
+    Get an owned value from an already shared [`Value`].
+
+    The given value must be `Send + Sync + 'static`.
+
+    [`Value`]: struct.Value.html
+    */
     pub fn from_shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
         OwnedValue(ValueInner::Shared(v.into()))
     }

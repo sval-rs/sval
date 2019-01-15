@@ -1,6 +1,11 @@
 /*!
 A small, no-std, object-safe, serialization-only framework.
 
+The `sval` API is built around two key traits:
+
+- [`Value`] is a trait for data with a streamable structure. It's like `serde::Serialize`.
+- [`Stream`] is a trait for receiving the structure of a value. It's like `serde::Serializer`.
+
 # Getting started
 
 Add `sval` to your `Cargo.toml`:

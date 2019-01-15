@@ -63,15 +63,25 @@ Implementations of the [`Stream`](../trait.Stream.html) trait are encouraged to 
 stack for validating their input.
 
 The stack is stateful, and keeps track of open maps and sequences.
-It serves as validation for operations performed on the stream and
+
+# Validation
+
+A stack uses its state to validate the structure given to a stream and
 as a way for a flat, stateless stream to know what it's currently
 looking at. The stack enforces:
 
-- Map keys and values aren't received outside of a map.
-- Map keys are received before map values, and every key has a corresponding value.
-- Sequence elements aren't received outside of a sequence.
+- Only a single root primitive, map or sequence is received.
+- Map keys and values are only received within a map.
+- Map keys are always received before map values, and every key has a corresponding value.
+- Sequence elements are only received within a sequence.
 - Every map and sequence is ended, and in the right order.
 - Every map key, map value, and sequence element is followed by valid data.
+
+# Depth
+
+By default, stacks have a fixed depth (currently ~16, but this may change) so they can
+work in no-std environments. Each call to `map_begin` or `seq_begin` will increase the
+current depth. If this depth is exceeded then calls to `map_begin` or `seq_begin` will fail.
 */
 #[derive(Clone)]
 pub struct Stack {
@@ -184,7 +194,7 @@ impl Stack {
     - `f64`
     - `bool`
     - `char`, `&str`
-    - `Option<T>`
+    - `Option<T>`.
     */
     #[inline]
     pub fn primitive(&mut self) -> Result<Pos, Error> {
@@ -205,6 +215,8 @@ impl Stack {
 
     /**
     Begin a new map.
+
+    The map must be completed by calling `map_end`.
     */
     #[inline]
     pub fn map_begin(&mut self) -> Result<Pos, Error> {
@@ -306,6 +318,8 @@ impl Stack {
 
     /**
     Begin a new sequence.
+
+    the sequence must be completed by calling `seq_end`.
     */
     #[inline]
     pub fn seq_begin(&mut self) -> Result<Pos, Error> {

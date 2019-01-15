@@ -13,6 +13,10 @@ use crate::{
 
 /**
 A value stream.
+
+This type is a wrapper for a [`stream::Stream`] with a more ergonomic interface.
+
+[`stream::Stream`]: ../stream/trait.Stream.html
 */
 pub struct Stream<'a> {
     stack: DebugStack<'a>,
@@ -47,7 +51,7 @@ impl<'a> Stream<'a> {
     }
 
     /**
-    Stream format arguments.
+    Stream a format.
     */
     #[inline]
     pub fn fmt(&mut self, f: Arguments) -> Result<(), Error> {
