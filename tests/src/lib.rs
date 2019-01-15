@@ -19,7 +19,8 @@ use serde_test::{
     Token as SerdeToken,
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, Value)]
+#[sval(derive_from = "serde")]
 enum Tagged {
     Unit,
     NewType(i32),
@@ -31,6 +32,7 @@ enum Tagged {
 struct Struct<'a> {
     a: i32,
     b: i32,
+    #[sval(rename = "renamed")]
     c: Nested<'a>,
 }
 
@@ -84,13 +86,31 @@ fn sval_derive() {
             Token::Signed(1),
             Token::Str(String::from("b")),
             Token::Signed(2),
-            Token::Str(String::from("c")),
+            Token::Str(String::from("renamed")),
             Token::MapBegin(Some(2)),
             Token::Str(String::from("a")),
             Token::Signed(3),
             Token::Str(String::from("b")),
             Token::Str(String::from("Hello!")),
             Token::MapEnd,
+            Token::MapEnd,
+        ],
+        v
+    );
+}
+
+#[test]
+fn sval_derive_from_serde() {
+    use self::SvalToken as Token;
+
+    let v = sval::test::tokens(Tagged::NewType(1));
+    assert_eq!(
+        vec![
+            Token::MapBegin(Some(1)),
+            Token::Str(String::from("NewType")),
+            Token::SeqBegin(Some(1)),
+            Token::Signed(1),
+            Token::SeqEnd,
             Token::MapEnd,
         ],
         v
