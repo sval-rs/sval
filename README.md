@@ -5,7 +5,7 @@
 [![Documentation Latest](https://docs.rs/sval/badge.svg)](https://docs.rs/sval)
 [![Documentation Master](https://img.shields.io/badge/docs-master-lightgrey.svg)](https://sval-rs.github.io/sval/sval/index.html)
 
-A prototype, lightweight, no-std, object-safe, serialization-only API for structured values with `serde` support.
+A lightweight, no-std, object-safe, serialization-only API for structured values with `serde` support.
 
 Producers of structured values use the `value` module. Consumers of structured values use the `stream` module. `sval` offers a json-like data model, which is more limiting than `serde`'s, but capable enough to represent Rust datastructures in one form or another.
 
