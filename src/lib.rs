@@ -318,9 +318,27 @@ Use the `serde` Cargo feature to enable integration with `serde`:
 [dependencies.sval]
 features = "serde"
 ```
+
+When `serde` is available, the `Value` trait can also be derived
+based on an existing `Serialize` implementation:
+
+```ignore
+use sval::Value;
+
+#[derive(Serialize, Value)]
+#[sval(derive_from = "serde")]
+pub enum Data {
+    Variant(i32, String),
+}
+# }
+```
 */
 
 #![no_std]
+
+#[doc(hidden)]
+#[cfg(feature = "derive")]
+pub mod derive;
 
 #[doc(inline)]
 #[cfg(feature = "derive")]

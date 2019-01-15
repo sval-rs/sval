@@ -5,7 +5,7 @@ use syn::{
     WherePredicate,
 };
 
-pub fn where_clause_with_bound(generics: &Generics, bound: TokenStream) -> WhereClause {
+pub(crate) fn where_clause_with_bound(generics: &Generics, bound: TokenStream) -> WhereClause {
     let new_predicates = generics.type_params().map::<WherePredicate, _>(|param| {
         let param = &param.ident;
         parse_quote!(#param : #bound)

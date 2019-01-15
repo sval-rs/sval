@@ -1,24 +1,42 @@
 use syn::{
+    Attribute,
+    DeriveInput,
     Field,
     Lit,
     Meta,
+    MetaList,
+    MetaNameValue,
     NestedMeta,
 };
 
-pub fn name_of_field(field: &Field) -> String {
+pub(crate) enum DeriveProvider {
+    Sval,
+    Serde,
+}
+
+pub(crate) fn derive_provider(input: &DeriveInput) -> DeriveProvider {
+    for list in input.attrs.iter().filter_map(sval_attr) {
+        for meta in list.nested {
+            match meta {
+                NestedMeta::Meta(Meta::NameValue(MetaNameValue {
+                    ref ident,
+                    lit: Lit::Str(ref s),
+                    ..
+                })) if ident == "derive_from" && s.value() == "serde" => {
+                    return DeriveProvider::Serde;
+                }
+                _ => panic!("unsupported attribute"),
+            }
+        }
+    }
+
+    DeriveProvider::Sval
+}
+
+pub(crate) fn name_of_field(field: &Field) -> String {
     let mut rename = None;
 
-    for attr in &field.attrs {
-        let segments = &attr.path.segments;
-        if !(segments.len() == 1 && segments[0].ident == "sval") {
-            continue;
-        }
-
-        let list = match attr.interpret_meta() {
-            Some(Meta::List(list)) => list,
-            _ => panic!("unsupported attribute"),
-        };
-
+    for list in field.attrs.iter().filter_map(sval_attr) {
         for meta in list.nested {
             if let NestedMeta::Meta(Meta::NameValue(value)) = meta {
                 if value.ident == "rename" && rename.is_none() {
@@ -33,4 +51,16 @@ pub fn name_of_field(field: &Field) -> String {
     }
 
     rename.unwrap_or_else(|| field.ident.as_ref().unwrap().to_string())
+}
+
+fn sval_attr(attr: &Attribute) -> Option<MetaList> {
+    let segments = &attr.path.segments;
+    if !(segments.len() == 1 && segments[0].ident == "sval") {
+        return None;
+    }
+
+    match attr.interpret_meta() {
+        Some(Meta::List(list)) => Some(list),
+        _ => panic!("unsupported attribute"),
+    }
 }
