@@ -584,6 +584,13 @@ mod tests {
             Arbitrary,
             Gen,
         };
+        
+        // FIXME: This test isn't very clever about how a
+        // sequence of commands is generated. It's more likely
+        // to come up with a set that fails early than one
+        // that manages to push and pop the stack depth a lot.
+        // We could instead weight commands so we're more likely
+        // to generate something valid with a degree of randomness.
 
         #[derive(Clone, Copy, Debug)]
         enum Command {
