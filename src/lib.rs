@@ -12,7 +12,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval]
-version = "0.1.0"
+version = "0.1.1"
 ```
 
 # Streaming values
@@ -334,7 +334,7 @@ pub enum Data {
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/sval/0.1.1")]
 
 #![no_std]
 
