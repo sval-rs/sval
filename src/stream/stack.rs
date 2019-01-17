@@ -82,6 +82,14 @@ looking at. The stack enforces:
 By default, stacks have a fixed depth (currently ~16, but this may change) so they can
 work in no-std environments. Each call to `map_begin` or `seq_begin` will increase the
 current depth. If this depth is exceeded then calls to `map_begin` or `seq_begin` will fail.
+
+The fixed-depth limit can be removed by adding the `arbitrary-depth` feature to your `Cargo.toml`
+(this also requires the standard library):
+
+```toml,no_run
+[dependencies.sval]
+features = ["arbitrary-depth"]
+```
 */
 #[derive(Clone)]
 pub struct Stack {

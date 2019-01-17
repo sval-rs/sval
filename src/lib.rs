@@ -316,7 +316,7 @@ Use the `serde` Cargo feature to enable integration with `serde`:
 
 ```toml,no_run
 [dependencies.sval]
-features = "serde"
+features = ["serde"]
 ```
 
 When `serde` is available, the `Value` trait can also be derived
@@ -333,6 +333,8 @@ pub enum Data {
 # }
 ```
 */
+
+#![doc(html_root_url = "https://docs.rs/sval/0.1.0")]
 
 #![no_std]
 
