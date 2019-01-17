@@ -25,7 +25,7 @@ keywords = ["serialization", "no_std"]
 categories = ["encoding", "no-std"]
 
 [package.metadata.docs.rs]
-features = ["derive", "serde"]
+features = ["derive", "serde", "test"]
 
 [badges]
 travis-ci = { repository = "sval-rs/sval" }

@@ -1,6 +1,13 @@
 /*!
 Integration between `sval` and `serde`.
 
+Add the `serde` feature to your `Cargo.toml` to enable this module:
+
+```toml,no_run
+[dependencies.sval]
+features = ["serde"]
+```
+
 # From `sval` to `serde`
 
 A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into
