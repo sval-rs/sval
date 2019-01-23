@@ -46,12 +46,17 @@ impl OwnedValue {
     [`Value`]: struct.Value.html
     */
     pub fn from_value(v: impl Value) -> Self {
-        let mut buf = Buf::new();
-
-        match crate::stream(v, &mut buf) {
-            Ok(()) => OwnedValue(ValueInner::Stream(buf.tokens.into())),
-            Err(error) => OwnedValue(ValueInner::Error(Arc::new(error))),
+        // Try get a primitive first
+        // If the value is a simple primitive that can
+        // be represented in a single token then we can avoid
+        // allocating for it.
+        if let Some(primitive) = Primitive::collect(&v) {
+            return OwnedValue(ValueInner::Primitive(primitive));
         }
+
+        Buf::collect(v)
+            .map(|tokens| OwnedValue(ValueInner::Stream(tokens.into())))
+            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(Arc::new(err))))
     }
 
     /**
@@ -69,42 +74,19 @@ impl OwnedValue {
 enum ValueInner {
     Error(Arc<value::Error>),
     Shared(Arc<dyn Value + Send + Sync>),
+    Primitive(Token),
     Stream(Arc<[Token]>),
 }
 
 impl Value for OwnedValue {
     fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
-        use self::Kind::*;
-
         match self.0 {
             ValueInner::Error(ref e) => Err(Error::custom(e)),
             ValueInner::Shared(ref v) => v.stream(stream),
+            ValueInner::Primitive(ref v) => v.stream(stream),
             ValueInner::Stream(ref v) => {
                 for token in v.iter() {
-                    match token.kind {
-                        Signed(v) => stream.i64(v)?,
-                        Unsigned(v) => stream.u64(v)?,
-                        Float(v) => stream.f64(v)?,
-                        BigSigned(v) => stream.i128(v)?,
-                        BigUnsigned(v) => stream.u128(v)?,
-                        Bool(v) => stream.bool(v)?,
-                        Str(ref v) => stream.str(&*v)?,
-                        Char(v) => stream.char(v)?,
-                        None => stream.none()?,
-                        MapBegin(len) => stream.map_begin(len)?,
-                        MapKey => {
-                            stream.map_key_begin()?;
-                        }
-                        MapValue => {
-                            stream.map_value_begin()?;
-                        }
-                        MapEnd => stream.map_end()?,
-                        SeqBegin(len) => stream.seq_begin(len)?,
-                        SeqElem => {
-                            stream.seq_elem_begin()?;
-                        }
-                        SeqEnd => stream.seq_end()?,
-                    }
+                    token.stream(stream)?;
                 }
 
                 Ok(())
@@ -113,6 +95,7 @@ impl Value for OwnedValue {
     }
 }
 
+#[derive(Clone)]
 pub(crate) enum Kind {
     MapBegin(Option<usize>),
     MapKey,
@@ -137,10 +120,44 @@ pub(crate) struct Buf {
     tokens: Vec<Token>,
 }
 
+#[derive(Clone)]
 pub(crate) struct Token {
     #[allow(dead_code)]
     pub(crate) depth: stack::Depth,
     pub(crate) kind: Kind,
+}
+
+impl Token {
+    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+        use self::Kind::*;
+
+        match self.kind {
+            Signed(v) => stream.i64(v)?,
+            Unsigned(v) => stream.u64(v)?,
+            Float(v) => stream.f64(v)?,
+            BigSigned(v) => stream.i128(v)?,
+            BigUnsigned(v) => stream.u128(v)?,
+            Bool(v) => stream.bool(v)?,
+            Str(ref v) => stream.str(&*v)?,
+            Char(v) => stream.char(v)?,
+            None => stream.none()?,
+            MapBegin(len) => stream.map_begin(len)?,
+            MapKey => {
+                stream.map_key_begin()?;
+            }
+            MapValue => {
+                stream.map_value_begin()?;
+            }
+            MapEnd => stream.map_end()?,
+            SeqBegin(len) => stream.seq_begin(len)?,
+            SeqElem => {
+                stream.seq_elem_begin()?;
+            }
+            SeqEnd => stream.seq_end()?,
+        }
+
+        Ok(())
+    }
 }
 
 impl Buf {
@@ -151,18 +168,13 @@ impl Buf {
         }
     }
 
+    fn collect(v: impl Value) -> Result<Vec<Token>, stream::Error> {
+        let mut buf = Buf::new();
+        crate::stream(v, &mut buf).map(|_| buf.tokens)
+    }
+
     fn push(&mut self, kind: Kind, depth: stack::Depth) {
-        match kind {
-            Kind::MapBegin(_) | Kind::SeqBegin(_) => {
-                self.tokens.push(Token { depth: depth, kind });
-            }
-            Kind::MapEnd | Kind::SeqEnd => {
-                self.tokens.push(Token { depth: depth, kind });
-            }
-            kind => {
-                self.tokens.push(Token { depth: depth, kind });
-            }
-        }
+        self.tokens.push(Token { depth: depth, kind });
     }
 }
 
@@ -304,6 +316,140 @@ impl Stream for Buf {
     }
 }
 
+struct Primitive {
+    stack: Stack,
+    token: Option<Token>,
+}
+
+impl Primitive {
+    fn new() -> Primitive {
+        Primitive {
+            stack: Stack::new(),
+            token: None,
+        }
+    }
+
+    fn collect(v: impl Value) -> Option<Token> {
+        let mut buf = Primitive::new();
+
+        crate::stream(v, &mut buf).ok().and_then(|_| buf.token)
+    }
+
+    fn set(&mut self, kind: Kind, depth: stack::Depth) {
+        self.token = Some(Token { depth: depth, kind });
+    }
+}
+
+impl Stream for Primitive {
+    fn fmt(&mut self, f: stream::Arguments) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::Str(f.to_string()), depth);
+
+        Ok(())
+    }
+
+    fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::Signed(v), depth);
+
+        Ok(())
+    }
+
+    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::Unsigned(v), depth);
+
+        Ok(())
+    }
+
+    fn i128(&mut self, v: i128) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::BigSigned(v), depth);
+
+        Ok(())
+    }
+
+    fn u128(&mut self, v: u128) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::BigUnsigned(v), depth);
+
+        Ok(())
+    }
+
+    fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::Float(v), depth);
+
+        Ok(())
+    }
+
+    fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::Bool(v), depth);
+
+        Ok(())
+    }
+
+    fn char(&mut self, v: char) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::Char(v), depth);
+
+        Ok(())
+    }
+
+    fn str(&mut self, v: &str) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::Str(v.to_string()), depth);
+
+        Ok(())
+    }
+
+    fn none(&mut self) -> Result<(), stream::Error> {
+        let depth = self.stack.primitive()?.depth();
+
+        self.set(Kind::None, depth);
+
+        Ok(())
+    }
+
+    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("unsupported primitive"))
+    }
+
+    fn map_key(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("unsupported primitive"))
+    }
+
+    fn map_value(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("unsupported primitive"))
+    }
+
+    fn map_end(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("unsupported primitive"))
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("unsupported primitive"))
+    }
+
+    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("unsupported primitive"))
+    }
+
+    fn seq_end(&mut self) -> Result<(), stream::Error> {
+        Err(stream::Error::msg("unsupported primitive"))
+    }
+}
+
 #[cfg(feature = "serde")]
 impl Buf {
     pub(crate) fn clear(&mut self) {
@@ -322,9 +468,10 @@ impl Buf {
 
 #[cfg(any(test, feature = "test"))]
 impl OwnedValue {
-    pub(crate) fn tokens(&self) -> Result<&[Token], Error> {
+    pub(crate) fn tokens(&self) -> Result<impl crate::std::ops::Deref<Target = [Token]>, Error> {
         match &self.0 {
-            ValueInner::Stream(tokens) => Ok(&*tokens),
+            ValueInner::Primitive(token) => Ok(vec![(*token).clone()].into()),
+            ValueInner::Stream(tokens) => Ok(tokens.clone()),
             ValueInner::Error(err) => Err(Error::custom(err)),
             _ => Err(Error::msg("expected a set of tokens")),
         }
