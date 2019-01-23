@@ -6,7 +6,6 @@ that don't have access to an allocator.
 */
 
 #![doc(html_root_url = "https://docs.rs/sval_json/0.1.1")]
-
 #![no_std]
 
 #[cfg(feature = "std")]
