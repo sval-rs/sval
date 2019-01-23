@@ -51,7 +51,7 @@ mod std_support {
     Collect a value into a sequence of tokens.
     */
     pub fn tokens(v: impl Value) -> Vec<Token> {
-        OwnedValue::from_value(v)
+        OwnedValue::collect(v)
             .tokens()
             .unwrap()
             .iter()

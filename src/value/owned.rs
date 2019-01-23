@@ -45,7 +45,7 @@ impl OwnedValue {
 
     [`Value`]: struct.Value.html
     */
-    pub fn from_value(v: impl Value) -> Self {
+    pub fn collect(v: impl Value) -> Self {
         // Try get a primitive first
         // If the value is a simple primitive that can
         // be represented in a single token then we can avoid
@@ -68,6 +68,11 @@ impl OwnedValue {
     */
     pub fn from_shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
         OwnedValue(ValueInner::Shared(v.into()))
+    }
+
+    #[deprecated(since = "0.1.2", note = "use `collect` instead")]
+    pub fn from_value(v: impl Value) -> Self {
+        Self::collect(v)
     }
 }
 

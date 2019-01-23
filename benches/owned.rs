@@ -14,7 +14,7 @@ use test::{
 #[bench]
 fn collect_primitive(b: &mut Bencher) {
     b.iter(|| {
-        let value = value::OwnedValue::from_value(1);
+        let value = value::OwnedValue::collect(1);
 
         black_box(value);
     })
@@ -23,7 +23,7 @@ fn collect_primitive(b: &mut Bencher) {
 #[bench]
 fn collect_primitive_string(b: &mut Bencher) {
     b.iter(|| {
-        let value = value::OwnedValue::from_value("A string");
+        let value = value::OwnedValue::collect("A string");
 
         black_box(value);
     })
@@ -52,7 +52,7 @@ fn collect_complex(b: &mut Bencher) {
     }
 
     b.iter(|| {
-        let value = value::OwnedValue::from_value(Map);
+        let value = value::OwnedValue::collect(Map);
 
         black_box(value);
     });
