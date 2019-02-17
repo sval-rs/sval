@@ -22,7 +22,9 @@ This library requires Rust `1.31.0`.
 - [`serde`](https://docs.rs/serde)
 - [`miniserde`](https://docs.rs/miniserde)
 
-# Crate features
+# Cargo features
+
+`sval` has the following optional features that can be enabled in your `Cargo.toml`:
 
 - `std`: assume `std` is available and add support for `std` types.
 - `derive`: add support for `#[derive(Value)]`.
