@@ -107,3 +107,15 @@ Use the `to_value` function to turn any `serde::Serialize` into a `sval::Value`:
 ```rust
 let my_value = sval::serde::to_value(my_data);
 ```
+
+When the `serde` feature is available, structures that already derive `Serialize` can also always derive `Value`. The `Value` implementation will behave the same as `Serialize`:
+
+```rust
+[derive(Serialize, Value)]
+struct MyData {
+    id: u64,
+    name: String,
+    #[serde(flatten)]
+    props: serde_json::Map<String, serde_json::Value>,
+}
+```
