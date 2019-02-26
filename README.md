@@ -113,7 +113,8 @@ let my_value = sval::serde::to_value(my_data);
 When the `serde` feature is available, structures that already derive `Serialize` can also always derive `Value`. The `Value` implementation will behave the same as `Serialize`:
 
 ```rust
-[derive(Serialize, Value)]
+#[derive(Serialize, Value)]
+#[sval(derive_from = "serde")]
 struct MyData {
     id: u64,
     name: String,
