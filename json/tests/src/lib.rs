@@ -4,8 +4,7 @@ extern crate serde;
 #[macro_use]
 extern crate sval;
 
-#[macro_use]
-extern crate miniserde;
+use miniserde::Serialize as MiniSerialize;
 
 #[test]
 fn sval_json_is_valid() {
