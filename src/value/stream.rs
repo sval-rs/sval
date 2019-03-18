@@ -1,7 +1,7 @@
 use crate::{
     collect::{
-        self,
         Collect,
+        OwnedCollect,
     },
     stream::{
         stack::DebugStack,
@@ -20,15 +20,12 @@ This type is a wrapper for a [`stream::Stream`] with a more ergonomic interface.
 
 [`stream::Stream`]: ../stream/trait.Stream.html
 */
-pub struct Stream<'a> {
-    stack: &'a mut DebugStack,
-    stream: &'a mut dyn Collect,
-}
+pub struct Stream<'a>(OwnedCollect<&'a mut dyn Collect, &'a mut DebugStack>);
 
 impl<'a> Stream<'a> {
     #[inline]
-    pub(crate) fn new(stream: &'a mut dyn Collect, stack: &'a mut DebugStack) -> Self {
-        Stream { stack, stream }
+    pub(crate) fn new(stream: &'a mut impl Collect, stack: &'a mut DebugStack) -> Self {
+        Stream(OwnedCollect::new(stream, stack))
     }
 
     /**
@@ -44,11 +41,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn fmt(&mut self, f: Arguments) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.fmt(f)?;
-
-        Ok(())
+        self.0.fmt(f)
     }
 
     /**
@@ -56,11 +49,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn i64(&mut self, v: i64) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.i64(v)?;
-
-        Ok(())
+        self.0.i64(v)
     }
 
     /**
@@ -68,11 +57,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn u64(&mut self, v: u64) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.u64(v)?;
-
-        Ok(())
+        self.0.u64(v)
     }
 
     /**
@@ -80,11 +65,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn i128(&mut self, v: i128) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.i128(v)?;
-
-        Ok(())
+        self.0.i128(v)
     }
 
     /**
@@ -92,11 +73,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn u128(&mut self, v: u128) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.u128(v)?;
-
-        Ok(())
+        self.0.u128(v)
     }
 
     /**
@@ -104,11 +81,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn f64(&mut self, v: f64) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.f64(v)?;
-
-        Ok(())
+        self.0.f64(v)
     }
 
     /**
@@ -116,11 +89,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn bool(&mut self, v: bool) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.bool(v)?;
-
-        Ok(())
+        self.0.bool(v)
     }
 
     /**
@@ -128,11 +97,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn char(&mut self, v: char) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.char(v)?;
-
-        Ok(())
+        self.0.char(v)
     }
 
     /**
@@ -140,11 +105,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn str(&mut self, v: &str) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.str(v)?;
-
-        Ok(())
+        self.0.str(v)
     }
 
     /**
@@ -152,11 +113,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn none(&mut self) -> Result<(), Error> {
-        self.stack.primitive()?;
-
-        self.stream.none()?;
-
-        Ok(())
+        self.0.none()
     }
 
     /**
@@ -164,11 +121,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
-        self.stack.map_begin()?;
-
-        self.stream.map_begin(len)?;
-
-        Ok(())
+        self.0.map_begin(len)
     }
 
     /**
@@ -176,12 +129,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_key(&mut self, k: impl Value) -> Result<(), Error> {
-        self.stack.map_key()?;
-
-        self.stream
-            .map_key_collect(collect::Value::new(self.stack, &k))?;
-
-        Ok(())
+        self.0.map_key(k)
     }
 
     /**
@@ -189,12 +137,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_value(&mut self, v: impl Value) -> Result<(), Error> {
-        self.stack.map_value()?;
-
-        self.stream
-            .map_value_collect(collect::Value::new(self.stack, &v))?;
-
-        Ok(())
+        self.0.map_value(v)
     }
 
     /**
@@ -202,11 +145,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_end(&mut self) -> Result<(), Error> {
-        self.stack.map_end()?;
-
-        self.stream.map_end()?;
-
-        Ok(())
+        self.0.map_end()
     }
 
     /**
@@ -214,11 +153,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
-        self.stack.seq_begin()?;
-
-        self.stream.seq_begin(len)?;
-
-        Ok(())
+        self.0.seq_begin(len)
     }
 
     /**
@@ -226,12 +161,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_elem(&mut self, v: impl Value) -> Result<(), Error> {
-        self.stack.seq_elem()?;
-
-        self.stream
-            .seq_elem_collect(collect::Value::new(self.stack, &v))?;
-
-        Ok(())
+        self.0.seq_elem(v)
     }
 
     /**
@@ -239,11 +169,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_end(&mut self) -> Result<(), Error> {
-        self.stack.seq_end()?;
-
-        self.stream.seq_end()?;
-
-        Ok(())
+        self.0.seq_end()
     }
 }
 
@@ -253,9 +179,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_key_begin(&mut self) -> Result<&mut Self, Error> {
-        self.stack.map_key()?;
-
-        self.stream.map_key()?;
+        self.0.map_key_begin()?;
 
         Ok(self)
     }
@@ -265,9 +189,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn map_value_begin(&mut self) -> Result<&mut Self, Error> {
-        self.stack.map_value()?;
-
-        self.stream.map_value()?;
+        self.0.map_value_begin()?;
 
         Ok(self)
     }
@@ -277,9 +199,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn seq_elem_begin(&mut self) -> Result<&mut Self, Error> {
-        self.stack.seq_elem()?;
-
-        self.stream.seq_elem()?;
+        self.0.seq_elem_begin()?;
 
         Ok(self)
     }

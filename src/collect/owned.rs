@@ -34,10 +34,9 @@ where
 
     #[inline]
     pub fn any(&mut self, v: impl value::Value) -> Result<(), Error> {
-        v.stream(&mut value::Stream::new(
-            &mut self.stream, // TODO: This is the problem!
-            self.stack.borrow_mut(),
-        ))
+        let mut stream = value::Stream::new(&mut self.stream, self.stack.borrow_mut());
+
+        stream.any(v)
     }
 
     #[inline]
@@ -144,7 +143,7 @@ where
         self.stack.borrow_mut().map_key()?;
 
         self.stream
-            .map_key_collect(Value::new(self.stack.borrow_mut(), &k))?;
+            .map_key_collect(Value::new(&k, self.stack.borrow_mut()))?;
 
         Ok(())
     }
@@ -154,7 +153,7 @@ where
         self.stack.borrow_mut().map_value()?;
 
         self.stream
-            .map_value_collect(Value::new(self.stack.borrow_mut(), &v))?;
+            .map_value_collect(Value::new(&v, self.stack.borrow_mut()))?;
 
         Ok(())
     }
@@ -182,7 +181,7 @@ where
         self.stack.borrow_mut().seq_elem()?;
 
         self.stream
-            .seq_elem_collect(Value::new(self.stack.borrow_mut(), &v))?;
+            .seq_elem_collect(Value::new(&v, self.stack.borrow_mut()))?;
 
         Ok(())
     }

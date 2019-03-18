@@ -1,13 +1,11 @@
 use crate::{
     collect::{
-        self,
         Error,
-        OwnedCollect,
+        Collect,
     },
     std::marker::PhantomData,
     stream::{
         stack,
-        Stream,
     },
     value,
 };
@@ -22,7 +20,7 @@ pub(crate) struct Value<'a> {
 
 impl<'a> Value<'a> {
     #[inline]
-    pub(crate) fn new(stack: &'a mut stack::DebugStack, value: &'a impl value::Value) -> Self {
+    pub(crate) fn new(value: &'a impl value::Value, stack: &'a mut stack::DebugStack) -> Self {
         Value {
             stack: DebugStack::new(stack),
             value,
@@ -36,9 +34,10 @@ impl<'a> Value<'a> {
     Subsequent calls to `stream` may fail.
     */
     #[inline]
-    pub(crate) fn stream(&self, mut stream: impl Stream) -> Result<(), Error> {
-        let stack = self.stack.take()?.stack;
-        let mut stream = OwnedCollect::new(collect::Default(&mut stream), stack);
+    pub(crate) fn stream(&self, mut stream: impl Collect) -> Result<(), Error> {
+        let mut stack = self.stack.take()?;
+
+        let mut stream = value::Stream::new(&mut stream, stack.get_mut());
 
         stream.any(&self.value)?;
 
@@ -102,6 +101,19 @@ struct InnerDebugStack<'a> {
     #[cfg(not(debug_assertions))]
     stack: stack::DebugStack,
     _m: PhantomData<&'a mut stack::DebugStack>,
+}
+
+impl<'a> InnerDebugStack<'a> {
+    fn get_mut(&mut self) -> &mut stack::DebugStack {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack
+            }
+            else {
+                &mut self.stack
+            }
+        }
+    }
 }
 
 #[cfg(all(test, not(debug_assertions)))]
