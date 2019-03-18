@@ -1,5 +1,9 @@
 use crate::{
     std::fmt,
+    collect::{
+        self,
+        Collect,
+    },
     stream::{
         self,
         stack,
@@ -28,14 +32,15 @@ where
     where
         S: Serializer,
     {
-        let mut stream = Stream::begin(serializer);
-        value::stream(&self.0, &mut stream).map_err(S::Error::custom)?;
+        let mut stream = collect::OwnedCollect::begin(Stream::begin(serializer)).map_err(S::Error::custom)?;
+        
+        stream.any(&self.0).map_err(S::Error::custom)?;
 
-        Ok(stream.expect_ok())
+        Ok(stream.end().map_err(S::Error::custom)?.expect_ok())
     }
 }
 
-impl<'a> Serialize for ToSerialize<value::collect::Value<'a>> {
+impl<'a> Serialize for ToSerialize<collect::Value<'a>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -249,39 +254,39 @@ where
     }
 }
 
-impl<S> value::collect::Stream for Stream<S>
+impl<S> Collect for Stream<S>
 where
     S: Serializer,
 {
     #[inline]
-    fn map_key_collect(&mut self, k: value::collect::Value) -> Result<(), stream::Error> {
+    fn map_key_collect(&mut self, k: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
             None => self.serialize_key(&ToSerialize(k)),
             Some(buffered) => {
                 buffered.map_key()?;
-                k.stream(value::collect::Default(buffered))
+                k.stream(collect::Default(buffered))
             }
         }
     }
 
     #[inline]
-    fn map_value_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
+    fn map_value_collect(&mut self, v: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
             None => self.serialize_value(&ToSerialize(v)),
             Some(buffered) => {
                 buffered.map_value()?;
-                v.stream(value::collect::Default(buffered))
+                v.stream(collect::Default(buffered))
             }
         }
     }
 
     #[inline]
-    fn seq_elem_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
+    fn seq_elem_collect(&mut self, v: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
             None => self.serialize_elem(&ToSerialize(v)),
             Some(buffered) => {
                 buffered.seq_elem()?;
-                v.stream(value::collect::Default(buffered))
+                v.stream(collect::Default(buffered))
             }
         }
     }

@@ -2,6 +2,8 @@
 A fixed-size, stateful stack for streams.
 */
 
+use crate::std::marker::PhantomData;
+
 use super::Error;
 
 /**
@@ -577,6 +579,125 @@ mod inner {
     }
 }
 
+#[derive(Default)]
+pub(crate) struct DebugStack {
+    #[cfg(debug_assertions)]
+    stack: Stack,
+    _m: PhantomData<Stack>,
+}
+
+impl DebugStack {
+    #[inline]
+    pub fn begin(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.begin()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn primitive(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.primitive()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_begin(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.map_begin()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_key(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.map_key()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_value(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.map_value()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn map_end(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.map_end()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn seq_begin(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.seq_begin()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn seq_elem(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.seq_elem()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn seq_end(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.seq_end()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn end(&mut self) -> Result<(), Error> {
+        cfg_debug_stack! {
+            if #[debug_assertions] {
+                self.stack.end()?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -707,6 +828,18 @@ mod tests {
 
             // The 16th attempt to begin a map should fail
             assert!(stack.map_begin().is_err());
+        }
+    }
+
+    #[cfg(not(debug_assertions))]
+    mod release {
+        use super::*;
+
+        use crate::std::mem;
+
+        #[test]
+        fn debug_stack_is_zero_sized() {
+            assert_eq!(0, mem::size_of::<DebugStack>());
         }
     }
 

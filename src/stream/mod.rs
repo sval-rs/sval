@@ -2,6 +2,7 @@
 A stream for datastructures.
 */
 
+pub(crate) mod owned;
 pub mod stack;
 
 use crate::std::fmt;
@@ -11,6 +12,7 @@ pub use crate::Error;
 
 pub use self::{
     fmt::Arguments,
+    owned::OwnedStream,
     stack::Stack,
 };
 

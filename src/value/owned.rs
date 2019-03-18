@@ -25,7 +25,7 @@ use crate::{
 };
 
 /**
-An owned value.
+An owned, immutable value.
 
 Owned values are safe to share and are cheap to clone.
 */

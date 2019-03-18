@@ -337,6 +337,9 @@ pub enum Data {
 #![doc(html_root_url = "https://docs.rs/sval/0.1.2")]
 #![no_std]
 
+#[macro_use]
+mod macros;
+
 #[doc(hidden)]
 #[cfg(feature = "derive")]
 pub mod derive;
@@ -357,6 +360,7 @@ extern crate core as std;
 
 #[macro_use]
 mod error;
+mod collect;
 
 #[cfg(any(test, feature = "test"))]
 pub mod test;
@@ -376,5 +380,10 @@ pub use self::{
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
 pub fn stream(value: impl Value, stream: impl Stream) -> Result<(), Error> {
-    value::stream(value, value::collect::Default(stream))
+    let mut stream = crate::collect::OwnedCollect::begin(crate::collect::Default(stream))?;
+
+    stream.any(value)?;
+    stream.end()?;
+    
+    Ok(())
 }

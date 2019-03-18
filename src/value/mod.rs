@@ -2,17 +2,11 @@
 A streamable value.
 */
 
-#[macro_use]
-mod macros;
 mod impls;
 mod stream;
 
-pub(crate) mod collect;
-
 #[cfg(feature = "std")]
 pub(crate) mod owned;
-
-pub(crate) use self::stream::stream;
 
 pub use self::stream::Stream;
 
