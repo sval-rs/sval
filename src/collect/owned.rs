@@ -147,7 +147,7 @@ where
 
         Ok(())
     }
-    
+
     #[inline]
     pub fn map_value(&mut self, v: impl value::Value) -> Result<(), Error> {
         self.stack.borrow_mut().map_value()?;
@@ -230,14 +230,11 @@ where
     #[inline]
     pub(crate) fn begin(mut stream: TStream) -> Result<Self, Error> {
         let mut stack = DebugStack::default();
-        
+
         stack.begin()?;
         stream.begin()?;
 
-        Ok(OwnedCollect {
-            stack,
-            stream,
-        })
+        Ok(OwnedCollect { stack, stream })
     }
 
     #[inline]

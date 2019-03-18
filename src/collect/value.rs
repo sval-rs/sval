@@ -1,12 +1,10 @@
 use crate::{
     collect::{
-        Error,
         Collect,
+        Error,
     },
     std::marker::PhantomData,
-    stream::{
-        stack,
-    },
+    stream::stack,
     value,
 };
 

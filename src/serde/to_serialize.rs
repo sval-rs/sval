@@ -1,9 +1,9 @@
 use crate::{
-    std::fmt,
     collect::{
         self,
         Collect,
     },
+    std::fmt,
     stream::{
         self,
         stack,
@@ -32,8 +32,9 @@ where
     where
         S: Serializer,
     {
-        let mut stream = collect::OwnedCollect::begin(Stream::begin(serializer)).map_err(S::Error::custom)?;
-        
+        let mut stream =
+            collect::OwnedCollect::begin(Stream::begin(serializer)).map_err(S::Error::custom)?;
+
         stream.any(&self.0).map_err(S::Error::custom)?;
 
         Ok(stream.end().map_err(S::Error::custom)?.expect_ok())

@@ -384,6 +384,6 @@ pub fn stream(value: impl Value, stream: impl Stream) -> Result<(), Error> {
 
     stream.any(value)?;
     stream.end()?;
-    
+
     Ok(())
 }
