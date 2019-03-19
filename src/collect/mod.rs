@@ -8,12 +8,14 @@ allocating for nested datastructures that are already known.
 
 use crate::stream::{
     self,
-    Error,
     Stream,
 };
 
 mod owned;
 mod value;
+
+#[doc(inline)]
+pub use crate::Error;
 
 pub(crate) use self::{
     owned::OwnedCollect,
@@ -25,6 +27,7 @@ pub(crate) use self::{
 // in the general case because it can save a virtual call per key/value/elem.
 // The reason this hasn't been done already is just to reduce
 // the API surface area for now. It should be revisited sometime.
+// The `Value` type that's passed in would need some more attention.
 
 /**
 An extension to `Stream` for items that are known upfront.

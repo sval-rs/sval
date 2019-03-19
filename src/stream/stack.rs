@@ -579,6 +579,9 @@ mod inner {
     }
 }
 
+// FIXME: We might need a `DebugStackRef<'a>` that's
+// zero-sized in release mode instead of `&'a mut DebugStack`
+
 #[derive(Default)]
 pub(crate) struct DebugStack {
     #[cfg(debug_assertions)]

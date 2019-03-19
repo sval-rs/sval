@@ -3,7 +3,10 @@ use crate::{
         self,
         Collect,
     },
-    std::fmt,
+    std::{
+        fmt,
+        cell::Cell,
+    },
     stream::{
         self,
         stack,
@@ -41,14 +44,27 @@ where
     }
 }
 
-impl<'a> Serialize for ToSerialize<collect::Value<'a>> {
+// A wrapper around a `collect::Value` that can be called within
+// `serde::Serialize`
+struct Value<'a>(Cell<Option<collect::Value<'a>>>);
+
+impl<'a> Value<'a> {
+    fn new(value: collect::Value<'a>) -> Self {
+        Value(Cell::new(Some(value)))
+    }
+}
+
+impl<'a> Serialize for ToSerialize<Value<'a>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut stream = Stream::begin(serializer);
 
-        self.0.stream(&mut stream).map_err(S::Error::custom)?;
+        (self.0).0
+            .take()
+            .expect("attempt to re-use value")
+            .stream(&mut stream).map_err(S::Error::custom)?;
 
         Ok(stream.expect_ok())
     }
@@ -262,7 +278,7 @@ where
     #[inline]
     fn map_key_collect(&mut self, k: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => self.serialize_key(&ToSerialize(k)),
+            None => self.serialize_key(&ToSerialize(Value::new(k))),
             Some(buffered) => {
                 buffered.map_key()?;
                 k.stream(collect::Default(buffered))
@@ -273,7 +289,7 @@ where
     #[inline]
     fn map_value_collect(&mut self, v: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => self.serialize_value(&ToSerialize(v)),
+            None => self.serialize_value(&ToSerialize(Value::new(v))),
             Some(buffered) => {
                 buffered.map_value()?;
                 v.stream(collect::Default(buffered))
@@ -284,7 +300,7 @@ where
     #[inline]
     fn seq_elem_collect(&mut self, v: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => self.serialize_elem(&ToSerialize(v)),
+            None => self.serialize_elem(&ToSerialize(Value::new(v))),
             Some(buffered) => {
                 buffered.seq_elem()?;
                 v.stream(collect::Default(buffered))
