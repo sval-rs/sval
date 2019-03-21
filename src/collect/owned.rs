@@ -223,6 +223,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<TStream> OwnedCollect<TStream>
 where
     TStream: Collect,

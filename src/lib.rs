@@ -380,8 +380,7 @@ pub use self::{
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
 pub fn stream(value: impl Value, stream: impl Stream) -> Result<(), Error> {
-    let mut stream = crate::collect::OwnedCollect::begin(crate::collect::Default(stream))?;
-
+    let mut stream = crate::stream::OwnedStream::begin(stream)?;
     stream.any(value)?;
     stream.end()?;
 
