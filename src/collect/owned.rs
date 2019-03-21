@@ -28,11 +28,6 @@ where
     }
 
     #[inline]
-    pub(crate) fn split(self) -> (TStream, TStack) {
-        (self.stream, self.stack)
-    }
-
-    #[inline]
     pub fn any(&mut self, v: impl value::Value) -> Result<(), Error> {
         let mut stream = value::Stream::new(&mut self.stream, self.stack.borrow_mut());
 
@@ -223,7 +218,6 @@ where
     }
 }
 
-#[cfg(feature = "serde")]
 impl<TStream> OwnedCollect<TStream>
 where
     TStream: Collect,

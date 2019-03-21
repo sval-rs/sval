@@ -4,7 +4,6 @@ use crate::{
         OwnedCollect,
     },
     stream::{
-        stack::DebugStack,
         Arguments,
         Error,
         Stream,
@@ -25,16 +24,8 @@ where
     Begin an owned stream.
     */
     #[inline]
-    pub fn begin(mut stream: S) -> Result<Self, Error> {
-        let mut stack = DebugStack::default();
-
-        stack.begin()?;
-        stream.begin()?;
-
-        Ok(OwnedStream(OwnedCollect::new(
-            collect::Default(stream),
-            stack,
-        )))
+    pub fn begin(stream: S) -> Result<Self, Error> {
+        Ok(OwnedStream(OwnedCollect::begin(collect::Default(stream))?))
     }
 
     /**
@@ -42,12 +33,7 @@ where
     */
     #[inline]
     pub fn end(self) -> Result<S, Error> {
-        let (mut stream, mut stack) = self.0.split();
-
-        stack.end()?;
-        stream.end()?;
-
-        Ok(stream.0)
+        Ok(self.0.end()?.0)
     }
 
     /**
