@@ -2,6 +2,7 @@
 A stream for datastructures.
 */
 
+pub(crate) mod owned;
 pub mod stack;
 
 use crate::std::fmt;
@@ -11,11 +12,12 @@ pub use crate::Error;
 
 pub use self::{
     fmt::Arguments,
+    owned::OwnedStream,
     stack::Stack,
 };
 
 /**
-A value stream.
+A raw value stream.
 
 The `Stream` trait has a flat, stateless structure, but it may need to work with
 nested values. Implementations can use a [`Stack`] to track state for them.

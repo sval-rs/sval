@@ -1,5 +1,12 @@
 use crate::{
-    std::fmt,
+    collect::{
+        self,
+        Collect,
+    },
+    std::{
+        fmt,
+        cell::Cell,
+    },
     stream::{
         self,
         stack,
@@ -28,21 +35,36 @@ where
     where
         S: Serializer,
     {
-        let mut stream = Stream::begin(serializer);
-        value::stream(&self.0, &mut stream).map_err(S::Error::custom)?;
+        let mut stream =
+            collect::OwnedCollect::begin(Stream::new(serializer)).map_err(S::Error::custom)?;
 
-        Ok(stream.expect_ok())
+        stream.any(&self.0).map_err(S::Error::custom)?;
+
+        Ok(stream.end().map_err(S::Error::custom)?.expect_ok())
     }
 }
 
-impl<'a> Serialize for ToSerialize<value::collect::Value<'a>> {
+// A wrapper around a `collect::Value` that can be called within
+// `serde::Serialize`
+struct Value<'a>(Cell<Option<collect::Value<'a>>>);
+
+impl<'a> Value<'a> {
+    fn new(value: collect::Value<'a>) -> Self {
+        Value(Cell::new(Some(value)))
+    }
+}
+
+impl<'a> Serialize for ToSerialize<Value<'a>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let mut stream = Stream::begin(serializer);
+        let mut stream = Stream::new(serializer);
 
-        self.0.stream(&mut stream).map_err(S::Error::custom)?;
+        (self.0).0
+            .take()
+            .expect("attempt to re-use value")
+            .stream(&mut stream).map_err(S::Error::custom)?;
 
         Ok(stream.expect_ok())
     }
@@ -72,7 +94,7 @@ where
     S: Serializer,
 {
     #[inline]
-    fn begin(ser: S) -> Self {
+    fn new(ser: S) -> Self {
         Stream {
             ok: None,
             pos: None,
@@ -249,39 +271,39 @@ where
     }
 }
 
-impl<S> value::collect::Stream for Stream<S>
+impl<S> Collect for Stream<S>
 where
     S: Serializer,
 {
     #[inline]
-    fn map_key_collect(&mut self, k: value::collect::Value) -> Result<(), stream::Error> {
+    fn map_key_collect(&mut self, k: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => self.serialize_key(&ToSerialize(k)),
+            None => self.serialize_key(&ToSerialize(Value::new(k))),
             Some(buffered) => {
                 buffered.map_key()?;
-                k.stream(value::collect::Default(buffered))
+                k.stream(collect::Default(buffered))
             }
         }
     }
 
     #[inline]
-    fn map_value_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
+    fn map_value_collect(&mut self, v: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => self.serialize_value(&ToSerialize(v)),
+            None => self.serialize_value(&ToSerialize(Value::new(v))),
             Some(buffered) => {
                 buffered.map_value()?;
-                v.stream(value::collect::Default(buffered))
+                v.stream(collect::Default(buffered))
             }
         }
     }
 
     #[inline]
-    fn seq_elem_collect(&mut self, v: value::collect::Value) -> Result<(), stream::Error> {
+    fn seq_elem_collect(&mut self, v: collect::Value) -> Result<(), stream::Error> {
         match self.buffer() {
-            None => self.serialize_elem(&ToSerialize(v)),
+            None => self.serialize_elem(&ToSerialize(Value::new(v))),
             Some(buffered) => {
                 buffered.seq_elem()?;
-                v.stream(value::collect::Default(buffered))
+                v.stream(collect::Default(buffered))
             }
         }
     }

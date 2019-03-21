@@ -1,31 +1,43 @@
 use crate::{
     collect::{
-        Collect,
+        self,
         OwnedCollect,
     },
     stream::{
-        stack::DebugStack,
         Arguments,
-    },
-    value::{
         Error,
-        Value,
+        Stream,
     },
+    value::Value,
 };
 
 /**
-A borrowed value stream.
+An owned stream.
 
-This type is a wrapper for a [`stream::Stream`] with a more ergonomic interface.
-
-[`stream::Stream`]: ../stream/trait.Stream.html
+`OwnedStream` is an ergonomic wrapper over a raw [`Stream`] that makes it
+easier to stream complex types and ensures calls to the underlying stream
+are valid.
 */
-pub struct Stream<'a>(OwnedCollect<&'a mut dyn Collect, &'a mut DebugStack>);
+pub struct OwnedStream<S>(OwnedCollect<collect::Default<S>>);
 
-impl<'a> Stream<'a> {
+impl<S> OwnedStream<S>
+where
+    S: Stream,
+{
+    /**
+    Begin an owned stream.
+    */
     #[inline]
-    pub(crate) fn new(stream: &'a mut impl Collect, stack: &'a mut DebugStack) -> Self {
-        Stream(OwnedCollect::new(stream, stack))
+    pub fn begin(stream: S) -> Result<Self, Error> {
+        Ok(OwnedStream(OwnedCollect::begin(collect::Default(stream))?))
+    }
+
+    /**
+    Complete an owned stream.
+    */
+    #[inline]
+    pub fn end(self) -> Result<S, Error> {
+        Ok(self.0.end()?.0)
     }
 
     /**
@@ -33,7 +45,7 @@ impl<'a> Stream<'a> {
     */
     #[inline]
     pub fn any(&mut self, v: impl Value) -> Result<(), Error> {
-        v.stream(self)
+        self.0.any(v)
     }
 
     /**
@@ -173,7 +185,10 @@ impl<'a> Stream<'a> {
     }
 }
 
-impl<'a> Stream<'a> {
+impl<S> OwnedStream<S>
+where
+    S: Stream,
+{
     /**
     Begin a map key.
     */

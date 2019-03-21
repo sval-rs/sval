@@ -17,25 +17,46 @@ use crate::std::{
 Write a [`sval::Value`] to a formatter.
 */
 pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
-    let mut fmt = Fmt {
-        stack: Stack::new(),
-        delim: None,
-        out: fmt,
-    };
+    let mut fmt = Formatter::new(fmt);
 
     sval::stream(v, &mut fmt)
 }
 
-struct Fmt<W> {
+/**
+A stream for writing structured data as json.
+
+The stream internally wraps a [`std::fmt::Write`].
+*/
+pub struct Formatter<W> {
     stack: Stack,
     delim: Option<char>,
     out: W,
 }
 
-impl<W> Fmt<W>
+impl<W> Formatter<W>
 where
     W: Write,
 {
+    /**
+    Create a new json stream.
+    */
+    pub fn new(out: W) -> Self {
+        Formatter {
+            stack: Stack::new(),
+            delim: None,
+            out,
+        }
+    }
+
+    /**
+    Get the inner writer back out of the stream.
+
+    There is no validation done to ensure the data written is valid.
+    */
+    pub fn into_inner(self) -> W {
+        self.out
+    }
+
     #[inline]
     fn next_delim(pos: stack::Pos) -> Option<char> {
         if pos.is_value() || pos.is_elem() {
@@ -50,7 +71,7 @@ where
     }
 }
 
-impl<W> Stream for Fmt<W>
+impl<W> Stream for Formatter<W>
 where
     W: Write,
 {
@@ -69,7 +90,9 @@ where
             self.out.write_char(delim)?;
         }
 
+        self.out.write_char('"')?;
         fmt::write(&mut Escape(&mut self.out), v)?;
+        self.out.write_char('"')?;
 
         Ok(())
     }
@@ -177,7 +200,9 @@ where
             self.out.write_char(delim)?;
         }
 
+        self.out.write_char('"')?;
         escape_str(&v, &mut self.out)?;
+        self.out.write_char('"')?;
 
         Ok(())
     }
@@ -291,8 +316,6 @@ https://github.com/dtolnay/miniserde
 
 #[inline]
 fn escape_str(value: &str, mut out: impl Write) -> Result<(), fmt::Error> {
-    out.write_char('"')?;
-
     let bytes = value.as_bytes();
     let mut start = 0;
 
@@ -329,8 +352,6 @@ fn escape_str(value: &str, mut out: impl Write) -> Result<(), fmt::Error> {
     if start != bytes.len() {
         out.write_str(&value[start..])?;
     }
-
-    out.write_char('"')?;
 
     Ok(())
 }
