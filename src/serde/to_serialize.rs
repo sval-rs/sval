@@ -36,7 +36,7 @@ where
         S: Serializer,
     {
         let mut stream =
-            collect::OwnedCollect::begin(Stream::begin(serializer)).map_err(S::Error::custom)?;
+            collect::OwnedCollect::begin(Stream::new(serializer)).map_err(S::Error::custom)?;
 
         stream.any(&self.0).map_err(S::Error::custom)?;
 
@@ -59,7 +59,7 @@ impl<'a> Serialize for ToSerialize<Value<'a>> {
     where
         S: Serializer,
     {
-        let mut stream = Stream::begin(serializer);
+        let mut stream = Stream::new(serializer);
 
         (self.0).0
             .take()
@@ -94,7 +94,7 @@ where
     S: Serializer,
 {
     #[inline]
-    fn begin(ser: S) -> Self {
+    fn new(ser: S) -> Self {
         Stream {
             ok: None,
             pos: None,
