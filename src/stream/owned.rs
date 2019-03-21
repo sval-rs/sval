@@ -13,6 +13,10 @@ use crate::{
 
 /**
 An owned stream.
+
+`OwnedStream` is an ergonomic wrapper over a raw [`Stream`] that makes it
+easier to stream complex types and ensures calls to the underlying stream
+are valid.
 */
 pub struct OwnedStream<S>(OwnedCollect<collect::Default<S>>);
 

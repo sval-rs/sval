@@ -17,7 +17,7 @@ pub use self::{
 };
 
 /**
-A value stream.
+A raw value stream.
 
 The `Stream` trait has a flat, stateless structure, but it may need to work with
 nested values. Implementations can use a [`Stack`] to track state for them.

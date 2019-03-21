@@ -173,7 +173,7 @@ impl Stack {
     /**
     Ensure the stack is ready for a new value.
 
-    This method only needs to be called by [`Stream`]s that
+    This method only needs to be called by [`Stream`](../trait.Stream.html)s that
     can be re-used.
     */
     #[inline]
