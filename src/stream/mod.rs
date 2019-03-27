@@ -21,6 +21,11 @@ A raw value stream.
 
 The `Stream` trait has a flat, stateless structure, but it may need to work with
 nested values. Implementations can use a [`Stack`] to track state for them.
+
+The [`OwnedStream`] type is an ergonomic wrapper over a raw `Stream` that adds
+the concept of [`Value`]s.
+
+[`Value`]: ../trait.Value.html
 */
 pub trait Stream {
     /**

@@ -17,8 +17,11 @@ use crate::{
 A borrowed value stream.
 
 This type is a wrapper for a [`stream::Stream`] with a more ergonomic interface.
+It's not possible to create and hold one of these `Stream`s directly,
+see [`stream::OwnedStream`] instead.
 
 [`stream::Stream`]: ../stream/trait.Stream.html
+[`stream::OwnedStream`]: ../stream/struct.OwnedStream.html
 */
 pub struct Stream<'a>(OwnedCollect<&'a mut dyn Collect, &'a mut DebugStack>);
 
