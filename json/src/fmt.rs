@@ -26,6 +26,27 @@ pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
 A stream for writing structured data as json.
 
 The stream internally wraps a [`std::fmt::Write`].
+
+# Examples
+
+Create an owned json stream:
+
+```
+# #[cfg(not(feature = "std"))]
+# fn main() {}
+# #[cfg(feature = "std")]
+# fn main() -> Result<(), Box<std::error::Error>> {
+use sval::stream::OwnedStream;
+use sval_json::Formatter;
+
+let mut stream = OwnedStream::begin(Formatter::new(String::new()))?;
+stream.any(42)?;
+let json = stream.end()?.into_inner();
+
+assert_eq!("42", json);
+# Ok(())
+# }
+```
 */
 pub struct Formatter<W> {
     stack: Stack,

@@ -17,6 +17,11 @@ An owned stream.
 `OwnedStream` is an ergonomic wrapper over a raw [`Stream`] that makes it
 easier to stream complex types and ensures calls to the underlying stream
 are valid.
+
+`OwnedStream`s are an owned variant of a [`value::Stream`]
+with the same interface.
+
+[`value::Stream`]: ../value/struct.Stream.html
 */
 pub struct OwnedStream<S>(OwnedCollect<collect::Default<S>>);
 

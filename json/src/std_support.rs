@@ -44,6 +44,25 @@ where
 A stream for writing structured data as json.
 
 The stream internally wraps a [`std::io::Write`].
+
+# Examples
+
+Create an owned json stream:
+
+```
+# fn main() -> Result<(), Box<std::error::Error>> {
+# use std::str;
+use sval::stream::OwnedStream;
+use sval_json::Writer;
+
+let mut stream = OwnedStream::begin(Writer::new(Vec::<u8>::new()))?;
+stream.any(42)?;
+let json = stream.end()?.into_inner();
+
+assert_eq!(Some("42"), str::from_utf8(&json).ok());
+# Ok(())
+# }
+```
 */
 pub struct Writer<W>(Formatter<FmtToIo<W>>);
 
