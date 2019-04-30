@@ -77,7 +77,6 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
     }
 }
 
-// TODO: Support the indentation
 impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     #[inline]
     fn begin(&mut self) -> Result<(), stream::Error> {
