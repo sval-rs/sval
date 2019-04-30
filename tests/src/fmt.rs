@@ -195,6 +195,8 @@ fn sval_fmt() {
         assert_eq!(std, sval);
     }
 
+    check(42);
+    check("a string");
     check(OuterMap);
     check(OuterSeq);
     check(WeirdMapKeys);
@@ -209,6 +211,8 @@ fn sval_alternate_fmt() {
         assert_eq!(std, sval);
     }
 
+    check(42);
+    check("a string");
     check(OuterMap);
     check(OuterSeq);
     check(WeirdMapKeys);
