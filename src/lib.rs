@@ -367,6 +367,8 @@ pub mod test;
 
 #[cfg(feature = "serde")]
 pub mod serde;
+pub mod fmt;
+
 pub mod stream;
 pub mod value;
 

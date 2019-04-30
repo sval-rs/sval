@@ -30,7 +30,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_key(&self) -> bool {
-        self.slot == Slot::KEY
+        self.slot & Slot::MASK_POS == Slot::KEY
     }
 
     /**
@@ -38,7 +38,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_value(&self) -> bool {
-        self.slot == Slot::VAL
+        self.slot & Slot::MASK_POS == Slot::VAL
     }
 
     /**
@@ -46,7 +46,16 @@ impl Pos {
     */
     #[inline]
     pub fn is_elem(&self) -> bool {
-        self.slot == Slot::ELEM
+        self.slot & Slot::MASK_POS == Slot::ELEM
+    }
+
+    /**
+    Whether the current position is within a map or sequence
+    that has at least one field.
+    */
+    #[inline]
+    pub(crate) fn has_fields(&self) -> bool {
+        self.slot & Slot::MASK_FIELD != 0
     }
 
     /**
@@ -114,7 +123,8 @@ impl Slot {
     const VAL: u8 = 0b0000_1000;
     const ELEM: u8 = 0b0000_0100;
 
-    const MASK_POS: u8 = 0b1001_1100;
+    const MASK_POS: u8 = Self::ROOT | Self::KEY | Self::VAL | Self::ELEM;
+    const MASK_FIELD: u8 = Self::VAL | Self::ELEM;
 
     const MAP_DONE: u8 = Self::MAP | Self::DONE;
 
@@ -168,6 +178,11 @@ impl Stack {
     #[inline]
     pub fn clear(&mut self) {
         self.inner.clear();
+    }
+
+    #[inline]
+    pub(crate) fn current(&self) -> Pos {
+        self.inner.current().pos(self.inner.depth())
     }
 
     /**
