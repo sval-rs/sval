@@ -314,7 +314,7 @@ aren't supported.
 
 Use the `serde` Cargo feature to enable integration with `serde`:
 
-```toml,no_run
+```toml,ignore
 [dependencies.sval]
 features = ["serde"]
 ```
@@ -329,6 +329,29 @@ use sval::Value;
 #[sval(derive_from = "serde")]
 pub enum Data {
     Variant(i32, String),
+}
+# }
+```
+
+# `std::fmt` integration
+
+Use the `fmt` Cargo feature to enable extended integration with `std::fmt`:
+
+```toml,ignore
+[dependencies.sval]
+features = ["fmt"]
+```
+
+When `fmt` is available, arbitrary `Value`s to be treated like `std::fmt::Debug`:
+
+```
+# fn main() {}
+# #[cfg(feature = "fmt")]
+# mod test {
+fn with_value(value: impl sval::Value) {
+    dbg!(sval::fmt::to_debug(&value));
+
+    // Do something with the value
 }
 # }
 ```

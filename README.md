@@ -122,3 +122,22 @@ struct MyData {
     props: serde_json::Map<String, serde_json::Value>,
 }
 ```
+
+## To integrate with `std::fmt`
+
+`sval` can provide a compatible `Debug` implementation for any `sval::Value`. Add the `fmt` feature to `sval` to enable it:
+
+```toml
+[dependencies.sval]
+features = ["fmt"]
+```
+
+Use the `to_debug` function to turn any `sval::Value` into a `std::fmt::Debug`:
+
+```rust
+fn with_value(value: impl Value) {
+    dbg!(sval::fmt::to_debug(&value));
+
+    ..
+}
+```
