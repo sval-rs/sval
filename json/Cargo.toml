@@ -29,3 +29,4 @@ version = "0.2"
 
 [dependencies.itoa]
 version = "0.4"
+default-features = false

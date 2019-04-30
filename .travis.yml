@@ -5,13 +5,13 @@ matrix:
   include:
     - rust: nightly
       script:
-      - ./ci/travis.sh
-      - cargo bench --all --no-run
-      - ./ci/publish-docs.sh
+      - ./ci/nightly.sh
     - rust: beta
       script:
-      - ./ci/travis.sh
-      - cargo test -p sval_fmt_tests
+      - ./ci/beta.sh
     - rust: stable
       script:
-      - ./ci/travis.sh
+      - ./ci/stable.sh
+    - rust: stable
+      script:
+      - ./ci/thumbv6m.sh
