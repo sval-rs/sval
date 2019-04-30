@@ -1,4 +1,7 @@
-use sval::stream::{self, Stream};
+use sval::stream::{
+    self,
+    Stream,
+};
 
 use crate::std::string::String;
 use crate::{

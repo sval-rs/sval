@@ -1,6 +1,12 @@
-use std::fmt::{self, Debug};
+use std::fmt::{
+    self,
+    Debug,
+};
 
-use sval::value::{self, Value};
+use sval::value::{
+    self,
+    Value,
+};
 
 struct OuterMap;
 impl Debug for OuterMap {

@@ -15,14 +15,17 @@ extern crate std;
 extern crate core as std;
 
 mod fmt;
-pub use self::fmt::{Formatter, to_fmt};
+pub use self::fmt::{
+    to_fmt,
+    Formatter,
+};
 
 #[cfg(feature = "std")]
 mod std_support;
 
 #[cfg(feature = "std")]
 pub use self::std_support::{
-    Writer,
     to_string,
     to_writer,
+    Writer,
 };

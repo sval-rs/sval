@@ -8,7 +8,6 @@ use crate::{
         },
         mem,
     },
-    value,
     stream::{
         self,
         stack::{
@@ -16,6 +15,7 @@ use crate::{
             Stack,
         },
     },
+    value,
 };
 
 pub(super) struct ToDebug<V>(pub(super) V);
@@ -188,7 +188,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         let pos = self.stack.seq_end()?;
 
         self.delim = self.next_delim(pos);
-        
+
         self.fmt.write_char(']')?;
 
         Ok(())

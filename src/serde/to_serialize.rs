@@ -4,8 +4,8 @@ use crate::{
         Collect,
     },
     std::{
-        fmt,
         cell::Cell,
+        fmt,
     },
     stream::{
         self,
@@ -67,10 +67,12 @@ impl<'a> Serialize for ToSerialize<Value<'a>> {
     {
         let mut stream = Stream::new(serializer);
 
-        (self.0).0
+        (self.0)
+            .0
             .take()
             .expect("attempt to re-use value")
-            .stream(&mut stream).map_err(S::Error::custom)?;
+            .stream(&mut stream)
+            .map_err(S::Error::custom)?;
 
         Ok(stream.expect_ok())
     }
