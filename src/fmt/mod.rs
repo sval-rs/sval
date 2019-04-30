@@ -34,6 +34,8 @@ Convert a [`Value`] into a [`Debug`].
 
 The formatted value is not guaranteed to be exactly the same as
 a `Debug` implementation that might exist on the type.
+
+This method doesn't need to allocate or perform any buffering.
 */
 pub fn to_debug(value: impl Value) -> impl Debug {
     self::to_debug::ToDebug(value)
