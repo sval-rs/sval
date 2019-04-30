@@ -342,7 +342,7 @@ Use the `fmt` Cargo feature to enable extended integration with `std::fmt`:
 features = ["fmt"]
 ```
 
-When `fmt` is available, arbitrary `Value`s to be treated like `std::fmt::Debug`:
+When `fmt` is available, arbitrary `Value`s can be treated like `std::fmt::Debug`:
 
 ```
 # fn main() {}
