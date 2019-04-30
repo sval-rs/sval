@@ -11,6 +11,7 @@ matrix:
     - rust: beta
       script:
       - ./ci/travis.sh
+      - cargo test -p sval_fmt_tests
     - rust: stable
       script:
       - ./ci/travis.sh

@@ -18,10 +18,7 @@ pub(crate) struct Value<'a> {
 impl<'a> Value<'a> {
     #[inline]
     pub(crate) fn new(value: &'a impl value::Value, stack: &'a mut DebugStack) -> Self {
-        Value {
-            stack,
-            value,
-        }
+        Value { stack, value }
     }
 
     /**

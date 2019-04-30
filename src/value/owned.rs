@@ -4,6 +4,10 @@ Owned values.
 
 use crate::{
     std::{
+        fmt::{
+            self,
+            Debug,
+        },
         string::{
             String,
             ToString,
@@ -96,6 +100,20 @@ impl Value for OwnedValue {
 
                 Ok(())
             }
+        }
+    }
+}
+
+impl Debug for OwnedValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[cfg(feature = "fmt")]
+        {
+            crate::fmt::debug(self, f)
+        }
+
+        #[cfg(not(feature = "fmt"))]
+        {
+            f.debug_struct("OwnedValue").finish()
         }
     }
 }

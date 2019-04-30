@@ -4,15 +4,21 @@ use crate::{
         Collect,
     },
     std::{
-        fmt,
         cell::Cell,
+        fmt,
     },
     stream::{
         self,
         stack,
         Stream as SvalStream,
     },
-    value,
+    value::{
+        self,
+        owned::{
+            Buf,
+            Token,
+        },
+    },
 };
 
 use super::error::err;
@@ -61,22 +67,38 @@ impl<'a> Serialize for ToSerialize<Value<'a>> {
     {
         let mut stream = Stream::new(serializer);
 
-        (self.0).0
+        (self.0)
+            .0
             .take()
             .expect("attempt to re-use value")
-            .stream(&mut stream).map_err(S::Error::custom)?;
+            .stream(&mut stream)
+            .map_err(S::Error::custom)?;
 
         Ok(stream.expect_ok())
     }
 }
 
+/**
+The serialization stream.
+
+Streaming between `sval` and `serde` uses the following process:
+
+- Data that's passed in directly is immediately forwarded
+to the serializer. That includes primitives and map and sequence
+elements that are passed directly using `Collect` methods.
+This is the common case and happy path.
+- Data that's streamed without an underlying value is buffered
+first before being forwarded to the underlying serializer. An
+effort is made to buffer as little as possible, and to return to
+the happy path when buffering a single element is done.
+*/
 struct Stream<S>
 where
     S: Serializer,
 {
     ok: Option<S::Ok>,
     pos: Option<Pos>,
-    buffered: Option<value::owned::Buf>,
+    buffered: Option<Buf>,
     current: Option<Current<S>>,
 }
 
@@ -172,11 +194,11 @@ where
     Begin a buffer with the given token or push it if a buffer already exists.
     */
     #[inline]
-    fn buffer_begin(&mut self) -> &mut value::owned::Buf {
+    fn buffer_begin(&mut self) -> &mut Buf {
         match self.buffered {
             Some(ref mut buffered) => buffered,
             None => {
-                self.buffered = Some(value::owned::Buf::new());
+                self.buffered = Some(Buf::new());
                 self.buffered.as_mut().unwrap()
             }
         }
@@ -203,7 +225,7 @@ where
     Get a reference to the buffer if it's active.
     */
     #[inline]
-    fn buffer(&mut self) -> Option<&mut value::owned::Buf> {
+    fn buffer(&mut self) -> Option<&mut Buf> {
         match self.buffered {
             Some(ref mut buffered) if buffered.tokens().len() > 0 => Some(buffered),
             _ => None,
@@ -521,11 +543,11 @@ enum Pos {
     Elem,
 }
 
-struct Tokens<'a>(&'a [value::owned::Token]);
+struct Tokens<'a>(&'a [Token]);
 
 struct TokensReader<'a> {
     idx: usize,
-    tokens: &'a [value::owned::Token],
+    tokens: &'a [Token],
 }
 
 impl<'a> Tokens<'a> {
@@ -567,7 +589,7 @@ impl<'a> TokensReader<'a> {
 }
 
 impl<'a> Iterator for TokensReader<'a> {
-    type Item = &'a value::owned::Token;
+    type Item = &'a Token;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;

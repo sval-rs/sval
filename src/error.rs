@@ -61,6 +61,12 @@ impl fmt::Display for ErrorInner {
     }
 }
 
+impl From<Error> for fmt::Error {
+    fn from(_: Error) -> fmt::Error {
+        fmt::Error
+    }
+}
+
 #[cfg(not(feature = "std"))]
 mod no_std_support {
     use super::*;

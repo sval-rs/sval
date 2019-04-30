@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "derive",
-    "tests",
+    "tests/serde",
+    "tests/fmt",
 
     "json",
     "json/benches",
@@ -25,7 +26,7 @@ keywords = ["serialization", "no_std"]
 categories = ["encoding", "no-std"]
 
 [package.metadata.docs.rs]
-features = ["derive", "serde", "test"]
+features = ["derive", "serde", "fmt", "test"]
 
 [badges]
 travis-ci = { repository = "sval-rs/sval" }
@@ -43,6 +44,9 @@ derive = ["sval_derive"]
 # Support streaming values as tokens
 # that can be inspected in tests
 test = ["std"]
+
+# Support integration with `std::fmt`
+fmt = []
 
 # Support integration with `serde`
 serde = ["std", "serde_lib/std"]
