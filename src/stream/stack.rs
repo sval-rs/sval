@@ -50,12 +50,19 @@ impl Pos {
     }
 
     /**
-    Whether the current position is within a map or sequence
-    that has at least one field.
+    Whether the current position is an empty map.
     */
     #[inline]
-    pub(crate) fn has_fields(&self) -> bool {
-        self.slot & Slot::MASK_FIELD != 0
+    pub fn is_empty_map(&self) -> bool {
+        self.slot == Slot::MAP_DONE
+    }
+
+    /**
+    Whether the current position is an empty sequence.
+    */
+    #[inline]
+    pub fn is_empty_seq(&self) -> bool {
+        self.slot == Slot::SEQ_DONE
     }
 
     /**
@@ -111,20 +118,19 @@ pub struct Stack {
 struct Slot(u8);
 
 impl Slot {
-    const EMPTY: u8 = 0b0000_0000;
+    const EMPTY: u8 =   0b0000_0000;
 
-    const DONE: u8 = 0b0000_0001;
+    const DONE: u8 =    0b0000_0001;
 
-    const ROOT: u8 = 0b1000_0000;
-    const MAP: u8 = 0b0100_0000;
-    const SEQ: u8 = 0b0010_0000;
+    const ROOT: u8 =    0b1000_0000;
+    const MAP: u8 =     0b0100_0000;
+    const SEQ: u8 =     0b0010_0000;
 
-    const KEY: u8 = 0b0001_0000;
-    const VAL: u8 = 0b0000_1000;
-    const ELEM: u8 = 0b0000_0100;
+    const KEY: u8 =     0b0001_0000;
+    const VAL: u8 =     0b0000_1000;
+    const ELEM: u8 =    0b0000_0100;
 
     const MASK_POS: u8 = Self::ROOT | Self::KEY | Self::VAL | Self::ELEM;
-    const MASK_FIELD: u8 = Self::VAL | Self::ELEM;
 
     const MAP_DONE: u8 = Self::MAP | Self::DONE;
 
@@ -147,7 +153,7 @@ impl Slot {
     #[inline]
     fn pos(self, depth: usize) -> Pos {
         Pos {
-            slot: self.0 & Slot::MASK_POS,
+            slot: self.0,
             depth,
         }
     }
@@ -180,8 +186,11 @@ impl Stack {
         self.inner.clear();
     }
 
+    /**
+    Get the current position in the stack.
+    */
     #[inline]
-    pub(crate) fn current(&self) -> Pos {
+    pub fn current(&self) -> Pos {
         self.inner.current().pos(self.inner.depth())
     }
 
@@ -890,13 +899,16 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.map_begin().unwrap();
+        assert!(stack.current().is_empty_map());
 
         stack.map_key().unwrap();
+        assert!(!stack.current().is_empty_map());
         stack.primitive().unwrap();
 
         stack.map_value().unwrap();
         stack.primitive().unwrap();
 
+        assert!(!stack.current().is_empty_map());
         stack.map_end().unwrap();
 
         stack.end().unwrap();
@@ -907,6 +919,7 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.map_begin().unwrap();
+        assert!(stack.current().is_empty_map());
         stack.map_end().unwrap();
 
         stack.end().unwrap();
@@ -1003,10 +1016,13 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.seq_begin().unwrap();
+        assert!(stack.current().is_empty_seq());
 
         stack.seq_elem().unwrap();
+        assert!(!stack.current().is_empty_seq());
         stack.primitive().unwrap();
 
+        assert!(!stack.current().is_empty_seq());
         stack.seq_end().unwrap();
 
         stack.end().unwrap();
@@ -1017,6 +1033,7 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.seq_begin().unwrap();
+        assert!(stack.current().is_empty_seq());
         stack.seq_end().unwrap();
 
         stack.end().unwrap();

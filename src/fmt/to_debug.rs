@@ -155,7 +155,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     #[inline]
     fn seq_elem(&mut self) -> Result<(), stream::Error> {
         if self.is_pretty() {
-            if self.stack.current().has_fields() {
+            if !self.stack.current().is_empty_seq() {
                 if let Some(delim) = self.delim.take() {
                     self.fmt.write_str(delim)?;
                 }
@@ -175,7 +175,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         if self.is_pretty() {
             self.depth -= 1;
 
-            if self.stack.current().has_fields() {
+            if !self.stack.current().is_empty_seq() {
                 if let Some(delim) = self.delim.take() {
                     self.fmt.write_str(delim)?;
                 }
@@ -214,7 +214,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     #[inline]
     fn map_key(&mut self) -> Result<(), stream::Error> {
         if self.is_pretty() {
-            if self.stack.current().has_fields() {
+            if !self.stack.current().is_empty_map() {
                 if let Some(delim) = self.delim.take() {
                     self.fmt.write_str(delim)?;
                 }
@@ -241,7 +241,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         if self.is_pretty() {
             self.depth -= 1;
 
-            if self.stack.current().has_fields() {
+            if !self.stack.current().is_empty_map() {
                 if let Some(delim) = self.delim.take() {
                     self.fmt.write_str(delim)?;
                 }
