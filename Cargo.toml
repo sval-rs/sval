@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "derive",
-    "tests",
+    "tests/derive",
+    "tests/fmt",
 
     "json",
     "json/benches",
@@ -43,6 +44,9 @@ derive = ["sval_derive"]
 # Support streaming values as tokens
 # that can be inspected in tests
 test = ["std"]
+
+# Support integration with `std::fmt`
+fmt = []
 
 # Support integration with `serde`
 serde = ["std", "serde_lib/std"]

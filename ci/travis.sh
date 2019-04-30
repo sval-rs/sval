@@ -9,6 +9,9 @@ cargo test
 printf "\n\n---- sval with std ----\n\n"
 cargo test --features std
 
+printf "\n\n---- sval with fmt ----\n\n"
+cargo test --features fmt
+
 printf "\n\n---- sval with serde ----\n\n"
 cargo test --features serde
 
@@ -25,5 +28,9 @@ cargo test --features std
 popd
 
 # other builds
+# Benches are checked in the `nightly` build
+# Format consistency is checked in the `beta` build
 printf "\n\n---- integration tests ----\n\n"
-cargo test --all --exclude sval_json_benches
+cargo test --all \
+  --exclude sval_json_benches \
+  --exclude sval_fmt_tests

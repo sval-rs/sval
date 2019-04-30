@@ -1,3 +1,7 @@
+#![cfg(test)]
+
+extern crate sval;
+
 use std::fmt::{
     self,
     Debug,
@@ -187,7 +191,7 @@ impl Value for WeirdMapKeys {
 }
 
 #[test]
-fn sval_fmt() {
+fn sval_fmt_is_consistent() {
     fn check(value: (impl Value + Debug)) {
         let sval = format!("{:?}", sval::fmt::to_debug(&value));
         let std = format!("{:?}", value);
@@ -203,7 +207,7 @@ fn sval_fmt() {
 }
 
 #[test]
-fn sval_alternate_fmt() {
+fn sval_alternate_fmt_is_consistent() {
     fn check(value: (impl Value + Debug)) {
         let sval = format!("{:#?}", sval::fmt::to_debug(&value));
         let std = format!("{:#?}", value);

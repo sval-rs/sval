@@ -1,3 +1,11 @@
+#![cfg(test)]
+
+#[macro_use]
+extern crate sval;
+
+#[macro_use]
+extern crate serde;
+
 use sval::{
     test::Token as SvalToken,
     value::{

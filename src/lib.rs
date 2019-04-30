@@ -365,7 +365,9 @@ mod collect;
 #[cfg(any(test, feature = "test"))]
 pub mod test;
 
+#[cfg(feature = "fmt")]
 pub mod fmt;
+
 #[cfg(feature = "serde")]
 pub mod serde;
 

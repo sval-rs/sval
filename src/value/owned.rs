@@ -106,7 +106,15 @@ impl Value for OwnedValue {
 
 impl Debug for OwnedValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        crate::fmt::debug(self, f)
+        #[cfg(feature = "fmt")]
+        {
+            crate::fmt::debug(self, f)
+        }
+
+        #[cfg(not(feature = "fmt"))]
+        {
+            f.debug_struct("OwnedValue").finish()
+        }
     }
 }
 
