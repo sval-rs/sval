@@ -118,17 +118,17 @@ pub struct Stack {
 struct Slot(u8);
 
 impl Slot {
-    const EMPTY: u8 =   0b0000_0000;
+    const EMPTY: u8 = 0b0000_0000;
 
-    const DONE: u8 =    0b0000_0001;
+    const DONE: u8 = 0b0000_0001;
 
-    const ROOT: u8 =    0b1000_0000;
-    const MAP: u8 =     0b0100_0000;
-    const SEQ: u8 =     0b0010_0000;
+    const ROOT: u8 = 0b1000_0000;
+    const MAP: u8 = 0b0100_0000;
+    const SEQ: u8 = 0b0010_0000;
 
-    const KEY: u8 =     0b0001_0000;
-    const VAL: u8 =     0b0000_1000;
-    const ELEM: u8 =    0b0000_0100;
+    const KEY: u8 = 0b0001_0000;
+    const VAL: u8 = 0b0000_1000;
+    const ELEM: u8 = 0b0000_0100;
 
     const MASK_POS: u8 = Self::ROOT | Self::KEY | Self::VAL | Self::ELEM;
 
