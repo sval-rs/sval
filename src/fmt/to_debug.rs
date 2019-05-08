@@ -93,7 +93,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
             self.fmt.write_str(delim)?;
         }
 
-        write!(self.fmt, "{:?}", v)?;
+        v.fmt(&mut self.fmt)?;
 
         Ok(())
     }
