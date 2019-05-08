@@ -2,14 +2,12 @@ use crate::{
     collect::{
         Collect,
         OwnedCollect,
-    },
-    stream::{
         stack::{
             DebugRefMut,
             DebugStack,
         },
-        Arguments,
     },
+    stream::Arguments,
     value::{
         Error,
         Value,

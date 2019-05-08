@@ -3,14 +3,12 @@ use crate::{
         value::Value,
         Collect,
         Error,
-    },
-    stream::{
         stack::{
             DebugBorrowMut,
             DebugStack,
         },
-        Arguments,
     },
+    stream::Arguments,
     value,
 };
 

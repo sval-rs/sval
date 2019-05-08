@@ -13,6 +13,7 @@ use crate::stream::{
 
 mod owned;
 mod value;
+pub(crate) mod stack;
 
 #[doc(inline)]
 pub use crate::Error;

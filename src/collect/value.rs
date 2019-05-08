@@ -2,10 +2,10 @@ use crate::{
     collect::{
         Collect,
         Error,
-    },
-    stream::stack::{
-        DebugRefMut,
-        DebugStack,
+        stack::{
+            DebugRefMut,
+            DebugStack,
+        },
     },
     value,
 };
