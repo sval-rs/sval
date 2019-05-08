@@ -6,7 +6,6 @@ extern crate test;
 use sval::{
     stream::{
         self,
-        OwnedStream,
         Stream,
     },
     value::{
@@ -180,5 +179,5 @@ fn stream_map(b: &mut Bencher) {
         }
     }
 
-    b.iter(|| OwnedStream::stream(Map, EmptyStream))
+    b.iter(|| sval::stream(Map, EmptyStream))
 }
