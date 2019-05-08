@@ -34,7 +34,7 @@ fn collect_complex(b: &mut Bencher) {
     struct Map;
 
     impl value::Value for Map {
-        fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.map_begin(None)?;
 
             stream.map_key(1)?;

@@ -9,6 +9,7 @@ use crate::{
     },
     stream::Arguments,
     value::{
+        self,
         Error,
         Value,
     },
@@ -36,7 +37,7 @@ impl<'a> Stream<'a> {
     Stream a value.
     */
     #[inline]
-    pub fn any(&mut self, v: impl Value) -> Result<(), Error> {
+    pub fn any(&mut self, v: impl Value) -> value::Result {
         v.stream(self)
     }
 
@@ -44,7 +45,7 @@ impl<'a> Stream<'a> {
     Stream a format.
     */
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> Result<(), Error> {
+    pub fn fmt(&mut self, f: Arguments) -> value::Result {
         self.0.fmt(f)
     }
 
@@ -52,7 +53,7 @@ impl<'a> Stream<'a> {
     Stream a signed integer.
     */
     #[inline]
-    pub fn i64(&mut self, v: i64) -> Result<(), Error> {
+    pub fn i64(&mut self, v: i64) -> value::Result {
         self.0.i64(v)
     }
 
@@ -60,7 +61,7 @@ impl<'a> Stream<'a> {
     Stream an unsigned integer.
     */
     #[inline]
-    pub fn u64(&mut self, v: u64) -> Result<(), Error> {
+    pub fn u64(&mut self, v: u64) -> value::Result {
         self.0.u64(v)
     }
 
@@ -68,7 +69,7 @@ impl<'a> Stream<'a> {
     Stream a 128-bit signed integer.
     */
     #[inline]
-    pub fn i128(&mut self, v: i128) -> Result<(), Error> {
+    pub fn i128(&mut self, v: i128) -> value::Result {
         self.0.i128(v)
     }
 
@@ -76,7 +77,7 @@ impl<'a> Stream<'a> {
     Stream a 128-bit unsigned integer.
     */
     #[inline]
-    pub fn u128(&mut self, v: u128) -> Result<(), Error> {
+    pub fn u128(&mut self, v: u128) -> value::Result {
         self.0.u128(v)
     }
 
@@ -84,7 +85,7 @@ impl<'a> Stream<'a> {
     Stream a floating point value.
     */
     #[inline]
-    pub fn f64(&mut self, v: f64) -> Result<(), Error> {
+    pub fn f64(&mut self, v: f64) -> value::Result {
         self.0.f64(v)
     }
 
@@ -92,7 +93,7 @@ impl<'a> Stream<'a> {
     Stream a boolean.
     */
     #[inline]
-    pub fn bool(&mut self, v: bool) -> Result<(), Error> {
+    pub fn bool(&mut self, v: bool) -> value::Result {
         self.0.bool(v)
     }
 
@@ -100,7 +101,7 @@ impl<'a> Stream<'a> {
     Stream a unicode character.
     */
     #[inline]
-    pub fn char(&mut self, v: char) -> Result<(), Error> {
+    pub fn char(&mut self, v: char) -> value::Result {
         self.0.char(v)
     }
 
@@ -108,7 +109,7 @@ impl<'a> Stream<'a> {
     Stream a UTF8 string.
     */
     #[inline]
-    pub fn str(&mut self, v: &str) -> Result<(), Error> {
+    pub fn str(&mut self, v: &str) -> value::Result {
         self.0.str(v)
     }
 
@@ -116,7 +117,7 @@ impl<'a> Stream<'a> {
     Stream an empty value.
     */
     #[inline]
-    pub fn none(&mut self) -> Result<(), Error> {
+    pub fn none(&mut self) -> value::Result {
         self.0.none()
     }
 
@@ -124,7 +125,7 @@ impl<'a> Stream<'a> {
     Begin a map.
     */
     #[inline]
-    pub fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+    pub fn map_begin(&mut self, len: Option<usize>) -> value::Result {
         self.0.map_begin(len)
     }
 
@@ -132,7 +133,7 @@ impl<'a> Stream<'a> {
     Stream a map key.
     */
     #[inline]
-    pub fn map_key(&mut self, k: impl Value) -> Result<(), Error> {
+    pub fn map_key(&mut self, k: impl Value) -> value::Result {
         self.0.map_key(k)
     }
 
@@ -140,7 +141,7 @@ impl<'a> Stream<'a> {
     Stream a map value.
     */
     #[inline]
-    pub fn map_value(&mut self, v: impl Value) -> Result<(), Error> {
+    pub fn map_value(&mut self, v: impl Value) -> value::Result {
         self.0.map_value(v)
     }
 
@@ -148,7 +149,7 @@ impl<'a> Stream<'a> {
     End a map.
     */
     #[inline]
-    pub fn map_end(&mut self) -> Result<(), Error> {
+    pub fn map_end(&mut self) -> value::Result {
         self.0.map_end()
     }
 
@@ -156,7 +157,7 @@ impl<'a> Stream<'a> {
     Begin a sequence.
     */
     #[inline]
-    pub fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+    pub fn seq_begin(&mut self, len: Option<usize>) -> value::Result {
         self.0.seq_begin(len)
     }
 
@@ -164,7 +165,7 @@ impl<'a> Stream<'a> {
     Stream a sequence element.
     */
     #[inline]
-    pub fn seq_elem(&mut self, v: impl Value) -> Result<(), Error> {
+    pub fn seq_elem(&mut self, v: impl Value) -> value::Result {
         self.0.seq_elem(v)
     }
 
@@ -172,7 +173,7 @@ impl<'a> Stream<'a> {
     End a sequence.
     */
     #[inline]
-    pub fn seq_end(&mut self) -> Result<(), Error> {
+    pub fn seq_end(&mut self) -> value::Result {
         self.0.seq_end()
     }
 }

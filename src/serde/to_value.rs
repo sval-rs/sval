@@ -26,7 +26,7 @@ impl<T> value::Value for ToValue<T>
 where
     T: Serialize,
 {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         self.0
             .serialize(Serializer(stream))
             .map_err(err("error streaming serde"))?;

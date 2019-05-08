@@ -69,7 +69,7 @@ use sval::value::{self, Value};
 struct MyId(u64);
 
 impl Value for MyId {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.u64(self.0)
     }
 }

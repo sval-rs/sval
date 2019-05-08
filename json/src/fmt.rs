@@ -97,14 +97,14 @@ where
     W: Write,
 {
     #[inline]
-    fn begin(&mut self) -> Result<(), stream::Error> {
+    fn begin(&mut self) -> stream::Result {
         self.stack.begin()?;
 
         Ok(())
     }
 
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -119,7 +119,7 @@ where
     }
 
     #[inline]
-    fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
+    fn i64(&mut self, v: i64) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
@@ -138,7 +138,7 @@ where
     }
 
     #[inline]
-    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, v: u64) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
@@ -157,7 +157,7 @@ where
     }
 
     #[inline]
-    fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
+    fn f64(&mut self, v: f64) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
@@ -176,7 +176,7 @@ where
     }
 
     #[inline]
-    fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
+    fn bool(&mut self, v: bool) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
@@ -195,7 +195,7 @@ where
     }
 
     #[inline]
-    fn char(&mut self, v: char) -> Result<(), stream::Error> {
+    fn char(&mut self, v: char) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
@@ -214,7 +214,7 @@ where
     }
 
     #[inline]
-    fn str(&mut self, v: &str) -> Result<(), stream::Error> {
+    fn str(&mut self, v: &str) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -229,7 +229,7 @@ where
     }
 
     #[inline]
-    fn none(&mut self) -> Result<(), stream::Error> {
+    fn none(&mut self) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
@@ -248,7 +248,7 @@ where
     }
 
     #[inline]
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.stack.seq_begin()?.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
@@ -265,14 +265,14 @@ where
     }
 
     #[inline]
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+    fn seq_elem(&mut self) -> stream::Result {
         self.stack.seq_elem()?;
 
         Ok(())
     }
 
     #[inline]
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
+    fn seq_end(&mut self) -> stream::Result {
         let pos = self.stack.seq_end()?;
 
         self.delim = Self::next_delim(pos);
@@ -282,7 +282,7 @@ where
     }
 
     #[inline]
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.stack.map_begin()?.is_key() {
             return Err(stream::Error::msg(
                 "only strings are supported as json keys",
@@ -299,21 +299,21 @@ where
     }
 
     #[inline]
-    fn map_key(&mut self) -> Result<(), stream::Error> {
+    fn map_key(&mut self) -> stream::Result {
         self.stack.map_key()?;
 
         Ok(())
     }
 
     #[inline]
-    fn map_value(&mut self) -> Result<(), stream::Error> {
+    fn map_value(&mut self) -> stream::Result {
         self.stack.map_value()?;
 
         Ok(())
     }
 
     #[inline]
-    fn map_end(&mut self) -> Result<(), stream::Error> {
+    fn map_end(&mut self) -> stream::Result {
         let pos = self.stack.map_end()?;
 
         self.delim = Self::next_delim(pos);
@@ -323,7 +323,7 @@ where
     }
 
     #[inline]
-    fn end(&mut self) -> Result<(), stream::Error> {
+    fn end(&mut self) -> stream::Result {
         self.stack.end()?;
 
         Ok(())

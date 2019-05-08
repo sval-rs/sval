@@ -1,11 +1,11 @@
 use crate::{
     collect::{
+        self,
         stack::{
             DebugRefMut,
             DebugStack,
         },
         Collect,
-        Error,
     },
     value,
 };
@@ -28,7 +28,7 @@ impl<'a> Value<'a> {
     Stream this value.
     */
     #[inline]
-    pub(crate) fn stream(self, mut stream: impl Collect) -> Result<(), Error> {
+    pub(crate) fn stream(self, mut stream: impl Collect) -> collect::Result {
         let mut stream = value::Stream::new(&mut stream, self.stack);
 
         stream.any(self.value)?;

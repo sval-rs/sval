@@ -34,11 +34,11 @@ pub(crate) use self::{
 An extension to `Stream` for items that are known upfront.
 */
 pub(crate) trait Collect: Stream {
-    fn map_key_collect(&mut self, k: Value) -> Result<(), Error>;
+    fn map_key_collect(&mut self, k: Value) -> Result;
 
-    fn map_value_collect(&mut self, v: Value) -> Result<(), Error>;
+    fn map_value_collect(&mut self, v: Value) -> Result;
 
-    fn seq_elem_collect(&mut self, v: Value) -> Result<(), Error>;
+    fn seq_elem_collect(&mut self, v: Value) -> Result;
 }
 
 impl<'a, S: ?Sized> Collect for &'a mut S
@@ -46,17 +46,17 @@ where
     S: Collect,
 {
     #[inline]
-    fn map_key_collect(&mut self, k: Value) -> Result<(), Error> {
+    fn map_key_collect(&mut self, k: Value) -> Result {
         (**self).map_key_collect(k)
     }
 
     #[inline]
-    fn map_value_collect(&mut self, v: Value) -> Result<(), Error> {
+    fn map_value_collect(&mut self, v: Value) -> Result {
         (**self).map_value_collect(v)
     }
 
     #[inline]
-    fn seq_elem_collect(&mut self, v: Value) -> Result<(), Error> {
+    fn seq_elem_collect(&mut self, v: Value) -> Result {
         (**self).seq_elem_collect(v)
     }
 }
@@ -71,7 +71,7 @@ where
     S: Stream,
 {
     #[inline]
-    fn map_key_collect(&mut self, k: Value) -> Result<(), Error> {
+    fn map_key_collect(&mut self, k: Value) -> Result {
         Stream::map_key(self)?;
         k.stream(self)?;
 
@@ -79,7 +79,7 @@ where
     }
 
     #[inline]
-    fn map_value_collect(&mut self, v: Value) -> Result<(), Error> {
+    fn map_value_collect(&mut self, v: Value) -> Result {
         Stream::map_value(self)?;
         v.stream(self)?;
 
@@ -87,7 +87,7 @@ where
     }
 
     #[inline]
-    fn seq_elem_collect(&mut self, v: Value) -> Result<(), Error> {
+    fn seq_elem_collect(&mut self, v: Value) -> Result {
         Stream::seq_elem(self)?;
         v.stream(self)?;
 
@@ -100,97 +100,99 @@ where
     S: Stream,
 {
     #[inline]
-    fn begin(&mut self) -> Result<(), Error> {
+    fn begin(&mut self) -> Result {
         self.0.begin()
     }
 
     #[inline]
-    fn fmt(&mut self, args: stream::Arguments) -> Result<(), Error> {
+    fn fmt(&mut self, args: stream::Arguments) -> Result {
         self.0.fmt(args)
     }
 
     #[inline]
-    fn i64(&mut self, v: i64) -> Result<(), Error> {
+    fn i64(&mut self, v: i64) -> Result {
         self.0.i64(v)
     }
 
     #[inline]
-    fn u64(&mut self, v: u64) -> Result<(), Error> {
+    fn u64(&mut self, v: u64) -> Result {
         self.0.u64(v)
     }
 
     #[inline]
-    fn i128(&mut self, v: i128) -> Result<(), Error> {
+    fn i128(&mut self, v: i128) -> Result {
         self.0.i128(v)
     }
 
     #[inline]
-    fn u128(&mut self, v: u128) -> Result<(), Error> {
+    fn u128(&mut self, v: u128) -> Result {
         self.0.u128(v)
     }
 
     #[inline]
-    fn f64(&mut self, v: f64) -> Result<(), Error> {
+    fn f64(&mut self, v: f64) -> Result {
         self.0.f64(v)
     }
 
     #[inline]
-    fn bool(&mut self, v: bool) -> Result<(), Error> {
+    fn bool(&mut self, v: bool) -> Result {
         self.0.bool(v)
     }
 
     #[inline]
-    fn char(&mut self, v: char) -> Result<(), Error> {
+    fn char(&mut self, v: char) -> Result {
         self.0.char(v)
     }
 
     #[inline]
-    fn str(&mut self, v: &str) -> Result<(), Error> {
+    fn str(&mut self, v: &str) -> Result {
         self.0.str(v)
     }
 
     #[inline]
-    fn none(&mut self) -> Result<(), Error> {
+    fn none(&mut self) -> Result {
         self.0.none()
     }
 
     #[inline]
-    fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+    fn map_begin(&mut self, len: Option<usize>) -> Result {
         self.0.map_begin(len)
     }
 
     #[inline]
-    fn map_key(&mut self) -> Result<(), Error> {
+    fn map_key(&mut self) -> Result {
         self.0.map_key()
     }
 
     #[inline]
-    fn map_value(&mut self) -> Result<(), Error> {
+    fn map_value(&mut self) -> Result {
         self.0.map_value()
     }
 
     #[inline]
-    fn map_end(&mut self) -> Result<(), Error> {
+    fn map_end(&mut self) -> Result {
         self.0.map_end()
     }
 
     #[inline]
-    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+    fn seq_begin(&mut self, len: Option<usize>) -> Result {
         self.0.seq_begin(len)
     }
 
     #[inline]
-    fn seq_elem(&mut self) -> Result<(), Error> {
+    fn seq_elem(&mut self) -> Result {
         self.0.seq_elem()
     }
 
     #[inline]
-    fn seq_end(&mut self) -> Result<(), Error> {
+    fn seq_end(&mut self) -> Result {
         self.0.seq_end()
     }
 
     #[inline]
-    fn end(&mut self) -> Result<(), Error> {
+    fn end(&mut self) -> Result {
         self.0.end()
     }
 }
+
+pub type Result = std::result::Result<(), Error>;
