@@ -1,11 +1,11 @@
 use crate::{
     collect::{
-        Collect,
-        OwnedCollect,
         stack::{
             DebugRefMut,
             DebugStack,
         },
+        Collect,
+        OwnedCollect,
     },
     stream::Arguments,
     value::{

@@ -12,8 +12,8 @@ use crate::stream::{
 };
 
 mod owned;
-mod value;
 pub(crate) mod stack;
+mod value;
 
 #[doc(inline)]
 pub use crate::Error;

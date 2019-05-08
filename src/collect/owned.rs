@@ -1,12 +1,12 @@
 use crate::{
     collect::{
-        value::Value,
-        Collect,
-        Error,
         stack::{
             DebugBorrowMut,
             DebugStack,
         },
+        value::Value,
+        Collect,
+        Error,
     },
     stream::Arguments,
     value,

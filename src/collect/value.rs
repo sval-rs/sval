@@ -1,11 +1,11 @@
 use crate::{
     collect::{
-        Collect,
-        Error,
         stack::{
             DebugRefMut,
             DebugStack,
         },
+        Collect,
+        Error,
     },
     value,
 };
