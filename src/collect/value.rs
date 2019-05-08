@@ -6,6 +6,7 @@ use crate::{
             DebugStack,
         },
         Collect,
+        OwnedCollect,
     },
     value,
 };
@@ -28,10 +29,11 @@ impl<'a> Value<'a> {
     Stream this value.
     */
     #[inline]
-    pub(crate) fn stream(self, mut stream: impl Collect) -> collect::Result {
-        let mut stream = value::Stream::new(&mut stream, self.stack);
+    pub(crate) fn stream(self, stream: impl Collect) -> collect::Result {
+        let mut stream = OwnedCollect::new(stream, self.stack);
 
-        stream.any(self.value)?;
+        self.value
+            .stream(&mut value::Stream::new(stream.borrow_mut()))?;
 
         Ok(())
     }

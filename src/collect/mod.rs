@@ -19,7 +19,10 @@ mod value;
 pub use crate::Error;
 
 pub(crate) use self::{
-    owned::OwnedCollect,
+    owned::{
+        OwnedCollect,
+        RefMutCollect,
+    },
     value::Value,
 };
 

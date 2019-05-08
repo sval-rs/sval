@@ -32,7 +32,15 @@ use crate::{
 An owned, immutable value.
 
 Owned values are safe to share and are cheap to clone.
+
+Add the `std` feature to your `Cargo.toml` to enable this type:
+
+```toml,no_run
+[dependencies.sval]
+features = ["std"]
+```
 */
+#[derive(Clone)]
 pub struct OwnedValue(ValueInner);
 
 impl OwnedValue {
@@ -73,13 +81,9 @@ impl OwnedValue {
     pub fn from_shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
         OwnedValue(ValueInner::Shared(v.into()))
     }
-
-    #[deprecated(since = "0.1.2", note = "use `collect` instead")]
-    pub fn from_value(v: impl Value) -> Self {
-        Self::collect(v)
-    }
 }
 
+#[derive(Clone)]
 enum ValueInner {
     Error(Arc<value::Error>),
     Shared(Arc<dyn Value + Send + Sync>),

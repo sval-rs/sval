@@ -3,6 +3,7 @@ use crate::{
         self,
         stack::{
             DebugBorrowMut,
+            DebugRefMut,
             DebugStack,
         },
         value::Value,
@@ -29,10 +30,13 @@ where
     }
 
     #[inline]
-    pub fn any(&mut self, v: impl value::Value) -> collect::Result {
-        let mut stream = value::Stream::new(&mut self.stream, self.stack.borrow_mut());
+    pub(crate) fn borrow_mut(&mut self) -> RefMutCollect {
+        RefMutCollect(OwnedCollect::new(&mut self.stream, self.stack.borrow_mut()))
+    }
 
-        stream.any(v)
+    #[inline]
+    pub fn any(&mut self, v: impl value::Value) -> collect::Result {
+        v.stream(&mut value::Stream::new(self.borrow_mut()))
     }
 
     #[inline]
@@ -261,5 +265,122 @@ where
         })?;
 
         Ok(self.stream)
+    }
+}
+
+pub(crate) struct RefMutCollect<'a>(OwnedCollect<&'a mut dyn Collect, DebugRefMut<'a, DebugStack>>);
+
+impl<'a> RefMutCollect<'a> {
+    #[inline]
+    pub fn fmt(&mut self, f: Arguments) -> value::Result {
+        self.0.fmt(f)
+    }
+
+    #[inline]
+    pub fn any(&mut self, v: impl value::Value) -> collect::Result {
+        self.0.any(v)
+    }
+
+    #[inline]
+    pub fn i64(&mut self, v: i64) -> value::Result {
+        self.0.i64(v)
+    }
+
+    #[inline]
+    pub fn u64(&mut self, v: u64) -> value::Result {
+        self.0.u64(v)
+    }
+
+    #[inline]
+    pub fn i128(&mut self, v: i128) -> value::Result {
+        self.0.i128(v)
+    }
+
+    #[inline]
+    pub fn u128(&mut self, v: u128) -> value::Result {
+        self.0.u128(v)
+    }
+
+    #[inline]
+    pub fn f64(&mut self, v: f64) -> value::Result {
+        self.0.f64(v)
+    }
+
+    #[inline]
+    pub fn bool(&mut self, v: bool) -> value::Result {
+        self.0.bool(v)
+    }
+
+    #[inline]
+    pub fn char(&mut self, v: char) -> value::Result {
+        self.0.char(v)
+    }
+
+    #[inline]
+    pub fn str(&mut self, v: &str) -> value::Result {
+        self.0.str(v)
+    }
+
+    #[inline]
+    pub fn none(&mut self) -> value::Result {
+        self.0.none()
+    }
+
+    #[inline]
+    pub fn map_begin(&mut self, len: Option<usize>) -> value::Result {
+        self.0.map_begin(len)
+    }
+
+    #[inline]
+    pub fn map_key(&mut self, k: impl value::Value) -> value::Result {
+        self.0.map_key(k)
+    }
+
+    #[inline]
+    pub fn map_value(&mut self, v: impl value::Value) -> value::Result {
+        self.0.map_value(v)
+    }
+
+    #[inline]
+    pub fn map_end(&mut self) -> value::Result {
+        self.0.map_end()
+    }
+
+    #[inline]
+    pub fn seq_begin(&mut self, len: Option<usize>) -> value::Result {
+        self.0.seq_begin(len)
+    }
+
+    #[inline]
+    pub fn seq_elem(&mut self, v: impl value::Value) -> value::Result {
+        self.0.seq_elem(v)
+    }
+
+    #[inline]
+    pub fn seq_end(&mut self) -> value::Result {
+        self.0.seq_end()
+    }
+}
+
+impl<'a> RefMutCollect<'a> {
+    #[inline]
+    pub fn map_key_begin(&mut self) -> Result<&mut Self, Error> {
+        self.0.map_key_begin()?;
+
+        Ok(self)
+    }
+
+    #[inline]
+    pub fn map_value_begin(&mut self) -> Result<&mut Self, Error> {
+        self.0.map_value_begin()?;
+
+        Ok(self)
+    }
+
+    #[inline]
+    pub fn seq_elem_begin(&mut self) -> Result<&mut Self, Error> {
+        self.0.seq_elem_begin()?;
+
+        Ok(self)
     }
 }

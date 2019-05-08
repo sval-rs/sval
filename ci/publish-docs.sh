@@ -8,10 +8,10 @@ if [ "$BRANCH" == "master" ]; then
     echo "uploading crate docs"
 
     pushd json
-    cargo doc --no-deps --features "std"
+    cargo doc --no-deps --all-features
     popd
 
-    cargo doc --no-deps --features "std serde test"
+    cargo doc --no-deps --all-features
 
     REV=$(git rev-parse --short HEAD)
     cd target/doc

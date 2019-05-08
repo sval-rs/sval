@@ -29,6 +29,7 @@ This library requires Rust `1.31.0`.
 - `std`: assume `std` is available and add support for `std` types.
 - `derive`: add support for `#[derive(Value)]`.
 - `serde`: enable integration with `serde`.
+- `fmt`: support converting any `Value` into a `Debug`.
 - `arbitrary-depth`: support stateful values with any depth.
 - `test`: add helpers for testing implementations of `Value`.
 

@@ -12,12 +12,15 @@ pub use crate::Error;
 
 pub use self::{
     fmt::Arguments,
-    owned::OwnedStream,
+    owned::{
+        OwnedStream,
+        RefMutStream,
+    },
     stack::Stack,
 };
 
 /**
-A raw value stream.
+A receiver for the structure of a value.
 
 The `Stream` trait has a flat, stateless structure, but it may need to work with
 nested values. Implementations can use a [`Stack`] to track state for them.
