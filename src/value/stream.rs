@@ -4,7 +4,10 @@ use crate::{
         OwnedCollect,
     },
     stream::{
-        stack::DebugStack,
+        stack::{
+            DebugRefMut,
+            DebugStack,
+        },
         Arguments,
     },
     value::{
@@ -23,11 +26,11 @@ see [`stream::OwnedStream`] instead.
 [`stream::Stream`]: ../stream/trait.Stream.html
 [`stream::OwnedStream`]: ../stream/struct.OwnedStream.html
 */
-pub struct Stream<'a>(OwnedCollect<&'a mut dyn Collect, &'a mut DebugStack>);
+pub struct Stream<'a>(OwnedCollect<&'a mut dyn Collect, DebugRefMut<'a, DebugStack>>);
 
 impl<'a> Stream<'a> {
     #[inline]
-    pub(crate) fn new(stream: &'a mut impl Collect, stack: &'a mut DebugStack) -> Self {
+    pub(crate) fn new(stream: &'a mut impl Collect, stack: DebugRefMut<'a, DebugStack>) -> Self {
         Stream(OwnedCollect::new(stream, stack))
     }
 

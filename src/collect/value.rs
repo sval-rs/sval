@@ -3,7 +3,10 @@ use crate::{
         Collect,
         Error,
     },
-    stream::stack::DebugStack,
+    stream::stack::{
+        DebugRefMut,
+        DebugStack,
+    },
     value,
 };
 
@@ -11,13 +14,13 @@ use crate::{
 A value that's known upfront.
 */
 pub(crate) struct Value<'a> {
-    stack: &'a mut DebugStack,
+    stack: DebugRefMut<'a, DebugStack>,
     value: &'a dyn value::Value,
 }
 
 impl<'a> Value<'a> {
     #[inline]
-    pub(crate) fn new(value: &'a impl value::Value, stack: &'a mut DebugStack) -> Self {
+    pub(crate) fn new(value: &'a impl value::Value, stack: DebugRefMut<'a, DebugStack>) -> Self {
         Value { stack, value }
     }
 
@@ -31,20 +34,5 @@ impl<'a> Value<'a> {
         stream.any(self.value)?;
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[cfg(not(debug_assertions))]
-    mod release {
-        use super::super::*;
-
-        use crate::std::mem;
-
-        #[test]
-        fn debug_stack_is_zero_sized() {
-            assert_eq!(0, mem::size_of::<DebugStack>());
-        }
     }
 }
