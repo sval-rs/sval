@@ -28,7 +28,7 @@ sval::stream(42, MyStream)?;
 # use sval::stream::{self, Stream};
 # struct MyStream;
 # impl Stream for MyStream {
-#     fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> { unimplemented!() }
+#     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
 # }
 ```
 
@@ -67,7 +67,7 @@ use sval::value::{self, Value};
 pub struct Id(u64);
 
 impl Value for Id {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.u64(self.0)
     }
 }
@@ -83,7 +83,7 @@ use sval::value::{self, Value};
 pub struct Seq(Vec<u64>);
 
 impl Value for Seq {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.seq_begin(Some(self.0.len()))?;
 
         for v in &self.0 {
@@ -109,7 +109,7 @@ use sval::value::{self, Value};
 pub struct Map(BTreeMap<String, u64>);
 
 impl Value for Map {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(Some(self.0.len()))?;
 
         for (k, v) in &self.0 {
@@ -135,7 +135,7 @@ use sval::value::{self, Value};
 pub struct Map;
 
 impl Value for Map {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(Some(1))?;
 
         stream.map_key_begin()?.str("nested")?;
@@ -161,7 +161,7 @@ use sval::stream::{self, Stream};
 struct Fmt;
 
 impl Stream for Fmt {
-    fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         println!("{}", v);
 
         Ok(())
@@ -191,13 +191,13 @@ pub fn is_u64(v: impl Value) -> bool {
 
 struct IsU64(Option<u64>);
 impl Stream for IsU64 {
-    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, v: u64) -> stream::Result {
         self.0 = Some(v);
 
         Ok(())
     }
 
-    fn fmt(&mut self, _: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
         Err(stream::Error::msg("not a u64"))
     }
 }
@@ -234,7 +234,7 @@ impl Fmt {
 }
 
 impl Stream for Fmt {
-    fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
@@ -243,7 +243,7 @@ impl Stream for Fmt {
         Ok(())
     }
 
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         self.stack.seq_begin()?;
 
         let delim = mem::replace(&mut self.delim, "");
@@ -252,13 +252,13 @@ impl Stream for Fmt {
         Ok(())
     }
 
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+    fn seq_elem(&mut self) -> stream::Result {
         self.stack.seq_elem()?;
 
         Ok(())
     }
 
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
+    fn seq_end(&mut self) -> stream::Result {
         let pos = self.stack.seq_end()?;
 
         self.delim = Self::next_delim(pos);
@@ -267,7 +267,7 @@ impl Stream for Fmt {
         Ok(())
     }
 
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         self.stack.map_begin()?;
 
         let delim = mem::replace(&mut self.delim, "");
@@ -276,19 +276,19 @@ impl Stream for Fmt {
         Ok(())
     }
 
-    fn map_key(&mut self) -> Result<(), stream::Error> {
+    fn map_key(&mut self) -> stream::Result {
         self.stack.map_key()?;
 
         Ok(())
     }
 
-    fn map_value(&mut self) -> Result<(), stream::Error> {
+    fn map_value(&mut self) -> stream::Result {
         self.stack.map_value()?;
 
         Ok(())
     }
 
-    fn map_end(&mut self) -> Result<(), stream::Error> {
+    fn map_end(&mut self) -> stream::Result {
         let pos = self.stack.map_end()?;
 
         self.delim = Self::next_delim(pos);
@@ -297,7 +297,7 @@ impl Stream for Fmt {
         Ok(())
     }
 
-    fn end(&mut self) -> Result<(), stream::Error> {
+    fn end(&mut self) -> stream::Result {
         self.stack.end()?;
 
         println!();

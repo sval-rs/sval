@@ -88,7 +88,7 @@ enum ValueInner {
 }
 
 impl Value for OwnedValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         match self.0 {
             ValueInner::Error(ref e) => Err(Error::custom(e)),
             ValueInner::Shared(ref v) => v.stream(stream),
@@ -151,7 +151,7 @@ pub(crate) struct Token {
 }
 
 impl Token {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         use self::Kind::*;
 
         match self.kind {
@@ -202,7 +202,7 @@ impl Buf {
 }
 
 impl Stream for Buf {
-    fn fmt(&mut self, f: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Str(f.to_string()), depth);
@@ -210,7 +210,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
+    fn i64(&mut self, v: i64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Signed(v), depth);
@@ -218,7 +218,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, v: u64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Unsigned(v), depth);
@@ -226,7 +226,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn i128(&mut self, v: i128) -> Result<(), stream::Error> {
+    fn i128(&mut self, v: i128) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::BigSigned(v), depth);
@@ -234,7 +234,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn u128(&mut self, v: u128) -> Result<(), stream::Error> {
+    fn u128(&mut self, v: u128) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::BigUnsigned(v), depth);
@@ -242,7 +242,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
+    fn f64(&mut self, v: f64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Float(v), depth);
@@ -250,7 +250,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
+    fn bool(&mut self, v: bool) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Bool(v), depth);
@@ -258,7 +258,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn char(&mut self, v: char) -> Result<(), stream::Error> {
+    fn char(&mut self, v: char) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Char(v), depth);
@@ -266,7 +266,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn str(&mut self, v: &str) -> Result<(), stream::Error> {
+    fn str(&mut self, v: &str) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Str(v.to_string()), depth);
@@ -274,7 +274,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn none(&mut self) -> Result<(), stream::Error> {
+    fn none(&mut self) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::None, depth);
@@ -282,7 +282,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn map_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         let depth = self.stack.map_begin()?.depth();
 
         self.push(Kind::MapBegin(len), depth);
@@ -290,7 +290,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn map_key(&mut self) -> Result<(), stream::Error> {
+    fn map_key(&mut self) -> stream::Result {
         let depth = self.stack.map_key()?.depth();
 
         self.push(Kind::MapKey, depth);
@@ -298,7 +298,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn map_value(&mut self) -> Result<(), stream::Error> {
+    fn map_value(&mut self) -> stream::Result {
         let depth = self.stack.map_value()?.depth();
 
         self.push(Kind::MapValue, depth);
@@ -306,7 +306,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn map_end(&mut self) -> Result<(), stream::Error> {
+    fn map_end(&mut self) -> stream::Result {
         let depth = self.stack.map_end()?.depth();
 
         self.push(Kind::MapEnd, depth);
@@ -314,7 +314,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn seq_begin(&mut self, len: Option<usize>) -> Result<(), stream::Error> {
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
         let depth = self.stack.seq_begin()?.depth();
 
         self.push(Kind::SeqBegin(len), depth);
@@ -322,7 +322,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+    fn seq_elem(&mut self) -> stream::Result {
         let depth = self.stack.seq_elem()?.depth();
 
         self.push(Kind::SeqElem, depth);
@@ -330,7 +330,7 @@ impl Stream for Buf {
         Ok(())
     }
 
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
+    fn seq_end(&mut self) -> stream::Result {
         let depth = self.stack.seq_end()?.depth();
 
         self.push(Kind::SeqEnd, depth);
@@ -364,7 +364,7 @@ impl Primitive {
 }
 
 impl Stream for Primitive {
-    fn fmt(&mut self, f: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::Str(f.to_string()), depth);
@@ -372,7 +372,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
+    fn i64(&mut self, v: i64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::Signed(v), depth);
@@ -380,7 +380,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, v: u64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::Unsigned(v), depth);
@@ -388,7 +388,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn i128(&mut self, v: i128) -> Result<(), stream::Error> {
+    fn i128(&mut self, v: i128) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::BigSigned(v), depth);
@@ -396,7 +396,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn u128(&mut self, v: u128) -> Result<(), stream::Error> {
+    fn u128(&mut self, v: u128) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::BigUnsigned(v), depth);
@@ -404,7 +404,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
+    fn f64(&mut self, v: f64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::Float(v), depth);
@@ -412,7 +412,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
+    fn bool(&mut self, v: bool) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::Bool(v), depth);
@@ -420,7 +420,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn char(&mut self, v: char) -> Result<(), stream::Error> {
+    fn char(&mut self, v: char) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::Char(v), depth);
@@ -428,7 +428,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn str(&mut self, v: &str) -> Result<(), stream::Error> {
+    fn str(&mut self, v: &str) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::Str(v.to_string()), depth);
@@ -436,7 +436,7 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn none(&mut self) -> Result<(), stream::Error> {
+    fn none(&mut self) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.set(Kind::None, depth);
@@ -444,31 +444,31 @@ impl Stream for Primitive {
         Ok(())
     }
 
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         Err(stream::Error::msg("unsupported primitive"))
     }
 
-    fn map_key(&mut self) -> Result<(), stream::Error> {
+    fn map_key(&mut self) -> stream::Result {
         Err(stream::Error::msg("unsupported primitive"))
     }
 
-    fn map_value(&mut self) -> Result<(), stream::Error> {
+    fn map_value(&mut self) -> stream::Result {
         Err(stream::Error::msg("unsupported primitive"))
     }
 
-    fn map_end(&mut self) -> Result<(), stream::Error> {
+    fn map_end(&mut self) -> stream::Result {
         Err(stream::Error::msg("unsupported primitive"))
     }
 
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         Err(stream::Error::msg("unsupported primitive"))
     }
 
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+    fn seq_elem(&mut self) -> stream::Result {
         Err(stream::Error::msg("unsupported primitive"))
     }
 
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
+    fn seq_end(&mut self) -> stream::Result {
         Err(stream::Error::msg("unsupported primitive"))
     }
 }
@@ -513,7 +513,7 @@ mod tests {
     struct Map;
 
     impl Value for Map {
-        fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.map_begin(Some(2))?;
 
             stream.map_key(1)?;
@@ -529,7 +529,7 @@ mod tests {
     struct Seq;
 
     impl Value for Seq {
-        fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.seq_begin(Some(2))?;
 
             stream.seq_elem(1)?;

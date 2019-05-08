@@ -19,57 +19,57 @@ struct EmptyStream;
 
 impl stream::Stream for EmptyStream {
     #[inline(never)]
-    fn fmt(&mut self, _: fmt::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, _: fmt::Arguments) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn u64(&mut self, _: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, _: u64) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn begin(&mut self) -> Result<(), stream::Error> {
+    fn begin(&mut self) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn end(&mut self) -> Result<(), stream::Error> {
+    fn end(&mut self) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+    fn seq_elem(&mut self) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
+    fn seq_end(&mut self) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn map_key(&mut self) -> Result<(), stream::Error> {
+    fn map_key(&mut self) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn map_value(&mut self) -> Result<(), stream::Error> {
+    fn map_value(&mut self) -> stream::Result {
         Ok(())
     }
 
     #[inline(never)]
-    fn map_end(&mut self) -> Result<(), stream::Error> {
+    fn map_end(&mut self) -> stream::Result {
         Ok(())
     }
 }
@@ -156,7 +156,7 @@ fn stream_map(b: &mut Bencher) {
     struct Map;
 
     impl value::Value for Map {
-        fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.map_begin(None)?;
 
             stream.map_key(1)?;

@@ -78,14 +78,14 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 
 impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     #[inline]
-    fn begin(&mut self) -> Result<(), stream::Error> {
+    fn begin(&mut self) -> stream::Result {
         self.stack.begin()?;
 
         Ok(())
     }
 
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> Result<(), stream::Error> {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         let next_delim = self.next_delim(pos);
@@ -99,42 +99,42 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn i64(&mut self, v: i64) -> Result<(), stream::Error> {
+    fn i64(&mut self, v: i64) -> stream::Result {
         self.fmt(format_args!("{:?}", v))
     }
 
     #[inline]
-    fn u64(&mut self, v: u64) -> Result<(), stream::Error> {
+    fn u64(&mut self, v: u64) -> stream::Result {
         self.fmt(format_args!("{:?}", v))
     }
 
     #[inline]
-    fn f64(&mut self, v: f64) -> Result<(), stream::Error> {
+    fn f64(&mut self, v: f64) -> stream::Result {
         self.fmt(format_args!("{:?}", v))
     }
 
     #[inline]
-    fn bool(&mut self, v: bool) -> Result<(), stream::Error> {
+    fn bool(&mut self, v: bool) -> stream::Result {
         self.fmt(format_args!("{:?}", v))
     }
 
     #[inline]
-    fn char(&mut self, v: char) -> Result<(), stream::Error> {
+    fn char(&mut self, v: char) -> stream::Result {
         self.fmt(format_args!("{:?}", v))
     }
 
     #[inline]
-    fn str(&mut self, v: &str) -> Result<(), stream::Error> {
+    fn str(&mut self, v: &str) -> stream::Result {
         self.fmt(format_args!("{:?}", v))
     }
 
     #[inline]
-    fn none(&mut self) -> Result<(), stream::Error> {
+    fn none(&mut self) -> stream::Result {
         self.fmt(format_args!("None"))
     }
 
     #[inline]
-    fn seq_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_pretty() {
             self.depth += 1;
         }
@@ -151,7 +151,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn seq_elem(&mut self) -> Result<(), stream::Error> {
+    fn seq_elem(&mut self) -> stream::Result {
         if self.is_pretty() {
             if !self.stack.current().is_empty_seq() {
                 if let Some(delim) = self.delim.take() {
@@ -169,7 +169,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn seq_end(&mut self) -> Result<(), stream::Error> {
+    fn seq_end(&mut self) -> stream::Result {
         if self.is_pretty() {
             self.depth -= 1;
 
@@ -193,7 +193,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn map_begin(&mut self, _: Option<usize>) -> Result<(), stream::Error> {
+    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_pretty() {
             self.depth += 1;
         }
@@ -210,7 +210,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn map_key(&mut self) -> Result<(), stream::Error> {
+    fn map_key(&mut self) -> stream::Result {
         if self.is_pretty() {
             if !self.stack.current().is_empty_map() {
                 if let Some(delim) = self.delim.take() {
@@ -228,14 +228,14 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn map_value(&mut self) -> Result<(), stream::Error> {
+    fn map_value(&mut self) -> stream::Result {
         self.stack.map_value()?;
 
         Ok(())
     }
 
     #[inline]
-    fn map_end(&mut self) -> Result<(), stream::Error> {
+    fn map_end(&mut self) -> stream::Result {
         if self.is_pretty() {
             self.depth -= 1;
 
@@ -259,7 +259,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn end(&mut self) -> Result<(), stream::Error> {
+    fn end(&mut self) -> stream::Result {
         self.stack.end()?;
 
         Ok(())

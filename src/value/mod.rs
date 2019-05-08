@@ -34,7 +34,7 @@ The following `Value` is valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         // VALID: The stream can take the primitive
         // value 42
         stream.any(42)
@@ -48,7 +48,7 @@ The following `Value` is not valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.any(42)?;
 
         // INVALID: The stream already received the
@@ -66,7 +66,7 @@ The following `Value` is valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
         stream.map_key("a")?;
         stream.map_value_begin()?.seq_begin(None)?;
@@ -84,7 +84,7 @@ The following `Value` is not valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
         stream.map_key("a")?;
         stream.map_value_begin()?.seq_begin(None)?;
@@ -103,7 +103,7 @@ The following `Value` is not valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
         // INVALID: The map is never completed
@@ -120,7 +120,7 @@ The following `Value` is valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
         // VALID: The `map_key` and `map_value` methods
@@ -144,7 +144,7 @@ The following `Value` is not valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
         // INVALID: The underlying `map_key` and `map_value` methods
@@ -165,7 +165,7 @@ The following `Value` is valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
         // VALID: The key is streamed before the value
@@ -183,7 +183,7 @@ The following `Value` is not valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
         // INVALID: The value is streamed before the key
@@ -203,7 +203,7 @@ The following `Value` is valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.seq_begin(None)?;
 
         // VALID: The `seq_elem` method
@@ -225,7 +225,7 @@ The following `Value` is not valid:
 # use sval::value::{self, Value};
 # struct MyValue;
 impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.seq_begin(None)?;
 
         // INVALID: The underlying `seq_elem` method
@@ -239,7 +239,7 @@ impl Value for MyValue {
 */
 pub trait Value {
     /** Stream this value. */
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error>;
+    fn stream(&self, stream: &mut Stream) -> Result;
 }
 
 impl<'a, T: ?Sized> Value for &'a T
@@ -247,10 +247,15 @@ where
     T: Value,
 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut Stream) -> Result {
         (**self).stream(stream)
     }
 }
+
+/**
+The type returned by streaming methods.
+*/
+pub type Result = std::result::Result<(), Error>;
 
 #[cfg(test)]
 mod tests {

@@ -4,6 +4,7 @@ use crate::{
         OwnedCollect,
     },
     stream::{
+        self,
         Arguments,
         Error,
         Stream,
@@ -49,7 +50,7 @@ where
     Stream a value.
     */
     #[inline]
-    pub fn any(&mut self, v: impl Value) -> Result<(), Error> {
+    pub fn any(&mut self, v: impl Value) -> stream::Result {
         self.0.any(v)
     }
 
@@ -57,7 +58,7 @@ where
     Stream a format.
     */
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> Result<(), Error> {
+    pub fn fmt(&mut self, f: Arguments) -> stream::Result {
         self.0.fmt(f)
     }
 
@@ -65,7 +66,7 @@ where
     Stream a signed integer.
     */
     #[inline]
-    pub fn i64(&mut self, v: i64) -> Result<(), Error> {
+    pub fn i64(&mut self, v: i64) -> stream::Result {
         self.0.i64(v)
     }
 
@@ -73,7 +74,7 @@ where
     Stream an unsigned integer.
     */
     #[inline]
-    pub fn u64(&mut self, v: u64) -> Result<(), Error> {
+    pub fn u64(&mut self, v: u64) -> stream::Result {
         self.0.u64(v)
     }
 
@@ -81,7 +82,7 @@ where
     Stream a 128-bit signed integer.
     */
     #[inline]
-    pub fn i128(&mut self, v: i128) -> Result<(), Error> {
+    pub fn i128(&mut self, v: i128) -> stream::Result {
         self.0.i128(v)
     }
 
@@ -89,7 +90,7 @@ where
     Stream a 128-bit unsigned integer.
     */
     #[inline]
-    pub fn u128(&mut self, v: u128) -> Result<(), Error> {
+    pub fn u128(&mut self, v: u128) -> stream::Result {
         self.0.u128(v)
     }
 
@@ -97,7 +98,7 @@ where
     Stream a floating point value.
     */
     #[inline]
-    pub fn f64(&mut self, v: f64) -> Result<(), Error> {
+    pub fn f64(&mut self, v: f64) -> stream::Result {
         self.0.f64(v)
     }
 
@@ -105,7 +106,7 @@ where
     Stream a boolean.
     */
     #[inline]
-    pub fn bool(&mut self, v: bool) -> Result<(), Error> {
+    pub fn bool(&mut self, v: bool) -> stream::Result {
         self.0.bool(v)
     }
 
@@ -113,7 +114,7 @@ where
     Stream a unicode character.
     */
     #[inline]
-    pub fn char(&mut self, v: char) -> Result<(), Error> {
+    pub fn char(&mut self, v: char) -> stream::Result {
         self.0.char(v)
     }
 
@@ -121,7 +122,7 @@ where
     Stream a UTF8 string.
     */
     #[inline]
-    pub fn str(&mut self, v: &str) -> Result<(), Error> {
+    pub fn str(&mut self, v: &str) -> stream::Result {
         self.0.str(v)
     }
 
@@ -129,7 +130,7 @@ where
     Stream an empty value.
     */
     #[inline]
-    pub fn none(&mut self) -> Result<(), Error> {
+    pub fn none(&mut self) -> stream::Result {
         self.0.none()
     }
 
@@ -137,7 +138,7 @@ where
     Begin a map.
     */
     #[inline]
-    pub fn map_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+    pub fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.0.map_begin(len)
     }
 
@@ -145,7 +146,7 @@ where
     Stream a map key.
     */
     #[inline]
-    pub fn map_key(&mut self, k: impl Value) -> Result<(), Error> {
+    pub fn map_key(&mut self, k: impl Value) -> stream::Result {
         self.0.map_key(k)
     }
 
@@ -153,7 +154,7 @@ where
     Stream a map value.
     */
     #[inline]
-    pub fn map_value(&mut self, v: impl Value) -> Result<(), Error> {
+    pub fn map_value(&mut self, v: impl Value) -> stream::Result {
         self.0.map_value(v)
     }
 
@@ -161,7 +162,7 @@ where
     End a map.
     */
     #[inline]
-    pub fn map_end(&mut self) -> Result<(), Error> {
+    pub fn map_end(&mut self) -> stream::Result {
         self.0.map_end()
     }
 
@@ -169,7 +170,7 @@ where
     Begin a sequence.
     */
     #[inline]
-    pub fn seq_begin(&mut self, len: Option<usize>) -> Result<(), Error> {
+    pub fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.0.seq_begin(len)
     }
 
@@ -177,7 +178,7 @@ where
     Stream a sequence element.
     */
     #[inline]
-    pub fn seq_elem(&mut self, v: impl Value) -> Result<(), Error> {
+    pub fn seq_elem(&mut self, v: impl Value) -> stream::Result {
         self.0.seq_elem(v)
     }
 
@@ -185,7 +186,7 @@ where
     End a sequence.
     */
     #[inline]
-    pub fn seq_end(&mut self) -> Result<(), Error> {
+    pub fn seq_end(&mut self) -> stream::Result {
         self.0.seq_end()
     }
 }

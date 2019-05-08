@@ -45,7 +45,7 @@ struct Nested<'a> {
 struct Anonymous;
 
 impl Value for Anonymous {
-    fn stream(&self, stream: &mut value::Stream) -> Result<(), value::Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
         stream.map_key_begin()?.i64(1)?;

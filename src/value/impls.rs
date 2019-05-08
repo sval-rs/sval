@@ -1,15 +1,14 @@
 use crate::{
     std::fmt,
     value::{
-        Error,
-        Stream,
+        self,
         Value,
     },
 };
 
 impl Value for () {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.none()
     }
 }
@@ -19,7 +18,7 @@ where
     T: Value,
 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         match self {
             Some(v) => v.stream(stream),
             None => stream.none(),
@@ -32,7 +31,7 @@ where
     T: Value,
 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.seq_begin(Some(self.len()))?;
 
         for v in self {
@@ -49,7 +48,7 @@ where
     U: Value,
 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.seq_begin(Some(2))?;
 
         stream.seq_elem(&self.0)?;
@@ -61,112 +60,112 @@ where
 
 impl Value for u8 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.u64(u64::from(*self))
     }
 }
 
 impl Value for u16 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.u64(u64::from(*self))
     }
 }
 
 impl Value for u32 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.u64(u64::from(*self))
     }
 }
 
 impl Value for u64 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.u64(*self)
     }
 }
 
 impl Value for i8 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.i64(i64::from(*self))
     }
 }
 
 impl Value for i16 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.i64(i64::from(*self))
     }
 }
 
 impl Value for i32 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.i64(i64::from(*self))
     }
 }
 
 impl Value for i64 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.i64(*self)
     }
 }
 
 impl Value for u128 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.u128(*self)
     }
 }
 
 impl Value for i128 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.i128(*self)
     }
 }
 
 impl Value for f32 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.f64(f64::from(*self))
     }
 }
 
 impl Value for f64 {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.f64(*self)
     }
 }
 
 impl Value for bool {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.bool(*self)
     }
 }
 
 impl Value for char {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.char(*self)
     }
 }
 
 impl Value for str {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.str(self)
     }
 }
 
 impl<'a> Value for fmt::Arguments<'a> {
     #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.fmt(*self)
     }
 }
@@ -196,7 +195,7 @@ mod std_support {
         T: Value,
     {
         #[inline]
-        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             (**self).stream(stream)
         }
     }
@@ -207,7 +206,7 @@ mod std_support {
         T: Value,
     {
         #[inline]
-        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             (**self).stream(stream)
         }
     }
@@ -217,14 +216,14 @@ mod std_support {
         T: Value,
     {
         #[inline]
-        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             (**self).stream(stream)
         }
     }
 
     impl Value for String {
         #[inline]
-        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.str(&*self)
         }
     }
@@ -234,7 +233,7 @@ mod std_support {
         T: Value,
     {
         #[inline]
-        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             self.as_slice().stream(stream)
         }
     }
@@ -245,7 +244,7 @@ mod std_support {
         V: Value,
     {
         #[inline]
-        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.map_begin(Some(self.len()))?;
 
             for (k, v) in self {
@@ -264,7 +263,7 @@ mod std_support {
         H: BuildHasher,
     {
         #[inline]
-        fn stream(&self, stream: &mut Stream) -> Result<(), Error> {
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.map_begin(Some(self.len()))?;
 
             for (k, v) in self {
