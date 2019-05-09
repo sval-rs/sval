@@ -112,7 +112,7 @@ impl Debug for OwnedValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         #[cfg(feature = "fmt")]
         {
-            crate::fmt::debug(self, f)
+            crate::fmt::debug(f, self)
         }
 
         #[cfg(not(feature = "fmt"))]

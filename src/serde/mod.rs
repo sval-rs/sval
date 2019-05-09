@@ -89,5 +89,5 @@ pub fn to_value(value: impl Serialize) -> impl Value {
 Stream a [`Serialize`] using the given [`Stream`].
 */
 pub fn stream(stream: impl Stream, value: impl Serialize) -> Result<(), Error> {
-    crate::stream(to_value(value), stream)
+    crate::stream(stream, to_value(value))
 }
