@@ -17,6 +17,8 @@ version = "0.1.5"
 
 # Streaming values
 
+Use the [`stream`](function.stream.html) function to stream the structure of a value:
+
 ```no_run
 # #[cfg(not(feature = "std"))]
 # fn main() {}
@@ -33,6 +35,63 @@ sval::stream(42, MyStream)?;
 ```
 
 where `42` is a [`Value`] and `MyStream` is a [`Stream`].
+
+Use a [`stream::OwnedStream`](stream/struct.OwnedStream.html) to
+hang on to a stream and pass it values over time:
+
+```no_run
+# #[cfg(not(feature = "std"))]
+# fn main() {}
+# #[cfg(feature = "std")]
+# fn main() -> Result<(), Box<std::error::Error>> {
+use sval::{
+    Value,
+    stream::{self, OwnedStream},
+};
+
+struct StreamPairs {
+    stream: OwnedStream<MyStream>,
+}
+
+impl StreamPairs {
+    fn begin() -> Result<Self, stream::Error> {
+        let mut stream = OwnedStream::begin(MyStream)?;
+        stream.map_begin(None)?;
+
+        Ok(StreamPairs {
+            stream,
+        })
+    }
+
+    fn pair(&mut self, k: impl Value, v: impl Value) -> Result<(), stream::Error> {
+        self.stream.map_key(k)?;
+        self.stream.map_value(v)?;
+
+        Ok(())
+    }
+
+    fn end(mut self) -> Result<MyStream, stream::Error> {
+        self.stream.map_end()?;
+        let my_stream = self.stream.end()?;
+
+        Ok(my_stream)
+    }
+}
+
+let mut stream = StreamPairs::begin()?;
+
+stream.pair("a", 42)?;
+stream.pair("b", 17)?;
+
+let my_stream = stream.end()?;
+# Ok(())
+# }
+# use sval::stream::{self, Stream};
+# struct MyStream;
+# impl Stream for MyStream {
+#     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
+# }
+```
 
 # Implementing the `Value` trait
 
@@ -176,16 +235,14 @@ to see whether a given value is a `u64`:
 ```
 use sval::{
     Value,
-    stream::{self, Stream}
+    stream::{self, Stream, OwnedStream},
 };
 
 assert!(is_u64(42u64));
 
 pub fn is_u64(v: impl Value) -> bool {
-    let mut stream = IsU64(None);
-
-    sval::stream(v, &mut stream)
-        .map(|_| stream.0.is_some())
+    OwnedStream::stream(v, IsU64(None))
+        .map(|is_u64| is_u64.0.is_some())
         .unwrap_or(false)
 }
 
@@ -307,8 +364,8 @@ impl Stream for Fmt {
 }
 ```
 
-The `Stack` type has a fixed depth, so deeply nested structures
-aren't supported.
+By default, the `Stack` type has a fixed depth. That means deeply nested
+structures aren't supported. See the [`Stack` type for more details](stream/stack/struct.Stack.html#depth).
 
 # `serde` integration
 
@@ -405,11 +462,11 @@ pub use self::{
 
 /**
 Stream the structure of a [`Value`] using the given [`Stream`].
+
+This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
 */
 pub fn stream(value: impl Value, stream: impl Stream) -> Result<(), Error> {
-    let mut stream = crate::stream::OwnedStream::begin(stream)?;
-    stream.any(value)?;
-    stream.end()?;
+    crate::stream::OwnedStream::stream(value, stream)?;
 
     Ok(())
 }

@@ -1,6 +1,13 @@
 /*!
 Integration between `sval` and `std::fmt`.
 
+Add the `fmt` feature to your `Cargo.toml` to enable this module:
+
+```toml,no_run
+[dependencies.sval]
+features = ["fmt"]
+```
+
 # From `sval` to `std::fmt`
 
 A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into

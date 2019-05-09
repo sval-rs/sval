@@ -4,8 +4,14 @@ extern crate sval;
 extern crate test;
 
 use sval::{
-    stream,
-    value,
+    stream::{
+        self,
+        Stream,
+    },
+    value::{
+        self,
+        Value,
+    },
 };
 
 use std::fmt;
@@ -17,7 +23,7 @@ use test::{
 
 struct EmptyStream;
 
-impl stream::Stream for EmptyStream {
+impl Stream for EmptyStream {
     #[inline(never)]
     fn fmt(&mut self, _: fmt::Arguments) -> stream::Result {
         Ok(())
@@ -125,7 +131,7 @@ fn stack_primitive(b: &mut Bencher) {
 #[bench]
 fn raw_stream_map(b: &mut Bencher) {
     b.iter(|| {
-        let stream: &mut dyn stream::Stream = &mut EmptyStream;
+        let stream: &mut dyn Stream = &mut EmptyStream;
 
         stream.map_begin(None).unwrap();
 
@@ -155,7 +161,7 @@ fn raw_stream_map(b: &mut Bencher) {
 fn stream_map(b: &mut Bencher) {
     struct Map;
 
-    impl value::Value for Map {
+    impl Value for Map {
         fn stream(&self, stream: &mut value::Stream) -> value::Result {
             stream.map_begin(None)?;
 

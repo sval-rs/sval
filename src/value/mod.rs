@@ -3,12 +3,11 @@ A streamable value.
 */
 
 mod impls;
-mod stream;
 
 #[cfg(feature = "std")]
 pub(crate) mod owned;
 
-pub use self::stream::Stream;
+pub use crate::stream::RefMutStream as Stream;
 
 #[cfg(feature = "std")]
 pub use self::owned::OwnedValue;
@@ -18,8 +17,6 @@ pub use crate::Error;
 
 /**
 A value with a streamable structure.
-
-Use the [`sval::stream`](../fn.stream.html) function to stream a value.
 
 # Implementing `Value`
 
@@ -238,7 +235,60 @@ impl Value for MyValue {
 ```
 */
 pub trait Value {
-    /** Stream this value. */
+    /**
+    Stream this value.
+
+    # Examples
+
+    Use a [`stream::OwnedStream`] to stream a value:
+
+    ```no_run
+    # #[cfg(not(feature = "std"))]
+    # fn main() {}
+    # #[cfg(feature = "std")]
+    # fn main() -> Result<(), Box<std::error::Error>> {
+    use sval::stream::OwnedStream;
+
+    let mut stream = OwnedStream::begin(MyStream)?;
+    stream.any(42)?;
+    stream.end()?;
+    # Ok(())
+    # }
+    # use sval::stream::{self, Stream};
+    # struct MyStream;
+    # impl Stream for MyStream {
+    #     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
+    # }
+    ```
+
+    It's less convenient, but the `stream` method can be called directly
+    instead of using `OwnedStream.any`:
+
+    ```no_run
+    # #[cfg(not(feature = "std"))]
+    # fn main() {}
+    # #[cfg(feature = "std")]
+    # fn main() -> Result<(), Box<std::error::Error>> {
+    use sval::{
+        stream::OwnedStream,
+        Value,
+    };
+
+    let mut stream = OwnedStream::begin(MyStream)?;
+    42.stream(&mut stream.borrow_mut())?;
+    stream.end()?;
+    # Ok(())
+    # }
+    # use sval::stream::{self, Stream};
+    # struct MyStream;
+    # impl Stream for MyStream {
+    #     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
+    # }
+    ```
+
+    [`sval::stream`]: ../fn.stream.html
+    [`stream::OwnedStream`]: ../stream/struct.OwnedStream.html
+    */
     fn stream(&self, stream: &mut Stream) -> Result;
 }
 

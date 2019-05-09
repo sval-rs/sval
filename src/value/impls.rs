@@ -20,7 +20,7 @@ where
     #[inline]
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         match self {
-            Some(v) => v.stream(stream),
+            Some(v) => stream.any(v),
             None => stream.none(),
         }
     }
@@ -200,7 +200,6 @@ mod std_support {
         }
     }
 
-    // FIXME: It'd be a shame not to optimize `Value::to_owned` for `Arc`
     impl<T: ?Sized> Value for Arc<T>
     where
         T: Value,

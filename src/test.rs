@@ -8,7 +8,7 @@ Add the `test` feature to your `Cargo.toml` to enable this module:
 features = ["test"]
 ```
 
-> NOTE: The [`Token`](enum.Token.html) enum is expected to be non-exhaustively
+**NOTE:** The [`Token`](enum.Token.html) enum is expected to be non-exhaustively
 used in tests, so additional members aren't considered
 a breaking `semver` change.
 */
