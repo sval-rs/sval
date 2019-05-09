@@ -71,7 +71,7 @@ pub fn to_serialize(value: impl Value) -> impl Serialize {
 /**
 Serialize a [`Value`] using the given [`Serializer`].
 */
-pub fn serialize<S>(value: impl Value, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize<S>(serializer: S, value: impl Value) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -88,6 +88,6 @@ pub fn to_value(value: impl Serialize) -> impl Value {
 /**
 Stream a [`Serialize`] using the given [`Stream`].
 */
-pub fn stream(value: impl Serialize, stream: impl Stream) -> Result<(), Error> {
+pub fn stream(stream: impl Stream, value: impl Serialize) -> Result<(), Error> {
     crate::stream(to_value(value), stream)
 }

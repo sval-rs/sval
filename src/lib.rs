@@ -17,14 +17,18 @@ version = "0.1.5"
 
 # Streaming values
 
-Use the [`stream`](function.stream.html) function to stream the structure of a value:
+The structure of a [`Value`] can be streamed to a [`Stream`].
+
+## in a single call
+
+For simple use-cases, use the [`stream`](function.stream.html) function to stream the structure of a value:
 
 ```no_run
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
 # fn main() -> Result<(), Box<std::error::Error>> {
-sval::stream(42, MyStream)?;
+sval::stream(MyStream, 42)?;
 # Ok(())
 # }
 # use sval::stream::{self, Stream};
@@ -36,8 +40,10 @@ sval::stream(42, MyStream)?;
 
 where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 
-Use a [`stream::OwnedStream`](stream/struct.OwnedStream.html) to
-hang on to a stream and pass it values over time:
+## over multiple calls
+
+More involved use-cases may want to build up structure over time. Use a [`stream::OwnedStream`](stream/struct.OwnedStream.html)
+to hang on to a stream and pass it values over time:
 
 ```no_run
 # #[cfg(not(feature = "std"))]
@@ -50,6 +56,8 @@ use sval::{
 };
 
 struct StreamPairs {
+    // Using `OwnedStream<MyStream>` instead of just `MyStream`
+    // gives us better ergonomics and validation
     stream: OwnedStream<MyStream>,
 }
 
@@ -78,11 +86,14 @@ impl StreamPairs {
     }
 }
 
+// We begin the wrapper over `MyStream`
 let mut stream = StreamPairs::begin()?;
 
+// Pairs can be streamed independently
 stream.pair("a", 42)?;
 stream.pair("b", 17)?;
 
+// Eventually we end the wrapper and return the underlying `MyStream`
 let my_stream = stream.end()?;
 # Ok(())
 # }
@@ -92,6 +103,9 @@ let my_stream = stream.end()?;
 #     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
 # }
 ```
+
+The above example captures an `OwnedStream<MyStream>` and then allows multiple key-value pairs to be
+streamed through it before finishing.
 
 # Implementing the `Value` trait
 
@@ -241,7 +255,7 @@ use sval::{
 assert!(is_u64(42u64));
 
 pub fn is_u64(v: impl Value) -> bool {
-    OwnedStream::stream(v, IsU64(None))
+    OwnedStream::stream(IsU64(None), v)
         .map(|is_u64| is_u64.0.is_some())
         .unwrap_or(false)
 }
@@ -465,8 +479,8 @@ Stream the structure of a [`Value`] using the given [`Stream`].
 
 This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
 */
-pub fn stream(value: impl Value, stream: impl Stream) -> Result<(), Error> {
-    crate::stream::OwnedStream::stream(value, stream)?;
+pub fn stream(stream: impl Stream, value: impl Value) -> Result<(), Error> {
+    crate::stream::OwnedStream::stream(stream, value)?;
 
     Ok(())
 }
