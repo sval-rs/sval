@@ -12,7 +12,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval]
-version = "0.1.5"
+version = "0.2.0"
 ```
 
 # Streaming values
@@ -428,7 +428,7 @@ fn with_value(value: impl sval::Value) {
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval/0.1.5")]
+#![doc(html_root_url = "https://docs.rs/sval/0.2.0")]
 #![no_std]
 
 #[macro_use]
