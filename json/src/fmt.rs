@@ -19,7 +19,7 @@ Write a [`sval::Value`] to a formatter.
 pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
     let fmt = Formatter::new(fmt);
 
-    sval::stream(v, fmt)
+    sval::stream(fmt, v)
 }
 
 /**

@@ -51,6 +51,6 @@ pub fn to_debug(value: impl Value) -> impl Debug {
 /**
 Format a [`Value`] using the given [`Formatter`].
 */
-pub fn debug(value: impl Value, f: &mut Formatter) -> fmt::Result {
+pub fn debug(f: &mut Formatter, value: impl Value) -> fmt::Result {
     to_debug(value).fmt(f)
 }

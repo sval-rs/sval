@@ -30,7 +30,7 @@ where
     Stream a value.
     */
     #[inline]
-    pub fn stream(value: impl Value, stream: S) -> Result<S, Error> {
+    pub fn stream(stream: S, value: impl Value) -> Result<S, Error> {
         let mut stream = Self::begin(stream)?;
         stream.any(value)?;
         stream.end()

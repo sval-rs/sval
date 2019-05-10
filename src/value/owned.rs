@@ -112,7 +112,7 @@ impl Debug for OwnedValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         #[cfg(feature = "fmt")]
         {
-            crate::fmt::debug(self, f)
+            crate::fmt::debug(f, self)
         }
 
         #[cfg(not(feature = "fmt"))]
@@ -197,7 +197,7 @@ impl Buf {
 
     fn collect(v: impl Value) -> Result<Vec<Token>, stream::Error> {
         let mut buf = Buf::new();
-        crate::stream(v, &mut buf).map(|_| buf.tokens)
+        crate::stream(&mut buf, v).map(|_| buf.tokens)
     }
 
     fn push(&mut self, kind: Kind, depth: stack::Depth) {
@@ -359,7 +359,7 @@ impl Primitive {
     fn collect(v: impl Value) -> Option<Token> {
         let mut buf = Primitive::new();
 
-        crate::stream(v, &mut buf).ok().and_then(|_| buf.token)
+        crate::stream(&mut buf, v).ok().and_then(|_| buf.token)
     }
 
     fn set(&mut self, kind: Kind, depth: stack::Depth) {
