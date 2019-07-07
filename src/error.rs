@@ -97,6 +97,11 @@ mod std_support {
             Error(ErrorInner::Owned(err.to_string()))
         }
 
+        /** The lower-level source of this error, if any. */
+        pub fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+            Some(self.as_error())
+        }
+
         /** Get a reference to a standard error. */
         pub fn as_error(&self) -> &(dyn error::Error + Send + Sync + 'static) {
             &self.0
@@ -146,14 +151,7 @@ mod std_support {
         }
     }
 
-    impl error::Error for ErrorInner {
-        fn description(&self) -> &str {
-            match self {
-                ErrorInner::Static(msg) => msg,
-                ErrorInner::Owned(msg) => msg,
-            }
-        }
-    }
+    impl error::Error for ErrorInner { }
 }
 
 #[cfg(test)]

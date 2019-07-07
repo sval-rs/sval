@@ -25,7 +25,7 @@ where
     V: value::Value,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let mut stream = stream::OwnedStream::begin(Stream::new(f))?;
+        let mut stream = stream::OwnedStream::new(Stream::new(f));
 
         stream.any(&self.0)?;
         stream.end()?;
@@ -77,13 +77,6 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 }
 
 impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
-    #[inline]
-    fn begin(&mut self) -> stream::Result {
-        self.stack.begin()?;
-
-        Ok(())
-    }
-
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
@@ -254,13 +247,6 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         self.delim = self.next_delim(pos);
 
         self.fmt.write_char('}')?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn end(&mut self) -> stream::Result {
-        self.stack.end()?;
 
         Ok(())
     }

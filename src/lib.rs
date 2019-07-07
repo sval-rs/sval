@@ -62,8 +62,8 @@ struct StreamPairs {
 }
 
 impl StreamPairs {
-    fn begin() -> Result<Self, stream::Error> {
-        let mut stream = OwnedStream::begin(MyStream)?;
+    fn new() -> Result<Self, stream::Error> {
+        let mut stream = OwnedStream::new(MyStream);
         stream.map_begin(None)?;
 
         Ok(StreamPairs {
@@ -87,7 +87,7 @@ impl StreamPairs {
 }
 
 // We begin the wrapper over `MyStream`
-let mut stream = StreamPairs::begin()?;
+let mut stream = StreamPairs::new()?;
 
 // Pairs can be streamed independently
 stream.pair("a", 42)?;

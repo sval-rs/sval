@@ -103,11 +103,6 @@ where
     S: Stream,
 {
     #[inline]
-    fn begin(&mut self) -> Result {
-        self.0.begin()
-    }
-
-    #[inline]
     fn fmt(&mut self, args: stream::Arguments) -> Result {
         self.0.fmt(args)
     }
@@ -190,11 +185,6 @@ where
     #[inline]
     fn seq_end(&mut self) -> Result {
         self.0.seq_end()
-    }
-
-    #[inline]
-    fn end(&mut self) -> Result {
-        self.0.end()
     }
 }
 

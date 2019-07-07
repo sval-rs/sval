@@ -74,10 +74,10 @@ pub(crate) struct DebugStackInner {
 
 impl<'a> DebugRefMut<'a, DebugStack> {
     #[inline]
-    pub(crate) fn and_then(
+    pub(crate) fn and_then<R>(
         &mut self,
-        mut f: impl FnMut(DebugRefMut<DebugStackInner>) -> Result<(), Error>,
-    ) -> Result<(), Error> {
+        mut f: impl FnMut(DebugRefMut<DebugStackInner>) -> Result<R, Error>,
+    ) -> Result<R, Error> {
         cfg_debug_stack! {
             if #[debug_assertions] {
                 if self.ref_mut.poisoned {
@@ -85,10 +85,10 @@ impl<'a> DebugRefMut<'a, DebugStack> {
                 }
 
                 self.ref_mut.poisoned = true;
-                f(self.ref_mut.inner.borrow_mut())?;
+                let r = f(self.ref_mut.inner.borrow_mut())?;
                 self.ref_mut.poisoned = false;
 
-                Ok(())
+                Ok(r)
             } else {
                 f(DebugStackInner::default().borrow_mut())
             }
@@ -98,113 +98,75 @@ impl<'a> DebugRefMut<'a, DebugStack> {
 
 impl<'a> DebugRefMut<'a, DebugStackInner> {
     #[inline]
-    pub fn begin(&mut self) -> Result<(), Error> {
+    pub fn primitive(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.begin()?;
+                self.ref_mut.stack.primitive().expect("invalid primitive");
             }
         }
-
-        Ok(())
     }
 
     #[inline]
-    pub fn primitive(&mut self) -> Result<(), Error> {
+    pub fn map_begin(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.primitive()?;
+                self.ref_mut.stack.map_begin().expect("invalid map begin");
             }
         }
-
-        Ok(())
     }
 
     #[inline]
-    pub fn map_begin(&mut self) -> Result<(), Error> {
+    pub fn map_key(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_begin()?;
+                self.ref_mut.stack.map_key().expect("invalid map key");
             }
         }
-
-        Ok(())
     }
 
     #[inline]
-    pub fn map_key(&mut self) -> Result<(), Error> {
+    pub fn map_value(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_key()?;
+                self.ref_mut.stack.map_value().expect("invalid map value");
             }
         }
-
-        Ok(())
     }
 
     #[inline]
-    pub fn map_value(&mut self) -> Result<(), Error> {
+    pub fn map_end(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_value()?;
+                self.ref_mut.stack.map_end().expect("invalid map end");
             }
         }
-
-        Ok(())
     }
 
     #[inline]
-    pub fn map_end(&mut self) -> Result<(), Error> {
+    pub fn seq_begin(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_end()?;
+                self.ref_mut.stack.seq_begin().expect("invalid seq begin");
             }
         }
-
-        Ok(())
     }
 
     #[inline]
-    pub fn seq_begin(&mut self) -> Result<(), Error> {
+    pub fn seq_elem(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.seq_begin()?;
+                self.ref_mut.stack.seq_elem().expect("invalid seq elem");
             }
         }
-
-        Ok(())
     }
 
     #[inline]
-    pub fn seq_elem(&mut self) -> Result<(), Error> {
+    pub fn seq_end(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.seq_elem()?;
+                self.ref_mut.stack.seq_end().expect("invalid seq end");
             }
         }
-
-        Ok(())
-    }
-
-    #[inline]
-    pub fn seq_end(&mut self) -> Result<(), Error> {
-        cfg_debug_stack! {
-            if #[debug_assertions] {
-                self.ref_mut.stack.seq_end()?;
-            }
-        }
-
-        Ok(())
-    }
-
-    #[inline]
-    pub fn end(&mut self) -> Result<(), Error> {
-        cfg_debug_stack! {
-            if #[debug_assertions] {
-                self.ref_mut.stack.end()?;
-            }
-        }
-
-        Ok(())
     }
 }
 

@@ -3,14 +3,24 @@ use sval::stream::{
     Stream,
 };
 
-use crate::std::string::String;
+use crate::std::{
+    string::String,
+    error::Error,
+};
 use crate::{
+    IntoInner,
     fmt::Formatter,
     std::{
         fmt,
         io::Write,
     },
 };
+
+impl<T> Error for IntoInner<T> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.err.source()
+    }
+}
 
 /**
 Write a [`sval::Value`] to a string.
@@ -58,7 +68,7 @@ Create an owned json stream:
 use sval::stream::OwnedStream;
 use sval_json::Writer;
 
-let mut stream = OwnedStream::begin(Writer::new(Vec::<u8>::new()))?;
+let mut stream = OwnedStream::new(Writer::new(Vec::<u8>::new()));
 stream.any(42)?;
 let json = stream.end()?.into_inner();
 
@@ -81,12 +91,29 @@ where
     }
 
     /**
+    Whether the stream has seen a complete, valid json structure.
+    */
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
+
+    /**
     Get the inner writer back out of the stream.
 
-    There is no validation done to ensure the data written is valid.
+    If the writer contains incomplete json then this method will fail.
     */
-    pub fn into_inner(self) -> W {
-        self.0.into_inner().0
+    pub fn into_inner(self) -> Result<W, IntoInner<Self>> {
+        match self.0.into_inner() {
+            Ok(w) => Ok(w.0),
+            Err(IntoInner { err, value, .. }) => Err(IntoInner::new(err, Writer(value))),
+        }
+    }
+
+    /**
+    Get the inner writer back out of the stream without ensuring it's valid.
+    */
+    pub fn into_inner_unchecked(self) -> W {
+        self.0.into_inner_unchecked().0
     }
 }
 
@@ -94,11 +121,6 @@ impl<W> Stream for Writer<W>
 where
     W: Write,
 {
-    #[inline]
-    fn begin(&mut self) -> stream::Result {
-        self.0.begin()
-    }
-
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.0.fmt(v)
@@ -172,10 +194,5 @@ where
     #[inline]
     fn map_end(&mut self) -> stream::Result {
         self.0.map_end()
-    }
-
-    #[inline]
-    fn end(&mut self) -> stream::Result {
-        self.0.end()
     }
 }
