@@ -193,29 +193,6 @@ impl Stack {
     }
 
     /**
-    Ensure the stack is ready for a new value.
-
-    This method only needs to be called by [`Stream`](../trait.Stream.html)s that
-    can be re-used.
-    */
-    #[inline]
-    pub fn begin(&mut self) -> Result<(), Error> {
-        // The stack must be on the root slot
-        // It doesn't matter if the slot is
-        // marked as done or not
-
-        if self.inner.depth() == 0 {
-            // Clear the `DONE` bit so the stack
-            // can be re-used
-            self.inner.current_mut().0 = Slot::ROOT;
-
-            Ok(())
-        } else {
-            Err(Error::msg("stack is not empty"))
-        }
-    }
-
-    /**
     Push a primitive.
 
     A primitive is a simple value that isn't a map or sequence.
@@ -626,7 +603,6 @@ mod tests {
 
         #[derive(Clone, Copy, Debug)]
         enum Command {
-            Begin,
             Primitive,
             MapBegin,
             MapKey,
@@ -640,7 +616,7 @@ mod tests {
 
         impl Arbitrary for Command {
             fn arbitrary<G: Gen>(g: &mut G) -> Command {
-                match g.next_u32() % 10 {
+                match g.next_u32() % 9 {
                     0 => Command::Primitive,
                     1 => Command::MapBegin,
                     2 => Command::MapKey,
@@ -650,7 +626,6 @@ mod tests {
                     6 => Command::SeqElem,
                     7 => Command::SeqEnd,
                     8 => Command::End,
-                    9 => Command::Begin,
                     _ => unreachable!(),
                 }
             }
@@ -662,9 +637,6 @@ mod tests {
 
                 for cmd in cmd {
                     match cmd {
-                        Command::Begin => {
-                            let _ = stack.begin();
-                        },
                         Command::Primitive => {
                             let _ = stack.primitive();
                         },

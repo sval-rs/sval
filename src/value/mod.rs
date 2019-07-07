@@ -249,7 +249,7 @@ pub trait Value {
     # fn main() -> Result<(), Box<std::error::Error>> {
     use sval::stream::OwnedStream;
 
-    let mut stream = OwnedStream::begin(MyStream)?;
+    let mut stream = OwnedStream::new(MyStream);
     stream.any(42)?;
     stream.end()?;
     # Ok(())
@@ -274,7 +274,7 @@ pub trait Value {
         Value,
     };
 
-    let mut stream = OwnedStream::begin(MyStream)?;
+    let mut stream = OwnedStream::new(MyStream);
     42.stream(&mut stream.borrow_mut())?;
     stream.end()?;
     # Ok(())

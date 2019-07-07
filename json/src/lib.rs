@@ -96,3 +96,35 @@ pub use self::std_support::{
     to_writer,
     Writer,
 };
+
+/**
+An error attempting to get an inner writer containing json.
+*/
+pub struct IntoInner<T> {
+    /** The original value. */
+    pub value: T,
+    err: sval::Error,
+    _private: (),
+}
+
+impl<T> IntoInner<T> {
+    fn new(err: sval::Error, value: T) -> Self {
+        IntoInner {
+            err,
+            value,
+            _private: (),
+        }
+    }
+}
+
+impl<T> crate::std::fmt::Debug for IntoInner<T> {
+    fn fmt(&self, f: &mut crate::std::fmt::Formatter) -> crate::std::fmt::Result {
+        f.debug_struct("IntoInner").field("err", &self.err).finish()
+    }
+}
+
+impl<T> crate::std::fmt::Display for IntoInner<T> {
+    fn fmt(&self, f: &mut crate::std::fmt::Formatter) -> crate::std::fmt::Result {
+        write!(f, "failed to take the inner json writer because it is invalid")
+    }
+}

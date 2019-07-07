@@ -30,6 +30,11 @@ where
     }
 
     #[inline]
+    pub(crate) fn into_inner(self) -> TStream {
+        self.stream
+    }
+
+    #[inline]
     pub(crate) fn borrow_mut(&mut self) -> RefMutCollect {
         RefMutCollect(OwnedCollect::new(&mut self.stream, self.stack.borrow_mut()))
     }
@@ -43,8 +48,8 @@ where
     pub fn fmt(&mut self, f: Arguments) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
             stream.fmt(f)?;
+            stack.primitive();
 
             Ok(())
         })
@@ -54,8 +59,10 @@ where
     pub fn i64(&mut self, v: i64) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.i64(v)
+            stream.i64(v)?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -63,8 +70,8 @@ where
     pub fn u64(&mut self, v: u64) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
             stream.u64(v)?;
+            stack.primitive();
 
             Ok(())
         })
@@ -74,8 +81,10 @@ where
     pub fn i128(&mut self, v: i128) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.i128(v)
+            stream.i128(v)?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -83,8 +92,10 @@ where
     pub fn u128(&mut self, v: u128) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.u128(v)
+            stream.u128(v)?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -92,8 +103,10 @@ where
     pub fn f64(&mut self, v: f64) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.f64(v)
+            stream.f64(v)?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -101,8 +114,10 @@ where
     pub fn bool(&mut self, v: bool) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.bool(v)
+            stream.bool(v)?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -110,8 +125,10 @@ where
     pub fn char(&mut self, v: char) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.char(v)
+            stream.char(v)?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -119,8 +136,10 @@ where
     pub fn str(&mut self, v: &str) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.str(v)
+            stream.str(v)?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -128,8 +147,10 @@ where
     pub fn none(&mut self) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive()?;
-            stream.none()
+            stream.none()?;
+            stack.primitive();
+
+            Ok(())
         })
     }
 
@@ -137,8 +158,10 @@ where
     pub fn map_begin(&mut self, len: Option<usize>) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_begin()?;
-            stream.map_begin(len)
+            stream.map_begin(len)?;
+            stack.map_begin();
+
+            Ok(())
         })
     }
 
@@ -146,7 +169,8 @@ where
     pub fn map_key(&mut self, k: impl value::Value) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_key()?;
+            stack.map_key();
+
             Ok(())
         })?;
 
@@ -157,7 +181,8 @@ where
     pub fn map_value(&mut self, v: impl value::Value) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_value()?;
+            stack.map_value();
+
             Ok(())
         })?;
 
@@ -168,8 +193,10 @@ where
     pub fn map_end(&mut self) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_end()?;
-            stream.map_end()
+            stream.map_end()?;
+            stack.map_end();
+
+            Ok(())
         })
     }
 
@@ -177,8 +204,10 @@ where
     pub fn seq_begin(&mut self, len: Option<usize>) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_begin()?;
-            stream.seq_begin(len)
+            stream.seq_begin(len)?;
+            stack.seq_begin();
+
+            Ok(())
         })
     }
 
@@ -186,7 +215,8 @@ where
     pub fn seq_elem(&mut self, v: impl value::Value) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_elem()?;
+            stack.seq_elem();
+
             Ok(())
         })?;
 
@@ -197,8 +227,10 @@ where
     pub fn seq_end(&mut self) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_end()?;
-            stream.seq_end()
+            stream.seq_end()?;
+            stack.seq_end();
+
+            Ok(())
         })
     }
 
@@ -206,8 +238,10 @@ where
     pub fn map_key_begin(&mut self) -> Result<&mut Self, Error> {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_key()?;
-            stream.map_key()
+            stream.map_key()?;
+            stack.map_key();
+
+            Ok(())
         })?;
 
         Ok(self)
@@ -217,8 +251,10 @@ where
     pub fn map_value_begin(&mut self) -> Result<&mut Self, Error> {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_value()?;
-            stream.map_value()
+            stream.map_value()?;
+            stack.map_value();
+
+            Ok(())
         })?;
 
         Ok(self)
@@ -228,43 +264,13 @@ where
     pub fn seq_elem_begin(&mut self) -> Result<&mut Self, Error> {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_elem()?;
-            stream.seq_elem()
+            stream.seq_elem()?;
+            stack.seq_elem();
+
+            Ok(())
         })?;
 
         Ok(self)
-    }
-}
-
-impl<TStream> OwnedCollect<TStream>
-where
-    TStream: Collect,
-{
-    #[inline]
-    pub(crate) fn begin(mut stream: TStream) -> Result<Self, Error> {
-        let mut stack = DebugStack::default();
-
-        stack.borrow_mut().and_then(|mut stack| {
-            stack.begin()?;
-            stream.begin()?;
-
-            Ok(())
-        })?;
-
-        Ok(OwnedCollect { stack, stream })
-    }
-
-    #[inline]
-    pub(crate) fn end(mut self) -> Result<TStream, Error> {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.end()?;
-            stream.end()?;
-
-            Ok(())
-        })?;
-
-        Ok(self.stream)
     }
 }
 

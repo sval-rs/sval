@@ -42,7 +42,7 @@ where
         S: Serializer,
     {
         let mut stream =
-            collect::OwnedCollect::begin(Stream::new(serializer)).map_err(S::Error::custom)?;
+            collect::OwnedCollect::new(Stream::new(serializer), collect::stack::DebugStack::default());
 
         stream.any(&self.0).map_err(S::Error::custom)?;
 

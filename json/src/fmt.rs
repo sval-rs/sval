@@ -5,12 +5,15 @@ use sval::stream::{
     Stream,
 };
 
-use crate::std::{
-    fmt::{
-        self,
-        Write,
+use crate::{
+    std::{
+        fmt::{
+            self,
+            Write,
+        },
+        mem,
     },
-    mem,
+    IntoInner,
 };
 
 /**
@@ -39,7 +42,7 @@ Create an owned json stream:
 use sval::stream::OwnedStream;
 use sval_json::Formatter;
 
-let mut stream = OwnedStream::begin(Formatter::new(String::new()))?;
+let mut stream = OwnedStream::new(Formatter::new(String::new()));
 stream.any(42)?;
 let json = stream.end()?.into_inner();
 
@@ -70,11 +73,28 @@ where
     }
 
     /**
+    Whether the stream has seen a complete, valid json structure.
+    */
+    pub fn is_valid(&self) -> bool {
+        self.stack.can_end()
+    }
+
+    /**
     Get the inner writer back out of the stream.
 
-    There is no validation done to ensure the data written is valid.
+    If the writer contains incomplete json then this method will fail.
     */
-    pub fn into_inner(self) -> W {
+    pub fn into_inner(mut self) -> Result<W, IntoInner<Self>> {
+        match self.stack.end() {
+            Ok(()) => Ok(self.out),
+            Err(e) => Err(IntoInner::new(e, self))
+        }
+    }
+
+    /**
+    Get the inner writer back out of the stream without ensuring it's valid.
+    */
+    pub fn into_inner_unchecked(self) -> W {
         self.out
     }
 
@@ -96,13 +116,6 @@ impl<W> Stream for Formatter<W>
 where
     W: Write,
 {
-    #[inline]
-    fn begin(&mut self) -> stream::Result {
-        self.stack.begin()?;
-
-        Ok(())
-    }
-
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
@@ -318,13 +331,6 @@ where
 
         self.delim = Self::next_delim(pos);
         self.out.write_char('}')?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn end(&mut self) -> stream::Result {
-        self.stack.end()?;
 
         Ok(())
     }

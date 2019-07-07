@@ -31,25 +31,25 @@ where
     */
     #[inline]
     pub fn stream(stream: S, value: impl Value) -> Result<S, Error> {
-        let mut stream = Self::begin(stream)?;
+        let mut stream = Self::new(stream);
         stream.any(value)?;
-        stream.end()
+        Ok(stream.into_inner())
     }
 
     /**
     Begin an owned stream.
     */
     #[inline]
-    pub fn begin(stream: S) -> Result<Self, Error> {
-        Ok(OwnedStream(OwnedCollect::begin(collect::Default(stream))?))
+    pub fn new(stream: S) -> Self {
+        OwnedStream(OwnedCollect::new(collect::Default(stream), Default::default()))
     }
 
     /**
-    Complete an owned stream.
+    Unwrap the inner stream.
     */
     #[inline]
-    pub fn end(self) -> Result<S, Error> {
-        Ok(self.0.end()?.0)
+    pub fn into_inner(self) -> S {
+        self.0.into_inner().0
     }
 
     /**

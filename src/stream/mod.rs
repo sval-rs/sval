@@ -32,16 +32,6 @@ the concept of [`Value`]s.
 */
 pub trait Stream {
     /**
-    Begin the stream.
-
-    This method must be called before interacting with the stream
-    in any other way.
-    */
-    fn begin(&mut self) -> Result {
-        Ok(())
-    }
-
-    /**
     Stream a format.
     */
     fn fmt(&mut self, args: Arguments) -> Result;
@@ -166,24 +156,12 @@ pub trait Stream {
     fn seq_end(&mut self) -> Result {
         Ok(())
     }
-
-    /**
-    End the stream.
-    */
-    fn end(&mut self) -> Result {
-        Ok(())
-    }
 }
 
 impl<'a, T: ?Sized> Stream for &'a mut T
 where
     T: Stream,
 {
-    #[inline]
-    fn begin(&mut self) -> Result {
-        (**self).begin()
-    }
-
     #[inline]
     fn fmt(&mut self, args: Arguments) -> Result {
         (**self).fmt(args)
@@ -267,11 +245,6 @@ where
     #[inline]
     fn seq_end(&mut self) -> Result {
         (**self).seq_end()
-    }
-
-    #[inline]
-    fn end(&mut self) -> Result {
-        (**self).end()
     }
 }
 

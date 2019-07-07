@@ -35,16 +35,6 @@ impl Stream for EmptyStream {
     }
 
     #[inline(never)]
-    fn begin(&mut self) -> stream::Result {
-        Ok(())
-    }
-
-    #[inline(never)]
-    fn end(&mut self) -> stream::Result {
-        Ok(())
-    }
-
-    #[inline(never)]
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         Ok(())
     }
@@ -150,8 +140,6 @@ fn raw_stream_map(b: &mut Bencher) {
         stream.map_end().unwrap();
 
         stream.map_end().unwrap();
-
-        stream.end().unwrap();
 
         black_box(stream);
     })
