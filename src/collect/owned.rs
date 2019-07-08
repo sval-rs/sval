@@ -206,7 +206,7 @@ where
     #[inline]
     pub fn seq_elem(&mut self, v: impl value::Value) -> collect::Result {
         self.seq_elem_begin()?;
-        
+
         let stream = &mut self.stream;
         stream.seq_elem_collect(Value::new(&v, self.stack.borrow_mut()))
     }

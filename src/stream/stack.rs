@@ -92,42 +92,27 @@ macro_rules! expecting {
     ($slot:expr, $got:expr) => {{
         fn expecting(slot: Slot) -> &'static dyn fmt::Display {
             match slot.0 {
-                | Slot::ROOT
-                | Slot::SEQ_ELEM
-                | Slot::MAP_KEY
-                | Slot::MAP_VAL => {
-                    &Expecting {
-                        got: $got,
-                        expecting: "a primitive, map begin or seq begin",
-                    }
+                Slot::ROOT | Slot::SEQ_ELEM | Slot::MAP_KEY | Slot::MAP_VAL => &Expecting {
+                    got: $got,
+                    expecting: "a primitive, map begin or seq begin",
                 },
-                | Slot::SEQ_DONE
-                | Slot::SEQ_ELEM_DONE => {
-                    &Expecting {
-                        got: $got,
-                        expecting: "a seq elem or seq end",
-                    }
+                Slot::SEQ_DONE | Slot::SEQ_ELEM_DONE => &Expecting {
+                    got: $got,
+                    expecting: "a seq elem or seq end",
                 },
-                | Slot::MAP_DONE
-                | Slot::MAP_VAL_DONE => {
-                    &Expecting {
-                        got: $got,
-                        expecting: "a map key or map done",
-                    }
+                Slot::MAP_DONE | Slot::MAP_VAL_DONE => &Expecting {
+                    got: $got,
+                    expecting: "a map key or map done",
                 },
-                | Slot::MAP_KEY_DONE => {
-                    &Expecting {
-                        got: $got,
-                        expecting: "a map value",
-                    }
+                Slot::MAP_KEY_DONE => &Expecting {
+                    got: $got,
+                    expecting: "a map value",
                 },
-                slot if slot & Slot::DONE == Slot::DONE => {
-                    &Expecting {
-                        got: $got,
-                        expecting: "nothing",
-                    }
+                slot if slot & Slot::DONE == Slot::DONE => &Expecting {
+                    got: $got,
+                    expecting: "nothing",
                 },
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
 
@@ -281,7 +266,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::custom(expecting!(*curr, "primitive")))
+            _ => Err(Error::custom(expecting!(*curr, "primitive"))),
         }
     }
 

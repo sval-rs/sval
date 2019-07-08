@@ -41,7 +41,10 @@ where
     */
     #[inline]
     pub fn new(stream: S) -> Self {
-        OwnedStream(OwnedCollect::new(collect::Default(stream), Default::default()))
+        OwnedStream(OwnedCollect::new(
+            collect::Default(stream),
+            Default::default(),
+        ))
     }
 
     /**

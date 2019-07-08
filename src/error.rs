@@ -167,7 +167,7 @@ mod std_support {
         }
     }
 
-    impl error::Error for ErrorInner { }
+    impl error::Error for ErrorInner {}
 }
 
 #[cfg(test)]

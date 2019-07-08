@@ -125,6 +125,9 @@ impl<T> crate::std::fmt::Debug for IntoInner<T> {
 
 impl<T> crate::std::fmt::Display for IntoInner<T> {
     fn fmt(&self, f: &mut crate::std::fmt::Formatter) -> crate::std::fmt::Result {
-        write!(f, "failed to take the inner json writer because it is invalid")
+        write!(
+            f,
+            "failed to take the inner json writer because it is invalid"
+        )
     }
 }
