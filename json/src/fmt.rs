@@ -88,7 +88,7 @@ where
     pub fn end(mut self) -> Result<W, IntoInner<Self>> {
         match self.stack.end() {
             Ok(()) => Ok(self.out),
-            Err(e) => Err(IntoInner::new(e, self))
+            Err(e) => Err(IntoInner::new(e, self)),
         }
     }
 

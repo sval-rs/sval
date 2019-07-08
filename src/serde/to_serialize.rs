@@ -40,8 +40,10 @@ where
     where
         S: Serializer,
     {
-        let mut stream =
-            collect::OwnedCollect::new(Stream::new(serializer), collect::stack::DebugStack::default());
+        let mut stream = collect::OwnedCollect::new(
+            Stream::new(serializer),
+            collect::stack::DebugStack::default(),
+        );
 
         stream.any(&self.0).map_err(S::Error::custom)?;
 
@@ -300,7 +302,7 @@ where
     fn map_key_collect(&mut self, k: collect::Value) -> collect::Result {
         match self.buffer() {
             None => self.serialize_any(ToSerialize(Value::new(k))),
-            Some(buffered) => k.stream(collect::Default(buffered))
+            Some(buffered) => k.stream(collect::Default(buffered)),
         }
     }
 
@@ -308,7 +310,7 @@ where
     fn map_value_collect(&mut self, v: collect::Value) -> collect::Result {
         match self.buffer() {
             None => self.serialize_any(ToSerialize(Value::new(v))),
-            Some(buffered) => v.stream(collect::Default(buffered))
+            Some(buffered) => v.stream(collect::Default(buffered)),
         }
     }
 
@@ -316,7 +318,7 @@ where
     fn seq_elem_collect(&mut self, v: collect::Value) -> collect::Result {
         match self.buffer() {
             None => self.serialize_any(ToSerialize(Value::new(v))),
-            Some(buffered) => v.stream(collect::Default(buffered))
+            Some(buffered) => v.stream(collect::Default(buffered)),
         }
     }
 }

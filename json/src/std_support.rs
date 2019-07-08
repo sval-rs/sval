@@ -4,16 +4,16 @@ use sval::stream::{
 };
 
 use crate::std::{
-    string::String,
     error::Error,
+    string::String,
 };
 use crate::{
-    IntoInner,
     fmt::Formatter,
     std::{
         fmt,
         io::Write,
     },
+    IntoInner,
 };
 
 impl<T> Error for IntoInner<T> {
