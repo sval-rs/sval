@@ -70,6 +70,23 @@ impl Pos {
     pub fn depth(&self) -> Depth {
         Depth(self.depth)
     }
+
+    #[cfg(debug_assertions)]
+    pub(crate) fn expecting(&self) -> &'static str {
+        match self.slot {
+            | Slot::ROOT
+            | Slot::SEQ_ELEM
+            | Slot::MAP_KEY
+            | Slot::MAP_VAL => "a primitive, map_begin, or seq_begin",
+            | Slot::SEQ_DONE
+            | Slot::SEQ_ELEM_DONE => "a seq_elem, or seq_end",
+            | Slot::MAP_DONE
+            | Slot::MAP_VAL_DONE => "a map_key, or map_done",
+            | Slot::MAP_KEY_DONE => "a map_value",
+            slot if slot & Slot::DONE == Slot::DONE => "nothing",
+            _ => unreachable!()
+        }
+    }
 }
 
 /**

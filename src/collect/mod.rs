@@ -75,26 +75,17 @@ where
 {
     #[inline]
     fn map_key_collect(&mut self, k: Value) -> Result {
-        Stream::map_key(self)?;
-        k.stream(self)?;
-
-        Ok(())
+        k.stream(self)
     }
 
     #[inline]
     fn map_value_collect(&mut self, v: Value) -> Result {
-        Stream::map_value(self)?;
-        v.stream(self)?;
-
-        Ok(())
+        v.stream(self)
     }
 
     #[inline]
     fn seq_elem_collect(&mut self, v: Value) -> Result {
-        Stream::seq_elem(self)?;
-        v.stream(self)?;
-
-        Ok(())
+        v.stream(self)
     }
 }
 

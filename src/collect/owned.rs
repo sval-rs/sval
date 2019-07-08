@@ -167,25 +167,17 @@ where
 
     #[inline]
     pub fn map_key(&mut self, k: impl value::Value) -> collect::Result {
+        self.map_key_begin()?;
+
         let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_key();
-
-            Ok(())
-        })?;
-
         stream.map_key_collect(Value::new(&k, self.stack.borrow_mut()))
     }
 
     #[inline]
     pub fn map_value(&mut self, v: impl value::Value) -> collect::Result {
+        self.map_value_begin()?;
+
         let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_value();
-
-            Ok(())
-        })?;
-
         stream.map_value_collect(Value::new(&v, self.stack.borrow_mut()))
     }
 
@@ -213,13 +205,9 @@ where
 
     #[inline]
     pub fn seq_elem(&mut self, v: impl value::Value) -> collect::Result {
+        self.seq_elem_begin()?;
+        
         let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_elem();
-
-            Ok(())
-        })?;
-
         stream.seq_elem_collect(Value::new(&v, self.stack.borrow_mut()))
     }
 

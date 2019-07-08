@@ -38,13 +38,13 @@ Create an owned json stream:
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<std::error::Error>> {
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 use sval::stream::OwnedStream;
 use sval_json::Formatter;
 
 let mut stream = OwnedStream::new(Formatter::new(String::new()));
 stream.any(42)?;
-let json = stream.end()?.into_inner();
+let json = stream.into_inner().end()?;
 
 assert_eq!("42", json);
 # Ok(())
@@ -80,11 +80,12 @@ where
     }
 
     /**
-    Get the inner writer back out of the stream.
+    Complete the stream and return the inner writer.
 
     If the writer contains incomplete json then this method will fail.
+    The returned error can be used to pull the original stream back out.
     */
-    pub fn into_inner(mut self) -> Result<W, IntoInner<Self>> {
+    pub fn end(mut self) -> Result<W, IntoInner<Self>> {
         match self.stack.end() {
             Ok(()) => Ok(self.out),
             Err(e) => Err(IntoInner::new(e, self))
