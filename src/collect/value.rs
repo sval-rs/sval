@@ -11,9 +11,6 @@ use crate::{
     value,
 };
 
-/**
-A value that's known upfront.
-*/
 pub(crate) struct Value<'a> {
     stack: DebugRefMut<'a, DebugStack>,
     value: &'a dyn value::Value,
@@ -25,9 +22,6 @@ impl<'a> Value<'a> {
         Value { stack, value }
     }
 
-    /**
-    Stream this value.
-    */
     #[inline]
     pub(crate) fn stream(self, stream: impl Collect) -> collect::Result {
         let mut stream = OwnedCollect::new(stream, self.stack);

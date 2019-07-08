@@ -63,14 +63,14 @@ The stream internally wraps a [`std::io::Write`].
 Create an owned json stream:
 
 ```
-# fn main() -> Result<(), Box<std::error::Error>> {
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 # use std::str;
 use sval::stream::OwnedStream;
 use sval_json::Writer;
 
 let mut stream = OwnedStream::new(Writer::new(Vec::<u8>::new()));
 stream.any(42)?;
-let json = stream.end()?.into_inner();
+let json = stream.into_inner().end()?;
 
 assert_eq!(Some("42"), str::from_utf8(&json).ok());
 # Ok(())
@@ -98,12 +98,13 @@ where
     }
 
     /**
-    Get the inner writer back out of the stream.
+    Complete the stream and return the inner writer.
 
     If the writer contains incomplete json then this method will fail.
+    The returned error can be used to pull the original stream back out.
     */
-    pub fn into_inner(self) -> Result<W, IntoInner<Self>> {
-        match self.0.into_inner() {
+    pub fn end(self) -> Result<W, IntoInner<Self>> {
+        match self.0.end() {
             Ok(w) => Ok(w.0),
             Err(IntoInner { err, value, .. }) => Err(IntoInner::new(err, Writer(value))),
         }

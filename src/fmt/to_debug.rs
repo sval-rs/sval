@@ -28,7 +28,6 @@ where
         let mut stream = stream::OwnedStream::new(Stream::new(f));
 
         stream.any(&self.0)?;
-        stream.end()?;
 
         Ok(())
     }

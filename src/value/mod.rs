@@ -246,12 +246,11 @@ pub trait Value {
     # #[cfg(not(feature = "std"))]
     # fn main() {}
     # #[cfg(feature = "std")]
-    # fn main() -> Result<(), Box<std::error::Error>> {
+    # fn main() -> Result<(), Box<dyn std::error::Error>> {
     use sval::stream::OwnedStream;
 
     let mut stream = OwnedStream::new(MyStream);
     stream.any(42)?;
-    stream.end()?;
     # Ok(())
     # }
     # use sval::stream::{self, Stream};
@@ -268,7 +267,7 @@ pub trait Value {
     # #[cfg(not(feature = "std"))]
     # fn main() {}
     # #[cfg(feature = "std")]
-    # fn main() -> Result<(), Box<std::error::Error>> {
+    # fn main() -> Result<(), Box<dyn std::error::Error>> {
     use sval::{
         stream::OwnedStream,
         Value,
@@ -276,7 +275,6 @@ pub trait Value {
 
     let mut stream = OwnedStream::new(MyStream);
     42.stream(&mut stream.borrow_mut())?;
-    stream.end()?;
     # Ok(())
     # }
     # use sval::stream::{self, Stream};

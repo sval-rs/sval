@@ -10,7 +10,7 @@ use crate::{
     stream::{
         self,
         stack,
-        Stream as SvalStream,
+        Stream as StreamTrait,
     },
     value::{
         self,
@@ -46,7 +46,7 @@ where
 
         stream.any(&self.0).map_err(S::Error::custom)?;
 
-        Ok(stream.end().map_err(S::Error::custom)?.expect_ok())
+        Ok(stream.into_inner().expect_ok())
     }
 }
 
@@ -300,33 +300,33 @@ where
     #[inline]
     fn map_key_collect(&mut self, k: collect::Value) -> collect::Result {
         match self.buffer() {
-            None => self.serialize_key(&ToSerialize(Value::new(k))),
-            Some(buffered) => {
-                buffered.map_key()?;
-                k.stream(collect::Default(buffered))
-            }
+            None => {
+                self.map_key()?;
+                self.serialize_any(ToSerialize(Value::new(k)))
+            },
+            Some(buffered) => k.stream(collect::Default(buffered))
         }
     }
 
     #[inline]
     fn map_value_collect(&mut self, v: collect::Value) -> collect::Result {
         match self.buffer() {
-            None => self.serialize_value(&ToSerialize(Value::new(v))),
-            Some(buffered) => {
-                buffered.map_value()?;
-                v.stream(collect::Default(buffered))
-            }
+            None => {
+                self.map_value()?;
+                self.serialize_any(ToSerialize(Value::new(v)))
+            },
+            Some(buffered) => v.stream(collect::Default(buffered))
         }
     }
 
     #[inline]
     fn seq_elem_collect(&mut self, v: collect::Value) -> collect::Result {
         match self.buffer() {
-            None => self.serialize_elem(&ToSerialize(Value::new(v))),
-            Some(buffered) => {
-                buffered.seq_elem()?;
-                v.stream(collect::Default(buffered))
-            }
+            None => {
+                self.seq_elem()?;
+                self.serialize_any(ToSerialize(Value::new(v)))
+            },
+            Some(buffered) => v.stream(collect::Default(buffered))
         }
     }
 }

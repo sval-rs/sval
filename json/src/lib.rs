@@ -19,7 +19,7 @@ version = "0.2.0"
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<std::error::Error>> {
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 let json = sval_json::to_fmt(MyWrite, 42)?;
 # Ok(())
 # }
@@ -45,7 +45,7 @@ features = ["std"]
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<std::error::Error>> {
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 let json = sval_json::to_string(42)?;
 # Ok(())
 # }
@@ -57,7 +57,7 @@ let json = sval_json::to_string(42)?;
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<std::error::Error>> {
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 # use std::io::{self, Write};
 # struct MyWrite;
 # impl Write for MyWrite {

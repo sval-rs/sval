@@ -27,7 +27,7 @@ For simple use-cases, use the [`stream`](function.stream.html) function to strea
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<std::error::Error>> {
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 sval::stream(MyStream, 42)?;
 # Ok(())
 # }
@@ -49,7 +49,7 @@ to hang on to a stream and pass it values over time:
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<std::error::Error>> {
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 use sval::{
     Value,
     stream::{self, OwnedStream},
@@ -80,9 +80,8 @@ impl StreamPairs {
 
     fn end(mut self) -> Result<MyStream, stream::Error> {
         self.stream.map_end()?;
-        let my_stream = self.stream.end()?;
 
-        Ok(my_stream)
+        Ok(self.stream.into_inner())
     }
 }
 
@@ -364,14 +363,6 @@ impl Stream for Fmt {
 
         self.delim = Self::next_delim(pos);
         print!("}}");
-
-        Ok(())
-    }
-
-    fn end(&mut self) -> stream::Result {
-        self.stack.end()?;
-
-        println!();
 
         Ok(())
     }

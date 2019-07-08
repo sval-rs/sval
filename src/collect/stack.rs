@@ -101,7 +101,8 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn primitive(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.primitive().expect("invalid primitive");
+                self.ref_mut.stack.primitive()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid primitive"));
             }
         }
     }
@@ -110,7 +111,8 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn map_begin(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_begin().expect("invalid map begin");
+                self.ref_mut.stack.map_begin()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid map begin"));
             }
         }
     }
@@ -119,7 +121,8 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn map_key(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_key().expect("invalid map key");
+                self.ref_mut.stack.map_key()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid map key"));
             }
         }
     }
@@ -128,7 +131,8 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn map_value(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_value().expect("invalid map value");
+                self.ref_mut.stack.map_value()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid map value"));
             }
         }
     }
@@ -137,7 +141,8 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn map_end(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.map_end().expect("invalid map end");
+                self.ref_mut.stack.map_end()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid map end"));
             }
         }
     }
@@ -146,7 +151,8 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn seq_begin(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.seq_begin().expect("invalid seq begin");
+                self.ref_mut.stack.seq_begin()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid seq begin"));
             }
         }
     }
@@ -155,7 +161,8 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn seq_elem(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.seq_elem().expect("invalid seq elem");
+                self.ref_mut.stack.seq_elem()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid seq elem"));
             }
         }
     }
@@ -164,10 +171,15 @@ impl<'a> DebugRefMut<'a, DebugStackInner> {
     pub fn seq_end(&mut self) {
         cfg_debug_stack! {
             if #[debug_assertions] {
-                self.ref_mut.stack.seq_end().expect("invalid seq end");
+                self.ref_mut.stack.seq_end()
+                    .unwrap_or_else(panic_with_expecting(&self.ref_mut.stack, "(debug only) invalid seq end"));
             }
         }
     }
+}
+
+fn panic_with_expecting<'a, T>(stack: &'a Stack, msg: &'static str) -> impl FnOnce(Error) -> T + 'a {
+    move |err| panic!("{:?}: {} (expecting: {})", err, msg, stack.current().expecting())
 }
 
 #[cfg(test)]
