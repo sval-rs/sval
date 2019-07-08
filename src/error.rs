@@ -20,6 +20,16 @@ impl Error {
     pub fn msg(msg: &'static str) -> Self {
         Error(ErrorInner::Static(msg))
     }
+
+    // NOTE: This method is not public because we already
+    // have a method called `custom` when `std` is available.
+    // It's strictly more general than this one, but could
+    // be confusing to users to have bounds change depending
+    // on cargo features
+    #[cfg(not(feature = "std"))]
+    pub(crate) fn custom(err: &'static dyn fmt::Display) -> Self {
+        Error(ErrorInner::Custom(err))
+    }
 }
 
 impl fmt::Debug for Error {
@@ -37,6 +47,8 @@ impl fmt::Display for Error {
 #[derive(Clone)]
 enum ErrorInner {
     Static(&'static str),
+    #[cfg(not(feature = "std"))]
+    Custom(&'static dyn fmt::Display),
     #[cfg(feature = "std")]
     Owned(String),
 }
@@ -45,6 +57,8 @@ impl fmt::Debug for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ErrorInner::Static(msg) => msg.fmt(f),
+            #[cfg(not(feature = "std"))]
+            ErrorInner::Custom(ref err) => err.fmt(f),
             #[cfg(feature = "std")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
         }
@@ -55,6 +69,8 @@ impl fmt::Display for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ErrorInner::Static(msg) => msg.fmt(f),
+            #[cfg(not(feature = "std"))]
+            ErrorInner::Custom(ref err) => err.fmt(f),
             #[cfg(feature = "std")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
         }

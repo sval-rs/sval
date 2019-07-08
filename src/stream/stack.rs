@@ -2,6 +2,8 @@
 A fixed-size, stateful stack for streams.
 */
 
+use crate::std::fmt;
+
 use super::Error;
 
 /**
@@ -70,23 +72,67 @@ impl Pos {
     pub fn depth(&self) -> Depth {
         Depth(self.depth)
     }
+}
 
-    #[cfg(debug_assertions)]
-    pub(crate) fn expecting(&self) -> &'static str {
-        match self.slot {
-            | Slot::ROOT
-            | Slot::SEQ_ELEM
-            | Slot::MAP_KEY
-            | Slot::MAP_VAL => "a primitive, map_begin, or seq_begin",
-            | Slot::SEQ_DONE
-            | Slot::SEQ_ELEM_DONE => "a seq_elem, or seq_end",
-            | Slot::MAP_DONE
-            | Slot::MAP_VAL_DONE => "a map_key, or map_done",
-            | Slot::MAP_KEY_DONE => "a map_value",
-            slot if slot & Slot::DONE == Slot::DONE => "nothing",
-            _ => unreachable!()
-        }
+/**
+A container for an unmatched expectation.
+*/
+struct Expecting {
+    got: &'static str,
+    expecting: &'static str,
+}
+
+impl fmt::Display for Expecting {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid {}, expecting {}", self.got, self.expecting)
     }
+}
+
+macro_rules! expecting {
+    ($slot:expr, $got:expr) => {{
+        fn expecting(slot: Slot) -> &'static dyn fmt::Display {
+            match slot.0 {
+                | Slot::ROOT
+                | Slot::SEQ_ELEM
+                | Slot::MAP_KEY
+                | Slot::MAP_VAL => {
+                    &Expecting {
+                        got: $got,
+                        expecting: "a primitive, map begin or seq begin",
+                    }
+                },
+                | Slot::SEQ_DONE
+                | Slot::SEQ_ELEM_DONE => {
+                    &Expecting {
+                        got: $got,
+                        expecting: "a seq elem or seq end",
+                    }
+                },
+                | Slot::MAP_DONE
+                | Slot::MAP_VAL_DONE => {
+                    &Expecting {
+                        got: $got,
+                        expecting: "a map key or map done",
+                    }
+                },
+                | Slot::MAP_KEY_DONE => {
+                    &Expecting {
+                        got: $got,
+                        expecting: "a map value",
+                    }
+                },
+                slot if slot & Slot::DONE == Slot::DONE => {
+                    &Expecting {
+                        got: $got,
+                        expecting: "nothing",
+                    }
+                },
+                _ => unreachable!()
+            }
+        }
+
+        expecting($slot)
+    }};
 }
 
 /**
@@ -235,7 +281,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::msg("invalid attempt to write primitive")),
+            _ => Err(Error::custom(expecting!(*curr, "primitive")))
         }
     }
 
@@ -262,7 +308,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::msg("invalid attempt to begin map")),
+            _ => Err(Error::custom(expecting!(curr, "map begin"))),
         }
     }
 
@@ -286,7 +332,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::msg("invalid attempt to begin key")),
+            _ => Err(Error::custom(expecting!(*curr, "map key"))),
         }
     }
 
@@ -309,7 +355,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::msg("invalid attempt to begin value")),
+            _ => Err(Error::custom(expecting!(*curr, "map value"))),
         }
     }
 
@@ -338,7 +384,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth() + 1))
             }
-            _ => Err(Error::msg("invalid attempt to end map")),
+            _ => Err(Error::custom(expecting!(curr, "map end"))),
         }
     }
 
@@ -365,7 +411,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::msg("invalid attempt to begin sequence")),
+            _ => Err(Error::custom(expecting!(curr, "seq begin"))),
         }
     }
 
@@ -389,7 +435,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::msg("invalid attempt to begin element")),
+            _ => Err(Error::custom(expecting!(*curr, "seq elem"))),
         }
     }
 
@@ -418,7 +464,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth() + 1))
             }
-            _ => Err(Error::msg("invalid attempt to end sequence")),
+            _ => Err(Error::custom(expecting!(curr, "seq end"))),
         }
     }
 
