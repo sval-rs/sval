@@ -10,7 +10,6 @@ use crate::{
     stream::{
         self,
         stack,
-        Stream as StreamTrait,
     },
     value::{
         self,
@@ -300,10 +299,7 @@ where
     #[inline]
     fn map_key_collect(&mut self, k: collect::Value) -> collect::Result {
         match self.buffer() {
-            None => {
-                self.map_key()?;
-                self.serialize_any(ToSerialize(Value::new(k)))
-            },
+            None => self.serialize_any(ToSerialize(Value::new(k))),
             Some(buffered) => k.stream(collect::Default(buffered))
         }
     }
@@ -311,10 +307,7 @@ where
     #[inline]
     fn map_value_collect(&mut self, v: collect::Value) -> collect::Result {
         match self.buffer() {
-            None => {
-                self.map_value()?;
-                self.serialize_any(ToSerialize(Value::new(v)))
-            },
+            None => self.serialize_any(ToSerialize(Value::new(v))),
             Some(buffered) => v.stream(collect::Default(buffered))
         }
     }
@@ -322,10 +315,7 @@ where
     #[inline]
     fn seq_elem_collect(&mut self, v: collect::Value) -> collect::Result {
         match self.buffer() {
-            None => {
-                self.seq_elem()?;
-                self.serialize_any(ToSerialize(Value::new(v)))
-            },
+            None => self.serialize_any(ToSerialize(Value::new(v))),
             Some(buffered) => v.stream(collect::Default(buffered))
         }
     }
