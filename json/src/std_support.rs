@@ -13,10 +13,10 @@ use crate::{
         fmt,
         io::Write,
     },
-    IntoInner,
+    End,
 };
 
-impl<T> Error for IntoInner<T> {
+impl<T> Error for End<T> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.err.source()
     }
@@ -103,10 +103,10 @@ where
     If the writer contains incomplete json then this method will fail.
     The returned error can be used to pull the original stream back out.
     */
-    pub fn end(self) -> Result<W, IntoInner<Self>> {
+    pub fn end(self) -> Result<W, End<Self>> {
         match self.0.end() {
             Ok(w) => Ok(w.0),
-            Err(IntoInner { err, value, .. }) => Err(IntoInner::new(err, Writer(value))),
+            Err(End { err, stream, .. }) => Err(End::new(err, Writer(stream))),
         }
     }
 

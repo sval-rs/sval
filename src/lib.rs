@@ -12,12 +12,12 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval]
-version = "0.3.1"
+version = "0.4.0"
 ```
 
 # Supported formats
 
-- [JSON](https://crates.io/crates/sval_json)
+- [JSON](https://crates.io/crates/sval_json), the ubiquitous JavaScript Object Notation used by many HTTP APIs.
 
 # Streaming values
 
@@ -423,7 +423,7 @@ fn with_value(value: impl sval::Value) {
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/sval/0.4.0")]
 #![no_std]
 
 #[macro_use]

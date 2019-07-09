@@ -1,6 +1,6 @@
 [package]
 name = "sval_derive"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 documentation = "https://docs.rs/sval_derive"
@@ -11,7 +11,11 @@ license = "Apache-2.0 OR MIT"
 [lib]
 proc-macro = true
 
-[dependencies]
-syn = "0.15"
-quote = "0.6"
-proc-macro2 = "0.4"
+[dependencies.syn]
+version = "0.15"
+
+[dependencies.quote]
+version = "0.6"
+
+[dependencies.proc-macro2]
+version = "0.4"
