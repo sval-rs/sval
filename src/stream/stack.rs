@@ -24,6 +24,13 @@ to have the same depth or greater.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Depth(usize);
 
+#[cfg(feature = "std")]
+impl Depth {
+    pub(crate) fn root() -> Self {
+        Depth(0)
+    }
+}
+
 impl Pos {
     /**
     Whether the current position is a map key.
