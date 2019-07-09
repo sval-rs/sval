@@ -10,7 +10,7 @@ Add `sval_json` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval_json]
-version = "0.3.0"
+version = "0.3.1"
 ```
 
 # Writing JSON to `fmt::Write`
@@ -34,7 +34,7 @@ let json = sval_json::to_fmt(MyWrite, 42)?;
 
 # Writing JSON to a `String`
 
-Add the `std` feature to your `Cargo.toml` to enable this module:
+Add the `std` feature to your `Cargo.toml` to enable writing to a `String`:
 
 ```toml,no_run
 [dependencies.sval_json]
@@ -52,6 +52,13 @@ let json = sval_json::to_string(42)?;
 ```
 
 # Writing JSON to a `io::Write`
+
+Add the `std` feature to your `Cargo.toml` to enable writing to an `io::Write`:
+
+```toml,no_run
+[dependencies.sval_json]
+features = ["std"]
+```
 
 ```no_run
 # #[cfg(not(feature = "std"))]
@@ -72,7 +79,7 @@ let json = sval_json::to_writer(MyWrite, 42)?;
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval_json/0.3.0")]
+#![doc(html_root_url = "https://docs.rs/sval_json/0.3.1")]
 #![no_std]
 
 #[cfg(feature = "std")]
