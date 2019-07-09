@@ -5,9 +5,11 @@
 [![Documentation Latest](https://docs.rs/sval/badge.svg)](https://docs.rs/sval)
 [![Documentation Master](https://img.shields.io/badge/docs-master-lightgrey.svg)](https://sval-rs.github.io/sval/sval/index.html)
 
-A lightweight, no-std, object-safe, serialization-only API for structured values with `serde` support.
+A lightweight, no-std, object-safe, serialization-only API for structured values with `serde` and `std::fmt` support.
 
-Producers of structured values use the `value` module. Consumers of structured values use the `stream` module. `sval` offers a json-like data model, which is more limiting than `serde`'s, but capable enough to represent Rust datastructures in one form or another.
+Producers of structured values use the `value` module. Consumers of structured values use the `stream` module.
+
+`sval` offers a JSON-like data model, which is more limiting than `serde`'s, but capable enough to represent Rust data-structures in one form or another.
 
 This library is designed to plug a no-std-object-safe sized hole in Rust's current serialization ecosystem. The driving use-case is structured logging, where individual events are typically small, and there's no complete schema that can tie values in any one event to values in another.
 
@@ -15,7 +17,7 @@ This library is designed to plug a no-std-object-safe sized hole in Rust's curre
 
 # Supported formats
 
-- [JSON](https://crates.io/crates/sval_json)
+- [JSON](https://crates.io/crates/sval_json), the ubiquitous JavaScript Object Notation used by many HTTP APIs.
 
 # Minimum `rustc`
 
@@ -43,12 +45,12 @@ Add `sval` to your crate dependencies:
 
 ```toml
 [dependencies.sval]
-version = "0.3.1"
+version = "0.4.0"
 ```
 
-## To support my datastructures
+## To support my data-structures
 
-Simple struct-like datastructures can derive `sval::Value`:
+Simple struct-like data-structures can derive `sval::Value`:
 
 ```toml
 [dependencies.sval]
@@ -86,7 +88,7 @@ The `sval_json` crate can format any `sval::Value` as json:
 
 ```toml
 [dependencies.sval_json]
-version = "0.3.1"
+version = "0.4.0"
 features = ["std"]
 ```
 

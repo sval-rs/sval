@@ -10,7 +10,7 @@ Add `sval_json` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval_json]
-version = "0.3.1"
+version = "0.4.0"
 ```
 
 # Writing JSON to `fmt::Write`
@@ -79,7 +79,7 @@ let json = sval_json::to_writer(MyWrite, 42)?;
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval_json/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/sval_json/0.4.0")]
 #![no_std]
 
 #[cfg(feature = "std")]
@@ -105,36 +105,38 @@ pub use self::std_support::{
 };
 
 /**
-An error attempting to get an inner writer containing json.
+An error attempting to end a JSON stream.
+
+The original stream can be pulled out, or this type can be treated as a standard error.
 */
-pub struct IntoInner<T> {
-    /** The original value. */
-    pub value: T,
+pub struct End<T> {
+    /** The original stream. */
+    pub stream: T,
     err: sval::Error,
     _private: (),
 }
 
-impl<T> IntoInner<T> {
-    fn new(err: sval::Error, value: T) -> Self {
-        IntoInner {
+impl<T> End<T> {
+    fn new(err: sval::Error, stream: T) -> Self {
+        End {
             err,
-            value,
+            stream,
             _private: (),
         }
     }
 }
 
-impl<T> crate::std::fmt::Debug for IntoInner<T> {
+impl<T> crate::std::fmt::Debug for End<T> {
     fn fmt(&self, f: &mut crate::std::fmt::Formatter) -> crate::std::fmt::Result {
-        f.debug_struct("IntoInner").field("err", &self.err).finish()
+        f.debug_struct("End").field("err", &self.err).finish()
     }
 }
 
-impl<T> crate::std::fmt::Display for IntoInner<T> {
+impl<T> crate::std::fmt::Display for End<T> {
     fn fmt(&self, f: &mut crate::std::fmt::Formatter) -> crate::std::fmt::Result {
         write!(
             f,
-            "failed to take the inner json writer because it is invalid"
+            "failed to take the inner JSON writer because it is invalid"
         )
     }
 }

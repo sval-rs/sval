@@ -13,7 +13,7 @@ use crate::{
         },
         mem,
     },
-    IntoInner,
+    End,
 };
 
 /**
@@ -85,10 +85,10 @@ where
     If the writer contains incomplete json then this method will fail.
     The returned error can be used to pull the original stream back out.
     */
-    pub fn end(mut self) -> Result<W, IntoInner<Self>> {
+    pub fn end(mut self) -> Result<W, End<Self>> {
         match self.stack.end() {
             Ok(()) => Ok(self.out),
-            Err(e) => Err(IntoInner::new(e, self)),
+            Err(e) => Err(End::new(e, self)),
         }
     }
 

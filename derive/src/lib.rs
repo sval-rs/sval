@@ -14,7 +14,7 @@ This `derive` implementation has been shamelessly lifted from dtolnay's `miniser
 https://github.com/dtolnay/miniserde
 */
 
-#![doc(html_root_url = "https://docs.rs/sval_derive/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/sval_derive/0.4.0")]
 #![recursion_limit = "128"]
 
 #[macro_use]
