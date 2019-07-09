@@ -12,7 +12,6 @@ use crate::stream::{
 };
 
 mod owned;
-pub(crate) mod stack;
 mod value;
 
 #[doc(inline)]

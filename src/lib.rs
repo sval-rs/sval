@@ -426,9 +426,6 @@ fn with_value(value: impl sval::Value) {
 #![doc(html_root_url = "https://docs.rs/sval/0.4.0")]
 #![no_std]
 
-#[macro_use]
-mod macros;
-
 #[doc(hidden)]
 #[cfg(feature = "derive")]
 pub mod derive;

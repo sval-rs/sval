@@ -17,8 +17,7 @@ use crate::{
 An owned stream wrapper.
 
 `OwnedStream` is an ergonomic wrapper over a raw [`Stream`] that makes it
-easier to stream complex types and ensures calls to the underlying stream
-are valid.
+easier to stream complex types.
 */
 pub struct OwnedStream<S>(OwnedCollect<collect::Default<S>>);
 
@@ -41,10 +40,7 @@ where
     */
     #[inline]
     pub fn new(stream: S) -> Self {
-        OwnedStream(OwnedCollect::new(
-            collect::Default(stream),
-            Default::default(),
-        ))
+        OwnedStream(OwnedCollect::new(collect::Default(stream)))
     }
 
     /**

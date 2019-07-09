@@ -68,7 +68,7 @@ struct MyData {
 }
 ```
 
-Other datastructures can implement `sval::Value` manually:
+Other data-structures can implement `sval::Value` manually:
 
 ```rust
 use sval::value::{self, Value};
@@ -84,7 +84,7 @@ impl Value for MyId {
 
 ## To format my data
 
-The `sval_json` crate can format any `sval::Value` as json:
+The `sval_json` crate can format any `sval::Value` as JSON:
 
 ```toml
 [dependencies.sval_json]
