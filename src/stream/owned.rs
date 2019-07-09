@@ -251,6 +251,7 @@ This is the result of calling [`OwnedStream.borrow_mut`](struct.OwnedStream.html
 pub struct RefMutStream<'a>(RefMutCollect<'a>);
 
 impl<'a> RefMutStream<'a> {
+    #[inline]
     pub(crate) fn new(collect: RefMutCollect<'a>) -> Self {
         RefMutStream(collect)
     }

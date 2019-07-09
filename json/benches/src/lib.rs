@@ -45,6 +45,13 @@ fn primitive_sval(b: &mut test::Bencher) {
 }
 
 #[bench]
+fn primitive_sval_noop(b: &mut test::Bencher) {
+    b.iter(|| {
+        sval_noop(&42).unwrap();
+    });
+}
+
+#[bench]
 fn twitter_miniserde(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
@@ -77,6 +84,14 @@ fn twitter_sval(b: &mut test::Bencher) {
 }
 
 #[bench]
+fn twitter_sval_noop(b: &mut test::Bencher) {
+    let s = input_struct();
+    b.iter(|| {
+        sval_noop(&s).unwrap();
+    });
+}
+
+#[bench]
 fn twitter_sval_to_serde(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
@@ -98,4 +113,91 @@ fn twitter_serde_to_sval_to_serde(b: &mut test::Bencher) {
     b.iter(|| {
         serde_json::to_string(&sval::serde::to_serialize(sval::serde::to_value(&s))).unwrap();
     });
+}
+
+fn sval_noop(v: impl sval::Value) -> Result<(), sval::Error> {
+    struct NoOp;
+
+    impl sval::Stream for NoOp {
+        fn fmt(&mut self, v: sval::stream::Arguments) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn i64(&mut self, v: i64) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn u64(&mut self, v: u64) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn i128(&mut self, v: i128) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn u128(&mut self, v: u128) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn f64(&mut self, v: f64) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn bool(&mut self, v: bool) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn char(&mut self, v: char) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn str(&mut self, v: &str) -> sval::stream::Result {
+            let _ = v;
+            Ok(())
+        }
+
+        fn none(&mut self) -> sval::stream::Result {
+            Ok(())
+        }
+
+        fn map_begin(&mut self, len: Option<usize>) -> sval::stream::Result {
+            let _ = len;
+            Ok(())
+        }
+
+        fn map_key(&mut self) -> sval::stream::Result {
+            Ok(())
+        }
+
+        fn map_value(&mut self) -> sval::stream::Result {
+            Ok(())
+        }
+
+        fn map_end(&mut self) -> sval::stream::Result {
+            Ok(())
+        }
+
+        fn seq_begin(&mut self, len: Option<usize>) -> sval::stream::Result {
+            let _ = len;
+            Ok(())
+        }
+
+        fn seq_elem(&mut self) -> sval::stream::Result {
+            Ok(())
+        }
+
+        fn seq_end(&mut self) -> sval::stream::Result {
+            Ok(())
+        }
+    }
+
+    sval::stream(NoOp, v)
 }

@@ -48,10 +48,9 @@ where
     pub fn fmt(&mut self, f: Arguments) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.fmt(f)?;
             stack.primitive();
 
-            Ok(())
+            stream.fmt(f)
         })
     }
 
@@ -59,10 +58,9 @@ where
     pub fn i64(&mut self, v: i64) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.i64(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.i64(v)
         })
     }
 
@@ -70,10 +68,9 @@ where
     pub fn u64(&mut self, v: u64) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.u64(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.u64(v)
         })
     }
 
@@ -81,10 +78,9 @@ where
     pub fn i128(&mut self, v: i128) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.i128(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.i128(v)
         })
     }
 
@@ -92,10 +88,9 @@ where
     pub fn u128(&mut self, v: u128) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.u128(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.u128(v)
         })
     }
 
@@ -103,10 +98,9 @@ where
     pub fn f64(&mut self, v: f64) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.f64(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.f64(v)
         })
     }
 
@@ -114,10 +108,9 @@ where
     pub fn bool(&mut self, v: bool) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.bool(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.bool(v)
         })
     }
 
@@ -125,10 +118,9 @@ where
     pub fn char(&mut self, v: char) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.char(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.char(v)
         })
     }
 
@@ -136,10 +128,9 @@ where
     pub fn str(&mut self, v: &str) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.str(v)?;
             stack.primitive();
 
-            Ok(())
+            stream.str(v)
         })
     }
 
@@ -147,10 +138,9 @@ where
     pub fn none(&mut self) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.none()?;
             stack.primitive();
 
-            Ok(())
+            stream.none()
         })
     }
 
@@ -158,26 +148,33 @@ where
     pub fn map_begin(&mut self, len: Option<usize>) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.map_begin(len)?;
             stack.map_begin();
 
-            Ok(())
+            stream.map_begin(len)
         })
     }
 
     #[inline]
     pub fn map_key(&mut self, k: impl value::Value) -> collect::Result {
-        self.map_key_begin()?;
-
         let stream = &mut self.stream;
+        let _ = self.stack.borrow_mut().and_then(|mut stack| {
+            stack.map_key();
+
+            Ok(())
+        });
+
         stream.map_key_collect(Value::new(&k, self.stack.borrow_mut()))
     }
 
     #[inline]
     pub fn map_value(&mut self, v: impl value::Value) -> collect::Result {
-        self.map_value_begin()?;
-
         let stream = &mut self.stream;
+        let _ = self.stack.borrow_mut().and_then(|mut stack| {
+            stack.map_value();
+
+            Ok(())
+        });
+
         stream.map_value_collect(Value::new(&v, self.stack.borrow_mut()))
     }
 
@@ -185,10 +182,9 @@ where
     pub fn map_end(&mut self) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.map_end()?;
             stack.map_end();
 
-            Ok(())
+            stream.map_end()
         })
     }
 
@@ -196,18 +192,21 @@ where
     pub fn seq_begin(&mut self, len: Option<usize>) -> collect::Result {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.seq_begin(len)?;
             stack.seq_begin();
 
-            Ok(())
+            stream.seq_begin(len)
         })
     }
 
     #[inline]
     pub fn seq_elem(&mut self, v: impl value::Value) -> collect::Result {
-        self.seq_elem_begin()?;
-
         let stream = &mut self.stream;
+        let _ = self.stack.borrow_mut().and_then(|mut stack| {
+            stack.seq_elem();
+
+            Ok(())
+        });
+
         stream.seq_elem_collect(Value::new(&v, self.stack.borrow_mut()))
     }
 
@@ -226,10 +225,9 @@ where
     pub fn map_key_begin(&mut self) -> Result<&mut Self, Error> {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.map_key()?;
             stack.map_key();
 
-            Ok(())
+            stream.map_key()
         })?;
 
         Ok(self)
@@ -239,10 +237,9 @@ where
     pub fn map_value_begin(&mut self) -> Result<&mut Self, Error> {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.map_value()?;
             stack.map_value();
 
-            Ok(())
+            stream.map_value()
         })?;
 
         Ok(self)
@@ -252,10 +249,9 @@ where
     pub fn seq_elem_begin(&mut self) -> Result<&mut Self, Error> {
         let stream = &mut self.stream;
         self.stack.borrow_mut().and_then(|mut stack| {
-            stream.seq_elem()?;
             stack.seq_elem();
 
-            Ok(())
+            stream.seq_elem()
         })?;
 
         Ok(self)
