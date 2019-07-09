@@ -76,7 +76,7 @@ impl<'a> DebugRefMut<'a, DebugStack> {
     #[inline]
     pub(crate) fn and_then<R>(
         &mut self,
-        mut f: impl FnMut(DebugRefMut<DebugStackInner>) -> Result<R, Error>,
+        f: impl FnOnce(DebugRefMut<DebugStackInner>) -> Result<R, Error>,
     ) -> Result<R, Error> {
         cfg_debug_stack! {
             if #[debug_assertions] {
