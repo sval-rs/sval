@@ -41,10 +41,7 @@ where
     where
         S: Serializer,
     {
-        let mut stream = collect::OwnedCollect::new(
-            Stream::new(serializer),
-            collect::stack::DebugStack::default(),
-        );
+        let mut stream = collect::OwnedCollect::new(Stream::new(serializer));
 
         stream.any(&self.0).map_err(S::Error::custom)?;
 

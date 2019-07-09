@@ -1,11 +1,6 @@
 use crate::{
     collect::{
         self,
-        stack::{
-            DebugBorrowMut,
-            DebugRefMut,
-            DebugStack,
-        },
         value::Value,
         Collect,
         Error,
@@ -14,19 +9,17 @@ use crate::{
     value,
 };
 
-pub(crate) struct OwnedCollect<TStream, TStack = DebugStack> {
-    stack: TStack,
+pub(crate) struct OwnedCollect<TStream> {
     stream: TStream,
 }
 
-impl<TStream, TStack> OwnedCollect<TStream, TStack>
+impl<TStream> OwnedCollect<TStream>
 where
     TStream: Collect,
-    TStack: DebugBorrowMut<DebugStack>,
 {
     #[inline]
-    pub(crate) fn new(stream: TStream, stack: TStack) -> Self {
-        OwnedCollect { stack, stream }
+    pub(crate) fn new(stream: TStream) -> Self {
+        OwnedCollect { stream }
     }
 
     #[inline]
@@ -36,7 +29,7 @@ where
 
     #[inline]
     pub(crate) fn borrow_mut(&mut self) -> RefMutCollect {
-        RefMutCollect(OwnedCollect::new(&mut self.stream, self.stack.borrow_mut()))
+        RefMutCollect(OwnedCollect::new(&mut self.stream))
     }
 
     #[inline]
@@ -46,219 +39,112 @@ where
 
     #[inline]
     pub fn fmt(&mut self, f: Arguments) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.fmt(f)
-        })
+        self.stream.fmt(f)
     }
 
     #[inline]
     pub fn i64(&mut self, v: i64) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.i64(v)
-        })
+        self.stream.i64(v)
     }
 
     #[inline]
     pub fn u64(&mut self, v: u64) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.u64(v)
-        })
+        self.stream.u64(v)
     }
 
     #[inline]
     pub fn i128(&mut self, v: i128) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.i128(v)
-        })
+        self.stream.i128(v)
     }
 
     #[inline]
     pub fn u128(&mut self, v: u128) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.u128(v)
-        })
+        self.stream.u128(v)
     }
 
     #[inline]
     pub fn f64(&mut self, v: f64) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.f64(v)
-        })
+        self.stream.f64(v)
     }
 
     #[inline]
     pub fn bool(&mut self, v: bool) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.bool(v)
-        })
+        self.stream.bool(v)
     }
 
     #[inline]
     pub fn char(&mut self, v: char) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.char(v)
-        })
+        self.stream.char(v)
     }
 
     #[inline]
     pub fn str(&mut self, v: &str) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.str(v)
-        })
+        self.stream.str(v)
     }
 
     #[inline]
     pub fn none(&mut self) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.primitive();
-
-            stream.none()
-        })
+        self.stream.none()
     }
 
     #[inline]
     pub fn map_begin(&mut self, len: Option<usize>) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_begin();
-
-            stream.map_begin(len)
-        })
+        self.stream.map_begin(len)
     }
 
     #[inline]
     pub fn map_key(&mut self, k: impl value::Value) -> collect::Result {
-        let stream = &mut self.stream;
-        let _ = self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_key();
-
-            Ok(())
-        });
-
-        stream.map_key_collect(Value::new(&k, self.stack.borrow_mut()))
+        self.stream.map_key_collect(Value::new(&k))
     }
 
     #[inline]
     pub fn map_value(&mut self, v: impl value::Value) -> collect::Result {
-        let stream = &mut self.stream;
-        let _ = self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_value();
-
-            Ok(())
-        });
-
-        stream.map_value_collect(Value::new(&v, self.stack.borrow_mut()))
+        self.stream.map_value_collect(Value::new(&v))
     }
 
     #[inline]
     pub fn map_end(&mut self) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_end();
-
-            stream.map_end()
-        })
+        self.stream.map_end()
     }
 
     #[inline]
     pub fn seq_begin(&mut self, len: Option<usize>) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_begin();
-
-            stream.seq_begin(len)
-        })
+        self.stream.seq_begin(len)
     }
 
     #[inline]
     pub fn seq_elem(&mut self, v: impl value::Value) -> collect::Result {
-        let stream = &mut self.stream;
-        let _ = self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_elem();
-
-            Ok(())
-        });
-
-        stream.seq_elem_collect(Value::new(&v, self.stack.borrow_mut()))
+        self.stream.seq_elem_collect(Value::new(&v))
     }
 
     #[inline]
     pub fn seq_end(&mut self) -> collect::Result {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stream.seq_end()?;
-            stack.seq_end();
-
-            Ok(())
-        })
+        self.stream.seq_end()
     }
 
     #[inline]
     pub fn map_key_begin(&mut self) -> Result<&mut Self, Error> {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_key();
-
-            stream.map_key()
-        })?;
+        self.stream.map_key()?;
 
         Ok(self)
     }
 
     #[inline]
     pub fn map_value_begin(&mut self) -> Result<&mut Self, Error> {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.map_value();
-
-            stream.map_value()
-        })?;
+        self.stream.map_value()?;
 
         Ok(self)
     }
 
     #[inline]
     pub fn seq_elem_begin(&mut self) -> Result<&mut Self, Error> {
-        let stream = &mut self.stream;
-        self.stack.borrow_mut().and_then(|mut stack| {
-            stack.seq_elem();
-
-            stream.seq_elem()
-        })?;
+        self.stream.seq_elem()?;
 
         Ok(self)
     }
 }
 
-pub(crate) struct RefMutCollect<'a>(OwnedCollect<&'a mut dyn Collect, DebugRefMut<'a, DebugStack>>);
+pub(crate) struct RefMutCollect<'a>(OwnedCollect<&'a mut dyn Collect>);
 
 impl<'a> RefMutCollect<'a> {
     #[inline]
