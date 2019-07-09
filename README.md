@@ -13,6 +13,10 @@ This library is designed to plug a no-std-object-safe sized hole in Rust's curre
 
 **`sval_json` and `sval_derive` are mostly pilfered from dtolnay's [excellent `miniserde` project](https://github.com/dtolnay/miniserde).**
 
+# Supported formats
+
+- [JSON](https://crates.io/crates/sval_json)
+
 # Minimum `rustc`
 
 This library requires Rust `1.31.0`.
@@ -39,7 +43,7 @@ Add `sval` to your crate dependencies:
 
 ```toml
 [dependencies.sval]
-version = "0.3.0"
+version = "0.3.1"
 ```
 
 ## To support my datastructures
@@ -82,7 +86,7 @@ The `sval_json` crate can format any `sval::Value` as json:
 
 ```toml
 [dependencies.sval_json]
-version = "0.3.0"
+version = "0.3.1"
 features = ["std"]
 ```
 
