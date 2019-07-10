@@ -129,7 +129,7 @@ impl From<usize> for OwnedValue {
     fn from(v: usize) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64)
+            kind: Kind::Unsigned(v as u64),
         }))
     }
 }
@@ -138,7 +138,7 @@ impl From<u8> for OwnedValue {
     fn from(v: u8) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64)
+            kind: Kind::Unsigned(v as u64),
         }))
     }
 }
@@ -147,7 +147,7 @@ impl From<u16> for OwnedValue {
     fn from(v: u16) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64)
+            kind: Kind::Unsigned(v as u64),
         }))
     }
 }
@@ -156,7 +156,7 @@ impl From<u32> for OwnedValue {
     fn from(v: u32) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64)
+            kind: Kind::Unsigned(v as u64),
         }))
     }
 }
@@ -165,7 +165,7 @@ impl From<u64> for OwnedValue {
     fn from(v: u64) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v)
+            kind: Kind::Unsigned(v),
         }))
     }
 }
@@ -174,7 +174,7 @@ impl From<u128> for OwnedValue {
     fn from(v: u128) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::BigUnsigned(v)
+            kind: Kind::BigUnsigned(v),
         }))
     }
 }
@@ -183,7 +183,7 @@ impl From<isize> for OwnedValue {
     fn from(v: isize) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64)
+            kind: Kind::Signed(v as i64),
         }))
     }
 }
@@ -192,7 +192,7 @@ impl From<i8> for OwnedValue {
     fn from(v: i8) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64)
+            kind: Kind::Signed(v as i64),
         }))
     }
 }
@@ -201,7 +201,7 @@ impl From<i16> for OwnedValue {
     fn from(v: i16) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64)
+            kind: Kind::Signed(v as i64),
         }))
     }
 }
@@ -210,7 +210,7 @@ impl From<i32> for OwnedValue {
     fn from(v: i32) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64)
+            kind: Kind::Signed(v as i64),
         }))
     }
 }
@@ -219,7 +219,7 @@ impl From<i64> for OwnedValue {
     fn from(v: i64) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Signed(v)
+            kind: Kind::Signed(v),
         }))
     }
 }
@@ -228,7 +228,7 @@ impl From<i128> for OwnedValue {
     fn from(v: i128) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::BigSigned(v)
+            kind: Kind::BigSigned(v),
         }))
     }
 }
@@ -237,7 +237,7 @@ impl From<f32> for OwnedValue {
     fn from(v: f32) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Float(v as f64)
+            kind: Kind::Float(v as f64),
         }))
     }
 }
@@ -246,7 +246,7 @@ impl From<f64> for OwnedValue {
     fn from(v: f64) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Float(v)
+            kind: Kind::Float(v),
         }))
     }
 }
@@ -255,7 +255,7 @@ impl From<bool> for OwnedValue {
     fn from(v: bool) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Bool(v)
+            kind: Kind::Bool(v),
         }))
     }
 }
@@ -264,7 +264,7 @@ impl From<char> for OwnedValue {
     fn from(v: char) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Char(v)
+            kind: Kind::Char(v),
         }))
     }
 }
@@ -273,7 +273,7 @@ impl From<String> for OwnedValue {
     fn from(v: String) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Str(v)
+            kind: Kind::Str(v),
         }))
     }
 }

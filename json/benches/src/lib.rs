@@ -119,81 +119,98 @@ fn sval_noop(v: impl sval::Value) -> Result<(), sval::Error> {
     struct NoOp;
 
     impl sval::Stream for NoOp {
+        #[inline(never)]
         fn fmt(&mut self, v: sval::stream::Arguments) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn i64(&mut self, v: i64) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn u64(&mut self, v: u64) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn i128(&mut self, v: i128) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn u128(&mut self, v: u128) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn f64(&mut self, v: f64) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn bool(&mut self, v: bool) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn char(&mut self, v: char) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn str(&mut self, v: &str) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
 
+        #[inline(never)]
         fn none(&mut self) -> sval::stream::Result {
             Ok(())
         }
 
+        #[inline(never)]
         fn map_begin(&mut self, len: Option<usize>) -> sval::stream::Result {
             let _ = len;
             Ok(())
         }
 
+        #[inline(never)]
         fn map_key(&mut self) -> sval::stream::Result {
             Ok(())
         }
 
+        #[inline(never)]
         fn map_value(&mut self) -> sval::stream::Result {
             Ok(())
         }
 
+        #[inline(never)]
         fn map_end(&mut self) -> sval::stream::Result {
             Ok(())
         }
 
+        #[inline(never)]
         fn seq_begin(&mut self, len: Option<usize>) -> sval::stream::Result {
             let _ = len;
             Ok(())
         }
 
+        #[inline(never)]
         fn seq_elem(&mut self) -> sval::stream::Result {
             Ok(())
         }
 
+        #[inline(never)]
         fn seq_end(&mut self) -> sval::stream::Result {
             Ok(())
         }

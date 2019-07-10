@@ -37,6 +37,7 @@ impl<V> Serialize for ToSerialize<V>
 where
     V: value::Value,
 {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -45,7 +46,7 @@ where
 
         stream.any(&self.0).map_err(S::Error::custom)?;
 
-        Ok(stream.into_inner().expect_ok())
+        Ok(stream.into_inner().take_ok())
     }
 }
 
@@ -54,12 +55,14 @@ where
 struct Value<'a>(Cell<Option<collect::Value<'a>>>);
 
 impl<'a> Value<'a> {
+    #[inline]
     fn new(value: collect::Value<'a>) -> Self {
         Value(Cell::new(Some(value)))
     }
 }
 
 impl<'a> Serialize for ToSerialize<Value<'a>> {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -73,7 +76,7 @@ impl<'a> Serialize for ToSerialize<Value<'a>> {
             .stream(&mut stream)
             .map_err(S::Error::custom)?;
 
-        Ok(stream.expect_ok())
+        Ok(stream.take_ok())
     }
 }
 
@@ -125,7 +128,7 @@ where
     }
 
     #[inline]
-    fn expect_ok(self) -> S::Ok {
+    fn take_ok(self) -> S::Ok {
         self.ok.expect("missing return value")
     }
 }
@@ -135,52 +138,42 @@ where
     S: Serializer,
 {
     #[inline]
-    fn take_serializer(self) -> Result<S, stream::Error> {
+    fn take_serializer(self) -> S {
         match self {
-            Current::Serializer(ser) => Ok(ser),
-            _ => Err(stream::Error::msg(
-                "invalid serializer value (expected a serializer)",
-            )),
+            Current::Serializer(ser) => ser,
+            _ => panic!("invalid serializer value (expected a serializer)"),
         }
     }
 
     #[inline]
-    fn expect_serialize_seq(&mut self) -> Result<&mut S::SerializeSeq, stream::Error> {
+    fn serialize_seq(&mut self) -> &mut S::SerializeSeq {
         match self {
-            Current::SerializeSeq(seq) => Ok(seq),
-            _ => Err(stream::Error::msg(
-                "invalid serializer value (expected a sequence)",
-            )),
+            Current::SerializeSeq(seq) => seq,
+            _ => panic!("invalid serializer value (expected a sequence)"),
         }
     }
 
     #[inline]
-    fn take_serialize_seq(self) -> Result<S::SerializeSeq, stream::Error> {
+    fn take_serialize_seq(self) -> S::SerializeSeq {
         match self {
-            Current::SerializeSeq(seq) => Ok(seq),
-            _ => Err(stream::Error::msg(
-                "invalid serializer value (expected a sequence)",
-            )),
+            Current::SerializeSeq(seq) => seq,
+            _ => panic!("invalid serializer value (expected a sequence)"),
         }
     }
 
     #[inline]
-    fn expect_serialize_map(&mut self) -> Result<&mut S::SerializeMap, stream::Error> {
+    fn serialize_map(&mut self) -> &mut S::SerializeMap {
         match self {
-            Current::SerializeMap(map) => Ok(map),
-            _ => Err(stream::Error::msg(
-                "invalid serializer value (expected a map)",
-            )),
+            Current::SerializeMap(map) => map,
+            _ => panic!("invalid serializer value (expected a map)"),
         }
     }
 
     #[inline]
-    fn take_serialize_map(self) -> Result<S::SerializeMap, stream::Error> {
+    fn take_serialize_map(self) -> S::SerializeMap {
         match self {
-            Current::SerializeMap(map) => Ok(map),
-            _ => Err(stream::Error::msg(
-                "invalid serializer value (expected a map)",
-            )),
+            Current::SerializeMap(map) => map,
+            _ => panic!("invalid serializer value (expected a map)"),
         }
     }
 }
@@ -192,7 +185,6 @@ where
     /**
     Begin a buffer with the given token or push it if a buffer already exists.
     */
-    #[inline]
     fn buffer_begin(&mut self) -> &mut Buf {
         match self.buffered {
             Some(ref mut buffered) => buffered,
@@ -206,7 +198,6 @@ where
     /**
     End a buffer by serializing its contents.
     */
-    #[inline]
     fn buffer_end(&mut self) -> stream::Result {
         if let Some(mut buffered) = self.buffered.take() {
             let r = self.serialize_any(Tokens(buffered.tokens()));
@@ -226,23 +217,24 @@ where
     #[inline]
     fn buffer(&mut self) -> Option<&mut Buf> {
         match self.buffered {
+            None => None,
             Some(ref mut buffered) if buffered.tokens().len() > 0 => Some(buffered),
             _ => None,
         }
     }
 
     #[inline]
-    fn take(&mut self) -> Result<Current<S>, stream::Error> {
+    fn take_current(&mut self) -> Current<S> {
         self.current
             .take()
-            .ok_or_else(|| stream::Error::msg("attempt to use an invalid serializer"))
+            .expect("attempt to use an invalid serializer")
     }
 
     #[inline]
-    fn expect(&mut self) -> Result<&mut Current<S>, stream::Error> {
+    fn current(&mut self) -> &mut Current<S> {
         self.current
             .as_mut()
-            .ok_or_else(|| stream::Error::msg("attempt to use an invalid serializer"))
+            .expect("attempt to use an invalid serializer")
     }
 
     #[inline]
@@ -257,31 +249,31 @@ where
 
     #[inline]
     fn serialize_elem(&mut self, v: impl Serialize) -> stream::Result {
-        self.expect()?
-            .expect_serialize_seq()?
+        self.current()
+            .serialize_seq()
             .serialize_element(&v)
             .map_err(err("error serializing sequence element"))
     }
 
     #[inline]
     fn serialize_key(&mut self, k: impl Serialize) -> stream::Result {
-        self.expect()?
-            .expect_serialize_map()?
+        self.current()
+            .serialize_map()
             .serialize_key(&k)
             .map_err(err("error map serializing key"))
     }
 
     #[inline]
     fn serialize_value(&mut self, v: impl Serialize) -> stream::Result {
-        self.expect()?
-            .expect_serialize_map()?
+        self.current()
+            .serialize_map()
             .serialize_value(&v)
             .map_err(err("error map serializing value"))
     }
 
     #[inline]
     fn serialize_primitive(&mut self, v: impl Serialize) -> stream::Result {
-        let ser = self.take()?.take_serializer()?;
+        let ser = self.take_current().take_serializer();
 
         self.ok = Some(
             v.serialize(ser)
@@ -303,7 +295,7 @@ where
             Some(buffered) => {
                 buffered.map_key()?;
                 k.stream(collect::Default(buffered))
-            },
+            }
         }
     }
 
@@ -314,7 +306,7 @@ where
             Some(buffered) => {
                 buffered.map_value()?;
                 v.stream(collect::Default(buffered))
-            },
+            }
         }
     }
 
@@ -325,7 +317,7 @@ where
             Some(buffered) => {
                 buffered.seq_elem()?;
                 v.stream(collect::Default(buffered))
-            },
+            }
         }
     }
 }
@@ -338,7 +330,7 @@ where
     fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
         match self.buffer() {
             None => {
-                match self.take()? {
+                match self.take_current() {
                     Current::Serializer(ser) => {
                         let seq = ser.serialize_seq(len).map(Current::SerializeSeq)?;
                         self.current = Some(seq);
@@ -372,7 +364,7 @@ where
     fn seq_end(&mut self) -> stream::Result {
         match self.buffer() {
             None => {
-                let seq = self.take()?.take_serialize_seq()?;
+                let seq = self.take_current().take_serialize_seq();
                 self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
 
                 Ok(())
@@ -393,7 +385,7 @@ where
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         match self.buffer() {
             None => {
-                match self.take()? {
+                match self.take_current() {
                     Current::Serializer(ser) => {
                         let map = ser.serialize_map(len).map(Current::SerializeMap)?;
                         self.current = Some(map);
@@ -438,7 +430,7 @@ where
     fn map_end(&mut self) -> stream::Result {
         match self.buffer() {
             None => {
-                let map = self.take()?.take_serialize_map()?;
+                let map = self.take_current().take_serialize_map();
                 self.ok = Some(map.end().map_err(err("error completing map"))?);
 
                 Ok(())
