@@ -110,3 +110,11 @@ Stream a [`Serialize`] using the given [`Stream`].
 pub fn stream(stream: impl Stream, value: impl Serialize) -> Result<(), Error> {
     crate::stream(stream, to_value(value))
 }
+
+#[doc(hidden)]
+#[cfg(feature = "serde_std")]
+pub const IS_NO_STD: bool = false;
+
+#[doc(hidden)]
+#[cfg(not(feature = "serde_std"))]
+pub const IS_NO_STD: bool = true;

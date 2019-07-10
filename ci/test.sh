@@ -15,6 +15,9 @@ cargo test --features fmt
 printf "\n\n---- sval with serde ----\n\n"
 cargo test --features serde
 
+printf "\n\n---- sval with serde_no_std ----\n\n"
+cargo test --features serde_no_std
+
 printf "\n\n---- sval with all features in release mode ----\n\n"
 cargo test --all-features --release
 
@@ -31,6 +34,6 @@ popd
 # Benches are checked in the `nightly` build
 # Format consistency is checked in the `beta` build
 printf "\n\n---- integration tests ----\n\n"
-cargo test --all \
-  --exclude sval_json_benches \
-  --exclude sval_fmt_tests
+cargo test --all --exclude sval_serde_no_std_tests --exclude sval_json_benches --exclude sval_fmt_tests
+
+cargo test -p sval_serde_no_std_tests

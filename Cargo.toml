@@ -2,6 +2,7 @@
 members = [
     "derive",
     "tests/serde",
+    "tests/serde_no_std",
     "tests/fmt",
 
     "json",
