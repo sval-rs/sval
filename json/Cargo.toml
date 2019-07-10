@@ -1,6 +1,6 @@
 [package]
 name = "sval_json"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 documentation = "https://docs.rs/sval_json"
@@ -22,7 +22,7 @@ travis-ci = { repository = "KodrAus/sval" }
 std = ["sval/std"]
 
 [dependencies.sval]
-version = "0.4.0"
+version = "0.4.1"
 path = "../"
 
 [dependencies.ryu]

@@ -45,7 +45,7 @@ Add `sval` to your crate dependencies:
 
 ```toml
 [dependencies.sval]
-version = "0.4.0"
+version = "0.4.1"
 ```
 
 ## To support my data-structures
@@ -88,7 +88,7 @@ The `sval_json` crate can format any `sval::Value` as JSON:
 
 ```toml
 [dependencies.sval_json]
-version = "0.4.0"
+version = "0.4.1"
 features = ["std"]
 ```
 

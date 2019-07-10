@@ -25,7 +25,7 @@ Add `sval_json` to your crate dependencies:
 
 ```toml
 [dependencies.sval_json]
-version = "0.4.0"
+version = "0.4.1"
 ```
 
 ## To write JSON to a `fmt::Write`
