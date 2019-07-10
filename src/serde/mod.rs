@@ -8,6 +8,14 @@ Add the `serde` feature to your `Cargo.toml` to enable this module:
 features = ["serde"]
 ```
 
+In no-std environments, `serde` support can be enabled using the `serde_no_std` feature
+instead:
+
+```toml,ignore
+[dependencies.sval]
+features = ["serde_no_std"]
+```
+
 # From `sval` to `serde`
 
 A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into
@@ -24,6 +32,13 @@ a type that implements [`serde::Serialize`]:
 let my_serialize = sval::serde::to_serialize(my_value);
 ```
 
+When using `serde_no_std`, there are some limitations on what kinds of `sval::Value`s you
+can convert into `serde::Serialize`s:
+
+- Any type that uses [`value::Stream::map_key_begin`], [`value::Stream::map_value_begin`],
+or [`value::Stream::seq_elem_begin`] would require buffering, so will return an error instead
+in no-std environments.
+
 # From `serde` to `sval`
 
 A type that implements [`serde::Serialize`] can be converted into
@@ -39,6 +54,10 @@ a type that implements [`sval::Value`](../value/trait.Value.html):
 # let my_serialize = MySerialize;
 let my_value = sval::serde::to_value(my_serialize);
 ```
+
+[`value::Stream::map_key_begin`]: ../value/struct.Stream.html#method.map_key_begin
+[`value::Stream::map_value_begin`]: ../value/struct.Stream.html#method.map_value_begin
+[`value::Stream::seq_elem_begin`]: ../value/struct.Stream.html#method.seq_elem_begin
 */
 
 mod error;
