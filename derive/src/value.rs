@@ -41,7 +41,7 @@ pub(crate) fn derive_from_serde(input: DeriveInput) -> TokenStream {
             impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
                 fn stream(&self, stream: &mut sval::value::Stream) -> Result<(), sval::value::Error> {
                     sval::derive_from_serde!(
-                        if #[cfg(feature = "serde")] {
+                        if #[cfg(feature = "serde_lib")] {
                             stream.any(sval::serde::to_value(self))
                         }
                         else {

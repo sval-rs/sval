@@ -2,6 +2,7 @@
 members = [
     "derive",
     "tests/serde",
+    "tests/serde_no_std",
     "tests/fmt",
 
     "json",
@@ -49,7 +50,9 @@ test = ["std"]
 fmt = []
 
 # Support integration with `serde`
-serde = ["std", "serde_lib/std"]
+serde = ["serde_std"]
+serde_std = ["std", "serde_lib/std"]
+serde_no_std = ["serde_lib"]
 
 [dependencies.smallvec]
 version = "0.6"

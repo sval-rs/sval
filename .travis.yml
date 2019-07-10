@@ -4,14 +4,22 @@ language: rust
 matrix:
   include:
     - rust: nightly
+      env:
+      - LABEL="nightly"
       script:
       - ./ci/nightly.sh
     - rust: beta
+      env:
+      - LABEL="beta"
       script:
       - ./ci/beta.sh
     - rust: stable
+      env:
+      - LABEL="stable"
       script:
       - ./ci/stable.sh
     - rust: stable
+      env:
+      - LABEL="no-std"
       script:
       - ./ci/thumbv6m.sh

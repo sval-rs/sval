@@ -633,7 +633,7 @@ impl Stream for Primitive {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_std")]
 impl Buf {
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();

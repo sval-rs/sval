@@ -399,6 +399,14 @@ pub enum Data {
 # }
 ```
 
+In no-std environments, `serde` support can be enabled using the `serde_no_std` feature
+instead:
+
+```toml,ignore
+[dependencies.sval]
+features = ["serde_no_std"]
+```
+
 # `std::fmt` integration
 
 Use the `fmt` Cargo feature to enable extended integration with `std::fmt`:
@@ -454,7 +462,7 @@ pub mod test;
 #[cfg(feature = "fmt")]
 pub mod fmt;
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_lib")]
 pub mod serde;
 
 pub mod stream;
