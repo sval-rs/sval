@@ -26,7 +26,7 @@ version = "0.4.2"
 path = "../"
 
 [dependencies.ryu]
-version = "0.2"
+version = "1"
 
 [dependencies.itoa]
 version = "0.4"
