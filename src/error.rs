@@ -21,6 +21,21 @@ impl Error {
         Error(ErrorInner::Static(msg))
     }
 
+    /** Declare some structure as unsupported. */
+    #[inline]
+    pub fn unsupported(operation: &'static str) -> Self {
+        Error(ErrorInner::Unsupported(operation))
+    }
+
+    /** Whether or not an error is because some operation was unsupported. */
+    pub fn is_unsupported(&self) -> bool {
+        if let ErrorInner::Unsupported(_) = self.0 {
+            true
+        } else {
+            false
+        }
+    }
+
     // NOTE: This method is not public because we already
     // have a method called `custom` when `std` is available.
     // It's strictly more general than this one, but could
@@ -46,6 +61,7 @@ impl fmt::Display for Error {
 
 #[derive(Clone)]
 enum ErrorInner {
+    Unsupported(&'static str),
     Static(&'static str),
     #[cfg(not(feature = "std"))]
     Custom(&'static dyn fmt::Display),
@@ -56,6 +72,7 @@ enum ErrorInner {
 impl fmt::Debug for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            ErrorInner::Unsupported(op) => write!(f, "unsupported stream operation: {}", op),
             ErrorInner::Static(msg) => msg.fmt(f),
             #[cfg(not(feature = "std"))]
             ErrorInner::Custom(ref err) => err.fmt(f),
@@ -68,6 +85,7 @@ impl fmt::Debug for ErrorInner {
 impl fmt::Display for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            ErrorInner::Unsupported(op) => write!(f, "unsupported stream operation: {}", op),
             ErrorInner::Static(msg) => msg.fmt(f),
             #[cfg(not(feature = "std"))]
             ErrorInner::Custom(ref err) => err.fmt(f),

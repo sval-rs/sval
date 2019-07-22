@@ -270,10 +270,6 @@ impl Stream for IsU64 {
 
         Ok(())
     }
-
-    fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
-        Err(stream::Error::msg("not a u64"))
-    }
 }
 ```
 
@@ -315,6 +311,30 @@ impl Stream for Fmt {
         print!("{}{:?}", delim, v);
 
         Ok(())
+    }
+
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn f64(&mut self, v: f64) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn bool(&mut self, v: bool) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn str(&mut self, v: &str) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn none(&mut self) -> stream::Result {
+        self.fmt(format_args!("{:?}", ()))
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {

@@ -34,48 +34,55 @@ pub trait Stream {
     /**
     Stream a format.
     */
-    fn fmt(&mut self, args: Arguments) -> Result;
+    fn fmt(&mut self, args: Arguments) -> Result {
+        let _ = args;
+        Err(Error::unsupported("Stream::fmt"))
+    }
 
     /**
     Stream a signed integer.
     */
     fn i64(&mut self, v: i64) -> Result {
-        self.fmt(format_args!("{:?}", v))
+        self.i128(v as i128)
     }
 
     /**
     Stream an unsigned integer.
     */
     fn u64(&mut self, v: u64) -> Result {
-        self.fmt(format_args!("{:?}", v))
+        self.u128(v as u128)
     }
 
     /**
     Stream a 128bit signed integer.
     */
     fn i128(&mut self, v: i128) -> Result {
-        self.fmt(format_args!("{:?}", v))
+        let _ = v;
+        Err(Error::unsupported("Stream::i128"))
     }
 
     /**
     Stream a 128bit unsigned integer.
     */
     fn u128(&mut self, v: u128) -> Result {
-        self.fmt(format_args!("{:?}", v))
+        let _ = v;
+        Err(Error::unsupported("Stream::u128"))
     }
 
     /**
     Stream a floating point value.
     */
     fn f64(&mut self, v: f64) -> Result {
-        self.fmt(format_args!("{:?}", v))
+        let _ = v;
+        Err(Error::unsupported("Stream::f64"))
     }
 
     /**
     Stream a boolean.
     */
     fn bool(&mut self, v: bool) -> Result {
-        self.fmt(format_args!("{:?}", v))
+        let _ = v;
+        Err(Error::unsupported("Stream::bool"))
     }
 
     /**
@@ -90,14 +97,15 @@ pub trait Stream {
     Stream a UTF-8 string slice.
     */
     fn str(&mut self, v: &str) -> Result {
-        self.fmt(format_args!("{:?}", v))
+        let _ = v;
+        Err(Error::unsupported("Stream::str"))
     }
 
     /**
     Stream an empty value.
     */
     fn none(&mut self) -> Result {
-        self.fmt(format_args!("{:?}", ()))
+        Err(Error::unsupported("Stream::none"))
     }
 
     /**
@@ -105,7 +113,7 @@ pub trait Stream {
     */
     fn map_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
-        Ok(())
+        Err(Error::unsupported("Stream::map_begin"))
     }
 
     /**
@@ -114,7 +122,7 @@ pub trait Stream {
     The key will be implicitly ended by the stream methods that follow it.
     */
     fn map_key(&mut self) -> Result {
-        Ok(())
+        Err(Error::unsupported("Stream::map_key"))
     }
 
     /**
@@ -123,14 +131,14 @@ pub trait Stream {
     The value will be implicitly ended by the stream methods that follow it.
     */
     fn map_value(&mut self) -> Result {
-        Ok(())
+        Err(Error::unsupported("Stream::map_value"))
     }
 
     /**
     End a map.
     */
     fn map_end(&mut self) -> Result {
-        Ok(())
+        Err(Error::unsupported("Stream::map_end"))
     }
 
     /**
@@ -138,7 +146,7 @@ pub trait Stream {
     */
     fn seq_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
-        Ok(())
+        Err(Error::unsupported("Stream::seq_begin"))
     }
 
     /**
@@ -147,14 +155,14 @@ pub trait Stream {
     The element will be implicitly ended by the stream methods that follow it.
     */
     fn seq_elem(&mut self) -> Result {
-        Ok(())
+        Err(Error::unsupported("Stream::seq_elem"))
     }
 
     /**
     End a sequence.
     */
     fn seq_end(&mut self) -> Result {
-        Ok(())
+        Err(Error::unsupported("Stream::seq_end"))
     }
 }
 
