@@ -28,7 +28,283 @@ nested values. Implementations can use a [`Stack`] to track state for them.
 The [`OwnedStream`] type is an ergonomic wrapper over a raw `Stream` that adds
 the concept of [`Value`]s.
 
+# Implementing `Stream`
+
+A stream may choose what kinds of structures it supports by selectively
+implementing methods on the trait. Other methods default to returning
+[`Error::unsupported`]. Implementations may also choose to return
+`Error::unsupported` for other reasons.
+
+## Supporting primitives
+
+The following stream can support any primitive value:
+
+```
+# struct MyStream;
+use sval::{stream, Stream};
+
+impl Stream for MyStream {
+    fn fmt(&mut self, args: stream::Arguments) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn i128(&mut self, v: i128) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn u128(&mut self, v: u128) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn f64(&mut self, v: f64) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn bool(&mut self, v: bool) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn str(&mut self, v: &str) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn none(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+}
+```
+
+## Supporting maps
+
+In addition to the [methods needed for streaming primitives](#supporting-primitives),
+a stream that supports maps needs to implement a few additional methods:
+
+```
+# struct MyStream;
+use sval::{stream, Stream};
+
+impl Stream for MyStream {
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn map_key(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn map_value(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn map_end(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+}
+```
+
+## Supporting sequences
+
+In addition to the [methods needed for streaming primitives](#supporting-primitives),
+a stream that supports sequences needs to implement a few additional methods:
+
+```
+# struct MyStream;
+use sval::{stream, Stream};
+
+impl Stream for MyStream {
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn seq_elem(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+}
+```
+
+## Supporting all structure
+
+```
+# struct MyStream;
+use sval::{stream, Stream};
+
+impl Stream for MyStream {
+    fn fmt(&mut self, args: stream::Arguments) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn i128(&mut self, v: i128) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn u128(&mut self, v: u128) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn f64(&mut self, v: f64) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn bool(&mut self, v: bool) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn str(&mut self, v: &str) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn none(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn map_key(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn map_value(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn map_end(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn seq_elem(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+}
+```
+
 [`Value`]: ../trait.Value.html
+[`Error::unsupported`]: struct.Error.html#method.unsupported
 */
 pub trait Stream {
     /**

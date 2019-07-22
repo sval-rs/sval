@@ -59,6 +59,16 @@ use sval::{
     stream::{self, OwnedStream},
 };
 
+// We begin the wrapper over `MyStream`
+let mut stream = StreamPairs::new()?;
+
+// Pairs can be streamed independently
+stream.pair("a", 42)?;
+stream.pair("b", 17)?;
+
+// Eventually we end the wrapper and return the underlying `MyStream`
+let my_stream = stream.end()?;
+
 struct StreamPairs {
     // Using `OwnedStream<MyStream>` instead of just `MyStream`
     // gives us better ergonomics and validation
@@ -88,16 +98,6 @@ impl StreamPairs {
         Ok(self.stream.into_inner())
     }
 }
-
-// We begin the wrapper over `MyStream`
-let mut stream = StreamPairs::new()?;
-
-// Pairs can be streamed independently
-stream.pair("a", 42)?;
-stream.pair("b", 17)?;
-
-// Eventually we end the wrapper and return the underlying `MyStream`
-let my_stream = stream.end()?;
 # Ok(())
 # }
 # use sval::stream::{self, Stream};
