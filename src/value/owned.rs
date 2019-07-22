@@ -605,31 +605,31 @@ impl Stream for Primitive {
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
-        Err(stream::Error::msg("unsupported primitive"))
+        Err(stream::Error::unsupported("unsupported primitive"))
     }
 
     fn map_key(&mut self) -> stream::Result {
-        Err(stream::Error::msg("unsupported primitive"))
+        Err(stream::Error::unsupported("unsupported primitive"))
     }
 
     fn map_value(&mut self) -> stream::Result {
-        Err(stream::Error::msg("unsupported primitive"))
+        Err(stream::Error::unsupported("unsupported primitive"))
     }
 
     fn map_end(&mut self) -> stream::Result {
-        Err(stream::Error::msg("unsupported primitive"))
+        Err(stream::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        Err(stream::Error::msg("unsupported primitive"))
+        Err(stream::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_elem(&mut self) -> stream::Result {
-        Err(stream::Error::msg("unsupported primitive"))
+        Err(stream::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_end(&mut self) -> stream::Result {
-        Err(stream::Error::msg("unsupported primitive"))
+        Err(stream::Error::unsupported("unsupported primitive"))
     }
 }
 
