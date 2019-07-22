@@ -133,7 +133,7 @@ where
     }
 
     #[inline]
-    fn i64(&mut self, v: i64) -> stream::Result {
+    fn i128(&mut self, v: i128) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
@@ -152,7 +152,7 @@ where
     }
 
     #[inline]
-    fn u64(&mut self, v: u64) -> stream::Result {
+    fn u128(&mut self, v: u128) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
