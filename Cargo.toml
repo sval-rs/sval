@@ -20,7 +20,8 @@ description = "A no-std, object-safe serialization framework"
 repository = "https://github.com/sval-rs/sval"
 readme = "README.md"
 exclude = [
-    ".travis.yml"
+    ".travis.yml",
+    "ci/*"
 ]
 license = "Apache-2.0 OR MIT"
 keywords = ["serialization", "no_std"]
