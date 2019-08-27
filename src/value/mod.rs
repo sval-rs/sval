@@ -1,5 +1,124 @@
 /*!
 A streamable value.
+
+# The `Value` trait
+
+A [`Value`] is a type that has structure, like a number, string, map, or sequence.
+
+## Deriving `Value`
+
+Use the `derive` Cargo feature to support automatic implementations of the `Value` trait:
+
+```toml,ignore
+[dependencies.sval]
+features = ["derive"]
+```
+
+Then derive the `Value` for struct-like datastructures:
+
+```
+# fn main() {}
+# #[cfg(feature = "derive")]
+# mod test {
+use sval::Value;
+
+#[derive(Value)]
+pub struct Data {
+    id: u32,
+    title: String,
+}
+# }
+```
+
+The trait can also be implemented manually:
+
+```
+use sval::value::{self, Value};
+
+pub struct Id(u64);
+
+impl Value for Id {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        stream.u64(self.0)
+    }
+}
+```
+
+## Sequences
+
+A sequence can be visited by iterating over its elements:
+
+```
+use sval::value::{self, Value};
+
+pub struct Seq(Vec<u64>);
+
+impl Value for Seq {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        stream.seq_begin(Some(self.0.len()))?;
+
+        for v in &self.0 {
+            stream.seq_elem(v)?;
+        }
+
+        stream.seq_end()
+    }
+}
+```
+
+## Maps
+
+A map can be visited by iterating over its key-value pairs:
+
+```
+# fn main() {}
+# #[cfg(feature = "std")]
+# mod test {
+use std::collections::BTreeMap;
+use sval::value::{self, Value};
+
+pub struct Map(BTreeMap<String, u64>);
+
+impl Value for Map {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        stream.map_begin(Some(self.0.len()))?;
+
+        for (k, v) in &self.0 {
+            stream.map_key(k)?;
+            stream.map_value(v)?;
+        }
+
+        stream.map_end()
+    }
+}
+# }
+```
+
+## Structure that isn't known upfront
+
+Types can stream a structure that's different than what they use internally.
+In the following example, the `Map` type doesn't have any keys or values,
+but serializes a nested map like `{"nested": {"key": 42}}`:
+
+```
+use sval::value::{self, Value};
+
+pub struct Map;
+
+impl Value for Map {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        stream.map_begin(Some(1))?;
+
+        stream.map_key_begin()?.str("nested")?;
+        stream.map_value_begin()?.map_begin(Some(1))?;
+        stream.map_key_begin()?.str("key")?;
+        stream.map_value_begin()?.u64(42)?;
+        stream.map_end()?;
+
+        stream.map_end()
+    }
+}
+```
 */
 
 mod impls;

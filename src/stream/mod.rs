@@ -1,5 +1,202 @@
 /*!
 A stream for datastructures.
+
+# The `Stream` trait
+
+A [`Stream`] is a type that receives and works with abstract data-structures.
+
+## Streams without state
+
+Implement the `Stream` trait to visit the structure of a [`Value`]:
+
+```
+use sval::stream::{self, Stream};
+
+struct Fmt;
+
+impl Stream for Fmt {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+        println!("{}", v);
+
+        Ok(())
+    }
+
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn f64(&mut self, v: f64) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn bool(&mut self, v: bool) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn str(&mut self, v: &str) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn none(&mut self) -> stream::Result {
+        self.fmt(format_args!("{:?}", ()))
+    }
+}
+```
+
+A `Stream` might only care about a single kind of value.
+The following example overrides the provided `u64` method
+to see whether a given value is a `u64`:
+
+```
+use sval::{
+    Value,
+    stream::{self, Stream, OwnedStream},
+};
+
+assert!(is_u64(42u64));
+
+pub fn is_u64(v: impl Value) -> bool {
+    OwnedStream::stream(IsU64(None), v)
+        .map(|is_u64| is_u64.0.is_some())
+        .unwrap_or(false)
+}
+
+struct IsU64(Option<u64>);
+impl Stream for IsU64 {
+    fn u64(&mut self, v: u64) -> stream::Result {
+        self.0 = Some(v);
+
+        Ok(())
+    }
+}
+```
+
+## Streams with state
+
+There are more methods on `Stream` that can be overriden for more complex
+datastructures like sequences and maps. The following example uses a
+[`stream::Stack`] to track the state of any sequences and maps and ensure
+they're valid:
+
+```
+use std::{fmt, mem};
+use sval::stream::{self, stack, Stream, Stack};
+
+struct Fmt {
+    stack: stream::Stack,
+    delim: &'static str,
+}
+
+impl Fmt {
+    fn next_delim(pos: stack::Pos) -> &'static str {
+        if pos.is_key() {
+            return ": ";
+        }
+
+        if pos.is_value() || pos.is_elem() {
+            return ", ";
+        }
+
+        return "";
+    }
+}
+
+impl Stream for Fmt {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+        let pos = self.stack.primitive()?;
+
+        let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
+        print!("{}{:?}", delim, v);
+
+        Ok(())
+    }
+
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn f64(&mut self, v: f64) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn bool(&mut self, v: bool) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn str(&mut self, v: &str) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    fn none(&mut self) -> stream::Result {
+        self.fmt(format_args!("{:?}", ()))
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+        self.stack.seq_begin()?;
+
+        let delim = mem::replace(&mut self.delim, "");
+        print!("{}[", delim);
+
+        Ok(())
+    }
+
+    fn seq_elem(&mut self) -> stream::Result {
+        self.stack.seq_elem()?;
+
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> stream::Result {
+        let pos = self.stack.seq_end()?;
+
+        self.delim = Self::next_delim(pos);
+        print!("]");
+
+        Ok(())
+    }
+
+    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
+        self.stack.map_begin()?;
+
+        let delim = mem::replace(&mut self.delim, "");
+        print!("{}{{", delim);
+
+        Ok(())
+    }
+
+    fn map_key(&mut self) -> stream::Result {
+        self.stack.map_key()?;
+
+        Ok(())
+    }
+
+    fn map_value(&mut self) -> stream::Result {
+        self.stack.map_value()?;
+
+        Ok(())
+    }
+
+    fn map_end(&mut self) -> stream::Result {
+        let pos = self.stack.map_end()?;
+
+        self.delim = Self::next_delim(pos);
+        print!("}}");
+
+        Ok(())
+    }
+}
+```
+
+By default, the `Stack` type has a fixed depth. That means deeply nested
+structures aren't supported. See the [`stream::Stack`] type for more details.
 */
 
 pub(crate) mod owned;
@@ -26,7 +223,7 @@ The `Stream` trait has a flat, stateless structure, but it may need to work with
 nested values. Implementations can use a [`Stack`] to track state for them.
 
 The [`OwnedStream`] type is an ergonomic wrapper over a raw `Stream` that adds
-the concept of [`Value`]s.
+the concept of [`Value`](../value/trait.Value.html)s.
 
 # Implementing `Stream`
 
