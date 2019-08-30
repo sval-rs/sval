@@ -242,7 +242,7 @@ where
 /**
 A borrowed stream wrapper.
 
-This is the result of calling [`OwnedStream.borrow_mut`](struct.OwnedStream.html#method.borrow_mut).
+This is the result of calling `OwnedStream.borrow_mut`.
 */
 pub struct RefMutStream<'a>(RefMutCollect<'a>);
 
