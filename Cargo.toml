@@ -71,7 +71,7 @@ path = "./derive"
 optional = true
 
 [dev-dependencies.quickcheck]
-version = "0.8"
+version = "0.9"
 
 [profile.release]
 debug = true
