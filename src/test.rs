@@ -67,7 +67,7 @@ mod std_support {
                 Kind::Float(v) => Some(Token::Float(v)),
                 Kind::Bool(v) => Some(Token::Bool(v)),
                 Kind::Char(v) => Some(Token::Char(v)),
-                Kind::Str(ref v) => Some(Token::Str((*v).clone())),
+                Kind::Str(ref v) => Some(Token::Str((**v).into())),
                 Kind::None => Some(Token::None),
                 _ => None,
             })
