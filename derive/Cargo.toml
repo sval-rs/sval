@@ -12,10 +12,10 @@ license = "Apache-2.0 OR MIT"
 proc-macro = true
 
 [dependencies.syn]
-version = "0.15"
+version = "1"
 
 [dependencies.quote]
-version = "0.6"
+version = "1"
 
 [dependencies.proc-macro2]
-version = "0.4"
+version = "1"
