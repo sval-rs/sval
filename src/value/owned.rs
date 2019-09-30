@@ -273,7 +273,7 @@ impl From<String> for OwnedValue {
     fn from(v: String) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
             depth: stack::Depth::root(),
-            kind: Kind::Str(v),
+            kind: Kind::Str(v.into()),
         }))
     }
 }
@@ -293,7 +293,7 @@ pub(crate) enum Kind {
     BigSigned(i128),
     BigUnsigned(u128),
     Bool(bool),
-    Str(String),
+    Str(Arc<str>),
     Char(char),
     None,
 }
@@ -365,7 +365,7 @@ impl Stream for Buf {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Str(f.to_string()), depth);
+        self.push(Kind::Str(Arc::from(f.to_string())), depth);
 
         Ok(())
     }
@@ -429,7 +429,7 @@ impl Stream for Buf {
     fn str(&mut self, v: &str) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Str(v.to_string()), depth);
+        self.push(Kind::Str(Arc::from(v)), depth);
 
         Ok(())
     }
@@ -527,7 +527,7 @@ impl Stream for Primitive {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.set(Kind::Str(f.to_string()), depth);
+        self.set(Kind::Str(Arc::from(f.to_string())), depth);
 
         Ok(())
     }
@@ -591,7 +591,7 @@ impl Stream for Primitive {
     fn str(&mut self, v: &str) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.set(Kind::Str(v.to_string()), depth);
+        self.set(Kind::Str(Arc::from(v)), depth);
 
         Ok(())
     }
