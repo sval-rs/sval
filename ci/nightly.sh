@@ -6,5 +6,3 @@ set -o errexit -o nounset
 
 printf "\n\n---- benchmarks ----\n\n"
 cargo bench --all --no-run
-
-./ci/publish-docs.sh
