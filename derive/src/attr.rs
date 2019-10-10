@@ -19,10 +19,10 @@ pub(crate) fn derive_provider(input: &DeriveInput) -> DeriveProvider {
         for meta in list.nested {
             match meta {
                 NestedMeta::Meta(Meta::NameValue(MetaNameValue {
-                    ref ident,
+                    ref path,
                     lit: Lit::Str(ref s),
                     ..
-                })) if ident == "derive_from" && s.value() == "serde" => {
+                })) if path.is_ident("derive_from") && s.value() == "serde" => {
                     return DeriveProvider::Serde;
                 }
                 _ => panic!("unsupported attribute"),
@@ -39,7 +39,7 @@ pub(crate) fn name_of_field(field: &Field) -> String {
     for list in field.attrs.iter().filter_map(sval_attr) {
         for meta in list.nested {
             if let NestedMeta::Meta(Meta::NameValue(value)) = meta {
-                if value.ident == "rename" && rename.is_none() {
+                if value.path.is_ident("rename") && rename.is_none() {
                     if let Lit::Str(s) = value.lit {
                         rename = Some(s.value());
                         continue;
@@ -59,7 +59,7 @@ fn sval_attr(attr: &Attribute) -> Option<MetaList> {
         return None;
     }
 
-    match attr.interpret_meta() {
+    match attr.parse_meta().ok() {
         Some(Meta::List(list)) => Some(list),
         _ => panic!("unsupported attribute"),
     }
