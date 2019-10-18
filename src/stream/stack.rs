@@ -14,9 +14,14 @@ is maintained, but any changes here should be
 reviewed carefully.
 */
 
-use crate::std::fmt;
-
-use super::Error;
+use crate::{
+    std::fmt,
+    stream::{
+        self,
+        Error,
+        Stream,
+    },
+};
 
 /**
 The expected position in the stream.
@@ -501,6 +506,93 @@ impl Stack {
         } else {
             Err(Error::msg("stack is not empty"))
         }
+    }
+}
+
+impl Stream for Stack {
+    #[inline]
+    fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn i64(&mut self, _: i64) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn u64(&mut self, _: u64) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn i128(&mut self, _: i128) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn u128(&mut self, _: u128) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn f64(&mut self, _: f64) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn bool(&mut self, _: bool) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn char(&mut self, _: char) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn str(&mut self, _: &str) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn none(&mut self) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
+        self.map_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn map_key(&mut self) -> stream::Result {
+        self.map_key().map(|_| ())
+    }
+
+    #[inline]
+    fn map_value(&mut self) -> stream::Result {
+        self.map_value().map(|_| ())
+    }
+
+    #[inline]
+    fn map_end(&mut self) -> stream::Result {
+        self.map_end().map(|_| ())
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+        self.seq_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        self.seq_elem().map(|_| ())
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        self.seq_end().map(|_| ())
     }
 }
 

@@ -95,5 +95,3 @@ fn sval_to_serde_anonymous() {
     // The anonymous map isn't supported in no-std
     sval::test::tokens(sval::serde::to_value(ser));
 }
-
-
