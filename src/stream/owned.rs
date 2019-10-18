@@ -239,6 +239,96 @@ where
     }
 }
 
+impl<S> Stream for OwnedStream<S>
+where
+    S: Stream,
+{
+    #[inline]
+    fn fmt(&mut self, args: Arguments) -> stream::Result {
+        self.fmt(args)
+    }
+
+    #[inline]
+    fn i64(&mut self, v: i64) -> stream::Result {
+        self.i64(v)
+    }
+
+    #[inline]
+    fn u64(&mut self, v: u64) -> stream::Result {
+        self.u64(v)
+    }
+
+    #[inline]
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.i128(v)
+    }
+
+    #[inline]
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.u128(v)
+    }
+
+    #[inline]
+    fn f64(&mut self, v: f64) -> stream::Result {
+        self.f64(v)
+    }
+
+    #[inline]
+    fn bool(&mut self, v: bool) -> stream::Result {
+        self.bool(v)
+    }
+
+    #[inline]
+    fn char(&mut self, v: char) -> stream::Result {
+        self.char(v)
+    }
+
+    #[inline]
+    fn str(&mut self, v: &str) -> stream::Result {
+        self.str(v)
+    }
+
+    #[inline]
+    fn none(&mut self) -> stream::Result {
+        self.none()
+    }
+
+    #[inline]
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.map_begin(len)
+    }
+
+    #[inline]
+    fn map_key(&mut self) -> stream::Result {
+        self.map_key_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn map_value(&mut self) -> stream::Result {
+        self.map_value_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn map_end(&mut self) -> stream::Result {
+        self.map_end()
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.seq_begin(len)
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        self.seq_elem_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        self.seq_end()
+    }
+}
+
 /**
 A borrowed stream wrapper.
 
@@ -426,5 +516,145 @@ impl<'a> RefMutStream<'a> {
         self.0.seq_elem_begin()?;
 
         Ok(self)
+    }
+}
+
+impl<'a> Stream for RefMutStream<'a> {
+    #[inline]
+    fn fmt(&mut self, args: Arguments) -> stream::Result {
+        self.fmt(args)
+    }
+
+    #[inline]
+    fn i64(&mut self, v: i64) -> stream::Result {
+        self.i64(v)
+    }
+
+    #[inline]
+    fn u64(&mut self, v: u64) -> stream::Result {
+        self.u64(v)
+    }
+
+    #[inline]
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.i128(v)
+    }
+
+    #[inline]
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.u128(v)
+    }
+
+    #[inline]
+    fn f64(&mut self, v: f64) -> stream::Result {
+        self.f64(v)
+    }
+
+    #[inline]
+    fn bool(&mut self, v: bool) -> stream::Result {
+        self.bool(v)
+    }
+
+    #[inline]
+    fn char(&mut self, v: char) -> stream::Result {
+        self.char(v)
+    }
+
+    #[inline]
+    fn str(&mut self, v: &str) -> stream::Result {
+        self.str(v)
+    }
+
+    #[inline]
+    fn none(&mut self) -> stream::Result {
+        self.none()
+    }
+
+    #[inline]
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.map_begin(len)
+    }
+
+    #[inline]
+    fn map_key(&mut self) -> stream::Result {
+        self.map_key_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn map_value(&mut self) -> stream::Result {
+        self.map_value_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn map_end(&mut self) -> stream::Result {
+        self.map_end()
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.seq_begin(len)
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        self.seq_elem_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        self.seq_end()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::stream::Stack;
+
+    #[test]
+    fn owned_stream_method_resolution() {
+        fn takes_owned_stream(mut stream: OwnedStream<impl Stream>) -> stream::Result {
+            stream.map_begin(None)?;
+            stream.map_key("key")?;
+            stream.map_value(42)?;
+            stream.map_end()
+        }
+
+        fn takes_stream(mut stream: impl Stream) -> stream::Result {
+            stream.map_begin(None)?;
+            stream.map_key()?;
+            stream.str("key")?;
+            stream.map_value()?;
+            stream.i64(42)?;
+            stream.map_end()
+        }
+
+        takes_owned_stream(OwnedStream::new(Stack::default())).expect("failed to use owned stream");
+        takes_stream(OwnedStream::new(Stack::default())).expect("failed to use stream");
+    }
+
+    #[test]
+    fn ref_mut_stream_method_resolution() {
+        fn takes_ref_mut_stream(mut stream: RefMutStream) -> stream::Result {
+            stream.map_begin(None)?;
+            stream.map_key("key")?;
+            stream.map_value(42)?;
+            stream.map_end()
+        }
+
+        fn takes_stream(mut stream: impl Stream) -> stream::Result {
+            stream.map_begin(None)?;
+            stream.map_key()?;
+            stream.str("key")?;
+            stream.map_value()?;
+            stream.i64(42)?;
+            stream.map_end()
+        }
+
+        takes_ref_mut_stream(OwnedStream::new(Stack::default()).borrow_mut())
+            .expect("failed to use ref mut stream");
+        takes_stream(OwnedStream::new(Stack::default()).borrow_mut())
+            .expect("failed to use stream");
     }
 }
