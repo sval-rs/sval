@@ -24,12 +24,24 @@ impl Error {
     /** Declare some structure as unsupported. */
     #[inline]
     pub fn unsupported(operation: &'static str) -> Self {
-        Error(ErrorInner::Unsupported(operation))
+        Error(ErrorInner::Unsupported { msg: operation, default: false })
     }
 
     /** Whether or not an error is because some operation was unsupported. */
     pub fn is_unsupported(&self) -> bool {
-        if let ErrorInner::Unsupported(_) = self.0 {
+        if let ErrorInner::Unsupported { .. } = self.0 {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn default_unsupported(operation: &'static str) -> Self {
+        Error(ErrorInner::Unsupported { msg: operation, default: true })
+    }
+
+    pub(crate) fn is_default_unsupported(&self) -> bool {
+        if let ErrorInner::Unsupported { default: true, .. } = self.0 {
             true
         } else {
             false
@@ -61,7 +73,10 @@ impl fmt::Display for Error {
 
 #[derive(Clone)]
 enum ErrorInner {
-    Unsupported(&'static str),
+    Unsupported {
+        msg: &'static str,
+        default: bool,
+    },
     Static(&'static str),
     #[cfg(not(feature = "std"))]
     Custom(&'static dyn fmt::Display),
@@ -72,7 +87,7 @@ enum ErrorInner {
 impl fmt::Debug for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorInner::Unsupported(op) => write!(f, "unsupported stream operation: {}", op),
+            ErrorInner::Unsupported { msg: op, .. } => write!(f, "unsupported stream operation: {}", op),
             ErrorInner::Static(msg) => msg.fmt(f),
             #[cfg(not(feature = "std"))]
             ErrorInner::Custom(ref err) => err.fmt(f),
@@ -85,7 +100,7 @@ impl fmt::Debug for ErrorInner {
 impl fmt::Display for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorInner::Unsupported(op) => write!(f, "unsupported stream operation: {}", op),
+            ErrorInner::Unsupported { msg: op, .. } => write!(f, "unsupported stream operation: {}", op),
             ErrorInner::Static(msg) => msg.fmt(f),
             #[cfg(not(feature = "std"))]
             ErrorInner::Custom(ref err) => err.fmt(f),

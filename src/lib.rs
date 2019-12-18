@@ -213,8 +213,9 @@ Stream the structure of a [`Value`] using the given [`Stream`].
 
 This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
 */
-pub fn stream(stream: impl Stream, value: impl Value) -> Result<(), Error> {
-    crate::stream::OwnedStream::stream(stream, value)?;
-
-    Ok(())
+pub fn stream<S>(stream: S, value: impl Value) -> Result<S, Error>
+where
+    S: Stream,
+{
+    crate::stream::OwnedStream::stream(stream, value)
 }

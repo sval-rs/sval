@@ -138,6 +138,16 @@ where
     }
 
     #[inline]
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.0.i128(v)
+    }
+
+    #[inline]
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.0.u128(v)
+    }
+
+    #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
         self.0.f64(v)
     }

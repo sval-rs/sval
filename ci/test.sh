@@ -9,11 +9,17 @@ cargo test
 printf "\n\n---- sval with std ----\n\n"
 cargo test --features std
 
+printf "\n\n---- sval with alloc ----\n\n"
+cargo test --features alloc
+
 printf "\n\n---- sval with fmt ----\n\n"
 cargo test --features fmt
 
 printf "\n\n---- sval with serde ----\n\n"
 cargo test --features serde
+
+printf "\n\n---- sval with serde_std ----\n\n"
+cargo test --features serde_std
 
 printf "\n\n---- sval with serde_no_std ----\n\n"
 cargo test --features serde_no_std
