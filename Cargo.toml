@@ -70,7 +70,7 @@ default-features = false
 package = "serde"
 
 [dependencies.sval_derive]
-version = "0.4.7"
+version = "0.5.0"
 path = "./derive"
 optional = true
 
