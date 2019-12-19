@@ -1,5 +1,5 @@
 [package]
-name = "sval_serde_no_std_tests"
+name = "sval_serde_alloc_tests"
 version = "0.0.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
@@ -10,8 +10,11 @@ path = "lib.rs"
 
 [dependencies.sval]
 path = "../../"
-features = ["derive", "serde", "test"]
+features = ["derive", "test", "serde", "alloc"]
 
 [dependencies.serde]
 version = "1"
-default-features = false
+features = ["derive"]
+
+[dependencies.serde_test]
+version = "1"

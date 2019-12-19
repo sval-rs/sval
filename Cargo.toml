@@ -1,8 +1,8 @@
 [workspace]
 members = [
     "derive",
-    "tests/serde_std",
-    "tests/serde_no_std",
+    "tests/serde_alloc",
+    "tests/serde_no_alloc",
     "tests/fmt",
 
     "json",

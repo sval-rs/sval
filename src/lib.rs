@@ -169,6 +169,42 @@ fn with_value(value: impl sval::Value) {
 #![no_std]
 
 #[doc(hidden)]
+#[macro_export]
+#[cfg(feature = "alloc")]
+macro_rules! sval_if_alloc {
+    (
+        if #[cfg(feature = "alloc")]
+        {
+            $($with:tt)*
+        }
+        else
+        {
+            $($without:tt)*
+        }
+    ) => {
+        $($with)*
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+#[cfg(not(feature = "alloc"))]
+macro_rules! sval_if_alloc {
+    (
+        if #[cfg(feature = "alloc")]
+        {
+            $($with:tt)*
+        }
+        else
+        {
+            $($without:tt)*
+        }
+    ) => {
+        $($without)*
+    };
+}
+
+#[doc(hidden)]
 #[cfg(feature = "derive")]
 pub mod derive;
 

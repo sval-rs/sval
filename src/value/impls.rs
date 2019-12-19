@@ -449,24 +449,6 @@ mod tests {
         fn stream_map() {
             let v = test::tokens(HashMap::<i32, i32>::new());
             assert_eq!(vec![Token::MapBegin(Some(0)), Token::MapEnd], v);
-
-            let v = test::tokens({
-                let mut map = HashMap::new();
-                map.insert(1, 11);
-                map.insert(2, 22);
-                map
-            });
-            assert_eq!(
-                vec![
-                    Token::MapBegin(Some(2)),
-                    Token::Signed(1),
-                    Token::Signed(11),
-                    Token::Signed(2),
-                    Token::Signed(22),
-                    Token::MapEnd,
-                ],
-                v
-            );
         }
 
         #[test]
