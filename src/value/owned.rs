@@ -352,8 +352,7 @@ impl Buf {
     }
 
     fn collect(v: impl Value) -> Result<Vec<Token>, stream::Error> {
-        let mut buf = Buf::new();
-        crate::stream(&mut buf, v).map(|_| buf.tokens)
+        crate::stream(Buf::new(), v).map(|buf| buf.tokens)
     }
 
     fn push(&mut self, kind: Kind, depth: stack::Depth) {
@@ -513,9 +512,7 @@ impl Primitive {
     }
 
     fn collect(v: impl Value) -> Option<Token> {
-        let mut buf = Primitive::new();
-
-        crate::stream(&mut buf, v).ok().and_then(|_| buf.token)
+        crate::stream(Primitive::new(), v).ok().and_then(|buf| buf.token)
     }
 
     fn set(&mut self, kind: Kind, depth: stack::Depth) {

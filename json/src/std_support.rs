@@ -36,8 +36,11 @@ pub fn to_string(v: impl sval::Value) -> Result<String, sval::Error> {
 /**
 Write a [`sval::Value`] to a writer.
 */
-pub fn to_writer(writer: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
-    crate::to_fmt(FmtToIo(writer), v)
+pub fn to_writer<W>(writer: W, v: impl sval::Value) -> Result<W, sval::Error>
+where
+    W: Write,
+{
+    crate::to_fmt(FmtToIo(writer), v).map(|writer| writer.0)
 }
 
 struct FmtToIo<W>(W);

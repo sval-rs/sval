@@ -81,6 +81,11 @@ mod std_support {
 
     /**
     Ensure a stream is valid for various inputs.
+
+    This is useful for smoke-testing stream implementations to make sure they explicitly
+    implement all methods on `Stream`. The stream will only be given technically valid inputs.
+
+    Any new methods added to `Stream` may cause this method to panic until the given `Stream` is updated.
     */
     pub fn stream_exhaustive<S>(build: impl Fn() -> S, check: impl Fn(Result<S, stream::Error>))
     where

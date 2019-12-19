@@ -19,10 +19,13 @@ use crate::{
 /**
 Write a [`sval::Value`] to a formatter.
 */
-pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
+pub fn to_fmt<W>(fmt: W, v: impl sval::Value) -> Result<W, sval::Error>
+where
+    W: Write,
+{
     let fmt = Formatter::new(fmt);
 
-    sval::stream(fmt, v)
+    sval::stream(fmt, v).map(|fmt| fmt.into_inner_unchecked())
 }
 
 /**
