@@ -13,8 +13,8 @@ used in tests, so additional members aren't considered
 a breaking `semver` change.
 */
 
-#[cfg(feature = "std")]
-mod std_support {
+#[cfg(feature = "alloc")]
+mod alloc_support {
     use crate::{
         std::{
             string::String,
@@ -180,5 +180,5 @@ mod std_support {
     }
 }
 
-#[cfg(feature = "std")]
-pub use self::std_support::*;
+#[cfg(feature = "alloc")]
+pub use self::alloc_support::*;

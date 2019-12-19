@@ -170,37 +170,19 @@ impl<'a> Value for fmt::Arguments<'a> {
     }
 }
 
-#[cfg(feature = "std")]
-mod std_support {
+#[cfg(feature = "alloc")]
+mod alloc_support {
     use super::*;
 
     use crate::std::{
         boxed::Box,
-        collections::{
-            BTreeMap,
-            HashMap,
-        },
-        hash::{
-            BuildHasher,
-            Hash,
-        },
+        collections::BTreeMap,
         rc::Rc,
         string::String,
-        sync::Arc,
         vec::Vec,
     };
 
     impl<T: ?Sized> Value for Box<T>
-    where
-        T: Value,
-    {
-        #[inline]
-        fn stream(&self, stream: &mut value::Stream) -> value::Result {
-            (**self).stream(stream)
-        }
-    }
-
-    impl<T: ?Sized> Value for Arc<T>
     where
         T: Value,
     {
@@ -254,6 +236,30 @@ mod std_support {
             stream.map_end()
         }
     }
+}
+
+#[cfg(feature = "std")]
+mod std_support {
+    use super::*;
+
+    use crate::std::{
+        collections::HashMap,
+        hash::{
+            Hash,
+            BuildHasher,
+        },
+        sync::Arc,
+    };
+
+    impl<T: ?Sized> Value for Arc<T>
+    where
+        T: Value,
+    {
+        #[inline]
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
+            (**self).stream(stream)
+        }
+    }
 
     impl<K, V, H> Value for HashMap<K, V, H>
     where
@@ -277,18 +283,14 @@ mod std_support {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "std")]
-    mod std_support {
+    #[cfg(feature = "alloc")]
+    mod alloc_support {
         use crate::{
             std::{
                 boxed::Box,
-                collections::{
-                    BTreeMap,
-                    HashMap,
-                },
+                collections::BTreeMap,
                 rc::Rc,
                 string::String,
-                sync::Arc,
                 vec::Vec,
             },
             test::{
@@ -397,9 +399,6 @@ mod tests {
 
         #[test]
         fn stream_map() {
-            let v = test::tokens(HashMap::<i32, i32>::new());
-            assert_eq!(vec![Token::MapBegin(Some(0)), Token::MapEnd], v);
-
             let v = test::tokens(BTreeMap::<i32, i32>::new());
             assert_eq!(vec![Token::MapBegin(Some(0)), Token::MapEnd], v);
 
@@ -430,7 +429,48 @@ mod tests {
         #[test]
         fn stream_rc() {
             assert_eq!(vec![Token::Signed(1)], test::tokens(Rc::new(1i8)));
+        }
+    }
 
+    #[cfg(feature = "std")]
+    mod std_support {
+        use crate::{
+            std::{
+                collections::HashMap,
+                sync::Arc,
+            },
+            test::{
+                self,
+                Token,
+            },
+        };
+
+        #[test]
+        fn stream_map() {
+            let v = test::tokens(HashMap::<i32, i32>::new());
+            assert_eq!(vec![Token::MapBegin(Some(0)), Token::MapEnd], v);
+
+            let v = test::tokens({
+                let mut map = HashMap::new();
+                map.insert(1, 11);
+                map.insert(2, 22);
+                map
+            });
+            assert_eq!(
+                vec![
+                    Token::MapBegin(Some(2)),
+                    Token::Signed(1),
+                    Token::Signed(11),
+                    Token::Signed(2),
+                    Token::Signed(22),
+                    Token::MapEnd,
+                ],
+                v
+            );
+        }
+
+        #[test]
+        fn stream_rc() {
             assert_eq!(vec![Token::Signed(1)], test::tokens(Arc::new(1i8)));
         }
     }

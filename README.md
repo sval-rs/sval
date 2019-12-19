@@ -36,8 +36,8 @@ This library requires Rust `1.31.0`.
 - `derive`: add support for `#[derive(Value)]`.
 - `serde`: enable integration with `serde`. Some implementations of `sval::Value` may not be representable without the `alloc` feature.
 - `fmt`: support converting any `Value` into a `Debug`.
-- `arbitrary-depth`: support stateful values with any depth.
-- `test`: add helpers for testing implementations of `Value`.
+- `arbitrary-depth`: support stateful values with any depth. Implies `alloc`.
+- `test`: add helpers for testing implementations of `Value`. Implies `std`. You should avoid using this feature outside of `dev-dependencies`.
 
 # How to use it
 

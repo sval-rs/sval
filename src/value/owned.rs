@@ -661,7 +661,8 @@ impl OwnedValue {
             ValueInner::Primitive(token) => Ok(vec![(*token).clone()].into()),
             ValueInner::Stream(tokens) => Ok(tokens.clone()),
             ValueInner::Error(err) => Err(Error::custom(err)),
-            _ => Err(Error::msg("expected a set of tokens")),
+            #[cfg(feature = "std")]
+            ValueInner::Shared(_) => Err(Error::msg("expected a set of tokens")),
         }
     }
 }

@@ -10,7 +10,7 @@ printf "\n\n---- sval with std ----\n\n"
 cargo test --features std
 
 printf "\n\n---- sval with alloc ----\n\n"
-cargo test --features alloc
+cargo test --lib --features alloc
 
 printf "\n\n---- sval with fmt ----\n\n"
 cargo test --features fmt

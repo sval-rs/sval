@@ -181,12 +181,17 @@ pub use sval_derive::*;
 #[allow(unused_imports)]
 extern crate std;
 
+#[macro_use]
+#[allow(unused_imports)]
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+extern crate alloc as alloc_lib;
+#[macro_use]
+#[allow(unused_imports)]
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+extern crate core as core_lib;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 mod std {
-    extern crate alloc;
-    extern crate core;
-
-    pub use self::alloc::{
+    pub use crate::alloc_lib::{
         boxed,
         collections,
         vec,
@@ -194,7 +199,7 @@ mod std {
         rc,
     };
 
-    pub use self::core::*;
+    pub use crate::core_lib::*;
 }
 
 #[cfg(all(not(feature = "std"), not(feature = "alloc")))]
