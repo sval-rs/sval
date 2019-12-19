@@ -37,19 +37,19 @@ pub(super) fn err<E>(msg: &'static str) -> impl FnOnce(E) -> crate::Error
 where
     E: ser::Error,
 {
-    #[cfg(feature = "serde_std")]
+    #[cfg(feature = "std")]
     {
         let _ = msg;
-        move |err| crate::Error::from(err)
+        move |err| crate::Error::custom(err)
     }
 
-    #[cfg(not(feature = "serde_std"))]
+    #[cfg(not(feature = "std"))]
     {
         move |_| crate::Error::msg(msg)
     }
 }
 
-#[cfg(not(feature = "serde_std"))]
+#[cfg(not(feature = "std"))]
 mod core_support {
     use super::*;
 
@@ -63,7 +63,7 @@ mod core_support {
     }
 }
 
-#[cfg(feature = "serde_std")]
+#[cfg(feature = "std")]
 mod std_support {
     use super::*;
 

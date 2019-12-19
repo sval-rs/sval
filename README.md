@@ -33,9 +33,7 @@ This library requires Rust `1.31.0`.
 
 - `std`: assume `std` is available and add support for `std` types.
 - `derive`: add support for `#[derive(Value)]`.
-- `serde`: enable integration with `serde`.
-    - `serde_std`: enable `serde` integration along with `std`. This is for maximum ecosystem compatibility.
-    - `serde_no_std` (same as `serde`): enable `serde` integration without needing `std`.
+- `serde`: enable integration with `serde`. Some implementations of `sval::Value` may not be representable without the `std` feature.
 - `fmt`: support converting any `Value` into a `Debug`.
 - `arbitrary-depth`: support stateful values with any depth.
 - `test`: add helpers for testing implementations of `Value`.

@@ -115,9 +115,9 @@ where
 }
 
 #[doc(hidden)]
-#[cfg(feature = "serde_std")]
+#[cfg(feature = "std")]
 pub const IS_NO_STD: bool = false;
 
 #[doc(hidden)]
-#[cfg(not(feature = "serde_std"))]
+#[cfg(not(feature = "std"))]
 pub const IS_NO_STD: bool = true;

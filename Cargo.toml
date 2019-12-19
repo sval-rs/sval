@@ -54,9 +54,7 @@ test = ["std"]
 fmt = []
 
 # Support integration with `serde`
-serde = ["serde_no_std"]
-serde_std = ["std", "serde_lib/std"] # TODO: Do we even need this now?
-serde_no_std = ["serde_lib"] # TODO: Do we even need this now?
+serde = ["serde_lib"]
 
 [dependencies.smallvec]
 version = "1"

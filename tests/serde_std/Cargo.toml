@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies.sval]
 path = "../../"
-features = ["derive", "test", "serde_std"]
+features = ["derive", "test", "serde", "std"]
 
 [dependencies.serde]
 version = "1"
