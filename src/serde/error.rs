@@ -37,20 +37,20 @@ pub(super) fn err<E>(msg: &'static str) -> impl FnOnce(E) -> crate::Error
 where
     E: ser::Error,
 {
-    #[cfg(feature = "std")]
+    #[cfg(feature = "alloc")]
     {
         let _ = msg;
         move |err| crate::Error::custom(err)
     }
 
-    #[cfg(not(feature = "std"))]
+    #[cfg(not(feature = "alloc"))]
     {
         move |_| crate::Error::msg(msg)
     }
 }
 
-#[cfg(not(feature = "std"))]
-mod core_support {
+#[cfg(not(feature = "alloc"))]
+mod no_alloc_support {
     use super::*;
 
     impl ser::Error for Error {
@@ -63,8 +63,8 @@ mod core_support {
     }
 }
 
-#[cfg(feature = "std")]
-mod std_support {
+#[cfg(feature = "alloc")]
+mod alloc_support {
     use super::*;
 
     impl ser::Error for Error {

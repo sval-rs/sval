@@ -783,7 +783,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = std::result::Result<(), Error>;
+pub type Result = crate::std::result::Result<(), Error>;
 
 #[cfg(test)]
 mod tests {

@@ -90,8 +90,8 @@ where
 {
     ok: Option<S::Ok>,
     pos: Option<Pos>,
-    #[cfg(feature = "std")]
-    buffered: Option<self::std_support::Buf>,
+    #[cfg(feature = "alloc")]
+    buffered: Option<self::alloc_support::Buf>,
     current: Option<Current<S>>,
 }
 
@@ -113,7 +113,7 @@ where
         Stream {
             ok: None,
             pos: None,
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             buffered: None,
             current: Some(Current::Serializer(ser)),
         }
@@ -241,9 +241,8 @@ enum Pos {
     Elem,
 }
 
-// TODO: This should be `#[cfg(not(feature = "std"))]`
-#[cfg(not(feature = "std"))]
-mod no_std_support {
+#[cfg(not(feature = "alloc"))]
+mod no_alloc_support {
     use super::*;
 
     impl<S> Collect for Stream<S>
@@ -395,9 +394,8 @@ mod no_std_support {
     }
 }
 
-// TODO: This should be `#[cfg(feature = "std")]`
-#[cfg(feature = "std")]
-mod std_support {
+#[cfg(feature = "alloc")]
+mod alloc_support {
     use super::*;
 
     use crate::stream::{

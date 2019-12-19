@@ -31,9 +31,10 @@ This library requires Rust `1.31.0`.
 
 `sval` has the following optional features that can be enabled in your `Cargo.toml`:
 
-- `std`: assume `std` is available and add support for `std` types.
+- `std`: assume `std` is available and add support for `std` types. Implies `alloc`.
+- `alloc`: assume a global allocator is available.
 - `derive`: add support for `#[derive(Value)]`.
-- `serde`: enable integration with `serde`. Some implementations of `sval::Value` may not be representable without the `std` feature.
+- `serde`: enable integration with `serde`. Some implementations of `sval::Value` may not be representable without the `alloc` feature.
 - `fmt`: support converting any `Value` into a `Debug`.
 - `arbitrary-depth`: support stateful values with any depth.
 - `test`: add helpers for testing implementations of `Value`.

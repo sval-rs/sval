@@ -123,12 +123,12 @@ impl Value for Map {
 
 mod impls;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
 pub(crate) mod owned;
 
 pub use crate::stream::RefMutStream as Stream;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
 pub use self::owned::OwnedValue;
 
 #[doc(inline)]
@@ -422,7 +422,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = std::result::Result<(), Error>;
+pub type Result = crate::std::result::Result<(), Error>;
 
 #[cfg(test)]
 mod tests {

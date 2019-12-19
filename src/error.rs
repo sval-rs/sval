@@ -1,6 +1,6 @@
 use crate::std::fmt;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
 use crate::std::string::String;
 
 /**
@@ -49,16 +49,6 @@ impl Error {
             false
         }
     }
-
-    // NOTE: This method is not public because we already
-    // have a method called `custom` when `std` is available.
-    // It's strictly more general than this one, but could
-    // be confusing to users to have bounds change depending
-    // on cargo features
-    #[cfg(not(feature = "std"))]
-    pub(crate) fn custom(err: &'static dyn fmt::Display) -> Self {
-        Error(ErrorInner::Custom(err))
-    }
 }
 
 impl fmt::Debug for Error {
@@ -80,9 +70,9 @@ enum ErrorInner {
         default: bool,
     },
     Static(&'static str),
-    #[cfg(not(feature = "std"))]
+    #[cfg(not(feature = "alloc"))]
     Custom(&'static dyn fmt::Display),
-    #[cfg(feature = "std")]
+    #[cfg(feature = "alloc")]
     Owned(String),
 }
 
@@ -91,9 +81,9 @@ impl fmt::Debug for ErrorInner {
         match self {
             ErrorInner::Unsupported { msg: op, .. } => write!(f, "unsupported stream operation: {}", op),
             ErrorInner::Static(msg) => msg.fmt(f),
-            #[cfg(not(feature = "std"))]
+            #[cfg(not(feature = "alloc"))]
             ErrorInner::Custom(ref err) => err.fmt(f),
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
         }
     }
@@ -104,9 +94,9 @@ impl fmt::Display for ErrorInner {
         match self {
             ErrorInner::Unsupported { msg: op, .. } => write!(f, "unsupported stream operation: {}", op),
             ErrorInner::Static(msg) => msg.fmt(f),
-            #[cfg(not(feature = "std"))]
+            #[cfg(not(feature = "alloc"))]
             ErrorInner::Custom(ref err) => err.fmt(f),
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
         }
     }
@@ -115,6 +105,38 @@ impl fmt::Display for ErrorInner {
 impl From<Error> for fmt::Error {
     fn from(_: Error) -> fmt::Error {
         fmt::Error
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+mod no_alloc_support {
+    use super::*;
+
+    use crate::std::fmt;
+
+    impl Error {
+        // NOTE: This method is not public because we already
+        // have a method called `custom` when `alloc` is available.
+        // It's strictly more general than this one, but could
+        // be confusing to users to have bounds change depending
+        // on cargo features
+        pub(crate) fn custom(err: &'static dyn fmt::Display) -> Self {
+            Error(ErrorInner::Custom(err))
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+mod alloc_support {
+    use super::*;
+
+    use crate::std::string::ToString;
+
+    impl Error {
+        /** Get an error from a format. */
+        pub fn custom(err: impl fmt::Display) -> Self {
+            Error(ErrorInner::Owned(err.to_string()))
+        }
     }
 }
 
@@ -143,11 +165,6 @@ mod std_support {
     };
 
     impl Error {
-        /** Get an error from a format. */
-        pub fn custom(err: impl fmt::Display) -> Self {
-            Error(ErrorInner::Owned(err.to_string()))
-        }
-
         /** The lower-level source of this error, if any. */
         pub fn source(&self) -> Option<&(dyn error::Error + 'static)> {
             Some(self.as_error())

@@ -181,4 +181,4 @@ where
     }
 }
 
-pub type Result = std::result::Result<(), Error>;
+pub type Result = crate::std::result::Result<(), Error>;
