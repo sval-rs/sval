@@ -46,15 +46,15 @@ arbitrary-depth = ["alloc", "smallvec"]
 # Add a custom derive for `Value`
 derive = ["sval_derive"]
 
-# Support streaming values as tokens
-# that can be inspected in tests
-test = ["std"]
-
-# Support integration with `std::fmt`
+# Support integration with `core::fmt`
 fmt = []
 
 # Support integration with `serde`
 serde = ["serde_lib"]
+
+# Support streaming values as tokens
+# that can be inspected in tests
+test = ["std"]
 
 [dependencies.smallvec]
 version = "1"

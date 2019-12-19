@@ -12,6 +12,7 @@ The `Error` type doesn't implement the `std::error::Error` trait directly.
 When `std` is available, the `into_error` method will convert an
 `Error` into a value that implements `std::error::Error`.
 */
+#[derive(Clone)]
 pub struct Error(ErrorInner);
 
 impl Error {

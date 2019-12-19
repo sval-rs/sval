@@ -192,7 +192,6 @@ mod std {
         vec,
         string,
         rc,
-        sync,
     };
 
     pub use self::core::*;

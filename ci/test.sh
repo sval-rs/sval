@@ -18,12 +18,6 @@ cargo test --features fmt
 printf "\n\n---- sval with serde ----\n\n"
 cargo test --features serde
 
-printf "\n\n---- sval with serde_std ----\n\n"
-cargo test --features serde_std
-
-printf "\n\n---- sval with serde_no_std ----\n\n"
-cargo test --features serde_no_std
-
 printf "\n\n---- sval with all features in release mode ----\n\n"
 cargo test --all-features --release
 
