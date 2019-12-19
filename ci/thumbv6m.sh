@@ -17,6 +17,9 @@ cargo build --target=thumbv6m-none-eabi --features fmt
 printf "\n\n---- sval with serde ----\n\n"
 cargo build --target=thumbv6m-none-eabi --features serde
 
+printf "\n\n---- sval with serde and alloc ----\n\n"
+cargo build --target=thumbv6m-none-eabi --features "serde alloc"
+
 # sval_json builds
 pushd json
 printf "\n\n---- sval_json ----\n\n"
