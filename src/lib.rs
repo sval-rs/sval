@@ -12,7 +12,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval]
-version = "0.4.7"
+version = "0.5.0"
 ```
 
 # Supported formats
@@ -133,14 +133,6 @@ pub enum Data {
 # }
 ```
 
-In no-std environments, `serde` support can be enabled using the `serde_no_std` feature
-instead:
-
-```toml,ignore
-[dependencies.sval]
-features = ["serde_no_std"]
-```
-
 # `std::fmt` integration
 
 Use the `fmt` Cargo feature to enable extended integration with `std::fmt`:
@@ -165,8 +157,44 @@ fn with_value(value: impl sval::Value) {
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval/0.4.7")]
+#![doc(html_root_url = "https://docs.rs/sval/0.5.0")]
 #![no_std]
+
+#[doc(hidden)]
+#[macro_export]
+#[cfg(feature = "alloc")]
+macro_rules! sval_if_alloc {
+    (
+        if #[cfg(feature = "alloc")]
+        {
+            $($with:tt)*
+        }
+        else
+        {
+            $($without:tt)*
+        }
+    ) => {
+        $($with)*
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+#[cfg(not(feature = "alloc"))]
+macro_rules! sval_if_alloc {
+    (
+        if #[cfg(feature = "alloc")]
+        {
+            $($with:tt)*
+        }
+        else
+        {
+            $($without:tt)*
+        }
+    ) => {
+        $($without)*
+    };
+}
 
 #[doc(hidden)]
 #[cfg(feature = "derive")]
@@ -181,7 +209,28 @@ pub use sval_derive::*;
 #[allow(unused_imports)]
 extern crate std;
 
-#[cfg(not(feature = "std"))]
+#[macro_use]
+#[allow(unused_imports)]
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+extern crate alloc as alloc_lib;
+#[macro_use]
+#[allow(unused_imports)]
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+extern crate core as core_lib;
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+mod std {
+    pub use crate::alloc_lib::{
+        boxed,
+        collections,
+        vec,
+        string,
+        rc,
+    };
+
+    pub use crate::core_lib::*;
+}
+
+#[cfg(all(not(feature = "std"), not(feature = "alloc")))]
 #[macro_use]
 #[allow(unused_imports)]
 extern crate core as std;
@@ -213,8 +262,9 @@ Stream the structure of a [`Value`] using the given [`Stream`].
 
 This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
 */
-pub fn stream(stream: impl Stream, value: impl Value) -> Result<(), Error> {
-    crate::stream::OwnedStream::stream(stream, value)?;
-
-    Ok(())
+pub fn stream<S>(stream: S, value: impl Value) -> Result<S, Error>
+where
+    S: Stream,
+{
+    crate::stream::OwnedStream::stream(stream, value)
 }

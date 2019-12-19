@@ -90,8 +90,8 @@ where
 {
     ok: Option<S::Ok>,
     pos: Option<Pos>,
-    #[cfg(feature = "serde_std")]
-    buffered: Option<self::std_support::Buf>,
+    #[cfg(feature = "alloc")]
+    buffered: Option<self::alloc_support::Buf>,
     current: Option<Current<S>>,
 }
 
@@ -113,7 +113,7 @@ where
         Stream {
             ok: None,
             pos: None,
-            #[cfg(feature = "serde_std")]
+            #[cfg(feature = "alloc")]
             buffered: None,
             current: Some(Current::Serializer(ser)),
         }
@@ -241,8 +241,8 @@ enum Pos {
     Elem,
 }
 
-#[cfg(not(feature = "serde_std"))]
-mod no_std_support {
+#[cfg(not(feature = "alloc"))]
+mod no_alloc_support {
     use super::*;
 
     impl<S> Collect for Stream<S>
@@ -394,8 +394,8 @@ mod no_std_support {
     }
 }
 
-#[cfg(feature = "serde_std")]
-mod std_support {
+#[cfg(feature = "alloc")]
+mod alloc_support {
     use super::*;
 
     use crate::stream::{
@@ -503,7 +503,7 @@ mod std_support {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
-                            let seq = ser.serialize_seq(len).map(Current::SerializeSeq)?;
+                            let seq = ser.serialize_seq(len).map(Current::SerializeSeq).map_err(err("error serializing sequence"))?;
                             self.current = Some(seq);
                         }
                         current => {
@@ -558,7 +558,7 @@ mod std_support {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
-                            let map = ser.serialize_map(len).map(Current::SerializeMap)?;
+                            let map = ser.serialize_map(len).map(Current::SerializeMap).map_err(err("error serializing map"))?;
                             self.current = Some(map);
                         }
                         current => {

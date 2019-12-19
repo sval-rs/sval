@@ -31,14 +31,13 @@ This library requires Rust `1.31.0`.
 
 `sval` has the following optional features that can be enabled in your `Cargo.toml`:
 
-- `std`: assume `std` is available and add support for `std` types.
+- `std`: assume `std` is available and add support for `std` types. Implies `alloc`.
+- `alloc`: assume a global allocator is available.
 - `derive`: add support for `#[derive(Value)]`.
-- `serde`: enable integration with `serde`.
-    - `serde_std` (same as `serde`): enable `serde` integration along with `std`. This is for maximum ecosystem compatibility.
-    - `serde_no_std`: enable `serde` integration without needing `std`. Some implementations of `sval::Value` may not be representable. This is for specialized `no_std` use-cases.
+- `serde`: enable integration with `serde`. Some implementations of `sval::Value` may not be representable without the `alloc` feature.
 - `fmt`: support converting any `Value` into a `Debug`.
-- `arbitrary-depth`: support stateful values with any depth.
-- `test`: add helpers for testing implementations of `Value`.
+- `arbitrary-depth`: support stateful values with any depth. Implies `alloc`.
+- `test`: add helpers for testing implementations of `Value`. Implies `std`. You should avoid using this feature outside of `dev-dependencies`.
 
 # How to use it
 
@@ -46,7 +45,7 @@ Add `sval` to your crate dependencies:
 
 ```toml
 [dependencies.sval]
-version = "0.4.7"
+version = "0.5.0"
 ```
 
 ## To support my data-structures
@@ -89,7 +88,7 @@ The `sval_json` crate can format any `sval::Value` as JSON:
 
 ```toml
 [dependencies.sval_json]
-version = "0.4.7"
+version = "0.5.0"
 features = ["std"]
 ```
 

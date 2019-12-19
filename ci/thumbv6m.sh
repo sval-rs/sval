@@ -8,11 +8,20 @@ rustup target add thumbv6m-none-eabi
 printf "\n\n---- sval ----\n\n"
 cargo build --target=thumbv6m-none-eabi
 
+printf "\n\n---- sval with arbitrary-depth ----\n\n"
+cargo build --target=thumbv6m-none-eabi --features arbitrary-depth
+
+printf "\n\n---- sval with alloc ----\n\n"
+cargo build --target=thumbv6m-none-eabi --features alloc
+
 printf "\n\n---- sval with fmt ----\n\n"
 cargo build --target=thumbv6m-none-eabi --features fmt
 
-printf "\n\n---- sval with serde_no_std ----\n\n"
-cargo build --target=thumbv6m-none-eabi --features serde_no_std
+printf "\n\n---- sval with serde ----\n\n"
+cargo build --target=thumbv6m-none-eabi --features serde
+
+printf "\n\n---- sval with serde and alloc ----\n\n"
+cargo build --target=thumbv6m-none-eabi --features "serde alloc"
 
 # sval_json builds
 pushd json

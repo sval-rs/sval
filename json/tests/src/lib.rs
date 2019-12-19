@@ -7,6 +7,24 @@ extern crate sval;
 use miniserde::Serialize as MiniSerialize;
 
 #[test]
+fn sval_json_writer_is_valid() {
+    sval::test::stream_exhaustive(
+        || {
+            sval_json::Writer::new(Vec::new())
+        },
+        |writer| match writer {
+            // If the result is ok then the writer should be valid
+            Ok(writer) => {
+                writer.end().unwrap();
+            },
+            // If the result is not ok then the error should be unsupported
+            // This will happen with non-string keys
+            Err(e) => assert!(e.is_unsupported()),
+        }
+    );
+}
+
+#[test]
 fn sval_json_is_valid() {
     let s: Twitter =
         serde_json::from_str(&std::fs::read_to_string("twitter.json").unwrap()).unwrap();

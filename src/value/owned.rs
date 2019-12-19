@@ -12,7 +12,6 @@ use crate::{
             String,
             ToString,
         },
-        sync::Arc,
         vec::Vec,
     },
     stream::{
@@ -27,6 +26,12 @@ use crate::{
         Value,
     },
 };
+
+#[cfg(not(feature = "std"))]
+type Container<T> = crate::std::boxed::Box<T>;
+
+#[cfg(feature = "std")]
+type Container<T> = crate::std::sync::Arc<T>;
 
 /**
 An owned, immutable value.
@@ -71,7 +76,7 @@ impl OwnedValue {
 
         Buf::collect(v)
             .map(|tokens| OwnedValue(ValueInner::Stream(tokens.into())))
-            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(Arc::new(err))))
+            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(Container::new(err))))
     }
 
     /**
@@ -81,23 +86,26 @@ impl OwnedValue {
 
     [`Value`]: struct.Value.html
     */
-    pub fn from_shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
+    #[cfg(feature = "std")]
+    pub fn from_shared(v: impl Into<Container<dyn Value + Send + Sync>>) -> Self {
         OwnedValue(ValueInner::Shared(v.into()))
     }
 }
 
 #[derive(Clone)]
 enum ValueInner {
-    Error(Arc<value::Error>),
-    Shared(Arc<dyn Value + Send + Sync>),
+    Error(Container<value::Error>),
+    #[cfg(feature = "std")]
+    Shared(Container<dyn Value + Send + Sync>),
     Primitive(Token),
-    Stream(Arc<[Token]>),
+    Stream(Container<[Token]>),
 }
 
 impl Value for OwnedValue {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         match self.0 {
             ValueInner::Error(ref e) => Err(Error::custom(e)),
+            #[cfg(feature = "std")]
             ValueInner::Shared(ref v) => v.stream(stream),
             ValueInner::Primitive(ref v) => v.stream(stream),
             ValueInner::Stream(ref v) => {
@@ -293,7 +301,7 @@ pub(crate) enum Kind {
     BigSigned(i128),
     BigUnsigned(u128),
     Bool(bool),
-    Str(Arc<str>),
+    Str(Container<str>),
     Char(char),
     None,
 }
@@ -352,8 +360,7 @@ impl Buf {
     }
 
     fn collect(v: impl Value) -> Result<Vec<Token>, stream::Error> {
-        let mut buf = Buf::new();
-        crate::stream(&mut buf, v).map(|_| buf.tokens)
+        crate::stream(Buf::new(), v).map(|buf| buf.tokens)
     }
 
     fn push(&mut self, kind: Kind, depth: stack::Depth) {
@@ -365,7 +372,7 @@ impl Stream for Buf {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Str(Arc::from(f.to_string())), depth);
+        self.push(Kind::Str(Container::from(f.to_string())), depth);
 
         Ok(())
     }
@@ -429,7 +436,7 @@ impl Stream for Buf {
     fn str(&mut self, v: &str) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Str(Arc::from(v)), depth);
+        self.push(Kind::Str(Container::from(v)), depth);
 
         Ok(())
     }
@@ -513,9 +520,7 @@ impl Primitive {
     }
 
     fn collect(v: impl Value) -> Option<Token> {
-        let mut buf = Primitive::new();
-
-        crate::stream(&mut buf, v).ok().and_then(|_| buf.token)
+        crate::stream(Primitive::new(), v).ok().and_then(|buf| buf.token)
     }
 
     fn set(&mut self, kind: Kind, depth: stack::Depth) {
@@ -527,7 +532,7 @@ impl Stream for Primitive {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.set(Kind::Str(Arc::from(f.to_string())), depth);
+        self.set(Kind::Str(Container::from(f.to_string())), depth);
 
         Ok(())
     }
@@ -591,7 +596,7 @@ impl Stream for Primitive {
     fn str(&mut self, v: &str) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.set(Kind::Str(Arc::from(v)), depth);
+        self.set(Kind::Str(Container::from(v)), depth);
 
         Ok(())
     }
@@ -633,7 +638,7 @@ impl Stream for Primitive {
     }
 }
 
-#[cfg(feature = "serde_std")]
+#[cfg(feature = "serde")]
 impl Buf {
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();
@@ -656,7 +661,8 @@ impl OwnedValue {
             ValueInner::Primitive(token) => Ok(vec![(*token).clone()].into()),
             ValueInner::Stream(tokens) => Ok(tokens.clone()),
             ValueInner::Error(err) => Err(Error::custom(err)),
-            _ => Err(Error::msg("expected a set of tokens")),
+            #[cfg(feature = "std")]
+            ValueInner::Shared(_) => Err(Error::msg("expected a set of tokens")),
         }
     }
 }

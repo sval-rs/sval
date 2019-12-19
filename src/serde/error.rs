@@ -31,24 +31,26 @@ impl fmt::Display for Error {
     }
 }
 
+impl ser::StdError for Error { }
+
 pub(super) fn err<E>(msg: &'static str) -> impl FnOnce(E) -> crate::Error
 where
     E: ser::Error,
 {
-    #[cfg(feature = "serde_std")]
+    #[cfg(feature = "alloc")]
     {
         let _ = msg;
-        move |err| crate::Error::from(err)
+        move |err| crate::Error::custom(err)
     }
 
-    #[cfg(not(feature = "serde_std"))]
+    #[cfg(not(feature = "alloc"))]
     {
         move |_| crate::Error::msg(msg)
     }
 }
 
-#[cfg(not(feature = "serde_std"))]
-mod core_support {
+#[cfg(not(feature = "alloc"))]
+mod no_alloc_support {
     use super::*;
 
     impl ser::Error for Error {
@@ -61,21 +63,9 @@ mod core_support {
     }
 }
 
-#[cfg(feature = "serde_std")]
-mod std_support {
+#[cfg(feature = "alloc")]
+mod alloc_support {
     use super::*;
-
-    use crate::std::error;
-
-    impl error::Error for Error {
-        fn cause(&self) -> Option<&dyn error::Error> {
-            None
-        }
-
-        fn description(&self) -> &str {
-            "serialization error"
-        }
-    }
 
     impl ser::Error for Error {
         fn custom<E>(e: E) -> Self

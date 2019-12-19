@@ -19,10 +19,13 @@ use crate::{
 /**
 Write a [`sval::Value`] to a formatter.
 */
-pub fn to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), sval::Error> {
+pub fn to_fmt<W>(fmt: W, v: impl sval::Value) -> Result<W, sval::Error>
+where
+    W: Write,
+{
     let fmt = Formatter::new(fmt);
 
-    sval::stream(fmt, v)
+    sval::stream(fmt, v).map(|fmt| fmt.into_inner_unchecked())
 }
 
 /**
@@ -137,7 +140,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -156,7 +159,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -175,7 +178,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -194,7 +197,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -213,7 +216,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -247,7 +250,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -264,7 +267,7 @@ where
     #[inline]
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.stack.seq_begin()?.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -298,7 +301,7 @@ where
     #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.stack.map_begin()?.is_key() {
-            return Err(stream::Error::msg(
+            return Err(stream::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }

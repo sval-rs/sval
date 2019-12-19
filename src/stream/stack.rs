@@ -41,7 +41,7 @@ to have the same depth or greater.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Depth(usize);
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
 impl Depth {
     pub(crate) fn root() -> Self {
         Depth(0)
@@ -741,7 +741,7 @@ mod inner {
 mod tests {
     use super::*;
 
-    #[cfg(feature = "std")]
+    #[cfg(feature = "alloc")]
     mod prop_test {
         use super::*;
 

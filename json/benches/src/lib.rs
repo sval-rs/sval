@@ -216,5 +216,7 @@ fn sval_noop(v: impl sval::Value) -> Result<(), sval::Error> {
         }
     }
 
-    sval::stream(NoOp, v)
+    sval::stream(NoOp, v)?;
+
+    Ok(())
 }

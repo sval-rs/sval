@@ -1,8 +1,8 @@
 [workspace]
 members = [
     "derive",
-    "tests/serde",
-    "tests/serde_no_std",
+    "tests/serde_alloc",
+    "tests/serde_no_alloc",
     "tests/fmt",
 
     "json",
@@ -12,7 +12,7 @@ members = [
 
 [package]
 name = "sval"
-version = "0.4.7"
+version = "0.5.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 documentation = "https://docs.rs/sval"
@@ -28,45 +28,47 @@ keywords = ["serialization", "no_std"]
 categories = ["encoding", "no-std"]
 
 [package.metadata.docs.rs]
-features = ["derive", "serde", "fmt", "test"]
+features = ["derive", "serde", "fmt", "test", "std"]
 
 [badges]
 travis-ci = { repository = "sval-rs/sval" }
 
 [features]
 # Support the standard library
-std = []
+std = ["alloc"]
+
+# Support alloc
+alloc = []
 
 # Support stacks with an arbitrary depth
-arbitrary-depth = ["std", "smallvec"]
+arbitrary-depth = ["alloc", "smallvec"]
 
 # Add a custom derive for `Value`
 derive = ["sval_derive"]
+
+# Support integration with `core::fmt`
+fmt = []
+
+# Support integration with `serde`
+serde = ["serde_lib"]
 
 # Support streaming values as tokens
 # that can be inspected in tests
 test = ["std"]
 
-# Support integration with `std::fmt`
-fmt = []
-
-# Support integration with `serde`
-serde = ["serde_std"]
-serde_std = ["std", "serde_lib/std"]
-serde_no_std = ["serde_lib"]
-
 [dependencies.smallvec]
-version = "0.6"
+version = "1"
+default-features = false
 optional = true
 
 [dependencies.serde_lib]
-version = "1"
+version = "1.0.104"
 optional = true
 default-features = false
 package = "serde"
 
 [dependencies.sval_derive]
-version = "0.4.7"
+version = "0.5.0"
 path = "./derive"
 optional = true
 

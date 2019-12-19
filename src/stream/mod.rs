@@ -197,6 +197,9 @@ impl Stream for Fmt {
 
 By default, the `Stack` type has a fixed depth. That means deeply nested
 structures aren't supported. See the [`stream::Stack`] type for more details.
+
+[`Value`]: ../value/trait.Value.html
+[`stream::Stack`]: stack/struct.Stack.html
 */
 
 pub(crate) mod owned;
@@ -507,136 +510,187 @@ pub trait Stream {
     /**
     Stream a format.
     */
+    #[cfg(not(test))]
     fn fmt(&mut self, args: Arguments) -> Result {
         let _ = args;
-        Err(Error::unsupported("Stream::fmt"))
+        Err(Error::default_unsupported("Stream::fmt"))
     }
+    #[cfg(test)]
+    fn fmt(&mut self, args: Arguments) -> Result;
 
     /**
     Stream a signed integer.
     */
+    #[cfg(not(test))]
     fn i64(&mut self, v: i64) -> Result {
         self.i128(v as i128)
     }
+    #[cfg(test)]
+    fn i64(&mut self, v: i64) -> Result;
 
     /**
     Stream an unsigned integer.
     */
+    #[cfg(not(test))]
     fn u64(&mut self, v: u64) -> Result {
         self.u128(v as u128)
     }
+    #[cfg(test)]
+    fn u64(&mut self, v: u64) -> Result;
 
     /**
     Stream a 128bit signed integer.
     */
+    #[cfg(not(test))]
     fn i128(&mut self, v: i128) -> Result {
         let _ = v;
-        Err(Error::unsupported("Stream::i128"))
+        Err(Error::default_unsupported("Stream::i128"))
     }
+    #[cfg(test)]
+    fn i128(&mut self, v: i128) -> Result;
 
     /**
     Stream a 128bit unsigned integer.
     */
+    #[cfg(not(test))]
     fn u128(&mut self, v: u128) -> Result {
         let _ = v;
-        Err(Error::unsupported("Stream::u128"))
+        Err(Error::default_unsupported("Stream::u128"))
     }
+    #[cfg(test)]
+    fn u128(&mut self, v: u128) -> Result;
 
     /**
     Stream a floating point value.
     */
+    #[cfg(not(test))]
     fn f64(&mut self, v: f64) -> Result {
         let _ = v;
-        Err(Error::unsupported("Stream::f64"))
+        Err(Error::default_unsupported("Stream::f64"))
     }
+    #[cfg(test)]
+    fn f64(&mut self, v: f64) -> Result;
 
     /**
     Stream a boolean.
     */
+    #[cfg(not(test))]
     fn bool(&mut self, v: bool) -> Result {
         let _ = v;
-        Err(Error::unsupported("Stream::bool"))
+        Err(Error::default_unsupported("Stream::bool"))
     }
+    #[cfg(test)]
+    fn bool(&mut self, v: bool) -> Result;
 
     /**
     Stream a unicode character.
     */
+    #[cfg(not(test))]
     fn char(&mut self, v: char) -> Result {
         let mut b = [0; 4];
         self.str(&*v.encode_utf8(&mut b))
     }
+    #[cfg(test)]
+    fn char(&mut self, v: char) -> Result;
 
     /**
     Stream a UTF-8 string slice.
     */
+    #[cfg(not(test))]
     fn str(&mut self, v: &str) -> Result {
         let _ = v;
-        Err(Error::unsupported("Stream::str"))
+        Err(Error::default_unsupported("Stream::str"))
     }
+    #[cfg(test)]
+    fn str(&mut self, v: &str) -> Result;
 
     /**
     Stream an empty value.
     */
+    #[cfg(not(test))]
     fn none(&mut self) -> Result {
-        Err(Error::unsupported("Stream::none"))
+        Err(Error::default_unsupported("Stream::none"))
     }
+    #[cfg(test)]
+    fn none(&mut self) -> Result;
 
     /**
     Begin a map.
     */
+    #[cfg(not(test))]
     fn map_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
-        Err(Error::unsupported("Stream::map_begin"))
+        Err(Error::default_unsupported("Stream::map_begin"))
     }
+    #[cfg(test)]
+    fn map_begin(&mut self, len: Option<usize>) -> Result;
 
     /**
     Begin a map key.
 
     The key will be implicitly ended by the stream methods that follow it.
     */
+    #[cfg(not(test))]
     fn map_key(&mut self) -> Result {
-        Err(Error::unsupported("Stream::map_key"))
+        Err(Error::default_unsupported("Stream::map_key"))
     }
+    #[cfg(test)]
+    fn map_key(&mut self) -> Result;
 
     /**
     Begin a map value.
 
     The value will be implicitly ended by the stream methods that follow it.
     */
+    #[cfg(not(test))]
     fn map_value(&mut self) -> Result {
-        Err(Error::unsupported("Stream::map_value"))
+        Err(Error::default_unsupported("Stream::map_value"))
     }
+    #[cfg(test)]
+    fn map_value(&mut self) -> Result;
 
     /**
     End a map.
     */
+    #[cfg(not(test))]
     fn map_end(&mut self) -> Result {
-        Err(Error::unsupported("Stream::map_end"))
+        Err(Error::default_unsupported("Stream::map_end"))
     }
+    #[cfg(test)]
+    fn map_end(&mut self) -> Result;
 
     /**
     Begin a sequence.
     */
+    #[cfg(not(test))]
     fn seq_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
-        Err(Error::unsupported("Stream::seq_begin"))
+        Err(Error::default_unsupported("Stream::seq_begin"))
     }
+    #[cfg(test)]
+    fn seq_begin(&mut self, len: Option<usize>) -> Result;
 
     /**
     Begin a sequence element.
 
     The element will be implicitly ended by the stream methods that follow it.
     */
+    #[cfg(not(test))]
     fn seq_elem(&mut self) -> Result {
-        Err(Error::unsupported("Stream::seq_elem"))
+        Err(Error::default_unsupported("Stream::seq_elem"))
     }
+    #[cfg(test)]
+    fn seq_elem(&mut self) -> Result;
 
     /**
     End a sequence.
     */
+    #[cfg(not(test))]
     fn seq_end(&mut self) -> Result {
-        Err(Error::unsupported("Stream::seq_end"))
+        Err(Error::default_unsupported("Stream::seq_end"))
     }
+    #[cfg(test)]
+    fn seq_end(&mut self) -> Result;
 }
 
 impl<'a, T: ?Sized> Stream for &'a mut T
@@ -732,7 +786,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = std::result::Result<(), Error>;
+pub type Result = crate::std::result::Result<(), Error>;
 
 #[cfg(test)]
 mod tests {

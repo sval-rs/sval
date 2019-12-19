@@ -101,6 +101,16 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    #[inline]
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.fmt(format_args!("{:?}", v))
+    }
+
+    #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
         self.fmt(format_args!("{:?}", v))
     }

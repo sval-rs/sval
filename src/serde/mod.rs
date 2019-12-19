@@ -8,18 +8,10 @@ Add the `serde` feature to your `Cargo.toml` to enable this module:
 features = ["serde"]
 ```
 
-In no-std environments, `serde` support can be enabled using the `serde_no_std` feature
-instead:
-
-```toml,ignore
-[dependencies.sval]
-features = ["serde_no_std"]
-```
-
 # From `sval` to `serde`
 
 A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into
-a type that implements [`serde::Serialize`]:
+a type that implements `serde::Serialize`:
 
 ```
 # struct MyValue;
@@ -32,7 +24,7 @@ a type that implements [`serde::Serialize`]:
 let my_serialize = sval::serde::to_serialize(my_value);
 ```
 
-When using `serde_no_std`, there are some limitations on what kinds of `sval::Value`s you
+When using `serde` without `alloc`, there are some limitations on what kinds of `sval::Value`s you
 can convert into `serde::Serialize`s:
 
 - Any type that uses [`value::Stream::map_key_begin`], [`value::Stream::map_value_begin`],
@@ -41,7 +33,7 @@ in no-std environments.
 
 # From `serde` to `sval`
 
-A type that implements [`serde::Serialize`] can be converted into
+A type that implements `serde::Serialize` can be converted into
 a type that implements [`sval::Value`](../value/trait.Value.html):
 
 ```
@@ -107,14 +99,17 @@ pub fn to_value(value: impl Serialize) -> impl Value {
 /**
 Stream a [`Serialize`] using the given [`Stream`].
 */
-pub fn stream(stream: impl Stream, value: impl Serialize) -> Result<(), Error> {
+pub fn stream<S>(stream: S, value: impl Serialize) -> Result<S, Error>
+where
+    S: Stream,
+{
     crate::stream(stream, to_value(value))
 }
 
 #[doc(hidden)]
-#[cfg(feature = "serde_std")]
+#[cfg(feature = "std")]
 pub const IS_NO_STD: bool = false;
 
 #[doc(hidden)]
-#[cfg(not(feature = "serde_std"))]
+#[cfg(not(feature = "std"))]
 pub const IS_NO_STD: bool = true;

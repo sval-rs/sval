@@ -13,8 +13,8 @@ used in tests, so additional members aren't considered
 a breaking `semver` change.
 */
 
-#[cfg(feature = "std")]
-mod std_support {
+#[cfg(feature = "alloc")]
+mod alloc_support {
     use crate::{
         std::{
             string::String,
@@ -24,6 +24,11 @@ mod std_support {
             owned::Kind,
             OwnedValue,
             Value,
+        },
+        stream::{
+            self,
+            Stream,
+            OwnedStream,
         },
     };
 
@@ -73,7 +78,107 @@ mod std_support {
             })
             .collect()
     }
+
+    /**
+    Ensure a stream is valid for various inputs.
+
+    This is useful for smoke-testing stream implementations to make sure they explicitly
+    implement all methods on `Stream`. The stream will only be given technically valid inputs.
+
+    Any new methods added to `Stream` may cause this method to panic until the given `Stream` is updated.
+    */
+    pub fn stream_exhaustive<S>(build: impl Fn() -> S, check: impl Fn(Result<S, stream::Error>))
+    where
+        S: Stream,
+    {
+        use crate::std::{
+            boxed::Box,
+            collections::BTreeMap,
+        };
+
+        let values: Vec<Box<dyn Value>> = vec![
+            Box::new(u8::max_value()),
+            Box::new(u16::max_value()),
+            Box::new(u32::max_value()),
+            Box::new(u64::max_value()),
+            Box::new(u128::max_value()),
+            Box::new(i8::min_value()),
+            Box::new(i16::min_value()),
+            Box::new(i32::min_value()),
+            Box::new(i64::min_value()),
+            Box::new(i128::min_value()),
+            Box::new(4.25827473958372f32),
+            Box::new(4271.00000000001f64),
+            Box::new('山'),
+            Box::new("🍔∈🌏"),
+            Box::new(Some(1)),
+            Box::new(Option::<u8>::None),
+            Box::new(vec![1, 2, 3, 4]),
+            Box::new({
+                let v: Vec<Box<dyn Value>> = vec![Box::new(1), Box::new('a')];
+                v
+            }),
+            Box::new({
+                let mut v = BTreeMap::new();
+                v.insert(String::from("a"), 1);
+                v.insert(String::from("b"), 2);
+                v.insert(String::from("c"), 3);
+                v.insert(String::from("d"), 4);
+                v
+            }),
+            Box::new({
+                let mut v = BTreeMap::new();
+                v.insert(1, 1);
+                v.insert(2, 2);
+                v.insert(3, 3);
+                v.insert(4, 4);
+                v
+            }),
+            Box::new({
+                let mut v: BTreeMap<String, Box<dyn Value>> = BTreeMap::new();
+                v.insert(String::from("a"), Box::new(1));
+                v.insert(String::from("b"), Box::new('a'));
+                v
+            }),
+            Box::new({
+                let v: Vec<Box<dyn Value>> = vec![
+                    Box::new(1),
+                    Box::new({
+                        let mut v: BTreeMap<String, Box<dyn Value>> = BTreeMap::new();
+                        v.insert(String::from("a"), Box::new(1));
+                        v.insert(String::from("b"), Box::new('a'));
+                        v
+                    }),
+                ];
+                v
+            }),
+        ];
+
+        macro_rules! check {
+            ($build:expr, $value:expr) => {
+                let r = OwnedStream::stream($build, &$value);
+
+                if let Err(e) = &r {
+                    // We only care about errors from the stream when a method isn't overriden
+                    // If the stream intentionally returns unsupported then this condition isn't hit
+                    if e.is_default_unsupported() {
+                        let tokens = tokens(&$value);
+                        panic!("value `{:?}` is unsupported (a method on `Stream` hasn't been overriden)", tokens);
+                    }
+                }
+                
+                check(r);
+            };
+        }
+
+        // Check fmt separately for lifetime reasons
+        check!(build(), format_args!("A {} value", "🍔∈🌏"));
+
+        for value in values {
+            check!(build(), value);
+        }
+    }
 }
 
-#[cfg(feature = "std")]
-pub use self::std_support::*;
+#[cfg(feature = "alloc")]
+pub use self::alloc_support::*;
