@@ -8,18 +8,10 @@ Add the `serde` feature to your `Cargo.toml` to enable this module:
 features = ["serde"]
 ```
 
-In no-std environments, `serde` support can be enabled using the `serde_no_std` feature
-instead:
-
-```toml,ignore
-[dependencies.sval]
-features = ["serde_no_std"]
-```
-
 # From `sval` to `serde`
 
 A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into
-a type that implements [`serde::Serialize`]:
+a type that implements `serde::Serialize`:
 
 ```
 # struct MyValue;
@@ -32,7 +24,7 @@ a type that implements [`serde::Serialize`]:
 let my_serialize = sval::serde::to_serialize(my_value);
 ```
 
-When using `serde_no_std`, there are some limitations on what kinds of `sval::Value`s you
+When using `serde` without `alloc`, there are some limitations on what kinds of `sval::Value`s you
 can convert into `serde::Serialize`s:
 
 - Any type that uses [`value::Stream::map_key_begin`], [`value::Stream::map_value_begin`],
@@ -41,7 +33,7 @@ in no-std environments.
 
 # From `serde` to `sval`
 
-A type that implements [`serde::Serialize`] can be converted into
+A type that implements `serde::Serialize` can be converted into
 a type that implements [`sval::Value`](../value/trait.Value.html):
 
 ```

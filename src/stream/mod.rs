@@ -197,6 +197,9 @@ impl Stream for Fmt {
 
 By default, the `Stack` type has a fixed depth. That means deeply nested
 structures aren't supported. See the [`stream::Stack`] type for more details.
+
+[`Value`]: ../value/trait.Value.html
+[`stream::Stack`]: stack/struct.Stack.html
 */
 
 pub(crate) mod owned;
