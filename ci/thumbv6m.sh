@@ -8,6 +8,9 @@ rustup target add thumbv6m-none-eabi
 printf "\n\n---- sval ----\n\n"
 cargo build --target=thumbv6m-none-eabi
 
+printf "\n\n---- sval with arbitrary-depth ----\n\n"
+cargo build --target=thumbv6m-none-eabi --features arbitrary-depth
+
 printf "\n\n---- sval with alloc ----\n\n"
 cargo build --target=thumbv6m-none-eabi --features alloc
 
