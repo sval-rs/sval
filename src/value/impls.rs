@@ -245,8 +245,8 @@ mod std_support {
     use crate::std::{
         collections::HashMap,
         hash::{
-            Hash,
             BuildHasher,
+            Hash,
         },
         sync::Arc,
     };

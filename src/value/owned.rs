@@ -520,7 +520,9 @@ impl Primitive {
     }
 
     fn collect(v: impl Value) -> Option<Token> {
-        crate::stream(Primitive::new(), v).ok().and_then(|buf| buf.token)
+        crate::stream(Primitive::new(), v)
+            .ok()
+            .and_then(|buf| buf.token)
     }
 
     fn set(&mut self, kind: Kind, depth: stack::Depth) {
