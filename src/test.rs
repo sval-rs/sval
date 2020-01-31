@@ -112,7 +112,7 @@ mod alloc_support {
             Box::new('山'),
             Box::new("🍔∈🌏"),
             Box::new(Some(1)),
-            Box::new(Option::<u8>::None),
+            Box::new(Option::None::<u8>),
             Box::new(vec![1, 2, 3, 4]),
             Box::new({
                 let v: Vec<Box<dyn Value>> = vec![Box::new(1), Box::new('a')];
