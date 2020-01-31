@@ -31,7 +31,7 @@ impl fmt::Display for Error {
     }
 }
 
-impl ser::StdError for Error { }
+impl ser::StdError for Error {}
 
 pub(super) fn err<E>(msg: &'static str) -> impl FnOnce(E) -> crate::Error
 where

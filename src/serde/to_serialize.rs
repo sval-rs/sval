@@ -503,7 +503,10 @@ mod alloc_support {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
-                            let seq = ser.serialize_seq(len).map(Current::SerializeSeq).map_err(err("error serializing sequence"))?;
+                            let seq = ser
+                                .serialize_seq(len)
+                                .map(Current::SerializeSeq)
+                                .map_err(err("error serializing sequence"))?;
                             self.current = Some(seq);
                         }
                         current => {
@@ -558,7 +561,10 @@ mod alloc_support {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
-                            let map = ser.serialize_map(len).map(Current::SerializeMap).map_err(err("error serializing map"))?;
+                            let map = ser
+                                .serialize_map(len)
+                                .map(Current::SerializeMap)
+                                .map_err(err("error serializing map"))?;
                             self.current = Some(map);
                         }
                         current => {

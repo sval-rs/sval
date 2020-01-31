@@ -20,15 +20,15 @@ mod alloc_support {
             string::String,
             vec::Vec,
         },
+        stream::{
+            self,
+            OwnedStream,
+            Stream,
+        },
         value::{
             owned::Kind,
             OwnedValue,
             Value,
-        },
-        stream::{
-            self,
-            Stream,
-            OwnedStream,
         },
     };
 
@@ -166,7 +166,7 @@ mod alloc_support {
                         panic!("value `{:?}` is unsupported (a method on `Stream` hasn't been overriden)", tokens);
                     }
                 }
-                
+
                 check(r);
             };
         }

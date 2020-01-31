@@ -25,7 +25,10 @@ impl Error {
     /** Declare some structure as unsupported. */
     #[inline]
     pub fn unsupported(operation: &'static str) -> Self {
-        Error(ErrorInner::Unsupported { msg: operation, default: false })
+        Error(ErrorInner::Unsupported {
+            msg: operation,
+            default: false,
+        })
     }
 
     /** Whether or not an error is because some operation was unsupported. */
@@ -39,7 +42,10 @@ impl Error {
 
     #[allow(dead_code)]
     pub(crate) fn default_unsupported(operation: &'static str) -> Self {
-        Error(ErrorInner::Unsupported { msg: operation, default: true })
+        Error(ErrorInner::Unsupported {
+            msg: operation,
+            default: true,
+        })
     }
 
     #[allow(dead_code)]
@@ -80,7 +86,9 @@ enum ErrorInner {
 impl fmt::Debug for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorInner::Unsupported { msg: op, .. } => write!(f, "unsupported stream operation: {}", op),
+            ErrorInner::Unsupported { msg: op, .. } => {
+                write!(f, "unsupported stream operation: {}", op)
+            }
             ErrorInner::Static(msg) => msg.fmt(f),
             #[cfg(not(feature = "alloc"))]
             ErrorInner::Custom(ref err) => err.fmt(f),
@@ -93,7 +101,9 @@ impl fmt::Debug for ErrorInner {
 impl fmt::Display for ErrorInner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorInner::Unsupported { msg: op, .. } => write!(f, "unsupported stream operation: {}", op),
+            ErrorInner::Unsupported { msg: op, .. } => {
+                write!(f, "unsupported stream operation: {}", op)
+            }
             ErrorInner::Static(msg) => msg.fmt(f),
             #[cfg(not(feature = "alloc"))]
             ErrorInner::Custom(ref err) => err.fmt(f),

@@ -222,9 +222,9 @@ mod std {
     pub use crate::alloc_lib::{
         boxed,
         collections,
-        vec,
-        string,
         rc,
+        string,
+        vec,
     };
 
     pub use crate::core_lib::*;
