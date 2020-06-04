@@ -73,11 +73,9 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
     fn is_pretty(&self) -> bool {
         self.fmt.alternate()
     }
-}
 
-impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: impl fmt::Debug) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         let next_delim = self.next_delim(pos);
@@ -89,45 +87,52 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
         Ok(())
     }
+}
+
+impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
+    #[inline]
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+        self.fmt(v)
+    }
 
     #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
     fn u64(&mut self, v: u64) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
     fn i128(&mut self, v: i128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
     fn u128(&mut self, v: u128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
     fn bool(&mut self, v: bool) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
     fn char(&mut self, v: char) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(v)
     }
 
     #[inline]
