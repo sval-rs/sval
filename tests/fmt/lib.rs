@@ -221,3 +221,19 @@ fn sval_alternate_fmt_is_consistent() {
     check(OuterSeq);
     check(WeirdMapKeys);
 }
+
+#[test]
+fn sval_fmt_retains_flags() {
+    fn check(value: (impl Value + Debug)) {
+        let sval = format!("{:04?}", sval::fmt::to_debug(&value));
+        let std = format!("{:04?}", value);
+
+        assert_eq!(std, sval);
+    }
+
+    check(42);
+    check("a string");
+    check(OuterMap);
+    check(OuterSeq);
+    check(WeirdMapKeys);
+}
