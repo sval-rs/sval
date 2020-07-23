@@ -1,7 +1,7 @@
 use crate::{
     std::fmt,
-    value,
     stream,
+    value,
 };
 
 use super::error::{

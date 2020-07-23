@@ -1,11 +1,11 @@
 use sval::{
-    value::Value,
     stream::{
         self,
         stack,
         Stack,
         Stream,
-    }
+    },
+    value::Value,
 };
 
 use crate::{

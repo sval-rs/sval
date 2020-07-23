@@ -642,7 +642,9 @@ impl Buf {
 
 #[cfg(any(test, feature = "test"))]
 impl OwnedValue {
-    pub(crate) fn tokens(&self) -> Result<impl crate::std::ops::Deref<Target = [Token]>, crate::Error> {
+    pub(crate) fn tokens(
+        &self,
+    ) -> Result<impl crate::std::ops::Deref<Target = [Token]>, crate::Error> {
         match &self.0 {
             ValueInner::Primitive(token) => Ok(vec![(*token).clone()].into()),
             ValueInner::Stream(tokens) => Ok(tokens.clone()),

@@ -1,9 +1,9 @@
 use sval::{
-    value::Value,
     stream::{
         self,
         Stream,
-    }
+    },
+    value::Value,
 };
 
 use crate::std::{

@@ -681,10 +681,7 @@ mod inner {
 mod inner {
     use smallvec::SmallVec;
 
-    use super::{
-        Error,
-        Slot,
-    };
+    use super::Slot;
 
     #[derive(Clone)]
     pub(super) struct Stack(SmallVec<[Slot; 16]>);

@@ -126,9 +126,7 @@ mod impls;
 #[cfg(feature = "alloc")]
 pub(crate) mod owned;
 
-pub use crate::{
-    stream::RefMutStream as Stream,
-};
+pub use crate::stream::RefMutStream as Stream;
 
 #[cfg(feature = "alloc")]
 pub use self::owned::OwnedValue;
@@ -388,7 +386,7 @@ pub trait Value {
     # fn main() -> Result<(), Box<dyn std::error::Error>> {
     use sval::{
         stream::OwnedStream,
-        Value,
+        value::Value,
     };
 
     let mut stream = OwnedStream::new(MyStream);

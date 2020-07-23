@@ -3,8 +3,8 @@
 
 extern crate test;
 
-use sval_json_tests::Twitter;
 use sval::stream::Arguments;
+use sval_json_tests::Twitter;
 
 fn input_json() -> String {
     std::fs::read_to_string("../tests/twitter.json").unwrap()

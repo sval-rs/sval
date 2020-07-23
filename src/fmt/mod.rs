@@ -10,13 +10,14 @@ features = ["fmt"]
 
 # From `sval` to `std::fmt`
 
-A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into
+A type that implements [`Value`](../value/trait.Value.html) can be converted into
 a type that implements [`std::fmt::Debug`]:
 
 ```
+# use sval::value::{self, Value};
 # struct MyValue;
-# impl sval::value::Value for MyValue {
-#     fn stream(&self, stream: &mut sval::value::Stream) -> Result<(), sval::value::Error> {
+# impl Value for MyValue {
+#     fn stream(&self, stream: &mut value::Stream) -> value::Result {
 #         unimplemented!()
 #     }
 # }

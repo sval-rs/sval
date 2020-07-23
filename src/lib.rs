@@ -47,68 +47,79 @@ where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 ## over multiple calls
 
 More involved use-cases may want to build up structure over time. Use a [`stream::OwnedStream`](stream/struct.OwnedStream.html)
-to hang on to a stream and pass it values over time:
+to hang on to a stream and pass it values over time.
+
+The following example wraps up a stream in an API that lets callers treat it like a map:
 
 ```no_run
 # #[cfg(not(feature = "std"))]
 # fn main() {}
 # #[cfg(feature = "std")]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
+# let my_stream = MyStream;
+// Create a `Map` stream that wraps up another one
+let mut stream = Map::new(my_stream)?;
+
+// Stream it some entries
+stream.entry("a", 42)?;
+stream.entry("b", 17)?;
+
+// Eventually we end the wrapper and return the original stream
+let my_stream = stream.end()?;
+# struct MyStream;
+# struct Map;
+# impl Map {
+#     fn new<T>(_: T) -> Result<Self, Box<dyn std::error::Error>> { Ok(Map) }
+#     fn entry<K, V>(&mut self, _: K, _: V) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
+#     fn end(self) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
+# }
+# Ok(())
+}
+```
+
+An implementation of `Map` could then look like this:
+
+```no_run
 use sval::{
-    Value,
+    value::Value,
     stream::{self, OwnedStream},
 };
 
-// We begin the wrapper over `MyStream`
-let mut stream = StreamPairs::new()?;
-
-// Pairs can be streamed independently
-stream.pair("a", 42)?;
-stream.pair("b", 17)?;
-
-// Eventually we end the wrapper and return the underlying `MyStream`
-let my_stream = stream.end()?;
-
-struct StreamPairs {
+struct Map {
     // Using `OwnedStream<MyStream>` instead of just `MyStream`
     // gives us better ergonomics and validation
     stream: OwnedStream<MyStream>,
 }
 
-impl StreamPairs {
-    fn new() -> Result<Self, stream::Error> {
-        let mut stream = OwnedStream::new(MyStream);
+impl Map {
+    fn new(stream: MyStream) -> Result<Self, sval::Error> {
+        let mut stream = OwnedStream::new(stream);
         stream.map_begin(None)?;
 
-        Ok(StreamPairs {
+        Ok(Map {
             stream,
         })
     }
 
-    fn pair(&mut self, k: impl Value, v: impl Value) -> Result<(), stream::Error> {
+    fn entry(&mut self, k: impl Value, v: impl Value) -> Result<(), sval::Error> {
         self.stream.map_key(k)?;
         self.stream.map_value(v)?;
 
         Ok(())
     }
 
-    fn end(mut self) -> Result<MyStream, stream::Error> {
+    fn end(mut self) -> Result<MyStream, sval::Error> {
         self.stream.map_end()?;
 
         Ok(self.stream.into_inner())
     }
 }
-# Ok(())
-# }
-# use sval::stream::{self, Stream};
+# use sval::stream::Stream;
 # struct MyStream;
 # impl Stream for MyStream {
 #     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
 # }
 ```
-
-The above example captures an `OwnedStream<MyStream>` and then allows multiple key-value pairs to be
-streamed through it before finishing.
 
 # `serde` integration
 
@@ -123,7 +134,8 @@ When `serde` is available, the `Value` trait can also be derived
 based on an existing `Serialize` implementation:
 
 ```ignore
-use sval::Value;
+#[macro_use]
+extern crate sval;
 
 #[derive(Serialize, Value)]
 #[sval(derive_from = "serde")]
@@ -148,7 +160,8 @@ When `fmt` is available, arbitrary `Value`s can be treated like `std::fmt::Debug
 # fn main() {}
 # #[cfg(feature = "fmt")]
 # mod test {
-fn with_value(value: impl sval::Value) {
+# use sval::value::Value;
+fn with_value(value: impl Value) {
     dbg!(sval::fmt::to_debug(&value));
 
     // Do something with the value
@@ -202,6 +215,7 @@ pub mod derive;
 
 #[doc(inline)]
 #[cfg(feature = "derive")]
+#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 pub use sval_derive::*;
 
 #[cfg(feature = "std")]
@@ -240,12 +254,15 @@ mod error;
 mod collect;
 
 #[cfg(any(test, feature = "test"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "test")))]
 pub mod test;
 
 #[cfg(feature = "fmt")]
+#[cfg_attr(docsrs, doc(cfg(feature = "fmt")))]
 pub mod fmt;
 
 #[cfg(feature = "serde_lib")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod serde;
 
 pub mod stream;

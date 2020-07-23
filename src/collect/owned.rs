@@ -9,8 +9,8 @@ use crate::{
         Debug,
         Display,
     },
-    value,
     stream::Arguments,
+    value,
 };
 
 pub(crate) struct OwnedCollect<TStream> {

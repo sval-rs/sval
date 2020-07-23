@@ -22,27 +22,27 @@ impl Stream for Fmt {
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn none(&mut self) -> stream::Result {
-        self.fmt(format_args!("{:?}", ()))
+        self.fmt(stream::Arguments::debug(&()))
     }
 }
 ```
@@ -53,7 +53,7 @@ to see whether a given value is a `u64`:
 
 ```
 use sval::{
-    Value,
+    value::Value,
     stream::{self, Stream, OwnedStream},
 };
 
@@ -116,27 +116,27 @@ impl Stream for Fmt {
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn none(&mut self) -> stream::Result {
-        self.fmt(format_args!("{:?}", ()))
+        self.fmt(stream::Arguments::debug(&()))
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
@@ -226,6 +226,16 @@ enum ArgumentsInner<'a> {
     Args(fmt::Arguments<'a>),
 }
 
+impl<'a> Arguments<'a> {
+    pub fn debug(v: &'a impl fmt::Debug) -> Self {
+        Arguments(ArgumentsInner::Debug(v))
+    }
+
+    pub fn display(v: &'a impl fmt::Display) -> Self {
+        Arguments(ArgumentsInner::Display(v))
+    }
+}
+
 impl<'a> From<fmt::Arguments<'a>> for Arguments<'a> {
     fn from(v: fmt::Arguments<'a>) -> Self {
         Arguments(ArgumentsInner::Args(v))
@@ -286,7 +296,7 @@ The following stream can support any primitive value:
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn fmt(&mut self, args: stream::Arguments) -> stream::Result {
@@ -354,7 +364,7 @@ a stream that supports maps needs to implement a few additional methods:
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
@@ -398,7 +408,7 @@ a stream that supports sequences needs to implement a few additional methods:
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
@@ -431,7 +441,7 @@ impl Stream for MyStream {
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn fmt(&mut self, args: stream::Arguments) -> stream::Result {

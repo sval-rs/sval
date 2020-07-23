@@ -80,13 +80,10 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 
         let next_delim = self.next_delim(pos);
         if let Some(delim) = mem::replace(&mut self.delim, next_delim) {
-            self.fmt
-                .write_str(delim)
-                ?;
+            self.fmt.write_str(delim)?;
         }
 
-        v.fmt(&mut self.fmt)
-            ?;
+        v.fmt(&mut self.fmt)?;
 
         Ok(())
     }
@@ -152,14 +149,10 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         self.stack.map_begin()?;
 
         if let Some(delim) = self.delim.take() {
-            self.fmt
-                .write_str(delim)
-                ?;
+            self.fmt.write_str(delim)?;
         }
 
-        self.fmt
-            .write_char('{')
-            ?;
+        self.fmt.write_char('{')?;
 
         Ok(())
     }
@@ -169,15 +162,11 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         if self.is_pretty() {
             if !self.stack.current().is_empty_map() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt
-                        .write_str(delim)
-                        ?;
+                    self.fmt.write_str(delim)?;
                 }
             }
 
-            self.fmt
-                .write_char('\n')
-                ?;
+            self.fmt.write_char('\n')?;
             pad(&mut self.fmt, self.depth)?;
         }
 
@@ -200,14 +189,10 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
             if !self.stack.current().is_empty_map() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt
-                        .write_str(delim)
-                        ?;
+                    self.fmt.write_str(delim)?;
                 }
 
-                self.fmt
-                    .write_char('\n')
-                    ?;
+                self.fmt.write_char('\n')?;
                 pad(&mut self.fmt, self.depth)?;
             }
         }
@@ -216,9 +201,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
         self.delim = self.next_delim(pos);
 
-        self.fmt
-            .write_char('}')
-            ?;
+        self.fmt.write_char('}')?;
 
         Ok(())
     }
@@ -232,14 +215,10 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         self.stack.seq_begin()?;
 
         if let Some(delim) = self.delim.take() {
-            self.fmt
-                .write_str(delim)
-                ?;
+            self.fmt.write_str(delim)?;
         }
 
-        self.fmt
-            .write_char('[')
-            ?;
+        self.fmt.write_char('[')?;
 
         Ok(())
     }
@@ -249,15 +228,11 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         if self.is_pretty() {
             if !self.stack.current().is_empty_seq() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt
-                        .write_str(delim)
-                        ?;
+                    self.fmt.write_str(delim)?;
                 }
             }
 
-            self.fmt
-                .write_char('\n')
-                ?;
+            self.fmt.write_char('\n')?;
             pad(&mut self.fmt, self.depth)?;
         }
 
@@ -273,14 +248,10 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
             if !self.stack.current().is_empty_seq() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt
-                        .write_str(delim)
-                        ?;
+                    self.fmt.write_str(delim)?;
                 }
 
-                self.fmt
-                    .write_char('\n')
-                    ?;
+                self.fmt.write_char('\n')?;
                 pad(&mut self.fmt, self.depth)?;
             }
         }
@@ -289,9 +260,7 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
         self.delim = self.next_delim(pos);
 
-        self.fmt
-            .write_char(']')
-            ?;
+        self.fmt.write_char(']')?;
 
         Ok(())
     }

@@ -1,10 +1,10 @@
 use crate::{
     std::fmt,
+    stream,
     value::{
         self,
         Value,
     },
-    stream,
 };
 
 impl Value for () {

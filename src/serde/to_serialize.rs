@@ -3,9 +3,7 @@ use crate::{
         self,
         Collect,
     },
-    std::{
-        cell::Cell,
-    },
+    std::cell::Cell,
     stream,
     value,
 };
@@ -240,8 +238,8 @@ impl<'a> stream::Arguments<'a> {
 
         impl<'a, 'b> Serialize for SerializeArguments<'a, 'b> {
             fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
-                where
-                    S: Serializer,
+            where
+                S: Serializer,
             {
                 s.collect_str(&self.0)
             }
