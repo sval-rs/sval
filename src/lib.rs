@@ -251,8 +251,10 @@ pub mod serde;
 pub mod stream;
 pub mod value;
 
-pub use self::{
-    error::Error,
+#[doc(inline)]
+pub use self::error::Error;
+
+use self::{
     stream::Stream,
     value::Value,
 };

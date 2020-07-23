@@ -120,12 +120,6 @@ fn sval_noop(v: impl sval::Value) -> Result<(), sval::Error> {
 
     impl sval::Stream for NoOp {
         #[inline(never)]
-        fn fmt(&mut self, v: sval::stream::Arguments) -> sval::stream::Result {
-            let _ = v;
-            Ok(())
-        }
-
-        #[inline(never)]
         fn i64(&mut self, v: i64) -> sval::stream::Result {
             let _ = v;
             Ok(())

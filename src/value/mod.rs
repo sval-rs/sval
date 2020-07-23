@@ -126,13 +126,13 @@ mod impls;
 #[cfg(feature = "alloc")]
 pub(crate) mod owned;
 
-pub use crate::stream::RefMutStream as Stream;
+pub use crate::{
+    stream::RefMutStream as Stream,
+    Error,
+};
 
 #[cfg(feature = "alloc")]
 pub use self::owned::OwnedValue;
-
-#[doc(inline)]
-pub use crate::Error;
 
 /**
 A value with a streamable structure.

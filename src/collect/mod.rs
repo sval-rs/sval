@@ -7,14 +7,14 @@ allocating for nested datastructures that are already known.
 */
 
 use crate::stream::{
-    self,
+    Debug,
+    Display,
     Stream,
 };
 
 mod owned;
 mod value;
 
-#[doc(inline)]
 pub use crate::Error;
 
 pub(crate) use self::{
@@ -96,8 +96,13 @@ where
     S: Stream,
 {
     #[inline]
-    fn fmt(&mut self, args: stream::Arguments) -> Result {
-        self.0.fmt(args)
+    fn debug(&mut self, v: Debug) -> Result {
+        self.0.debug(v)
+    }
+
+    #[inline]
+    fn display(&mut self, v: Display) -> Result {
+        self.0.display(v)
     }
 
     #[inline]

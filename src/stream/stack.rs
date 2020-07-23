@@ -511,7 +511,12 @@ impl Stack {
 
 impl Stream for Stack {
     #[inline]
-    fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
+    fn debug(&mut self, _: stream::Debug) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn display(&mut self, _: stream::Display) -> stream::Result {
         self.primitive().map(|_| ())
     }
 

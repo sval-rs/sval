@@ -80,10 +80,13 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 
         let next_delim = self.next_delim(pos);
         if let Some(delim) = mem::replace(&mut self.delim, next_delim) {
-            self.fmt.write_str(delim)?;
+            self.fmt
+                .write_str(delim)
+                .map_err(stream::Error::from_fmt_error)?;
         }
 
-        v.fmt(&mut self.fmt)?;
+        v.fmt(&mut self.fmt)
+            .map_err(stream::Error::from_fmt_error)?;
 
         Ok(())
     }
@@ -91,8 +94,13 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 
 impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn debug(&mut self, v: stream::Debug) -> stream::Result {
         self.fmt(v)
+    }
+
+    #[inline]
+    fn display(&mut self, v: stream::Display) -> stream::Result {
+        self.fmt(&stream::display_to_debug(v))
     }
 
     #[inline]
@@ -149,10 +157,14 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         self.stack.seq_begin()?;
 
         if let Some(delim) = self.delim.take() {
-            self.fmt.write_str(delim)?;
+            self.fmt
+                .write_str(delim)
+                .map_err(stream::Error::from_fmt_error)?;
         }
 
-        self.fmt.write_char('[')?;
+        self.fmt
+            .write_char('[')
+            .map_err(stream::Error::from_fmt_error)?;
 
         Ok(())
     }
@@ -162,12 +174,16 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         if self.is_pretty() {
             if !self.stack.current().is_empty_seq() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
+                    self.fmt
+                        .write_str(delim)
+                        .map_err(stream::Error::from_fmt_error)?;
                 }
             }
 
-            self.fmt.write_char('\n')?;
-            pad(&mut self.fmt, self.depth)?;
+            self.fmt
+                .write_char('\n')
+                .map_err(stream::Error::from_fmt_error)?;
+            pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
         }
 
         self.stack.seq_elem()?;
@@ -182,11 +198,15 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
             if !self.stack.current().is_empty_seq() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
+                    self.fmt
+                        .write_str(delim)
+                        .map_err(stream::Error::from_fmt_error)?;
                 }
 
-                self.fmt.write_char('\n')?;
-                pad(&mut self.fmt, self.depth)?;
+                self.fmt
+                    .write_char('\n')
+                    .map_err(stream::Error::from_fmt_error)?;
+                pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
             }
         }
 
@@ -194,7 +214,9 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
         self.delim = self.next_delim(pos);
 
-        self.fmt.write_char(']')?;
+        self.fmt
+            .write_char(']')
+            .map_err(stream::Error::from_fmt_error)?;
 
         Ok(())
     }
@@ -208,10 +230,14 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         self.stack.map_begin()?;
 
         if let Some(delim) = self.delim.take() {
-            self.fmt.write_str(delim)?;
+            self.fmt
+                .write_str(delim)
+                .map_err(stream::Error::from_fmt_error)?;
         }
 
-        self.fmt.write_char('{')?;
+        self.fmt
+            .write_char('{')
+            .map_err(stream::Error::from_fmt_error)?;
 
         Ok(())
     }
@@ -221,12 +247,16 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         if self.is_pretty() {
             if !self.stack.current().is_empty_map() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
+                    self.fmt
+                        .write_str(delim)
+                        .map_err(stream::Error::from_fmt_error)?;
                 }
             }
 
-            self.fmt.write_char('\n')?;
-            pad(&mut self.fmt, self.depth)?;
+            self.fmt
+                .write_char('\n')
+                .map_err(stream::Error::from_fmt_error)?;
+            pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
         }
 
         self.stack.map_key()?;
@@ -248,11 +278,15 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
             if !self.stack.current().is_empty_map() {
                 if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
+                    self.fmt
+                        .write_str(delim)
+                        .map_err(stream::Error::from_fmt_error)?;
                 }
 
-                self.fmt.write_char('\n')?;
-                pad(&mut self.fmt, self.depth)?;
+                self.fmt
+                    .write_char('\n')
+                    .map_err(stream::Error::from_fmt_error)?;
+                pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
             }
         }
 
@@ -260,7 +294,9 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
         self.delim = self.next_delim(pos);
 
-        self.fmt.write_char('}')?;
+        self.fmt
+            .write_char('}')
+            .map_err(stream::Error::from_fmt_error)?;
 
         Ok(())
     }

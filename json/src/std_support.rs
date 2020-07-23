@@ -126,11 +126,6 @@ where
     W: Write,
 {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-        self.0.fmt(v)
-    }
-
-    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.0.i64(v)
     }

@@ -166,7 +166,7 @@ impl Value for str {
 impl<'a> Value for fmt::Arguments<'a> {
     #[inline]
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.fmt(*self)
+        stream.debug(*self)
     }
 }
 

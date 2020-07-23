@@ -4,9 +4,12 @@ use crate::{
         OwnedCollect,
         RefMutCollect,
     },
+    std::fmt::{
+        Debug,
+        Display,
+    },
     stream::{
         self,
-        Arguments,
         Error,
         Stream,
     },
@@ -68,11 +71,19 @@ where
     }
 
     /**
-    Stream a format.
+    Stream a debuggable type.
     */
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> stream::Result {
-        self.0.fmt(f)
+    pub fn debug(&mut self, v: impl Debug) -> stream::Result {
+        self.0.debug(&v)
+    }
+
+    /**
+    Stream a displayable type.
+    */
+    #[inline]
+    pub fn display(&mut self, v: impl Display) -> stream::Result {
+        self.0.display(&v)
     }
 
     /**
@@ -244,8 +255,13 @@ where
     S: Stream,
 {
     #[inline]
-    fn fmt(&mut self, args: Arguments) -> stream::Result {
-        self.fmt(args)
+    fn debug(&mut self, v: stream::Debug) -> stream::Result {
+        self.debug(v)
+    }
+
+    #[inline]
+    fn display(&mut self, v: stream::Display) -> stream::Result {
+        self.display(v)
     }
 
     #[inline]
@@ -351,11 +367,19 @@ impl<'a> RefMutStream<'a> {
     }
 
     /**
-    Stream a format.
+    Stream a debuggable type.
     */
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> stream::Result {
-        self.0.fmt(f)
+    pub fn debug(&mut self, v: impl Debug) -> stream::Result {
+        self.0.debug(&v)
+    }
+
+    /**
+    Stream a displayable type.
+    */
+    #[inline]
+    pub fn display(&mut self, v: impl Display) -> stream::Result {
+        self.0.display(&v)
     }
 
     /**
@@ -521,8 +545,13 @@ impl<'a> RefMutStream<'a> {
 
 impl<'a> Stream for RefMutStream<'a> {
     #[inline]
-    fn fmt(&mut self, args: Arguments) -> stream::Result {
-        self.fmt(args)
+    fn debug(&mut self, v: stream::Debug) -> stream::Result {
+        self.debug(v)
+    }
+
+    #[inline]
+    fn display(&mut self, v: stream::Display) -> stream::Result {
+        self.display(v)
     }
 
     #[inline]

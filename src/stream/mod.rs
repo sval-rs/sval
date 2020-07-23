@@ -207,17 +207,18 @@ pub mod stack;
 
 use crate::std::fmt;
 
-#[doc(inline)]
 pub use crate::Error;
 
 pub use self::{
-    fmt::Arguments,
     owned::{
         OwnedStream,
         RefMutStream,
     },
     stack::Stack,
 };
+
+pub type Debug<'a> = &'a dyn fmt::Debug;
+pub type Display<'a> = &'a dyn fmt::Display;
 
 /**
 A receiver for the structure of a value.
@@ -508,15 +509,25 @@ impl Stream for MyStream {
 */
 pub trait Stream {
     /**
-    Stream a format.
+    Stream a debuggable type.
     */
     #[cfg(not(test))]
-    fn fmt(&mut self, args: Arguments) -> Result {
-        let _ = args;
-        Err(Error::default_unsupported("Stream::fmt"))
+    fn debug(&mut self, v: Debug) -> Result {
+        let _ = v;
+        Err(Error::default_unsupported("Stream::debug"))
     }
     #[cfg(test)]
-    fn fmt(&mut self, args: Arguments) -> Result;
+    fn debug(&mut self, v: Debug) -> Result;
+
+    /**
+    Stream a displayable type.
+    */
+    #[cfg(not(test))]
+    fn display(&mut self, v: Display) -> Result {
+        self.debug(&display_to_debug(v))
+    }
+    #[cfg(test)]
+    fn display(&mut self, v: Display) -> Result;
 
     /**
     Stream a signed integer.
@@ -698,8 +709,13 @@ where
     T: Stream,
 {
     #[inline]
-    fn fmt(&mut self, args: Arguments) -> Result {
-        (**self).fmt(args)
+    fn debug(&mut self, v: Debug) -> Result {
+        (**self).debug(v)
+    }
+
+    #[inline]
+    fn display(&mut self, v: Display) -> Result {
+        (**self).display(v)
     }
 
     #[inline]
@@ -787,6 +803,37 @@ where
 The type returned by streaming methods.
 */
 pub type Result = crate::std::result::Result<(), Error>;
+
+pub(super) fn display_to_debug(v: impl fmt::Display) -> impl fmt::Debug {
+    struct DisplayToDebug<T>(T);
+
+    impl<T> fmt::Debug for DisplayToDebug<T>
+    where
+        T: fmt::Display,
+    {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            self.0.fmt(f)
+        }
+    }
+
+    DisplayToDebug(v)
+}
+
+#[cfg(feature = "std")]
+pub(super) fn debug_to_display(v: impl fmt::Debug) -> impl fmt::Display {
+    struct DebugToDisplay<T>(T);
+
+    impl<T> fmt::Display for DebugToDisplay<T>
+    where
+        T: fmt::Debug,
+    {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            self.0.fmt(f)
+        }
+    }
+
+    DebugToDisplay(v)
+}
 
 #[cfg(test)]
 mod tests {

@@ -4,10 +4,7 @@ Owned values.
 
 use crate::{
     std::{
-        fmt::{
-            self,
-            Debug,
-        },
+        fmt,
         string::{
             String,
             ToString,
@@ -119,7 +116,7 @@ impl Value for OwnedValue {
     }
 }
 
-impl Debug for OwnedValue {
+impl fmt::Debug for OwnedValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         #[cfg(feature = "fmt")]
         {
@@ -277,6 +274,15 @@ impl From<char> for OwnedValue {
     }
 }
 
+impl<'a> From<&'a str> for OwnedValue {
+    fn from(v: &'a str) -> Self {
+        OwnedValue(ValueInner::Primitive(Token {
+            depth: stack::Depth::root(),
+            kind: Kind::Str(v.into()),
+        }))
+    }
+}
+
 impl From<String> for OwnedValue {
     fn from(v: String) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
@@ -369,7 +375,18 @@ impl Buf {
 }
 
 impl Stream for Buf {
-    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
+    fn debug(&mut self, f: stream::Debug) -> stream::Result {
+        let depth = self.stack.primitive()?.depth();
+
+        self.push(
+            Kind::Str(Container::from(stream::debug_to_display(f).to_string())),
+            depth,
+        );
+
+        Ok(())
+    }
+
+    fn display(&mut self, f: stream::Display) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Str(Container::from(f.to_string())), depth);
@@ -507,16 +524,12 @@ impl Stream for Buf {
 }
 
 struct Primitive {
-    stack: Stack,
     token: Option<Token>,
 }
 
 impl Primitive {
     fn new() -> Primitive {
-        Primitive {
-            stack: Stack::new(),
-            token: None,
-        }
+        Primitive { token: None }
     }
 
     fn collect(v: impl Value) -> Option<Token> {
@@ -525,88 +538,79 @@ impl Primitive {
             .and_then(|buf| buf.token)
     }
 
-    fn set(&mut self, kind: Kind, depth: stack::Depth) {
-        self.token = Some(Token { depth, kind });
+    fn set(&mut self, kind: Kind) {
+        self.token = Some(Token {
+            depth: stack::Depth::root(),
+            kind,
+        });
     }
 }
 
 impl Stream for Primitive {
-    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
+    fn debug(&mut self, f: stream::Debug) -> stream::Result {
+        self.set(Kind::Str(Container::from(
+            stream::debug_to_display(f).to_string(),
+        )));
 
-        self.set(Kind::Str(Container::from(f.to_string())), depth);
+        Ok(())
+    }
+
+    fn display(&mut self, f: stream::Display) -> stream::Result {
+        self.set(Kind::Str(Container::from(f.to_string())));
 
         Ok(())
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Signed(v), depth);
+        self.set(Kind::Signed(v));
 
         Ok(())
     }
 
     fn u64(&mut self, v: u64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Unsigned(v), depth);
+        self.set(Kind::Unsigned(v));
 
         Ok(())
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::BigSigned(v), depth);
+        self.set(Kind::BigSigned(v));
 
         Ok(())
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::BigUnsigned(v), depth);
+        self.set(Kind::BigUnsigned(v));
 
         Ok(())
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Float(v), depth);
+        self.set(Kind::Float(v));
 
         Ok(())
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Bool(v), depth);
+        self.set(Kind::Bool(v));
 
         Ok(())
     }
 
     fn char(&mut self, v: char) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Char(v), depth);
+        self.set(Kind::Char(v));
 
         Ok(())
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Str(Container::from(v)), depth);
+        self.set(Kind::Str(Container::from(v)));
 
         Ok(())
     }
 
     fn none(&mut self) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::None, depth);
+        self.set(Kind::None);
 
         Ok(())
     }
