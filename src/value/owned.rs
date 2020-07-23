@@ -19,7 +19,6 @@ use crate::{
     },
     value::{
         self,
-        Error,
         Value,
     },
 };
@@ -91,7 +90,7 @@ impl OwnedValue {
 
 #[derive(Clone)]
 enum ValueInner {
-    Error(Container<value::Error>),
+    Error(Container<crate::Error>),
     #[cfg(feature = "std")]
     Shared(Container<dyn Value + Send + Sync>),
     Primitive(Token),
@@ -101,7 +100,7 @@ enum ValueInner {
 impl Value for OwnedValue {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         match self.0 {
-            ValueInner::Error(ref e) => Err(Error::custom(e)),
+            ValueInner::Error(ref e) => Err(crate::Error::custom(e)),
             #[cfg(feature = "std")]
             ValueInner::Shared(ref v) => v.stream(stream),
             ValueInner::Primitive(ref v) => v.stream(stream),
@@ -365,7 +364,7 @@ impl Buf {
         }
     }
 
-    fn collect(v: impl Value) -> Result<Vec<Token>, stream::Error> {
+    fn collect(v: impl Value) -> Result<Vec<Token>, crate::Error> {
         crate::stream(Buf::new(), v).map(|buf| buf.tokens)
     }
 
@@ -375,18 +374,7 @@ impl Buf {
 }
 
 impl Stream for Buf {
-    fn debug(&mut self, f: stream::Debug) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(
-            Kind::Str(Container::from(stream::debug_to_display(f).to_string())),
-            depth,
-        );
-
-        Ok(())
-    }
-
-    fn display(&mut self, f: stream::Display) -> stream::Result {
+    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Str(Container::from(f.to_string())), depth);
@@ -547,15 +535,7 @@ impl Primitive {
 }
 
 impl Stream for Primitive {
-    fn debug(&mut self, f: stream::Debug) -> stream::Result {
-        self.set(Kind::Str(Container::from(
-            stream::debug_to_display(f).to_string(),
-        )));
-
-        Ok(())
-    }
-
-    fn display(&mut self, f: stream::Display) -> stream::Result {
+    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         self.set(Kind::Str(Container::from(f.to_string())));
 
         Ok(())
@@ -616,31 +596,31 @@ impl Stream for Primitive {
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn map_key(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn map_value(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn map_end(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_elem(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_end(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 }
 
@@ -662,13 +642,13 @@ impl Buf {
 
 #[cfg(any(test, feature = "test"))]
 impl OwnedValue {
-    pub(crate) fn tokens(&self) -> Result<impl crate::std::ops::Deref<Target = [Token]>, Error> {
+    pub(crate) fn tokens(&self) -> Result<impl crate::std::ops::Deref<Target = [Token]>, crate::Error> {
         match &self.0 {
             ValueInner::Primitive(token) => Ok(vec![(*token).clone()].into()),
             ValueInner::Stream(tokens) => Ok(tokens.clone()),
-            ValueInner::Error(err) => Err(Error::custom(err)),
+            ValueInner::Error(err) => Err(crate::Error::custom(err)),
             #[cfg(feature = "std")]
-            ValueInner::Shared(_) => Err(Error::msg("expected a set of tokens")),
+            ValueInner::Shared(_) => Err(crate::Error::msg("expected a set of tokens")),
         }
     }
 }

@@ -5,7 +5,6 @@ use crate::{
     },
     std::{
         cell::Cell,
-        fmt,
     },
     stream,
     value,
@@ -235,6 +234,23 @@ where
     }
 }
 
+impl<'a> stream::Arguments<'a> {
+    fn to_serialize<'b>(&'b self) -> impl Serialize + 'b {
+        struct SerializeArguments<'a, 'b>(&'b stream::Arguments<'a>);
+
+        impl<'a, 'b> Serialize for SerializeArguments<'a, 'b> {
+            fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+                where
+                    S: Serializer,
+            {
+                s.collect_str(&self.0)
+            }
+        }
+
+        SerializeArguments(self)
+    }
+}
+
 enum Pos {
     Key,
     Value,
@@ -270,76 +286,8 @@ mod no_alloc_support {
         S: Serializer,
     {
         #[inline]
-        fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-            match self.take_current() {
-                Current::Serializer(ser) => {
-                    let seq = ser
-                        .serialize_seq(len)
-                        .map(Current::SerializeSeq)
-                        .map_err(err("error beginning sequence"))?;
-                    self.current = Some(seq);
-
-                    Ok(())
-                }
-                _ => Err(stream::Error::msg(
-                    "unsupported value type requires buffering",
-                )),
-            }
-        }
-
-        #[inline]
-        fn seq_elem(&mut self) -> stream::Result {
-            self.pos = Some(Pos::Elem);
-
-            Ok(())
-        }
-
-        #[inline]
-        fn seq_end(&mut self) -> stream::Result {
-            let seq = self.take_current().take_serialize_seq();
-            self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
-
-            Ok(())
-        }
-
-        #[inline]
-        fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-            match self.take_current() {
-                Current::Serializer(ser) => {
-                    let map = ser
-                        .serialize_map(len)
-                        .map(Current::SerializeMap)
-                        .map_err(err("error beginning map"))?;
-                    self.current = Some(map);
-
-                    Ok(())
-                }
-                _ => Err(stream::Error::msg(
-                    "unsupported value type requires buffering",
-                )),
-            }
-        }
-
-        #[inline]
-        fn map_key(&mut self) -> stream::Result {
-            self.pos = Some(Pos::Key);
-
-            Ok(())
-        }
-
-        #[inline]
-        fn map_value(&mut self) -> stream::Result {
-            self.pos = Some(Pos::Value);
-
-            Ok(())
-        }
-
-        #[inline]
-        fn map_end(&mut self) -> stream::Result {
-            let map = self.take_current().take_serialize_map();
-            self.ok = Some(map.end().map_err(err("error completing map"))?);
-
-            Ok(())
+        fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+            self.serialize_any(v.to_serialize())
         }
 
         #[inline]
@@ -388,8 +336,76 @@ mod no_alloc_support {
         }
 
         #[inline]
-        fn fmt(&mut self, v: fmt::Arguments) -> stream::Result {
-            self.serialize_any(v)
+        fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+            match self.take_current() {
+                Current::Serializer(ser) => {
+                    let map = ser
+                        .serialize_map(len)
+                        .map(Current::SerializeMap)
+                        .map_err(err("error beginning map"))?;
+                    self.current = Some(map);
+
+                    Ok(())
+                }
+                _ => Err(crate::Error::msg(
+                    "unsupported value type requires buffering",
+                )),
+            }
+        }
+
+        #[inline]
+        fn map_key(&mut self) -> stream::Result {
+            self.pos = Some(Pos::Key);
+
+            Ok(())
+        }
+
+        #[inline]
+        fn map_value(&mut self) -> stream::Result {
+            self.pos = Some(Pos::Value);
+
+            Ok(())
+        }
+
+        #[inline]
+        fn map_end(&mut self) -> stream::Result {
+            let map = self.take_current().take_serialize_map();
+            self.ok = Some(map.end().map_err(err("error completing map"))?);
+
+            Ok(())
+        }
+
+        #[inline]
+        fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+            match self.take_current() {
+                Current::Serializer(ser) => {
+                    let seq = ser
+                        .serialize_seq(len)
+                        .map(Current::SerializeSeq)
+                        .map_err(err("error beginning sequence"))?;
+                    self.current = Some(seq);
+
+                    Ok(())
+                }
+                _ => Err(crate::Error::msg(
+                    "unsupported value type requires buffering",
+                )),
+            }
+        }
+
+        #[inline]
+        fn seq_elem(&mut self) -> stream::Result {
+            self.pos = Some(Pos::Elem);
+
+            Ok(())
+        }
+
+        #[inline]
+        fn seq_end(&mut self) -> stream::Result {
+            let seq = self.take_current().take_serialize_seq();
+            self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
+
+            Ok(())
         }
     }
 }
@@ -697,9 +713,9 @@ mod alloc_support {
         }
 
         #[inline]
-        fn fmt(&mut self, v: fmt::Arguments) -> stream::Result {
+        fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_any(v),
+                None => self.serialize_any(v.to_serialize()),
                 Some(buffered) => buffered.fmt(v),
             }
         }
@@ -743,7 +759,7 @@ mod alloc_support {
         #[inline]
         fn expect_empty(&self) -> stream::Result {
             if self.idx < self.tokens.len() {
-                Err(stream::Error::msg("unexpected trailing tokens"))
+                Err(crate::Error::msg("unexpected trailing tokens"))
             } else {
                 Ok(())
             }

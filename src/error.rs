@@ -62,12 +62,6 @@ impl Error {
         }
     }
 
-    /** Capture a `fmt::Error` as an error. */
-    #[inline]
-    pub fn from_fmt_error(_: fmt::Error) -> Self {
-        Error::msg("formatting failed")
-    }
-
     /** Convert into a `fmt::Error` */
     #[inline]
     pub fn into_fmt_error(self) -> fmt::Error {
@@ -148,9 +142,9 @@ impl fmt::Display for ErrorInner {
     }
 }
 
-impl From<Error> for fmt::Error {
-    fn from(_: Error) -> fmt::Error {
-        fmt::Error
+impl From<fmt::Error> for Error {
+    fn from(_: fmt::Error) -> Self {
+        Error::msg("formatting failed")
     }
 }
 
@@ -197,15 +191,6 @@ mod std_support {
     };
 
     impl Error {
-        /** Convert from an io error. */
-        #[inline]
-        pub fn from_io_error(err: io::Error) -> Self {
-            Error(ErrorInner::Source {
-                msg: "failed during an IO operation".into(),
-                source: Box::new(err),
-            })
-        }
-
         /** Convert into an io error. */
         #[inline]
         pub fn into_io_error(self) -> io::Error {
@@ -223,6 +208,15 @@ mod std_support {
         }
     }
 
+    impl From<io::Error> for Error {
+        fn from(err: io::Error) -> Self {
+            Error(ErrorInner::Source {
+                msg: "failed during an IO operation".into(),
+                source: Box::new(err),
+            })
+        }
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -231,7 +225,7 @@ mod std_support {
 
         #[test]
         fn io_error() {
-            let err = Error::from_io_error(io::ErrorKind::Other.into());
+            let err = Error::from(io::Error::from(io::ErrorKind::Other));
 
             assert!(err.source().is_some());
         }
@@ -246,6 +240,6 @@ mod tests {
 
     #[test]
     fn fmt_error() {
-        let _ = Error::from_fmt_error(fmt::Error);
+        let _ = Error::from(fmt::Error);
     }
 }

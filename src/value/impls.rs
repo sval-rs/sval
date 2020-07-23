@@ -4,6 +4,7 @@ use crate::{
         self,
         Value,
     },
+    stream,
 };
 
 impl Value for () {
@@ -167,6 +168,13 @@ impl<'a> Value for fmt::Arguments<'a> {
     #[inline]
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.debug(*self)
+    }
+}
+
+impl<'a> Value for stream::Arguments<'a> {
+    #[inline]
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        stream.debug(self)
     }
 }
 

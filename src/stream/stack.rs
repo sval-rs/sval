@@ -18,7 +18,6 @@ use crate::{
     std::fmt,
     stream::{
         self,
-        Error,
         Stream,
     },
 };
@@ -278,7 +277,7 @@ impl Stack {
     - `Option<T>`.
     */
     #[inline]
-    pub fn primitive(&mut self) -> Result<Pos, Error> {
+    pub fn primitive(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
         // The current slot must:
@@ -290,7 +289,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::custom(expecting!(*curr, "primitive"))),
+            _ => Err(crate::Error::custom(expecting!(*curr, "primitive"))),
         }
     }
 
@@ -300,7 +299,7 @@ impl Stack {
     The map must be completed by calling `map_end`.
     */
     #[inline]
-    pub fn map_begin(&mut self) -> Result<Pos, Error> {
+    pub fn map_begin(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
         // The current slot must:
@@ -317,7 +316,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::custom(expecting!(curr, "map begin"))),
+            _ => Err(crate::Error::custom(expecting!(curr, "map begin"))),
         }
     }
 
@@ -328,7 +327,7 @@ impl Stack {
     that follows it.
     */
     #[inline]
-    pub fn map_key(&mut self) -> Result<Pos, Error> {
+    pub fn map_key(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
         // The current slot must:
@@ -341,7 +340,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::custom(expecting!(*curr, "map key"))),
+            _ => Err(crate::Error::custom(expecting!(*curr, "map key"))),
         }
     }
 
@@ -352,7 +351,7 @@ impl Stack {
     that follows it.
     */
     #[inline]
-    pub fn map_value(&mut self) -> Result<Pos, Error> {
+    pub fn map_value(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
         // The current slot must:
@@ -364,7 +363,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::custom(expecting!(*curr, "map value"))),
+            _ => Err(crate::Error::custom(expecting!(*curr, "map value"))),
         }
     }
 
@@ -372,7 +371,7 @@ impl Stack {
     Complete the current map.
     */
     #[inline]
-    pub fn map_end(&mut self) -> Result<Pos, Error> {
+    pub fn map_end(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
         // The current slot must:
@@ -393,7 +392,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth() + 1))
             }
-            _ => Err(Error::custom(expecting!(curr, "map end"))),
+            _ => Err(crate::Error::custom(expecting!(curr, "map end"))),
         }
     }
 
@@ -403,7 +402,7 @@ impl Stack {
     the sequence must be completed by calling `seq_end`.
     */
     #[inline]
-    pub fn seq_begin(&mut self) -> Result<Pos, Error> {
+    pub fn seq_begin(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
         // The current slot must:
@@ -420,7 +419,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::custom(expecting!(curr, "seq begin"))),
+            _ => Err(crate::Error::custom(expecting!(curr, "seq begin"))),
         }
     }
 
@@ -431,7 +430,7 @@ impl Stack {
     that follows it.
     */
     #[inline]
-    pub fn seq_elem(&mut self) -> Result<Pos, Error> {
+    pub fn seq_elem(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
         // The current slot must:
@@ -444,7 +443,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth()))
             }
-            _ => Err(Error::custom(expecting!(*curr, "seq elem"))),
+            _ => Err(crate::Error::custom(expecting!(*curr, "seq elem"))),
         }
     }
 
@@ -452,7 +451,7 @@ impl Stack {
     Complete the current sequence.
     */
     #[inline]
-    pub fn seq_end(&mut self) -> Result<Pos, Error> {
+    pub fn seq_end(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
         // The current slot must:
@@ -473,7 +472,7 @@ impl Stack {
 
                 Ok(curr.pos(self.inner.depth() + 1))
             }
-            _ => Err(Error::custom(expecting!(curr, "seq end"))),
+            _ => Err(crate::Error::custom(expecting!(curr, "seq end"))),
         }
     }
 
@@ -492,7 +491,7 @@ impl Stack {
     by calling `begin`.
     */
     #[inline]
-    pub fn end(&mut self) -> Result<(), Error> {
+    pub fn end(&mut self) -> Result<(), crate::Error> {
         // The stack must be on the root slot
         // It doesn't matter if the slot is
         // marked as done or not
@@ -504,19 +503,14 @@ impl Stack {
 
             Ok(())
         } else {
-            Err(Error::msg("stack is not empty"))
+            Err(crate::Error::msg("stack is not empty"))
         }
     }
 }
 
 impl Stream for Stack {
     #[inline]
-    fn debug(&mut self, _: stream::Debug) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    #[inline]
-    fn display(&mut self, _: stream::Display) -> stream::Result {
+    fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
@@ -603,10 +597,7 @@ impl Stream for Stack {
 
 #[cfg(not(feature = "arbitrary-depth"))]
 mod inner {
-    use super::{
-        Error,
-        Slot,
-    };
+    use super::Slot;
 
     #[derive(Clone)]
     pub(super) struct Stack {
@@ -640,9 +631,9 @@ mod inner {
         }
 
         #[inline]
-        pub(super) fn push_depth(&mut self) -> Result<(), Error> {
+        pub(super) fn push_depth(&mut self) -> Result<(), crate::Error> {
             if self.depth >= Self::MAX_DEPTH {
-                return Err(Error::msg("nesting limit reached"));
+                return Err(crate::Error::msg("nesting limit reached"));
             }
 
             self.depth += 1;
@@ -719,7 +710,7 @@ mod inner {
         }
 
         #[inline]
-        pub(super) fn push_depth(&mut self) -> Result<(), Error> {
+        pub(super) fn push_depth(&mut self) -> Result<(), crate::Error> {
             self.0.push(Slot::root());
 
             Ok(())

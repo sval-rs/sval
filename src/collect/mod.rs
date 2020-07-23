@@ -7,8 +7,7 @@ allocating for nested datastructures that are already known.
 */
 
 use crate::stream::{
-    Debug,
-    Display,
+    Arguments,
     Stream,
 };
 
@@ -96,13 +95,8 @@ where
     S: Stream,
 {
     #[inline]
-    fn debug(&mut self, v: Debug) -> Result {
-        self.0.debug(v)
-    }
-
-    #[inline]
-    fn display(&mut self, v: Display) -> Result {
-        self.0.display(v)
+    fn fmt(&mut self, v: Arguments) -> Result {
+        self.0.fmt(v)
     }
 
     #[inline]

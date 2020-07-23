@@ -27,7 +27,7 @@ where
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut stream = stream::OwnedStream::new(Stream::new(f));
 
-        stream.any(&self.0)?;
+        stream.any(&self.0).map_err(crate::Error::into_fmt_error)?;
 
         Ok(())
     }
@@ -82,11 +82,11 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
         if let Some(delim) = mem::replace(&mut self.delim, next_delim) {
             self.fmt
                 .write_str(delim)
-                .map_err(stream::Error::from_fmt_error)?;
+                ?;
         }
 
         v.fmt(&mut self.fmt)
-            .map_err(stream::Error::from_fmt_error)?;
+            ?;
 
         Ok(())
     }
@@ -94,13 +94,8 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 
 impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     #[inline]
-    fn debug(&mut self, v: stream::Debug) -> stream::Result {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.fmt(v)
-    }
-
-    #[inline]
-    fn display(&mut self, v: stream::Display) -> stream::Result {
-        self.fmt(&stream::display_to_debug(v))
     }
 
     #[inline]
@@ -149,79 +144,6 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        if self.is_pretty() {
-            self.depth += 1;
-        }
-
-        self.stack.seq_begin()?;
-
-        if let Some(delim) = self.delim.take() {
-            self.fmt
-                .write_str(delim)
-                .map_err(stream::Error::from_fmt_error)?;
-        }
-
-        self.fmt
-            .write_char('[')
-            .map_err(stream::Error::from_fmt_error)?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn seq_elem(&mut self) -> stream::Result {
-        if self.is_pretty() {
-            if !self.stack.current().is_empty_seq() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt
-                        .write_str(delim)
-                        .map_err(stream::Error::from_fmt_error)?;
-                }
-            }
-
-            self.fmt
-                .write_char('\n')
-                .map_err(stream::Error::from_fmt_error)?;
-            pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
-        }
-
-        self.stack.seq_elem()?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn seq_end(&mut self) -> stream::Result {
-        if self.is_pretty() {
-            self.depth -= 1;
-
-            if !self.stack.current().is_empty_seq() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt
-                        .write_str(delim)
-                        .map_err(stream::Error::from_fmt_error)?;
-                }
-
-                self.fmt
-                    .write_char('\n')
-                    .map_err(stream::Error::from_fmt_error)?;
-                pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
-            }
-        }
-
-        let pos = self.stack.seq_end()?;
-
-        self.delim = self.next_delim(pos);
-
-        self.fmt
-            .write_char(']')
-            .map_err(stream::Error::from_fmt_error)?;
-
-        Ok(())
-    }
-
-    #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_pretty() {
             self.depth += 1;
@@ -232,12 +154,12 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         if let Some(delim) = self.delim.take() {
             self.fmt
                 .write_str(delim)
-                .map_err(stream::Error::from_fmt_error)?;
+                ?;
         }
 
         self.fmt
             .write_char('{')
-            .map_err(stream::Error::from_fmt_error)?;
+            ?;
 
         Ok(())
     }
@@ -249,14 +171,14 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
                 if let Some(delim) = self.delim.take() {
                     self.fmt
                         .write_str(delim)
-                        .map_err(stream::Error::from_fmt_error)?;
+                        ?;
                 }
             }
 
             self.fmt
                 .write_char('\n')
-                .map_err(stream::Error::from_fmt_error)?;
-            pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
+                ?;
+            pad(&mut self.fmt, self.depth)?;
         }
 
         self.stack.map_key()?;
@@ -280,13 +202,13 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
                 if let Some(delim) = self.delim.take() {
                     self.fmt
                         .write_str(delim)
-                        .map_err(stream::Error::from_fmt_error)?;
+                        ?;
                 }
 
                 self.fmt
                     .write_char('\n')
-                    .map_err(stream::Error::from_fmt_error)?;
-                pad(&mut self.fmt, self.depth).map_err(stream::Error::from_fmt_error)?;
+                    ?;
+                pad(&mut self.fmt, self.depth)?;
             }
         }
 
@@ -296,7 +218,80 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
 
         self.fmt
             .write_char('}')
-            .map_err(stream::Error::from_fmt_error)?;
+            ?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+        if self.is_pretty() {
+            self.depth += 1;
+        }
+
+        self.stack.seq_begin()?;
+
+        if let Some(delim) = self.delim.take() {
+            self.fmt
+                .write_str(delim)
+                ?;
+        }
+
+        self.fmt
+            .write_char('[')
+            ?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        if self.is_pretty() {
+            if !self.stack.current().is_empty_seq() {
+                if let Some(delim) = self.delim.take() {
+                    self.fmt
+                        .write_str(delim)
+                        ?;
+                }
+            }
+
+            self.fmt
+                .write_char('\n')
+                ?;
+            pad(&mut self.fmt, self.depth)?;
+        }
+
+        self.stack.seq_elem()?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        if self.is_pretty() {
+            self.depth -= 1;
+
+            if !self.stack.current().is_empty_seq() {
+                if let Some(delim) = self.delim.take() {
+                    self.fmt
+                        .write_str(delim)
+                        ?;
+                }
+
+                self.fmt
+                    .write_char('\n')
+                    ?;
+                pad(&mut self.fmt, self.depth)?;
+            }
+        }
+
+        let pos = self.stack.seq_end()?;
+
+        self.delim = self.next_delim(pos);
+
+        self.fmt
+            .write_char(']')
+            ?;
 
         Ok(())
     }

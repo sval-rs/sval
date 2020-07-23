@@ -10,6 +10,7 @@ use crate::{
         Display,
     },
     value,
+    stream::Arguments,
 };
 
 pub(crate) struct OwnedCollect<TStream> {
@@ -41,13 +42,13 @@ where
     }
 
     #[inline]
-    pub fn debug(&mut self, v: &dyn Debug) -> collect::Result {
-        self.stream.debug(v)
+    pub fn debug(&mut self, v: impl Debug) -> collect::Result {
+        self.stream.fmt(Arguments::from(&v as &dyn Debug))
     }
 
     #[inline]
-    pub fn display(&mut self, v: &dyn Display) -> collect::Result {
-        self.stream.display(v)
+    pub fn display(&mut self, v: impl Display) -> collect::Result {
+        self.stream.fmt(Arguments::from(&v as &dyn Display))
     }
 
     #[inline]

@@ -20,7 +20,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
 }
 
 /**
-Use an expected `serde::Serialize` implementation to derive `sval::Value`.
+Use an expected `serde::Serialize` implementation to derive `sval::value::Value`.
 */
 pub(crate) fn derive_from_serde(input: DeriveInput) -> TokenStream {
     let ident = input.ident;
@@ -30,7 +30,7 @@ pub(crate) fn derive_from_serde(input: DeriveInput) -> TokenStream {
         Span::call_site(),
     );
 
-    let bound = parse_quote!(sval::Value);
+    let bound = parse_quote!(sval::value::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&input.generics, bound);
 
     TokenStream::from(quote! {
@@ -38,8 +38,8 @@ pub(crate) fn derive_from_serde(input: DeriveInput) -> TokenStream {
         const #dummy: () = {
             extern crate sval;
 
-            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream(&self, stream: &mut sval::value::Stream) -> Result<(), sval::value::Error> {
+            impl #impl_generics sval::value::Value for #ident #ty_generics #bounded_where_clause {
+                fn stream(&self, stream: &mut sval::value::Stream) -> sval::value::Result {
                     sval::derive_from_serde!(
                         if #[cfg(feature = "serde_lib")] {
                             stream.any(sval::serde::to_value(self))
@@ -54,7 +54,7 @@ pub(crate) fn derive_from_serde(input: DeriveInput) -> TokenStream {
 }
 
 /**
-Construct an implementation of `sval::Value` based on the structure of the input.
+Construct an implementation of `sval::value::Value` based on the structure of the input.
 */
 pub(crate) fn derive_from_sval(input: DeriveInput) -> TokenStream {
     let fields = match input.data {
@@ -76,7 +76,7 @@ pub(crate) fn derive_from_sval(input: DeriveInput) -> TokenStream {
     let fieldstr = fields.named.iter().map(attr::name_of_field);
     let num_fields = fieldname.len();
 
-    let bound = parse_quote!(sval::Value);
+    let bound = parse_quote!(sval::value::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&input.generics, bound);
 
     TokenStream::from(quote! {
@@ -84,8 +84,8 @@ pub(crate) fn derive_from_sval(input: DeriveInput) -> TokenStream {
         const #dummy: () = {
             extern crate sval;
 
-            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream(&self, stream: &mut sval::value::Stream) -> Result<(), sval::value::Error> {
+            impl #impl_generics sval::value::Value for #ident #ty_generics #bounded_where_clause {
+                fn stream(&self, stream: &mut sval::value::Stream) -> sval::value::Result {
                     stream.map_begin(Some(#num_fields))?;
 
                     #(

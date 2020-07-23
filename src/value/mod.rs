@@ -128,7 +128,6 @@ pub(crate) mod owned;
 
 pub use crate::{
     stream::RefMutStream as Stream,
-    Error,
 };
 
 #[cfg(feature = "alloc")]
@@ -422,7 +421,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = crate::std::result::Result<(), Error>;
+pub type Result = crate::std::result::Result<(), crate::Error>;
 
 #[cfg(test)]
 mod tests {

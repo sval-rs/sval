@@ -1,8 +1,11 @@
-use sval::stream::{
-    self,
-    stack,
-    Stack,
-    Stream,
+use sval::{
+    value::Value,
+    stream::{
+        self,
+        stack,
+        Stack,
+        Stream,
+    }
 };
 
 use crate::{
@@ -17,9 +20,9 @@ use crate::{
 };
 
 /**
-Write a [`sval::Value`] to a formatter.
+Write a [`Value`] to a formatter.
 */
-pub fn to_fmt<W>(fmt: W, v: impl sval::Value) -> Result<W, sval::Error>
+pub fn to_fmt<W>(fmt: W, v: impl Value) -> Result<W, sval::Error>
 where
     W: Write,
 {
@@ -129,10 +132,20 @@ where
         }
 
         self.out.write_char('"')?;
-        fmt::write(&mut Escape(&mut self.out), v)?;
+        fmt::write(&mut Escape(&mut self.out), format_args!("{}", v))?;
         self.out.write_char('"')?;
 
         Ok(())
+    }
+
+    #[inline]
+    fn i64(&mut self, v: i64) -> stream::Result {
+        self.i128(v as i128)
+    }
+
+    #[inline]
+    fn u64(&mut self, v: u64) -> stream::Result {
+        self.u128(v as u128)
     }
 
     #[inline]
@@ -140,7 +153,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::unsupported(
+            return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -159,7 +172,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::unsupported(
+            return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -178,7 +191,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::unsupported(
+            return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -197,7 +210,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::unsupported(
+            return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -216,7 +229,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::unsupported(
+            return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -250,7 +263,7 @@ where
         let pos = self.stack.primitive()?;
 
         if pos.is_key() {
-            return Err(stream::Error::unsupported(
+            return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -265,43 +278,9 @@ where
     }
 
     #[inline]
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        if self.stack.seq_begin()?.is_key() {
-            return Err(stream::Error::unsupported(
-                "only strings are supported as json keys",
-            ));
-        }
-
-        if let Some(delim) = self.delim.take() {
-            self.out.write_char(delim)?;
-        }
-
-        self.out.write_char('[')?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn seq_elem(&mut self) -> stream::Result {
-        self.stack.seq_elem()?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn seq_end(&mut self) -> stream::Result {
-        let pos = self.stack.seq_end()?;
-
-        self.delim = Self::next_delim(pos);
-        self.out.write_char(']')?;
-
-        Ok(())
-    }
-
-    #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.stack.map_begin()?.is_key() {
-            return Err(stream::Error::unsupported(
+            return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
         }
@@ -335,6 +314,40 @@ where
 
         self.delim = Self::next_delim(pos);
         self.out.write_char('}')?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+        if self.stack.seq_begin()?.is_key() {
+            return Err(sval::Error::unsupported(
+                "only strings are supported as json keys",
+            ));
+        }
+
+        if let Some(delim) = self.delim.take() {
+            self.out.write_char(delim)?;
+        }
+
+        self.out.write_char('[')?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        self.stack.seq_elem()?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        let pos = self.stack.seq_end()?;
+
+        self.delim = Self::next_delim(pos);
+        self.out.write_char(']')?;
 
         Ok(())
     }
