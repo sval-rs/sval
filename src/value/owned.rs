@@ -72,7 +72,7 @@ impl OwnedValue {
 
         Buf::collect(v)
             .map(|tokens| OwnedValue(ValueInner::Stream(tokens.into())))
-            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(Container::new(err))))
+            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(err.to_string())))
     }
 
     /**
@@ -90,7 +90,7 @@ impl OwnedValue {
 
 #[derive(Clone)]
 enum ValueInner {
-    Error(Container<crate::Error>),
+    Error(String),
     #[cfg(feature = "std")]
     Shared(Container<dyn Value + Send + Sync>),
     Primitive(Token),
