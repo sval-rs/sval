@@ -208,6 +208,7 @@ pub mod stack;
 use crate::std::fmt;
 
 #[doc(inline)]
+#[deprecated(since = "0.5.3", note = "use the provided `Result` alias or `sval::Error`")]
 pub use crate::Error;
 
 pub use self::{

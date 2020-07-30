@@ -158,6 +158,7 @@ fn with_value(value: impl sval::Value) {
 */
 
 #![doc(html_root_url = "https://docs.rs/sval/0.5.2")]
+#![allow(deprecated)]
 #![no_std]
 
 #[doc(hidden)]
@@ -251,11 +252,13 @@ pub mod serde;
 pub mod stream;
 pub mod value;
 
-pub use self::{
-    error::Error,
-    stream::Stream,
-    value::Value,
-};
+pub use self::error::Error;
+
+#[deprecated(since = "0.5.3", note = "use `sval::stream::Stream`")]
+pub use self::stream::Stream;
+
+#[deprecated(since = "0.5.3", note = "use `sval::value::Value`")]
+pub use self::value::Value;
 
 /**
 Stream the structure of a [`Value`] using the given [`Stream`].

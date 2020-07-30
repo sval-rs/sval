@@ -132,6 +132,7 @@ pub use crate::stream::RefMutStream as Stream;
 pub use self::owned::OwnedValue;
 
 #[doc(inline)]
+#[deprecated(since = "0.5.3", note = "use the provided `Result` alias or `sval::Error`")]
 pub use crate::Error;
 
 /**
