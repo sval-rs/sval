@@ -10,13 +10,14 @@ features = ["serde"]
 
 # From `sval` to `serde`
 
-A type that implements [`sval::Value`](../value/trait.Value.html) can be converted into
+A type that implements [`Value`](../value/trait.Value.html) can be converted into
 a type that implements `serde::Serialize`:
 
 ```
+# use sval::value::{self, Value};
 # struct MyValue;
-# impl sval::value::Value for MyValue {
-#     fn stream(&self, stream: &mut sval::value::Stream) -> Result<(), sval::value::Error> {
+# impl Value for MyValue {
+#     fn stream(&self, stream: &mut value::Stream) -> value::Result {
 #         unimplemented!()
 #     }
 # }
@@ -34,7 +35,7 @@ in no-std environments.
 # From `serde` to `sval`
 
 A type that implements `serde::Serialize` can be converted into
-a type that implements [`sval::Value`](../value/trait.Value.html):
+a type that implements [`Value`](../value/trait.Value.html):
 
 ```
 # struct MySerialize;

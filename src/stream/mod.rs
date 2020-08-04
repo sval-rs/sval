@@ -22,27 +22,27 @@ impl Stream for Fmt {
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn none(&mut self) -> stream::Result {
-        self.fmt(format_args!("{:?}", ()))
+        self.fmt(stream::Arguments::debug(&()))
     }
 }
 ```
@@ -53,7 +53,7 @@ to see whether a given value is a `u64`:
 
 ```
 use sval::{
-    Value,
+    value::Value,
     stream::{self, Stream, OwnedStream},
 };
 
@@ -116,27 +116,27 @@ impl Stream for Fmt {
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        self.fmt(format_args!("{:?}", v))
+        self.fmt(stream::Arguments::debug(&v))
     }
 
     fn none(&mut self) -> stream::Result {
-        self.fmt(format_args!("{:?}", ()))
+        self.fmt(stream::Arguments::debug(&()))
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
@@ -207,17 +207,72 @@ pub mod stack;
 
 use crate::std::fmt;
 
-#[doc(inline)]
-pub use crate::Error;
-
 pub use self::{
-    fmt::Arguments,
     owned::{
         OwnedStream,
         RefMutStream,
     },
     stack::Stack,
 };
+
+/**
+A formattable value.
+*/
+pub struct Arguments<'a>(ArgumentsInner<'a>);
+
+enum ArgumentsInner<'a> {
+    Debug(&'a dyn fmt::Debug),
+    Display(&'a dyn fmt::Display),
+    Args(fmt::Arguments<'a>),
+}
+
+impl<'a> Arguments<'a> {
+    pub fn debug(v: &'a impl fmt::Debug) -> Self {
+        Arguments(ArgumentsInner::Debug(v))
+    }
+
+    pub fn display(v: &'a impl fmt::Display) -> Self {
+        Arguments(ArgumentsInner::Display(v))
+    }
+}
+
+impl<'a> From<fmt::Arguments<'a>> for Arguments<'a> {
+    fn from(v: fmt::Arguments<'a>) -> Self {
+        Arguments(ArgumentsInner::Args(v))
+    }
+}
+
+impl<'a> From<&'a dyn fmt::Debug> for Arguments<'a> {
+    fn from(v: &'a dyn fmt::Debug) -> Self {
+        Arguments(ArgumentsInner::Debug(v))
+    }
+}
+
+impl<'a> From<&'a dyn fmt::Display> for Arguments<'a> {
+    fn from(v: &'a dyn fmt::Display) -> Self {
+        Arguments(ArgumentsInner::Display(v))
+    }
+}
+
+impl<'a> fmt::Debug for Arguments<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.0 {
+            ArgumentsInner::Debug(v) => v.fmt(f),
+            ArgumentsInner::Display(v) => v.fmt(f),
+            ArgumentsInner::Args(v) => v.fmt(f),
+        }
+    }
+}
+
+impl<'a> fmt::Display for Arguments<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.0 {
+            ArgumentsInner::Debug(v) => v.fmt(f),
+            ArgumentsInner::Display(v) => v.fmt(f),
+            ArgumentsInner::Args(v) => v.fmt(f),
+        }
+    }
+}
 
 /**
 A receiver for the structure of a value.
@@ -241,7 +296,7 @@ The following stream can support any primitive value:
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn fmt(&mut self, args: stream::Arguments) -> stream::Result {
@@ -309,7 +364,7 @@ a stream that supports maps needs to implement a few additional methods:
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
@@ -353,7 +408,7 @@ a stream that supports sequences needs to implement a few additional methods:
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
@@ -386,7 +441,7 @@ impl Stream for MyStream {
 
 ```
 # struct MyStream;
-use sval::{stream, Stream};
+use sval::stream::{self, Stream};
 
 impl Stream for MyStream {
     fn fmt(&mut self, args: stream::Arguments) -> stream::Result {
@@ -508,15 +563,15 @@ impl Stream for MyStream {
 */
 pub trait Stream {
     /**
-    Stream a format.
+    Stream a debuggable type.
     */
     #[cfg(not(test))]
-    fn fmt(&mut self, args: Arguments) -> Result {
-        let _ = args;
-        Err(Error::default_unsupported("Stream::fmt"))
+    fn fmt(&mut self, v: Arguments) -> Result {
+        let _ = v;
+        Err(crate::Error::default_unsupported("Stream::fmt"))
     }
     #[cfg(test)]
-    fn fmt(&mut self, args: Arguments) -> Result;
+    fn fmt(&mut self, v: Arguments) -> Result;
 
     /**
     Stream a signed integer.
@@ -544,7 +599,7 @@ pub trait Stream {
     #[cfg(not(test))]
     fn i128(&mut self, v: i128) -> Result {
         let _ = v;
-        Err(Error::default_unsupported("Stream::i128"))
+        Err(crate::Error::default_unsupported("Stream::i128"))
     }
     #[cfg(test)]
     fn i128(&mut self, v: i128) -> Result;
@@ -555,7 +610,7 @@ pub trait Stream {
     #[cfg(not(test))]
     fn u128(&mut self, v: u128) -> Result {
         let _ = v;
-        Err(Error::default_unsupported("Stream::u128"))
+        Err(crate::Error::default_unsupported("Stream::u128"))
     }
     #[cfg(test)]
     fn u128(&mut self, v: u128) -> Result;
@@ -566,7 +621,7 @@ pub trait Stream {
     #[cfg(not(test))]
     fn f64(&mut self, v: f64) -> Result {
         let _ = v;
-        Err(Error::default_unsupported("Stream::f64"))
+        Err(crate::Error::default_unsupported("Stream::f64"))
     }
     #[cfg(test)]
     fn f64(&mut self, v: f64) -> Result;
@@ -577,7 +632,7 @@ pub trait Stream {
     #[cfg(not(test))]
     fn bool(&mut self, v: bool) -> Result {
         let _ = v;
-        Err(Error::default_unsupported("Stream::bool"))
+        Err(crate::Error::default_unsupported("Stream::bool"))
     }
     #[cfg(test)]
     fn bool(&mut self, v: bool) -> Result;
@@ -599,7 +654,7 @@ pub trait Stream {
     #[cfg(not(test))]
     fn str(&mut self, v: &str) -> Result {
         let _ = v;
-        Err(Error::default_unsupported("Stream::str"))
+        Err(crate::Error::default_unsupported("Stream::str"))
     }
     #[cfg(test)]
     fn str(&mut self, v: &str) -> Result;
@@ -609,7 +664,7 @@ pub trait Stream {
     */
     #[cfg(not(test))]
     fn none(&mut self) -> Result {
-        Err(Error::default_unsupported("Stream::none"))
+        Err(crate::Error::default_unsupported("Stream::none"))
     }
     #[cfg(test)]
     fn none(&mut self) -> Result;
@@ -620,7 +675,7 @@ pub trait Stream {
     #[cfg(not(test))]
     fn map_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
-        Err(Error::default_unsupported("Stream::map_begin"))
+        Err(crate::Error::default_unsupported("Stream::map_begin"))
     }
     #[cfg(test)]
     fn map_begin(&mut self, len: Option<usize>) -> Result;
@@ -632,7 +687,7 @@ pub trait Stream {
     */
     #[cfg(not(test))]
     fn map_key(&mut self) -> Result {
-        Err(Error::default_unsupported("Stream::map_key"))
+        Err(crate::Error::default_unsupported("Stream::map_key"))
     }
     #[cfg(test)]
     fn map_key(&mut self) -> Result;
@@ -644,7 +699,7 @@ pub trait Stream {
     */
     #[cfg(not(test))]
     fn map_value(&mut self) -> Result {
-        Err(Error::default_unsupported("Stream::map_value"))
+        Err(crate::Error::default_unsupported("Stream::map_value"))
     }
     #[cfg(test)]
     fn map_value(&mut self) -> Result;
@@ -654,7 +709,7 @@ pub trait Stream {
     */
     #[cfg(not(test))]
     fn map_end(&mut self) -> Result {
-        Err(Error::default_unsupported("Stream::map_end"))
+        Err(crate::Error::default_unsupported("Stream::map_end"))
     }
     #[cfg(test)]
     fn map_end(&mut self) -> Result;
@@ -665,7 +720,7 @@ pub trait Stream {
     #[cfg(not(test))]
     fn seq_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
-        Err(Error::default_unsupported("Stream::seq_begin"))
+        Err(crate::Error::default_unsupported("Stream::seq_begin"))
     }
     #[cfg(test)]
     fn seq_begin(&mut self, len: Option<usize>) -> Result;
@@ -677,7 +732,7 @@ pub trait Stream {
     */
     #[cfg(not(test))]
     fn seq_elem(&mut self) -> Result {
-        Err(Error::default_unsupported("Stream::seq_elem"))
+        Err(crate::Error::default_unsupported("Stream::seq_elem"))
     }
     #[cfg(test)]
     fn seq_elem(&mut self) -> Result;
@@ -687,7 +742,7 @@ pub trait Stream {
     */
     #[cfg(not(test))]
     fn seq_end(&mut self) -> Result {
-        Err(Error::default_unsupported("Stream::seq_end"))
+        Err(crate::Error::default_unsupported("Stream::seq_end"))
     }
     #[cfg(test)]
     fn seq_end(&mut self) -> Result;
@@ -698,8 +753,8 @@ where
     T: Stream,
 {
     #[inline]
-    fn fmt(&mut self, args: Arguments) -> Result {
-        (**self).fmt(args)
+    fn fmt(&mut self, v: Arguments) -> Result {
+        (**self).fmt(v)
     }
 
     #[inline]
@@ -786,7 +841,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = crate::std::result::Result<(), Error>;
+pub type Result = crate::std::result::Result<(), crate::Error>;
 
 #[cfg(test)]
 mod tests {

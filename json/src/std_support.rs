@@ -1,6 +1,9 @@
-use sval::stream::{
-    self,
-    Stream,
+use sval::{
+    stream::{
+        self,
+        Stream,
+    },
+    value::Value,
 };
 
 use crate::std::{
@@ -15,6 +18,7 @@ use crate::{
     },
     End,
 };
+use sval::stream::Arguments;
 
 impl<T> Error for End<T> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
@@ -23,9 +27,9 @@ impl<T> Error for End<T> {
 }
 
 /**
-Write a [`sval::Value`] to a string.
+Write a [`Value`] to a string.
 */
-pub fn to_string(v: impl sval::Value) -> Result<String, sval::Error> {
+pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
     let mut out = String::new();
 
     crate::to_fmt(&mut out, v)?;
@@ -34,9 +38,9 @@ pub fn to_string(v: impl sval::Value) -> Result<String, sval::Error> {
 }
 
 /**
-Write a [`sval::Value`] to a writer.
+Write a [`Value`] to a writer.
 */
-pub fn to_writer<W>(writer: W, v: impl sval::Value) -> Result<W, sval::Error>
+pub fn to_writer<W>(writer: W, v: impl Value) -> Result<W, sval::Error>
 where
     W: Write,
 {
@@ -125,8 +129,7 @@ impl<W> Stream for Writer<W>
 where
     W: Write,
 {
-    #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
@@ -176,21 +179,6 @@ where
     }
 
     #[inline]
-    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.0.seq_begin(len)
-    }
-
-    #[inline]
-    fn seq_elem(&mut self) -> stream::Result {
-        self.0.seq_elem()
-    }
-
-    #[inline]
-    fn seq_end(&mut self) -> stream::Result {
-        self.0.seq_end()
-    }
-
-    #[inline]
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.0.map_begin(len)
     }
@@ -208,5 +196,20 @@ where
     #[inline]
     fn map_end(&mut self) -> stream::Result {
         self.0.map_end()
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.0.seq_begin(len)
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        self.0.seq_elem()
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        self.0.seq_end()
     }
 }

@@ -27,7 +27,7 @@ where
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut stream = stream::OwnedStream::new(Stream::new(f));
 
-        stream.any(&self.0)?;
+        stream.any(&self.0).map_err(crate::Error::into_fmt_error)?;
 
         Ok(())
     }
@@ -141,65 +141,6 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        if self.is_pretty() {
-            self.depth += 1;
-        }
-
-        self.stack.seq_begin()?;
-
-        if let Some(delim) = self.delim.take() {
-            self.fmt.write_str(delim)?;
-        }
-
-        self.fmt.write_char('[')?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn seq_elem(&mut self) -> stream::Result {
-        if self.is_pretty() {
-            if !self.stack.current().is_empty_seq() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
-                }
-            }
-
-            self.fmt.write_char('\n')?;
-            pad(&mut self.fmt, self.depth)?;
-        }
-
-        self.stack.seq_elem()?;
-
-        Ok(())
-    }
-
-    #[inline]
-    fn seq_end(&mut self) -> stream::Result {
-        if self.is_pretty() {
-            self.depth -= 1;
-
-            if !self.stack.current().is_empty_seq() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
-                }
-
-                self.fmt.write_char('\n')?;
-                pad(&mut self.fmt, self.depth)?;
-            }
-        }
-
-        let pos = self.stack.seq_end()?;
-
-        self.delim = self.next_delim(pos);
-
-        self.fmt.write_char(']')?;
-
-        Ok(())
-    }
-
-    #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_pretty() {
             self.depth += 1;
@@ -261,6 +202,65 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
         self.delim = self.next_delim(pos);
 
         self.fmt.write_char('}')?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+        if self.is_pretty() {
+            self.depth += 1;
+        }
+
+        self.stack.seq_begin()?;
+
+        if let Some(delim) = self.delim.take() {
+            self.fmt.write_str(delim)?;
+        }
+
+        self.fmt.write_char('[')?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        if self.is_pretty() {
+            if !self.stack.current().is_empty_seq() {
+                if let Some(delim) = self.delim.take() {
+                    self.fmt.write_str(delim)?;
+                }
+            }
+
+            self.fmt.write_char('\n')?;
+            pad(&mut self.fmt, self.depth)?;
+        }
+
+        self.stack.seq_elem()?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        if self.is_pretty() {
+            self.depth -= 1;
+
+            if !self.stack.current().is_empty_seq() {
+                if let Some(delim) = self.delim.take() {
+                    self.fmt.write_str(delim)?;
+                }
+
+                self.fmt.write_char('\n')?;
+                pad(&mut self.fmt, self.depth)?;
+            }
+        }
+
+        let pos = self.stack.seq_end()?;
+
+        self.delim = self.next_delim(pos);
+
+        self.fmt.write_char(']')?;
 
         Ok(())
     }

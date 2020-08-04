@@ -30,6 +30,24 @@ fn collect_primitive_string(b: &mut Bencher) {
 }
 
 #[bench]
+fn allocate_string(b: &mut Bencher) {
+    b.iter(|| {
+        let value = String::from("A string");
+
+        black_box(value);
+    })
+}
+
+#[bench]
+fn from_primitive_string(b: &mut Bencher) {
+    b.iter(|| {
+        let value = value::OwnedValue::from("A string");
+
+        black_box(value);
+    })
+}
+
+#[bench]
 fn clone_primitive(b: &mut Bencher) {
     let value = value::OwnedValue::collect(1);
 

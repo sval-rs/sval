@@ -3,6 +3,7 @@
 
 extern crate test;
 
+use sval::stream::Arguments;
 use sval_json_tests::Twitter;
 
 fn input_json() -> String {
@@ -115,12 +116,12 @@ fn twitter_serde_to_sval_to_serde(b: &mut test::Bencher) {
     });
 }
 
-fn sval_noop(v: impl sval::Value) -> Result<(), sval::Error> {
+fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
     struct NoOp;
 
-    impl sval::Stream for NoOp {
+    impl sval::stream::Stream for NoOp {
         #[inline(never)]
-        fn fmt(&mut self, v: sval::stream::Arguments) -> sval::stream::Result {
+        fn fmt(&mut self, v: Arguments) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }

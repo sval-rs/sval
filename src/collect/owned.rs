@@ -5,6 +5,10 @@ use crate::{
         Collect,
         Error,
     },
+    std::fmt::{
+        Debug,
+        Display,
+    },
     stream::Arguments,
     value,
 };
@@ -38,8 +42,13 @@ where
     }
 
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> collect::Result {
-        self.stream.fmt(f)
+    pub fn debug(&mut self, v: impl Debug) -> collect::Result {
+        self.stream.fmt(Arguments::from(&v as &dyn Debug))
+    }
+
+    #[inline]
+    pub fn display(&mut self, v: impl Display) -> collect::Result {
+        self.stream.fmt(Arguments::from(&v as &dyn Display))
     }
 
     #[inline]
@@ -148,13 +157,18 @@ pub(crate) struct RefMutCollect<'a>(OwnedCollect<&'a mut dyn Collect>);
 
 impl<'a> RefMutCollect<'a> {
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> value::Result {
-        self.0.fmt(f)
+    pub fn any(&mut self, v: impl value::Value) -> collect::Result {
+        self.0.any(v)
     }
 
     #[inline]
-    pub fn any(&mut self, v: impl value::Value) -> collect::Result {
-        self.0.any(v)
+    pub fn debug(&mut self, v: impl Debug) -> collect::Result {
+        self.0.debug(&v)
+    }
+
+    #[inline]
+    pub fn display(&mut self, v: impl Display) -> collect::Result {
+        self.0.display(&v)
     }
 
     #[inline]

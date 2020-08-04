@@ -4,10 +4,7 @@ Owned values.
 
 use crate::{
     std::{
-        fmt::{
-            self,
-            Debug,
-        },
+        fmt,
         string::{
             String,
             ToString,
@@ -22,7 +19,6 @@ use crate::{
     },
     value::{
         self,
-        Error,
         Value,
     },
 };
@@ -76,7 +72,7 @@ impl OwnedValue {
 
         Buf::collect(v)
             .map(|tokens| OwnedValue(ValueInner::Stream(tokens.into())))
-            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(Container::new(err))))
+            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(err.to_string())))
     }
 
     /**
@@ -94,7 +90,7 @@ impl OwnedValue {
 
 #[derive(Clone)]
 enum ValueInner {
-    Error(Container<value::Error>),
+    Error(String),
     #[cfg(feature = "std")]
     Shared(Container<dyn Value + Send + Sync>),
     Primitive(Token),
@@ -104,7 +100,7 @@ enum ValueInner {
 impl Value for OwnedValue {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         match self.0 {
-            ValueInner::Error(ref e) => Err(Error::custom(e)),
+            ValueInner::Error(ref e) => Err(crate::Error::custom(e)),
             #[cfg(feature = "std")]
             ValueInner::Shared(ref v) => v.stream(stream),
             ValueInner::Primitive(ref v) => v.stream(stream),
@@ -119,7 +115,7 @@ impl Value for OwnedValue {
     }
 }
 
-impl Debug for OwnedValue {
+impl fmt::Debug for OwnedValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         #[cfg(feature = "fmt")]
         {
@@ -277,6 +273,15 @@ impl From<char> for OwnedValue {
     }
 }
 
+impl<'a> From<&'a str> for OwnedValue {
+    fn from(v: &'a str) -> Self {
+        OwnedValue(ValueInner::Primitive(Token {
+            depth: stack::Depth::root(),
+            kind: Kind::Str(v.into()),
+        }))
+    }
+}
+
 impl From<String> for OwnedValue {
     fn from(v: String) -> Self {
         OwnedValue(ValueInner::Primitive(Token {
@@ -359,7 +364,7 @@ impl Buf {
         }
     }
 
-    fn collect(v: impl Value) -> Result<Vec<Token>, stream::Error> {
+    fn collect(v: impl Value) -> Result<Vec<Token>, crate::Error> {
         crate::stream(Buf::new(), v).map(|buf| buf.tokens)
     }
 
@@ -507,16 +512,12 @@ impl Stream for Buf {
 }
 
 struct Primitive {
-    stack: Stack,
     token: Option<Token>,
 }
 
 impl Primitive {
     fn new() -> Primitive {
-        Primitive {
-            stack: Stack::new(),
-            token: None,
-        }
+        Primitive { token: None }
     }
 
     fn collect(v: impl Value) -> Option<Token> {
@@ -525,118 +526,101 @@ impl Primitive {
             .and_then(|buf| buf.token)
     }
 
-    fn set(&mut self, kind: Kind, depth: stack::Depth) {
-        self.token = Some(Token { depth, kind });
+    fn set(&mut self, kind: Kind) {
+        self.token = Some(Token {
+            depth: stack::Depth::root(),
+            kind,
+        });
     }
 }
 
 impl Stream for Primitive {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Str(Container::from(f.to_string())), depth);
+        self.set(Kind::Str(Container::from(f.to_string())));
 
         Ok(())
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Signed(v), depth);
+        self.set(Kind::Signed(v));
 
         Ok(())
     }
 
     fn u64(&mut self, v: u64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Unsigned(v), depth);
+        self.set(Kind::Unsigned(v));
 
         Ok(())
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::BigSigned(v), depth);
+        self.set(Kind::BigSigned(v));
 
         Ok(())
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::BigUnsigned(v), depth);
+        self.set(Kind::BigUnsigned(v));
 
         Ok(())
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Float(v), depth);
+        self.set(Kind::Float(v));
 
         Ok(())
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Bool(v), depth);
+        self.set(Kind::Bool(v));
 
         Ok(())
     }
 
     fn char(&mut self, v: char) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Char(v), depth);
+        self.set(Kind::Char(v));
 
         Ok(())
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::Str(Container::from(v)), depth);
+        self.set(Kind::Str(Container::from(v)));
 
         Ok(())
     }
 
     fn none(&mut self) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.set(Kind::None, depth);
+        self.set(Kind::None);
 
         Ok(())
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn map_key(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn map_value(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn map_end(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_elem(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn seq_end(&mut self) -> stream::Result {
-        Err(stream::Error::unsupported("unsupported primitive"))
+        Err(crate::Error::unsupported("unsupported primitive"))
     }
 }
 
@@ -658,13 +642,15 @@ impl Buf {
 
 #[cfg(any(test, feature = "test"))]
 impl OwnedValue {
-    pub(crate) fn tokens(&self) -> Result<impl crate::std::ops::Deref<Target = [Token]>, Error> {
+    pub(crate) fn tokens(
+        &self,
+    ) -> Result<impl crate::std::ops::Deref<Target = [Token]>, crate::Error> {
         match &self.0 {
             ValueInner::Primitive(token) => Ok(vec![(*token).clone()].into()),
             ValueInner::Stream(tokens) => Ok(tokens.clone()),
-            ValueInner::Error(err) => Err(Error::custom(err)),
+            ValueInner::Error(err) => Err(crate::Error::custom(err)),
             #[cfg(feature = "std")]
-            ValueInner::Shared(_) => Err(Error::msg("expected a set of tokens")),
+            ValueInner::Shared(_) => Err(crate::Error::msg("expected a set of tokens")),
         }
     }
 }

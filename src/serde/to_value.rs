@@ -1,5 +1,6 @@
 use crate::{
     std::fmt,
+    stream,
     value,
 };
 
@@ -144,7 +145,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + fmt::Display,
     {
-        self.0.fmt(format_args!("{}", v))?;
+        self.0.any(stream::Arguments::from(format_args!("{}", v)))?;
         Ok(())
     }
 

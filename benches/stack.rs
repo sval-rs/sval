@@ -25,11 +25,6 @@ struct EmptyStream;
 
 impl Stream for EmptyStream {
     #[inline(never)]
-    fn fmt(&mut self, _: fmt::Arguments) -> stream::Result {
-        Ok(())
-    }
-
-    #[inline(never)]
     fn u64(&mut self, _: u64) -> stream::Result {
         Ok(())
     }

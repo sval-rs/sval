@@ -21,7 +21,6 @@ mod alloc_support {
             vec::Vec,
         },
         stream::{
-            self,
             OwnedStream,
             Stream,
         },
@@ -87,7 +86,7 @@ mod alloc_support {
 
     Any new methods added to `Stream` may cause this method to panic until the given `Stream` is updated.
     */
-    pub fn stream_exhaustive<S>(build: impl Fn() -> S, check: impl Fn(Result<S, stream::Error>))
+    pub fn stream_exhaustive<S>(build: impl Fn() -> S, check: impl Fn(Result<S, crate::Error>))
     where
         S: Stream,
     {
@@ -159,11 +158,11 @@ mod alloc_support {
                 let r = OwnedStream::stream($build, &$value);
 
                 if let Err(e) = &r {
-                    // We only care about errors from the stream when a method isn't overriden
+                    // We only care about errors from the stream when a method isn't overridden
                     // If the stream intentionally returns unsupported then this condition isn't hit
                     if e.is_default_unsupported() {
                         let tokens = tokens(&$value);
-                        panic!("value `{:?}` is unsupported (a method on `Stream` hasn't been overriden)", tokens);
+                        panic!("value `{:?}` is unsupported (a method on `Stream` hasn't been overridden)", tokens);
                     }
                 }
 

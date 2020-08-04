@@ -3,6 +3,12 @@ use crate::std::fmt;
 #[cfg(feature = "alloc")]
 use crate::std::string::String;
 
+#[cfg(feature = "std")]
+use crate::std::{
+    boxed::Box,
+    error,
+};
+
 /**
 An error encountered while visiting a value.
 
@@ -12,7 +18,6 @@ The `Error` type doesn't implement the `std::error::Error` trait directly.
 When `std` is available, the `into_error` method will convert an
 `Error` into a value that implements `std::error::Error`.
 */
-#[derive(Clone)]
 pub struct Error(ErrorInner);
 
 impl Error {
@@ -56,6 +61,12 @@ impl Error {
             false
         }
     }
+
+    /** Convert into a `fmt::Error` */
+    #[inline]
+    pub fn into_fmt_error(self) -> fmt::Error {
+        fmt::Error
+    }
 }
 
 impl fmt::Debug for Error {
@@ -70,7 +81,6 @@ impl fmt::Display for Error {
     }
 }
 
-#[derive(Clone)]
 enum ErrorInner {
     Unsupported {
         msg: &'static str,
@@ -81,6 +91,11 @@ enum ErrorInner {
     Custom(&'static dyn fmt::Display),
     #[cfg(feature = "alloc")]
     Owned(String),
+    #[cfg(feature = "std")]
+    Source {
+        msg: String,
+        source: Box<dyn error::Error + Send + Sync + 'static>,
+    },
 }
 
 impl fmt::Debug for ErrorInner {
@@ -94,6 +109,15 @@ impl fmt::Debug for ErrorInner {
             ErrorInner::Custom(ref err) => err.fmt(f),
             #[cfg(feature = "alloc")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
+            #[cfg(feature = "std")]
+            ErrorInner::Source {
+                ref msg,
+                ref source,
+            } => f
+                .debug_struct("Error")
+                .field("msg", &msg)
+                .field("source", &source)
+                .finish(),
         }
     }
 }
@@ -109,13 +133,18 @@ impl fmt::Display for ErrorInner {
             ErrorInner::Custom(ref err) => err.fmt(f),
             #[cfg(feature = "alloc")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
+            #[cfg(feature = "std")]
+            ErrorInner::Source {
+                ref msg,
+                ref source,
+            } => f.write_fmt(format_args!("{} ({})", msg, source)),
         }
     }
 }
 
-impl From<Error> for fmt::Error {
-    fn from(_: Error) -> fmt::Error {
-        fmt::Error
+impl From<fmt::Error> for Error {
+    fn from(_: fmt::Error) -> Self {
+        Error::msg("formatting failed")
     }
 }
 
@@ -151,19 +180,6 @@ mod alloc_support {
     }
 }
 
-#[cfg(not(feature = "std"))]
-mod no_std_support {
-    use super::*;
-
-    use crate::std::fmt;
-
-    impl From<fmt::Error> for Error {
-        fn from(_: fmt::Error) -> Self {
-            Error::msg("writing format failed")
-        }
-    }
-}
-
 #[cfg(feature = "std")]
 mod std_support {
     use super::*;
@@ -172,65 +188,48 @@ mod std_support {
         boxed::Box,
         error,
         io,
-        string::ToString,
     };
 
     impl Error {
-        /** The lower-level source of this error, if any. */
-        pub fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-            Some(self.as_error())
-        }
-
-        /** Get a reference to a standard error. */
-        pub fn as_error(&self) -> &(dyn error::Error + Send + Sync + 'static) {
-            &self.0
-        }
-
-        /** Convert into a standard error. */
-        pub fn into_error(self) -> Box<dyn error::Error + Send + Sync> {
-            Box::new(self.0)
-        }
-
         /** Convert into an io error. */
+        #[inline]
         pub fn into_io_error(self) -> io::Error {
-            io::Error::new(io::ErrorKind::Other, self.into_error())
+            io::Error::new(io::ErrorKind::Other, self)
         }
     }
 
-    impl<E> From<E> for Error
-    where
-        E: error::Error,
-    {
-        fn from(err: E) -> Self {
-            Error(ErrorInner::Owned(err.to_string()))
+    impl error::Error for Error {
+        fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+            if let ErrorInner::Source { ref source, .. } = self.0 {
+                Some(&**source)
+            } else {
+                None
+            }
         }
     }
 
-    impl AsRef<dyn error::Error + Send + Sync + 'static> for Error {
-        fn as_ref(&self) -> &(dyn error::Error + Send + Sync + 'static) {
-            self.as_error()
+    impl From<io::Error> for Error {
+        fn from(err: io::Error) -> Self {
+            Error(ErrorInner::Source {
+                msg: "failed during an IO operation".into(),
+                source: Box::new(err),
+            })
         }
     }
 
-    impl From<Error> for Box<dyn error::Error + Send + Sync> {
-        fn from(err: Error) -> Self {
-            err.into_error()
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        use crate::std::error::Error as StdError;
+
+        #[test]
+        fn io_error() {
+            let err = Error::from(io::Error::from(io::ErrorKind::Other));
+
+            assert!(err.source().is_some());
         }
     }
-
-    impl From<Error> for Box<dyn error::Error> {
-        fn from(err: Error) -> Self {
-            err.into_error()
-        }
-    }
-
-    impl From<Error> for io::Error {
-        fn from(err: Error) -> Self {
-            err.into_io_error()
-        }
-    }
-
-    impl error::Error for ErrorInner {}
 }
 
 #[cfg(test)]
@@ -240,7 +239,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_fmt_error_into_error() {
+    fn fmt_error() {
         let _ = Error::from(fmt::Error);
     }
 }

@@ -4,10 +4,12 @@ use crate::{
         OwnedCollect,
         RefMutCollect,
     },
+    std::fmt::{
+        Debug,
+        Display,
+    },
     stream::{
         self,
-        Arguments,
-        Error,
         Stream,
     },
     value::Value,
@@ -29,7 +31,7 @@ where
     Stream a value.
     */
     #[inline]
-    pub fn stream(stream: S, value: impl Value) -> Result<S, Error> {
+    pub fn stream(stream: S, value: impl Value) -> Result<S, crate::Error> {
         let mut stream = Self::new(stream);
         stream.any(value)?;
         Ok(stream.into_inner())
@@ -68,11 +70,19 @@ where
     }
 
     /**
-    Stream a format.
+    Stream a debuggable type.
     */
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> stream::Result {
-        self.0.fmt(f)
+    pub fn debug(&mut self, v: impl Debug) -> stream::Result {
+        self.0.debug(&v)
+    }
+
+    /**
+    Stream a displayable type.
+    */
+    #[inline]
+    pub fn display(&mut self, v: impl Display) -> stream::Result {
+        self.0.display(&v)
     }
 
     /**
@@ -212,7 +222,7 @@ where
     Begin a map key.
     */
     #[inline]
-    pub fn map_key_begin(&mut self) -> Result<&mut Self, Error> {
+    pub fn map_key_begin(&mut self) -> Result<&mut Self, crate::Error> {
         self.0.map_key_begin()?;
 
         Ok(self)
@@ -222,7 +232,7 @@ where
     Begin a map value.
     */
     #[inline]
-    pub fn map_value_begin(&mut self) -> Result<&mut Self, Error> {
+    pub fn map_value_begin(&mut self) -> Result<&mut Self, crate::Error> {
         self.0.map_value_begin()?;
 
         Ok(self)
@@ -232,7 +242,7 @@ where
     Begin a sequence element.
     */
     #[inline]
-    pub fn seq_elem_begin(&mut self) -> Result<&mut Self, Error> {
+    pub fn seq_elem_begin(&mut self) -> Result<&mut Self, crate::Error> {
         self.0.seq_elem_begin()?;
 
         Ok(self)
@@ -244,8 +254,8 @@ where
     S: Stream,
 {
     #[inline]
-    fn fmt(&mut self, args: Arguments) -> stream::Result {
-        self.fmt(args)
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+        self.any(v)
     }
 
     #[inline]
@@ -351,11 +361,19 @@ impl<'a> RefMutStream<'a> {
     }
 
     /**
-    Stream a format.
+    Stream a debuggable type.
     */
     #[inline]
-    pub fn fmt(&mut self, f: Arguments) -> stream::Result {
-        self.0.fmt(f)
+    pub fn debug(&mut self, v: impl Debug) -> stream::Result {
+        self.0.debug(v)
+    }
+
+    /**
+    Stream a displayable type.
+    */
+    #[inline]
+    pub fn display(&mut self, v: impl Display) -> stream::Result {
+        self.0.display(v)
     }
 
     /**
@@ -492,7 +510,7 @@ impl<'a> RefMutStream<'a> {
     Begin a map key.
     */
     #[inline]
-    pub fn map_key_begin(&mut self) -> Result<&mut Self, Error> {
+    pub fn map_key_begin(&mut self) -> Result<&mut Self, crate::Error> {
         self.0.map_key_begin()?;
 
         Ok(self)
@@ -502,7 +520,7 @@ impl<'a> RefMutStream<'a> {
     Begin a map value.
     */
     #[inline]
-    pub fn map_value_begin(&mut self) -> Result<&mut Self, Error> {
+    pub fn map_value_begin(&mut self) -> Result<&mut Self, crate::Error> {
         self.0.map_value_begin()?;
 
         Ok(self)
@@ -512,7 +530,7 @@ impl<'a> RefMutStream<'a> {
     Begin a sequence element.
     */
     #[inline]
-    pub fn seq_elem_begin(&mut self) -> Result<&mut Self, Error> {
+    pub fn seq_elem_begin(&mut self) -> Result<&mut Self, crate::Error> {
         self.0.seq_elem_begin()?;
 
         Ok(self)
@@ -521,8 +539,8 @@ impl<'a> RefMutStream<'a> {
 
 impl<'a> Stream for RefMutStream<'a> {
     #[inline]
-    fn fmt(&mut self, args: Arguments) -> stream::Result {
-        self.fmt(args)
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+        self.any(v)
     }
 
     #[inline]

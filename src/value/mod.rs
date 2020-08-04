@@ -131,9 +131,6 @@ pub use crate::stream::RefMutStream as Stream;
 #[cfg(feature = "alloc")]
 pub use self::owned::OwnedValue;
 
-#[doc(inline)]
-pub use crate::Error;
-
 /**
 A value with a streamable structure.
 
@@ -389,7 +386,7 @@ pub trait Value {
     # fn main() -> Result<(), Box<dyn std::error::Error>> {
     use sval::{
         stream::OwnedStream,
-        Value,
+        value::Value,
     };
 
     let mut stream = OwnedStream::new(MyStream);
@@ -422,7 +419,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = crate::std::result::Result<(), Error>;
+pub type Result = crate::std::result::Result<(), crate::Error>;
 
 #[cfg(test)]
 mod tests {
