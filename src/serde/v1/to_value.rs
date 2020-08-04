@@ -9,7 +9,7 @@ use super::error::{
     Error,
 };
 
-use serde_lib::ser::{
+use serde1_lib::ser::{
     self,
     Serialize,
     SerializeMap,

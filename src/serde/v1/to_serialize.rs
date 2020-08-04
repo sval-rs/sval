@@ -10,7 +10,7 @@ use crate::{
 
 use super::error::err;
 
-use serde_lib::ser::{
+use serde1_lib::ser::{
     Error as SerError,
     Serialize,
     SerializeMap,

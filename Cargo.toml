@@ -50,7 +50,11 @@ derive = ["sval_derive"]
 fmt = []
 
 # Support integration with `serde`
-serde = ["serde_lib"]
+# Any future versions of `serde` will be added to this feature
+serde = ["serde1"]
+
+# Support integration with just `serde` `1.0`
+serde1 = ["serde1_lib"]
 
 # Support streaming values as tokens
 # that can be inspected in tests
@@ -61,7 +65,7 @@ version = "1"
 default-features = false
 optional = true
 
-[dependencies.serde_lib]
+[dependencies.serde1_lib]
 version = "1.0.104"
 optional = true
 default-features = false

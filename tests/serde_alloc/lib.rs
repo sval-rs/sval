@@ -121,10 +121,10 @@ fn sval_derive_from_serde() {
 fn serde_to_sval_tagged() {
     use self::SvalToken as Token;
 
-    let v = sval::test::tokens(sval::serde::to_value(Tagged::Unit));
+    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::Unit));
     assert_eq!(vec![Token::Str(String::from("Unit"))], v);
 
-    let v = sval::test::tokens(sval::serde::to_value(Tagged::NewType(1)));
+    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::NewType(1)));
     assert_eq!(
         vec![
             Token::MapBegin(Some(1)),
@@ -137,7 +137,7 @@ fn serde_to_sval_tagged() {
         v
     );
 
-    let v = sval::test::tokens(sval::serde::to_value(Tagged::Tuple(1, 2)));
+    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::Tuple(1, 2)));
     assert_eq!(
         vec![
             Token::MapBegin(Some(1)),
@@ -151,7 +151,7 @@ fn serde_to_sval_tagged() {
         v
     );
 
-    let v = sval::test::tokens(sval::serde::to_value(Tagged::Struct { a: 1, b: 2 }));
+    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::Struct { a: 1, b: 2 }));
     assert_eq!(
         vec![
             Token::MapBegin(Some(1)),
@@ -173,7 +173,7 @@ fn sval_to_serde_anonymous() {
     use self::SerdeToken as Token;
 
     assert_ser_tokens(
-        &sval::serde::to_serialize(Anonymous),
+        &sval::serde::v1::to_serialize(Anonymous),
         &[
             Token::Map { len: None },
             Token::I64(1),

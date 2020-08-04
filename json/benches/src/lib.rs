@@ -96,7 +96,7 @@ fn twitter_sval_noop(b: &mut test::Bencher) {
 fn twitter_sval_to_serde(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        serde_json::to_string(&sval::serde::to_serialize(&s)).unwrap();
+        serde_json::to_string(&sval::serde::v1::to_serialize(&s)).unwrap();
     });
 }
 
@@ -104,7 +104,7 @@ fn twitter_sval_to_serde(b: &mut test::Bencher) {
 fn twitter_serde_to_sval(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        sval_json::to_string(sval::serde::to_value(&s)).unwrap();
+        sval_json::to_string(sval::serde::v1::to_value(&s)).unwrap();
     });
 }
 
@@ -112,7 +112,7 @@ fn twitter_serde_to_sval(b: &mut test::Bencher) {
 fn twitter_serde_to_sval_to_serde(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        serde_json::to_string(&sval::serde::to_serialize(sval::serde::to_value(&s))).unwrap();
+        serde_json::to_string(&sval::serde::v1::to_serialize(sval::serde::v1::to_value(&s))).unwrap();
     });
 }
 
