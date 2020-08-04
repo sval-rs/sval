@@ -28,8 +28,8 @@ let my_serialize = sval::serde::v1::to_serialize(my_value);
 When using `serde` without `alloc`, there are some limitations on what kinds of `sval::Value`s you
 can convert into `serde::Serialize`s:
 
-- Any type that uses [`value::Stream::map_key_begin`], [`value::Stream::map_value_begin`],
-or [`value::Stream::seq_elem_begin`] would require buffering, so will return an error instead
+- Any type that uses `map_key_begin`, `map_value_begin`,
+or `seq_elem_begin` would require buffering, so will return an error instead
 in no-std environments.
 
 # From `serde` to `sval`

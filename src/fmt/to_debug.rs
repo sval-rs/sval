@@ -19,7 +19,7 @@ use crate::{
 };
 
 /**
-The result of calling [`sval::fmt::to_debug`].
+The result of calling [`sval::fmt::to_debug`](fn.to_debug.html).
 */
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ToDebug<V>(pub(super) V);
