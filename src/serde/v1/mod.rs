@@ -69,6 +69,11 @@ use serde1_lib::ser::{
     Serializer,
 };
 
+pub use self::{
+    to_serialize::ToSerialize,
+    to_value::ToValue,
+};
+
 /**
 Convert a [`Value`] into a [`Serialize`].
 
@@ -76,8 +81,11 @@ If the `Value` uses nested maps or sequences where the keys, values
 or elements aren't known upfront then this method will need to allocate
 for them.
 */
-pub fn to_serialize(value: impl Value) -> impl Serialize {
-    to_serialize::ToSerialize(value)
+pub fn to_serialize<V>(value: V) -> ToSerialize<V>
+where
+    V: Value,
+{
+    ToSerialize(value)
 }
 
 /**
@@ -93,8 +101,11 @@ where
 /**
 Convert a [`Serialize`] into a [`Value`].
 */
-pub fn to_value(value: impl Serialize) -> impl Value {
-    to_value::ToValue(value)
+pub fn to_value<S>(value: S) -> ToValue<S>
+where
+    S: Serialize,
+{
+    ToValue(value)
 }
 
 /**

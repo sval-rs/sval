@@ -21,7 +21,11 @@ use serde1_lib::ser::{
     SerializeTupleVariant,
 };
 
-pub(super) struct ToValue<T>(pub(super) T);
+/**
+The result of calling [`sval::serde::v1::to_value`].
+*/
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ToValue<T>(pub(super) T);
 
 impl<T> value::Value for ToValue<T>
 where

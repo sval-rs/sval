@@ -18,7 +18,11 @@ use crate::{
     value,
 };
 
-pub(super) struct ToDebug<V>(pub(super) V);
+/**
+The result of calling [`sval::fmt::to_debug`].
+*/
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ToDebug<V>(pub(super) V);
 
 impl<V> Debug for ToDebug<V>
 where
