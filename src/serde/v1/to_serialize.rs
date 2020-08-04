@@ -18,7 +18,11 @@ use serde1_lib::ser::{
     Serializer,
 };
 
-pub(super) struct ToSerialize<V>(pub(super) V);
+/**
+The result of calling [`sval::serde::v1::to_serialize`](fn.to_serialize.html).
+*/
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ToSerialize<V>(pub(super) V);
 
 impl<V> Serialize for ToSerialize<V>
 where

@@ -28,8 +28,8 @@ let my_serialize = sval::serde::v1::to_serialize(my_value);
 When using `serde` without `alloc`, there are some limitations on what kinds of `sval::Value`s you
 can convert into `serde::Serialize`s:
 
-- Any type that uses [`value::Stream::map_key_begin`], [`value::Stream::map_value_begin`],
-or [`value::Stream::seq_elem_begin`] would require buffering, so will return an error instead
+- Any type that uses `map_key_begin`, `map_value_begin`,
+or `seq_elem_begin` would require buffering, so will return an error instead
 in no-std environments.
 
 # From `serde` to `sval`
@@ -69,6 +69,11 @@ use serde1_lib::ser::{
     Serializer,
 };
 
+pub use self::{
+    to_serialize::ToSerialize,
+    to_value::ToValue,
+};
+
 /**
 Convert a [`Value`] into a [`Serialize`].
 
@@ -76,8 +81,11 @@ If the `Value` uses nested maps or sequences where the keys, values
 or elements aren't known upfront then this method will need to allocate
 for them.
 */
-pub fn to_serialize(value: impl Value) -> impl Serialize {
-    to_serialize::ToSerialize(value)
+pub fn to_serialize<V>(value: V) -> ToSerialize<V>
+where
+    V: Value,
+{
+    ToSerialize(value)
 }
 
 /**
@@ -93,8 +101,11 @@ where
 /**
 Convert a [`Serialize`] into a [`Value`].
 */
-pub fn to_value(value: impl Serialize) -> impl Value {
-    to_value::ToValue(value)
+pub fn to_value<S>(value: S) -> ToValue<S>
+where
+    S: Serialize,
+{
+    ToValue(value)
 }
 
 /**

@@ -37,6 +37,8 @@ use crate::{
 
 mod to_debug;
 
+pub use self::to_debug::ToDebug;
+
 /**
 Convert a [`Value`] into a [`Debug`].
 
@@ -45,8 +47,11 @@ a `Debug` implementation that might exist on the type.
 
 This method doesn't need to allocate or perform any buffering.
 */
-pub fn to_debug(value: impl Value) -> impl Debug {
-    self::to_debug::ToDebug(value)
+pub fn to_debug<V>(value: V) -> ToDebug<V>
+where
+    V: Value,
+{
+    ToDebug(value)
 }
 
 /**
