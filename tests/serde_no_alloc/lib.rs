@@ -62,13 +62,13 @@ sval_if_alloc! {
 
         #[test]
         fn sval_derive() {
-            let ser = sval::serde::to_serialize(Struct {
+            let ser = sval::serde::v1::to_serialize(Struct {
                 a: 1,
                 b: 2,
                 c: Nested { a: 3, b: "Hello!" },
             });
 
-            let v = sval::test::tokens(sval::serde::to_value(ser));
+            let v = sval::test::tokens(sval::serde::v1::to_value(ser));
             assert_eq!(
                 vec![
                     Token::MapBegin(Some(3)),
@@ -92,10 +92,10 @@ sval_if_alloc! {
         #[test]
         #[should_panic]
         fn sval_to_serde_anonymous() {
-            let ser = sval::serde::to_serialize(Anonymous);
+            let ser = sval::serde::v1::to_serialize(Anonymous);
 
             // The anonymous map isn't supported in no-std
-            sval::test::tokens(sval::serde::to_value(ser));
+            sval::test::tokens(sval::serde::v1::to_value(ser));
         }
     }
 }

@@ -261,7 +261,7 @@ pub mod test;
 #[cfg_attr(docsrs, doc(cfg(feature = "fmt")))]
 pub mod fmt;
 
-#[cfg(feature = "serde_lib")]
+#[cfg(feature = "serde1_lib")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod serde;
 

@@ -1,6 +1,6 @@
 use crate::std::fmt;
 
-use serde_lib::ser;
+use serde1_lib::ser;
 
 /**
 An error encountered during serialization.

@@ -34,7 +34,8 @@ This library requires Rust `1.31.0`.
 - `std`: assume `std` is available and add support for `std` types. Implies `alloc`.
 - `alloc`: assume a global allocator is available.
 - `derive`: add support for `#[derive(Value)]`.
-- `serde`: enable integration with `serde`. Some implementations of `sval::Value` may not be representable without the `alloc` feature.
+- `serde`: enable integration with major versions of `serde`. Some implementations of `sval::Value` may not be representable without the `alloc` feature.
+    - `serde1`: enable integration with just the `1.x` version of `serde`. Any future versions of `serde` will also receive their own feature.
 - `fmt`: support converting any `Value` into a `Debug`.
 - `arbitrary-depth`: support stateful values with any depth. Implies `alloc`.
 - `test`: add helpers for testing implementations of `Value`. Implies `std`. You should avoid using this feature outside of `dev-dependencies`.
@@ -108,13 +109,13 @@ features = ["serde"]
 Use the `to_serialize` function to turn any `sval::Value` into a `serde::Serialize`:
 
 ```rust
-let my_serialize = sval::serde::to_serialize(my_data);
+let my_serialize = sval::serde::v1::to_serialize(my_data);
 ```
 
 Use the `to_value` function to turn any `serde::Serialize` into a `sval::Value`:
 
 ```rust
-let my_value = sval::serde::to_value(my_data);
+let my_value = sval::serde::v1::to_value(my_data);
 ```
 
 When the `serde` feature is available, structures that already derive `Serialize` can also always derive `Value`. The `Value` implementation will behave the same as `Serialize`:
