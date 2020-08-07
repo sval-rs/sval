@@ -15,6 +15,9 @@ use crate::{
     value::Value,
 };
 
+#[cfg(feature = "std")]
+use crate::std::error;
+
 /**
 An owned stream wrapper.
 
@@ -83,6 +86,17 @@ where
     #[inline]
     pub fn display(&mut self, v: impl Display) -> stream::Result {
         self.0.display(&v)
+    }
+
+    /**
+    Stream an error.
+
+    This method is only available when the `std` feature is enabled.
+    */
+    #[inline]
+    #[cfg(feature = "std")]
+    pub fn error(&mut self, v: impl error::Error) -> stream::Result {
+        self.0.error(v)
     }
 
     /**
@@ -259,6 +273,11 @@ where
     }
 
     #[inline]
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.any(v)
+    }
+
+    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.i64(v)
     }
@@ -374,6 +393,17 @@ impl<'a> RefMutStream<'a> {
     #[inline]
     pub fn display(&mut self, v: impl Display) -> stream::Result {
         self.0.display(v)
+    }
+
+    /**
+    Stream an error.
+
+    This method is only available when the `std` feature is enabled.
+    */
+    #[inline]
+    #[cfg(feature = "std")]
+    pub fn error(&mut self, v: impl error::Error) -> stream::Result {
+        self.0.error(v)
     }
 
     /**

@@ -10,6 +10,7 @@ use crate::{
             ToString,
         },
         vec::Vec,
+        error::Error,
     },
     stream::{
         self,
@@ -308,7 +309,32 @@ pub(crate) enum Kind {
     Bool(bool),
     Str(Container<str>),
     Char(char),
+    Error(Container<Source>),
     None,
+}
+
+#[derive(Clone)]
+pub(crate) struct Source {
+    // NOTE: We'll want to capture these as better types when backtraces are stable
+    debug: String,
+    display: String,
+    #[cfg(feature = "std")]
+    source: Option<Container<Source>>,
+}
+
+impl<'a> From<&'a Source> for stream::Source<'a> {
+    fn from(err: &'a Source) -> stream::Source<'a> {
+        #[cfg(feature = "std")]
+        {
+            stream::Source::new(err)
+        }
+
+        #[cfg(not(feature = "std"))]
+        {
+            let _ = err;
+            stream::Source::empty()
+        }
+    }
 }
 
 pub(crate) struct Buf {
@@ -336,6 +362,7 @@ impl Token {
             Bool(v) => stream.bool(v)?,
             Str(ref v) => stream.str(&*v)?,
             Char(v) => stream.char(v)?,
+            Error(ref v) => stream.error(v.to_error())?,
             None => stream.none()?,
             MapBegin(len) => stream.map_begin(len)?,
             MapKey => {
@@ -651,6 +678,40 @@ impl OwnedValue {
             ValueInner::Error(err) => Err(crate::Error::custom(err)),
             #[cfg(feature = "std")]
             ValueInner::Shared(_) => Err(crate::Error::msg("expected a set of tokens")),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+mod std_support {
+    use super::Source;
+
+    use crate::std::{
+        fmt,
+        error::Error,
+    };
+
+    impl fmt::Debug for Source {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            fmt::Display::fmt(&self.debug, f)
+        }
+    }
+
+    impl fmt::Display for Source {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            fmt::Display::fmt(&self.display, f)
+        }
+    }
+
+    impl Source {
+        fn to_error(self: Container<Self>) -> Option<Self> {
+            unimplemented!()
+        }
+    }
+
+    impl Error for Source {
+        fn source(&self) -> Option<&(dyn Error + 'static)> {
+            self.source.as_ref().map(|source| &**source as &(dyn Error + 'static))
         }
     }
 }

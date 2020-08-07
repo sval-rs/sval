@@ -19,10 +19,12 @@ mod alloc_support {
         std::{
             string::String,
             vec::Vec,
+            io,
         },
         stream::{
             OwnedStream,
             Stream,
+            Source,
         },
         value::{
             owned::Kind,
@@ -48,8 +50,12 @@ mod alloc_support {
         Bool(bool),
         Str(String),
         Char(char),
+        Error(Source),
         None,
     }
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct Source(String);
 
     /**
     Collect a value into a sequence of tokens.
@@ -73,6 +79,7 @@ mod alloc_support {
                 Kind::Char(v) => Some(Token::Char(v)),
                 Kind::Str(ref v) => Some(Token::Str((**v).into())),
                 Kind::None => Some(Token::None),
+                Kind::Error(err) => Some(Token::Error(Source(err.to_string()))),
                 _ => None,
             })
             .collect()
@@ -151,6 +158,7 @@ mod alloc_support {
                 ];
                 v
             }),
+            Box::new(Source::new(io::Error::from(io::ErrorKind::Other))),
         ];
 
         macro_rules! check {

@@ -210,6 +210,42 @@ macro_rules! sval_if_alloc {
 }
 
 #[doc(hidden)]
+#[macro_export]
+#[cfg(feature = "std")]
+macro_rules! sval_if_std {
+    (
+        if #[cfg(feature = "std")]
+        {
+            $($with:tt)*
+        }
+        else
+        {
+            $($without:tt)*
+        }
+    ) => {
+        $($with)*
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+#[cfg(not(feature = "std"))]
+macro_rules! sval_if_std {
+    (
+        if #[cfg(feature = "std")]
+        {
+            $($with:tt)*
+        }
+        else
+        {
+            $($without:tt)*
+        }
+    ) => {
+        $($without)*
+    };
+}
+
+#[doc(hidden)]
 #[cfg(feature = "derive")]
 pub mod derive;
 
