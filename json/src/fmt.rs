@@ -139,6 +139,11 @@ where
     }
 
     #[inline]
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.fmt(stream::Arguments::display(&v))
+    }
+
+    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.i128(v as i128)
     }

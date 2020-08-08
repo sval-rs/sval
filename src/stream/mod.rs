@@ -206,13 +206,8 @@ pub(crate) mod owned;
 pub mod stack;
 
 use crate::std::{
-    any::Any,
     fmt,
-    marker::PhantomData,
 };
-
-#[cfg(feature = "std")]
-use crate::std::error;
 
 pub use self::{
     owned::{
@@ -315,14 +310,14 @@ pub struct Source<'a> {
     #[cfg(feature = "std")]
     inner: self::std_support::SourceError<'a>,
     #[cfg(not(feature = "std"))]
-    _marker: PhantomData<&'a dyn Any>,
+    _marker: crate::std::marker::PhantomData<&'a dyn crate::std::any::Any>,
 }
 
-#[cfg(not(feature = "std"))]
+#[cfg(all(feature = "alloc", not(feature = "std")))]
 impl<'a> Source<'a> {
     pub(crate) fn empty() -> Self {
         Source {
-            _marker: PhantomData,
+            _marker: Default::default(),
         }
     }
 }
@@ -332,6 +327,20 @@ impl<'a> fmt::Debug for Source<'a> {
         #[cfg(feature = "std")]
         {
             fmt::Debug::fmt(&self.inner, f)
+        }
+
+        #[cfg(not(feature = "std"))]
+        {
+            f.debug_struct("Source").finish()
+        }
+    }
+}
+
+impl<'a> fmt::Display for Source<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[cfg(feature = "std")]
+        {
+            fmt::Display::fmt(&self.inner, f)
         }
 
         #[cfg(not(feature = "std"))]
@@ -653,7 +662,8 @@ pub trait Stream {
     */
     #[cfg(not(test))]
     fn error(&mut self, v: Source) -> Result {
-        self.fmt(Arguments::debug(&v))
+        let _ = v;
+        Err(crate::Error::default_unsupported("Stream::error"))
     }
     #[cfg(test)]
     fn error(&mut self, v: Source) -> Result;
@@ -843,6 +853,11 @@ where
     }
 
     #[inline]
+    fn error(&mut self, v: Source) -> Result {
+        (**self).error(v)
+    }
+
+    #[inline]
     fn i64(&mut self, v: i64) -> Result {
         (**self).i64(v)
     }
@@ -1015,7 +1030,7 @@ mod std_support {
         /**
         Unwrap the inner error.
         */
-        pub fn to_error<'b>(&'b self) -> impl Error + 'b {
+        pub(crate) fn to_error<'b>(&'b self) -> impl Error + 'b {
             &self.inner.extended
         }
     }

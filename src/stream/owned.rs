@@ -574,6 +574,11 @@ impl<'a> Stream for RefMutStream<'a> {
     }
 
     #[inline]
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.any(v)
+    }
+
+    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.i64(v)
     }

@@ -9,12 +9,15 @@ use crate::{
         Debug,
         Display,
     },
-    stream::{Arguments, Source},
+    stream::Arguments,
     value,
 };
 
 #[cfg(feature = "std")]
-use crate::std::error;
+use crate::{
+    std::error,
+    stream::Source,
+};
 
 pub(crate) struct OwnedCollect<TStream> {
     stream: TStream,

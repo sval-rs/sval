@@ -10,7 +10,6 @@ use crate::{
             ToString,
         },
         vec::Vec,
-        error::Error,
     },
     stream::{
         self,
@@ -309,21 +308,46 @@ pub(crate) enum Kind {
     Bool(bool),
     Str(Container<str>),
     Char(char),
-    Error(Container<Source>),
+    Error(Container<OwnedSource>),
     None,
 }
 
-#[derive(Clone)]
-pub(crate) struct Source {
+#[derive(Clone, PartialEq)]
+pub(crate) struct OwnedSource {
     // NOTE: We'll want to capture these as better types when backtraces are stable
     debug: String,
     display: String,
     #[cfg(feature = "std")]
-    source: Option<Container<Source>>,
+    source: Option<Container<OwnedSource>>,
 }
 
-impl<'a> From<&'a Source> for stream::Source<'a> {
-    fn from(err: &'a Source) -> stream::Source<'a> {
+#[cfg(not(feature = "std"))]
+impl OwnedSource {
+    pub(crate) fn empty() -> Self {
+        OwnedSource {
+            debug: String::new(),
+            display: String::new(),
+        }
+    }
+}
+
+impl<'a> From<stream::Source<'a>> for OwnedSource {
+    fn from(err: stream::Source<'a>) -> OwnedSource {
+        #[cfg(feature = "std")]
+        {
+            OwnedSource::collect(err.get())
+        }
+
+        #[cfg(not(feature = "std"))]
+        {
+            let _ = err;
+            OwnedSource::empty()
+        }
+    }
+}
+
+impl<'a> From<&'a OwnedSource> for stream::Source<'a> {
+    fn from(err: &'a OwnedSource) -> stream::Source<'a> {
         #[cfg(feature = "std")]
         {
             stream::Source::new(err)
@@ -334,6 +358,18 @@ impl<'a> From<&'a Source> for stream::Source<'a> {
             let _ = err;
             stream::Source::empty()
         }
+    }
+}
+
+impl fmt::Debug for OwnedSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.debug, f)
+    }
+}
+
+impl fmt::Display for OwnedSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.display, f)
     }
 }
 
@@ -362,7 +398,7 @@ impl Token {
             Bool(v) => stream.bool(v)?,
             Str(ref v) => stream.str(&*v)?,
             Char(v) => stream.char(v)?,
-            Error(ref v) => stream.error(v.to_error())?,
+            Error(ref v) => stream.any(stream::Source::from(&**v))?,
             None => stream.none()?,
             MapBegin(len) => stream.map_begin(len)?,
             MapKey => {
@@ -405,6 +441,14 @@ impl Stream for Buf {
         let depth = self.stack.primitive()?.depth();
 
         self.push(Kind::Str(Container::from(f.to_string())), depth);
+
+        Ok(())
+    }
+
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        let depth = self.stack.primitive()?.depth();
+
+        self.push(Kind::Error(Container::from(OwnedSource::from(v))), depth);
 
         Ok(())
     }
@@ -568,6 +612,12 @@ impl Stream for Primitive {
         Ok(())
     }
 
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.set(Kind::Error(Container::from(OwnedSource::from(v))));
+
+        Ok(())
+    }
+
     fn i64(&mut self, v: i64) -> stream::Result {
         self.set(Kind::Signed(v));
 
@@ -684,32 +734,26 @@ impl OwnedValue {
 
 #[cfg(feature = "std")]
 mod std_support {
-    use super::Source;
+    use super::{
+        OwnedSource,
+        Container,
+    };
 
     use crate::std::{
-        fmt,
         error::Error,
     };
 
-    impl fmt::Debug for Source {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            fmt::Display::fmt(&self.debug, f)
+    impl OwnedSource {
+        pub(crate) fn collect(err: &dyn Error) -> Self {
+            OwnedSource {
+                debug: format!("{:?}", err),
+                display: format!("{}", err),
+                source: err.source().map(|source| Container::from(OwnedSource::collect(source))),
+            }
         }
     }
 
-    impl fmt::Display for Source {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            fmt::Display::fmt(&self.display, f)
-        }
-    }
-
-    impl Source {
-        fn to_error(self: Container<Self>) -> Option<Self> {
-            unimplemented!()
-        }
-    }
-
-    impl Error for Source {
+    impl Error for OwnedSource {
         fn source(&self) -> Option<&(dyn Error + 'static)> {
             self.source.as_ref().map(|source| &**source as &(dyn Error + 'static))
         }
@@ -820,5 +864,64 @@ mod tests {
             ],
             v
         );
+    }
+
+    #[cfg(not(feature = "std"))]
+    mod alloc_support {
+        use super::*;
+
+        #[test]
+        fn owned_error() {
+            let v = test::tokens(stream::Source::empty());
+
+            assert_eq!(
+                vec![
+                    Token::None,
+                ],
+                v
+            );
+        }
+    }
+
+    #[cfg(feature = "std")]
+    mod std_support {
+        use super::*;
+
+        use crate::std::{io, error, fmt};
+
+        #[test]
+        fn owned_error() {
+            #[derive(Debug)]
+            struct TestError {
+                id: usize,
+                source: io::Error,
+            }
+
+            impl error::Error for TestError {
+                fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+                    Some(&self.source)
+                }
+            }
+
+            impl fmt::Display for TestError {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    write!(f, "it broke!")
+                }
+            }
+
+            let err = TestError {
+                id: 42,
+                source: io::Error::from(io::ErrorKind::Other),
+            };
+
+            let v = test::tokens(stream::Source::new(&err));
+
+            assert_eq!(
+                vec![
+                    Token::Error(test::Source::new(&err)),
+                ],
+                v
+            );
+        }
     }
 }

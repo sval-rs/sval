@@ -188,7 +188,7 @@ impl<'a> Value for stream::Source<'a> {
 
         #[cfg(not(feature = "std"))]
         {
-            stream.debug(self)
+            stream.none()
         }
     }
 }
@@ -473,7 +473,7 @@ mod tests {
         #[test]
         fn stream_error() {
             let err = io::Error::from(io::ErrorKind::Other);
-            assert_eq!(vec![Token::Error], test::tokens(stream::Source::new(&err)));
+            assert_eq!(vec![Token::Error(test::Source::new(&err))], test::tokens(Source::new(&err)));
         }
 
         #[test]

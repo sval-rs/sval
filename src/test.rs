@@ -19,15 +19,15 @@ mod alloc_support {
         std::{
             string::String,
             vec::Vec,
-            io,
+            fmt,
         },
         stream::{
+            self,
             OwnedStream,
             Stream,
-            Source,
         },
         value::{
-            owned::Kind,
+            owned::{Kind, OwnedSource},
             OwnedValue,
             Value,
         },
@@ -54,8 +54,23 @@ mod alloc_support {
         None,
     }
 
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct Source(String);
+    /**
+    An error source.
+    */
+    #[derive(Clone, PartialEq)]
+    pub struct Source(OwnedSource);
+
+    impl fmt::Debug for Source {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            fmt::Debug::fmt(&self.0, f)
+        }
+    }
+
+    impl fmt::Display for Source {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            fmt::Display::fmt(&self.0, f)
+        }
+    }
 
     /**
     Collect a value into a sequence of tokens.
@@ -79,7 +94,7 @@ mod alloc_support {
                 Kind::Char(v) => Some(Token::Char(v)),
                 Kind::Str(ref v) => Some(Token::Str((**v).into())),
                 Kind::None => Some(Token::None),
-                Kind::Error(err) => Some(Token::Error(Source(err.to_string()))),
+                Kind::Error(ref err) => Some(Token::Error(Source((**err).clone()))),
                 _ => None,
             })
             .collect()
@@ -100,6 +115,20 @@ mod alloc_support {
         use crate::std::{
             boxed::Box,
             collections::BTreeMap,
+        };
+
+        let source = {
+            #[cfg(not(feature = "std"))]
+            {
+                Source(OwnedSource::empty())
+            }
+
+            #[cfg(feature = "std")]
+            {
+                use crate::std::io;
+
+                Source::new(&io::Error::from(io::ErrorKind::Other))
+            }
         };
 
         let values: Vec<Box<dyn Value>> = vec![
@@ -158,7 +187,7 @@ mod alloc_support {
                 ];
                 v
             }),
-            Box::new(Source::new(io::Error::from(io::ErrorKind::Other))),
+            Box::new(stream::Source::from(&source.0)),
         ];
 
         macro_rules! check {
@@ -183,6 +212,22 @@ mod alloc_support {
 
         for value in values {
             check!(build(), value);
+        }
+    }
+
+    #[cfg(feature = "std")]
+    mod std_support {
+        use super::*;
+
+        use crate::std::error::Error;
+
+        impl Source {
+            /**
+            Create a new test source.
+            */
+            pub fn new(err: &dyn Error) -> Self {
+                Source(OwnedSource::collect(err))
+            }
         }
     }
 }

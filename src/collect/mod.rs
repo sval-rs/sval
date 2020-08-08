@@ -9,6 +9,7 @@ allocating for nested datastructures that are already known.
 use crate::stream::{
     Arguments,
     Stream,
+    Source,
 };
 
 mod owned;
@@ -97,6 +98,11 @@ where
     #[inline]
     fn fmt(&mut self, v: Arguments) -> Result {
         self.0.fmt(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: Source) -> Result {
+        self.0.error(v)
     }
 
     #[inline]
