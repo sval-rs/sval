@@ -335,7 +335,7 @@ impl<'a> From<stream::Source<'a>> for OwnedSource {
     fn from(err: stream::Source<'a>) -> OwnedSource {
         #[cfg(feature = "std")]
         {
-            OwnedSource::collect(err.get())
+            OwnedSource::collect(err.as_ref())
         }
 
         #[cfg(not(feature = "std"))]

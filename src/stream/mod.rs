@@ -1021,16 +1021,15 @@ mod std_support {
         }
 
         /**
-        Get the value of the underlying error.
+        Get the inner error.
         */
-        pub fn get(&self) -> &(dyn Error + 'static) {
+        pub fn get<'b>(&'b self) -> impl Error + 'b {
             &self.inner.extended
         }
+    }
 
-        /**
-        Unwrap the inner error.
-        */
-        pub(crate) fn to_error<'b>(&'b self) -> impl Error + 'b {
+    impl<'a> AsRef<dyn Error + 'static> for Source<'a> {
+        fn as_ref(&self) -> &(dyn Error + 'static) {
             &self.inner.extended
         }
     }

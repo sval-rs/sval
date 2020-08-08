@@ -183,7 +183,7 @@ impl<'a> Value for stream::Source<'a> {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         #[cfg(feature = "std")]
         {
-            stream.error(self.to_error())
+            stream.error(self.get())
         }
 
         #[cfg(not(feature = "std"))]
