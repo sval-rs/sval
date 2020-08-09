@@ -253,6 +253,23 @@ impl<'a> stream::Arguments<'a> {
     }
 }
 
+impl<'a> stream::Source<'a> {
+    fn to_serialize<'b>(&'b self) -> impl Serialize + 'b {
+        struct SerializeSource<'a, 'b>(&'b stream::Source<'a>);
+
+        impl<'a, 'b> Serialize for SerializeSource<'a, 'b> {
+            fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                s.collect_str(&self.0)
+            }
+        }
+
+        SerializeSource(self)
+    }
+}
+
 enum Pos {
     Key,
     Value,
@@ -289,6 +306,11 @@ mod no_alloc_support {
     {
         #[inline]
         fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+            self.serialize_any(v.to_serialize())
+        }
+
+        #[inline]
+        fn error(&mut self, v: stream::Source) -> stream::Result {
             self.serialize_any(v.to_serialize())
         }
 
@@ -715,6 +737,14 @@ mod alloc_support {
         }
 
         #[inline]
+        fn error(&mut self, v: stream::Source) -> stream::Result {
+            match self.buffer() {
+                None => self.serialize_any(v.to_serialize()),
+                Some(buffered) => buffered.error(v),
+            }
+        }
+
+        #[inline]
         fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v.to_serialize()),
@@ -830,6 +860,11 @@ mod alloc_support {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
+                    }
+                    Kind::Error(ref v) => {
+                        reader.expect_empty().map_err(S::Error::custom)?;
+
+                        stream::Source::from(&**v).to_serialize().serialize(serializer)
                     }
                     Kind::None => {
                         reader.expect_empty().map_err(S::Error::custom)?;

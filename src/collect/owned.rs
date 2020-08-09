@@ -13,6 +13,12 @@ use crate::{
     value,
 };
 
+#[cfg(feature = "std")]
+use crate::{
+    std::error,
+    stream::Source,
+};
+
 pub(crate) struct OwnedCollect<TStream> {
     stream: TStream,
 }
@@ -39,6 +45,12 @@ where
     #[inline]
     pub fn any(&mut self, v: impl value::Value) -> collect::Result {
         v.stream(&mut value::Stream::new(self.borrow_mut()))
+    }
+
+    #[inline]
+    #[cfg(feature = "std")]
+    pub fn error(&mut self, v: impl error::Error) -> collect::Result {
+        self.stream.error(Source::from(&v as &dyn error::Error))
     }
 
     #[inline]
@@ -159,6 +171,12 @@ impl<'a> RefMutCollect<'a> {
     #[inline]
     pub fn any(&mut self, v: impl value::Value) -> collect::Result {
         self.0.any(v)
+    }
+
+    #[inline]
+    #[cfg(feature = "std")]
+    pub fn error(&mut self, v: impl error::Error) -> collect::Result {
+        self.0.error(v)
     }
 
     #[inline]

@@ -100,6 +100,11 @@ impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
     }
 
     #[inline]
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.fmt(v)
+    }
+
+    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.fmt(v)
     }

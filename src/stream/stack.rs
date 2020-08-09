@@ -515,6 +515,11 @@ impl Stream for Stack {
     }
 
     #[inline]
+    fn error(&mut self, _: stream::Source) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
     fn i64(&mut self, _: i64) -> stream::Result {
         self.primitive().map(|_| ())
     }

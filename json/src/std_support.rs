@@ -18,7 +18,6 @@ use crate::{
     },
     End,
 };
-use sval::stream::Arguments;
 
 impl<T> Error for End<T> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
@@ -129,8 +128,14 @@ impl<W> Stream for Writer<W>
 where
     W: Write,
 {
-    fn fmt(&mut self, v: Arguments) -> stream::Result {
+    #[inline]
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.0.fmt(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.0.error(v)
     }
 
     #[inline]

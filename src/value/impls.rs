@@ -178,6 +178,21 @@ impl<'a> Value for stream::Arguments<'a> {
     }
 }
 
+impl<'a> Value for stream::Source<'a> {
+    #[inline]
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        #[cfg(feature = "std")]
+        {
+            stream.error(self.get())
+        }
+
+        #[cfg(not(feature = "std"))]
+        {
+            stream.none()
+        }
+    }
+}
+
 #[cfg(feature = "alloc")]
 mod alloc_support {
     use super::*;
@@ -446,12 +461,34 @@ mod tests {
             std::{
                 collections::HashMap,
                 sync::Arc,
+                io,
             },
             test::{
                 self,
                 Token,
             },
+            stream::Source,
+            value::{self, Value},
         };
+
+        #[test]
+        fn stream_error() {
+            let err = io::Error::from(io::ErrorKind::Other);
+            assert_eq!(vec![Token::Error(test::Source::new(&err))], test::tokens(Source::new(&err)));
+        }
+
+        #[test]
+        fn stream_inner_error() {
+            struct MyError;
+
+            impl Value for MyError {
+                fn stream(&self, stream: &mut value::Stream) -> value::Result {
+                    stream.error(io::Error::from(io::ErrorKind::Other))
+                }
+            }
+
+            assert_eq!(vec![Token::Error(test::Source::new(&io::Error::from(io::ErrorKind::Other)))], test::tokens(MyError));
+        }
 
         #[test]
         fn stream_map() {

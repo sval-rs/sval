@@ -202,10 +202,10 @@ structures aren't supported. See the [`stream::Stack`] type for more details.
 [`stream::Stack`]: stack/struct.Stack.html
 */
 
+mod fmt;
+mod error;
 pub(crate) mod owned;
 pub mod stack;
-
-use crate::std::fmt;
 
 pub use self::{
     owned::{
@@ -213,66 +213,10 @@ pub use self::{
         RefMutStream,
     },
     stack::Stack,
+    fmt::Arguments,
+    error::Source,
 };
 
-/**
-A formattable value.
-*/
-pub struct Arguments<'a>(ArgumentsInner<'a>);
-
-enum ArgumentsInner<'a> {
-    Debug(&'a dyn fmt::Debug),
-    Display(&'a dyn fmt::Display),
-    Args(fmt::Arguments<'a>),
-}
-
-impl<'a> Arguments<'a> {
-    pub fn debug(v: &'a impl fmt::Debug) -> Self {
-        Arguments(ArgumentsInner::Debug(v))
-    }
-
-    pub fn display(v: &'a impl fmt::Display) -> Self {
-        Arguments(ArgumentsInner::Display(v))
-    }
-}
-
-impl<'a> From<fmt::Arguments<'a>> for Arguments<'a> {
-    fn from(v: fmt::Arguments<'a>) -> Self {
-        Arguments(ArgumentsInner::Args(v))
-    }
-}
-
-impl<'a> From<&'a dyn fmt::Debug> for Arguments<'a> {
-    fn from(v: &'a dyn fmt::Debug) -> Self {
-        Arguments(ArgumentsInner::Debug(v))
-    }
-}
-
-impl<'a> From<&'a dyn fmt::Display> for Arguments<'a> {
-    fn from(v: &'a dyn fmt::Display) -> Self {
-        Arguments(ArgumentsInner::Display(v))
-    }
-}
-
-impl<'a> fmt::Debug for Arguments<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            ArgumentsInner::Debug(v) => v.fmt(f),
-            ArgumentsInner::Display(v) => v.fmt(f),
-            ArgumentsInner::Args(v) => v.fmt(f),
-        }
-    }
-}
-
-impl<'a> fmt::Display for Arguments<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            ArgumentsInner::Debug(v) => v.fmt(f),
-            ArgumentsInner::Display(v) => v.fmt(f),
-            ArgumentsInner::Args(v) => v.fmt(f),
-        }
-    }
-}
 
 /**
 A receiver for the structure of a value.
@@ -452,6 +396,14 @@ impl Stream for MyStream {
         Ok(())
     }
 
+    fn error(&mut self, source: stream::Source) -> stream::Result {
+#       /*
+        ..
+#       */
+
+        Ok(())
+    }
+
     fn i128(&mut self, v: i128) -> stream::Result {
 #       /*
         ..
@@ -572,6 +524,17 @@ pub trait Stream {
     }
     #[cfg(test)]
     fn fmt(&mut self, v: Arguments) -> Result;
+
+    /**
+    Stream an error.
+    */
+    #[cfg(not(test))]
+    fn error(&mut self, v: Source) -> Result {
+        let _ = v;
+        Err(crate::Error::default_unsupported("Stream::error"))
+    }
+    #[cfg(test)]
+    fn error(&mut self, v: Source) -> Result;
 
     /**
     Stream a signed integer.
@@ -755,6 +718,11 @@ where
     #[inline]
     fn fmt(&mut self, v: Arguments) -> Result {
         (**self).fmt(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: Source) -> Result {
+        (**self).error(v)
     }
 
     #[inline]
