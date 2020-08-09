@@ -1,7 +1,4 @@
-use crate::std::{
-    fmt,
-};
-
+use crate::std::fmt;
 
 /**
 A formattable value.
@@ -18,7 +15,7 @@ impl<'a> Arguments<'a> {
     /**
     Capture standard format arguments.
 
-    Prefer the [`debug`](#method.debug) and [`display`](#method.display) methods to create 
+    Prefer the [`debug`](#method.debug) and [`display`](#method.display) methods to create
     `Arguments` over passing them through `format_args`,
     because `format_args` will clobber any flags a stream
     might want to format these arguments with.

@@ -735,27 +735,29 @@ impl OwnedValue {
 #[cfg(feature = "std")]
 mod std_support {
     use super::{
-        OwnedSource,
         Container,
+        OwnedSource,
     };
 
-    use crate::std::{
-        error::Error,
-    };
+    use crate::std::error::Error;
 
     impl OwnedSource {
         pub(crate) fn collect(err: &dyn Error) -> Self {
             OwnedSource {
                 debug: format!("{:?}", err),
                 display: format!("{}", err),
-                source: err.source().map(|source| Container::from(OwnedSource::collect(source))),
+                source: err
+                    .source()
+                    .map(|source| Container::from(OwnedSource::collect(source))),
             }
         }
     }
 
     impl Error for OwnedSource {
         fn source(&self) -> Option<&(dyn Error + 'static)> {
-            self.source.as_ref().map(|source| &**source as &(dyn Error + 'static))
+            self.source
+                .as_ref()
+                .map(|source| &**source as &(dyn Error + 'static))
         }
     }
 }
@@ -874,12 +876,7 @@ mod tests {
         fn owned_error() {
             let v = test::tokens(stream::Source::empty());
 
-            assert_eq!(
-                vec![
-                    Token::None,
-                ],
-                v
-            );
+            assert_eq!(vec![Token::None,], v);
         }
     }
 
@@ -887,7 +884,11 @@ mod tests {
     mod std_support {
         use super::*;
 
-        use crate::std::{io, error, fmt};
+        use crate::std::{
+            error,
+            fmt,
+            io,
+        };
 
         #[test]
         fn owned_error() {
@@ -916,12 +917,7 @@ mod tests {
 
             let v = test::tokens(stream::Source::new(&err));
 
-            assert_eq!(
-                vec![
-                    Token::Error(test::Source::new(&err)),
-                ],
-                v
-            );
+            assert_eq!(vec![Token::Error(test::Source::new(&err)),], v);
         }
     }
 }

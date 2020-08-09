@@ -202,21 +202,20 @@ structures aren't supported. See the [`stream::Stack`] type for more details.
 [`stream::Stack`]: stack/struct.Stack.html
 */
 
-mod fmt;
 mod error;
+mod fmt;
 pub(crate) mod owned;
 pub mod stack;
 
 pub use self::{
+    error::Source,
+    fmt::Arguments,
     owned::{
         OwnedStream,
         RefMutStream,
     },
     stack::Stack,
-    fmt::Arguments,
-    error::Source,
 };
-
 
 /**
 A receiver for the structure of a value.

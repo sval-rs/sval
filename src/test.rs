@@ -17,9 +17,9 @@ a breaking `semver` change.
 mod alloc_support {
     use crate::{
         std::{
+            fmt,
             string::String,
             vec::Vec,
-            fmt,
         },
         stream::{
             self,
@@ -27,7 +27,10 @@ mod alloc_support {
             Stream,
         },
         value::{
-            owned::{Kind, OwnedSource},
+            owned::{
+                Kind,
+                OwnedSource,
+            },
             OwnedValue,
             Value,
         },

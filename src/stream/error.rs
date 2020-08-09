@@ -1,8 +1,4 @@
-
-use crate::std::{
-    fmt,
-};
-
+use crate::std::fmt;
 
 /**
 A streamable error.
@@ -63,8 +59,8 @@ impl<'a> fmt::Display for Source<'a> {
 #[cfg(feature = "std")]
 mod std_support {
     use crate::std::{
-        fmt,
         error::Error,
+        fmt,
         marker::PhantomData,
         mem,
     };
@@ -158,7 +154,9 @@ mod std_support {
                     // SAFETY: We're careful not to expose the actual value with the fake lifetime
                     // Calling code can only interact with it through an arbitrarily short borrow
                     // that's bound to `'a` from `self`, which is the real McCoy lifetime of the error
-                    extended: ExtendedLifetimeError(unsafe { mem::transmute::<&'a dyn Error, &'static dyn Error>(err) }),
+                    extended: ExtendedLifetimeError(unsafe {
+                        mem::transmute::<&'a dyn Error, &'static dyn Error>(err)
+                    }),
                     _marker: PhantomData,
                 },
             }

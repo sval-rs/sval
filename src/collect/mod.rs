@@ -8,8 +8,8 @@ allocating for nested datastructures that are already known.
 
 use crate::stream::{
     Arguments,
-    Stream,
     Source,
+    Stream,
 };
 
 mod owned;
