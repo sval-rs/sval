@@ -7,7 +7,7 @@ use crate::std::{
 /**
 A streamable error.
 
-This type shouldn't be confused with [`sval::Error`], which is
+This type shouldn't be confused with [`sval::Error`](../../struct.Error.html), which is
 used to communicate errors back to callers.
 The purpose of the `Source` type is to let streams serialize
 error types, that may have backtraces and other metadata.
