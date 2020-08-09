@@ -164,4 +164,21 @@ mod std_support {
             }
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        use crate::std::io;
+
+        #[test]
+        fn error_downcast() {
+            let err = io::Error::from(io::ErrorKind::Other);
+
+            let source = Source::new(&err);
+
+            // Downcasting isn't supported by `Source`
+            assert!(source.as_ref().downcast_ref::<io::Error>().is_none());
+        }
+    }
 }

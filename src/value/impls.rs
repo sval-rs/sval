@@ -468,12 +468,26 @@ mod tests {
                 Token,
             },
             stream::Source,
+            value::{self, Value},
         };
 
         #[test]
         fn stream_error() {
             let err = io::Error::from(io::ErrorKind::Other);
             assert_eq!(vec![Token::Error(test::Source::new(&err))], test::tokens(Source::new(&err)));
+        }
+
+        #[test]
+        fn stream_inner_error() {
+            struct MyError;
+
+            impl Value for MyError {
+                fn stream(&self, stream: &mut value::Stream) -> value::Result {
+                    stream.error(io::Error::from(io::ErrorKind::Other))
+                }
+            }
+
+            assert_eq!(vec![Token::Error(test::Source::new(&io::Error::from(io::ErrorKind::Other)))], test::tokens(MyError));
         }
 
         #[test]
