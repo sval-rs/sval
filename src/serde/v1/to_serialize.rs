@@ -310,7 +310,7 @@ mod no_alloc_support {
         }
 
         #[inline]
-        fn error(&mut self, v: stream::Error) -> stream::Result {
+        fn error(&mut self, v: stream::Source) -> stream::Result {
             self.serialize_any(v.to_serialize())
         }
 

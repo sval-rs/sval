@@ -202,12 +202,10 @@ structures aren't supported. See the [`stream::Stack`] type for more details.
 [`stream::Stack`]: stack/struct.Stack.html
 */
 
+mod fmt;
+mod error;
 pub(crate) mod owned;
 pub mod stack;
-
-use crate::std::{
-    fmt,
-};
 
 pub use self::{
     owned::{
@@ -215,140 +213,10 @@ pub use self::{
         RefMutStream,
     },
     stack::Stack,
+    fmt::Arguments,
+    error::Source,
 };
 
-/**
-A formattable value.
-*/
-pub struct Arguments<'a>(ArgumentsInner<'a>);
-
-enum ArgumentsInner<'a> {
-    Debug(&'a dyn fmt::Debug),
-    Display(&'a dyn fmt::Display),
-    Args(fmt::Arguments<'a>),
-}
-
-impl<'a> Arguments<'a> {
-    /**
-    Capture standard format arguments.
-
-    Prefer the [`debug`] and [`display`] methods to create 
-    `Arguments` over passing them through `format_args`,
-    because `format_args` will clobber any flags a stream
-    might want to format these arguments with.
-    */
-    pub fn new(v: fmt::Arguments<'a>) -> Self {
-        Arguments(ArgumentsInner::Args(v))
-    }
-
-    /**
-    Capture arguments from a debuggable value.
-    */
-    pub fn debug(v: &'a impl fmt::Debug) -> Self {
-        Arguments(ArgumentsInner::Debug(v))
-    }
-
-    /**
-    Capture arguments from a displayable value.
-    */
-    pub fn display(v: &'a impl fmt::Display) -> Self {
-        Arguments(ArgumentsInner::Display(v))
-    }
-}
-
-impl<'a> From<fmt::Arguments<'a>> for Arguments<'a> {
-    fn from(v: fmt::Arguments<'a>) -> Self {
-        Arguments(ArgumentsInner::Args(v))
-    }
-}
-
-impl<'a> From<&'a dyn fmt::Debug> for Arguments<'a> {
-    fn from(v: &'a dyn fmt::Debug) -> Self {
-        Arguments(ArgumentsInner::Debug(v))
-    }
-}
-
-impl<'a> From<&'a dyn fmt::Display> for Arguments<'a> {
-    fn from(v: &'a dyn fmt::Display) -> Self {
-        Arguments(ArgumentsInner::Display(v))
-    }
-}
-
-impl<'a> fmt::Debug for Arguments<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            ArgumentsInner::Debug(v) => v.fmt(f),
-            ArgumentsInner::Display(v) => v.fmt(f),
-            ArgumentsInner::Args(v) => v.fmt(f),
-        }
-    }
-}
-
-impl<'a> fmt::Display for Arguments<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            ArgumentsInner::Debug(v) => v.fmt(f),
-            ArgumentsInner::Display(v) => v.fmt(f),
-            ArgumentsInner::Args(v) => v.fmt(f),
-        }
-    }
-}
-
-/**
-A streamable error.
-
-This type shouldn't be confused with [`sval::Error`], which is
-used to communicate errors back to callers.
-The purpose of the `Source` type is to let streams serialize
-error types, that may have backtraces and other metadata.
-
-`Source`s can only be created when the `std` feature is available,
-but streams can still work with them by formatting them or passing
-them along even in no-std environments where the `Error` trait isn't available.
-*/
-pub struct Source<'a> {
-    #[cfg(feature = "std")]
-    inner: self::std_support::SourceError<'a>,
-    #[cfg(not(feature = "std"))]
-    _marker: crate::std::marker::PhantomData<&'a dyn crate::std::any::Any>,
-}
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-impl<'a> Source<'a> {
-    pub(crate) fn empty() -> Self {
-        Source {
-            _marker: Default::default(),
-        }
-    }
-}
-
-impl<'a> fmt::Debug for Source<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        #[cfg(feature = "std")]
-        {
-            fmt::Debug::fmt(&self.inner, f)
-        }
-
-        #[cfg(not(feature = "std"))]
-        {
-            f.debug_struct("Source").finish()
-        }
-    }
-}
-
-impl<'a> fmt::Display for Source<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        #[cfg(feature = "std")]
-        {
-            fmt::Display::fmt(&self.inner, f)
-        }
-
-        #[cfg(not(feature = "std"))]
-        {
-            f.debug_struct("Source").finish()
-        }
-    }
-}
 
 /**
 A receiver for the structure of a value.
@@ -942,112 +810,6 @@ where
 The type returned by streaming methods.
 */
 pub type Result = crate::std::result::Result<(), crate::Error>;
-
-#[cfg(feature = "std")]
-mod std_support {
-    use crate::std::{
-        fmt,
-        error::Error,
-        marker::PhantomData,
-        mem,
-    };
-
-    use super::Source;
-
-    pub(super) struct SourceError<'a> {
-        extended: ExtendedLifetimeError,
-        _marker: PhantomData<&'a dyn Error>,
-    }
-
-    impl<'a> fmt::Debug for SourceError<'a> {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            fmt::Debug::fmt(&self.extended, f)
-        }
-    }
-
-    impl<'a> fmt::Display for SourceError<'a> {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            fmt::Display::fmt(&self.extended, f)
-        }
-    }
-
-    /**
-    A wrapper over an error type with an artificially extended lifetime.
-
-    Borrows of this value are returned by `SourceError` but it's important
-    that callers can't get at the inner `&'static dyn Error` directly. They
-    also can't downcast the value to a `ExtendedLifetimeError` or the inner
-    value even if it does support downcasting, but they can iterate its causes
-    and grab a backtrace.
-    */
-    struct ExtendedLifetimeError(&'static dyn Error);
-
-    impl fmt::Debug for ExtendedLifetimeError {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            fmt::Debug::fmt(self.0, f)
-        }
-    }
-
-    impl fmt::Display for ExtendedLifetimeError {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            fmt::Display::fmt(self.0, f)
-        }
-    }
-
-    impl Error for ExtendedLifetimeError {
-        fn source(&self) -> Option<&(dyn Error + 'static)> {
-            self.0.source()
-        }
-
-        // NOTE: Once backtraces are stable, add them here too
-    }
-
-    impl<'a> Error for &'a ExtendedLifetimeError {
-        fn source(&self) -> Option<&(dyn Error + 'static)> {
-            self.0.source()
-        }
-
-        // NOTE: Once backtraces are stable, add them here too
-    }
-
-    impl<'a> Source<'a> {
-        /**
-        Capture an error source from a standard error.
-
-        This method is only available when the `std` feature is enabled.
-        */
-        pub fn new(err: &'a impl Error) -> Self {
-            Source::from(err as &'a dyn Error)
-        }
-
-        /**
-        Get the inner error.
-        */
-        pub fn get<'b>(&'b self) -> impl Error + 'b {
-            &self.inner.extended
-        }
-    }
-
-    impl<'a> AsRef<dyn Error + 'static> for Source<'a> {
-        fn as_ref(&self) -> &(dyn Error + 'static) {
-            &self.inner.extended
-        }
-    }
-
-    impl<'a> From<&'a dyn Error> for Source<'a> {
-        fn from(err: &'a dyn Error) -> Self {
-            Source {
-                inner: SourceError {
-                    // SAFETY: We're careful not to expose the actual value with the fake lifetime
-                    // Calling code can only interact with it through an arbitrarily short borrow
-                    // that's bound to `'a` from `self`, which is the real McCoy lifetime of the error
-                    extended: ExtendedLifetimeError(unsafe { mem::transmute::<&'a dyn Error, &'static dyn Error>(err) }),
-                    _marker: PhantomData,
-                },
-            }
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
