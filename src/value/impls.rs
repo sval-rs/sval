@@ -460,21 +460,27 @@ mod tests {
         use crate::{
             std::{
                 collections::HashMap,
-                sync::Arc,
                 io,
+                sync::Arc,
             },
+            stream::Source,
             test::{
                 self,
                 Token,
             },
-            stream::Source,
-            value::{self, Value},
+            value::{
+                self,
+                Value,
+            },
         };
 
         #[test]
         fn stream_error() {
             let err = io::Error::from(io::ErrorKind::Other);
-            assert_eq!(vec![Token::Error(test::Source::new(&err))], test::tokens(Source::new(&err)));
+            assert_eq!(
+                vec![Token::Error(test::Source::new(&err))],
+                test::tokens(Source::new(&err))
+            );
         }
 
         #[test]
@@ -487,7 +493,12 @@ mod tests {
                 }
             }
 
-            assert_eq!(vec![Token::Error(test::Source::new(&io::Error::from(io::ErrorKind::Other)))], test::tokens(MyError));
+            assert_eq!(
+                vec![Token::Error(test::Source::new(&io::Error::from(
+                    io::ErrorKind::Other
+                )))],
+                test::tokens(MyError)
+            );
         }
 
         #[test]

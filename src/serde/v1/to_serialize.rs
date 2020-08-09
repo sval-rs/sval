@@ -864,7 +864,9 @@ mod alloc_support {
                     Kind::Error(ref v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
-                        stream::Source::from(&**v).to_serialize().serialize(serializer)
+                        stream::Source::from(&**v)
+                            .to_serialize()
+                            .serialize(serializer)
                     }
                     Kind::None => {
                         reader.expect_empty().map_err(S::Error::custom)?;
