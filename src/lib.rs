@@ -12,7 +12,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval]
-version = "1.0.0-alpha.2"
+version = "1.0.0-alpha.3"
 ```
 
 # Supported formats
@@ -170,7 +170,7 @@ fn with_value(value: impl Value) {
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval/1.0.0-alpha.2")]
+#![doc(html_root_url = "https://docs.rs/sval/1.0.0-alpha.3")]
 #![no_std]
 
 #[doc(hidden)]
