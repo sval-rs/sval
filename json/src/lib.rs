@@ -10,7 +10,7 @@ Add `sval_json` to your `Cargo.toml`:
 
 ```toml,ignore
 [dependencies.sval_json]
-version = "1.0.0-alpha.3"
+version = "1.0.0-alpha.4"
 ```
 
 # Writing JSON to `fmt::Write`
@@ -79,7 +79,7 @@ let json = sval_json::to_writer(MyWrite, 42)?;
 ```
 */
 
-#![doc(html_root_url = "https://docs.rs/sval_json/1.0.0-alpha.3")]
+#![doc(html_root_url = "https://docs.rs/sval_json/1.0.0-alpha.4")]
 #![no_std]
 
 #[cfg(feature = "std")]
