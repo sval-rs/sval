@@ -49,8 +49,8 @@ where
 
     #[inline]
     #[cfg(feature = "std")]
-    pub fn error(&mut self, v: impl error::Error) -> collect::Result {
-        self.stream.error(Source::from(&v as &dyn error::Error))
+    pub fn error(&mut self, v: &(dyn error::Error + 'static)) -> collect::Result {
+        self.stream.error(Source::from(v))
     }
 
     #[inline]
@@ -175,7 +175,7 @@ impl<'a> RefMutCollect<'a> {
 
     #[inline]
     #[cfg(feature = "std")]
-    pub fn error(&mut self, v: impl error::Error) -> collect::Result {
+    pub fn error(&mut self, v: &(dyn error::Error + 'static)) -> collect::Result {
         self.0.error(v)
     }
 

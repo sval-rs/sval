@@ -489,7 +489,7 @@ mod tests {
 
             impl Value for MyError {
                 fn stream(&self, stream: &mut value::Stream) -> value::Result {
-                    stream.error(io::Error::from(io::ErrorKind::Other))
+                    stream.error(&io::Error::from(io::ErrorKind::Other))
                 }
             }
 

@@ -115,7 +115,7 @@ where
     */
     #[inline]
     #[cfg(feature = "std")]
-    pub fn error(&mut self, v: impl error::Error) -> stream::Result {
+    pub fn error(&mut self, v: &(dyn error::Error + 'static)) -> stream::Result {
         self.0.error(v)
     }
 
@@ -442,7 +442,7 @@ impl<'a> RefMutStream<'a> {
     */
     #[inline]
     #[cfg(feature = "std")]
-    pub fn error(&mut self, v: impl error::Error) -> stream::Result {
+    pub fn error(&mut self, v: &(dyn error::Error + 'static)) -> stream::Result {
         self.0.error(v)
     }
 
