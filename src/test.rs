@@ -39,6 +39,7 @@ mod alloc_support {
     /**
     The kind of token being produced.
     */
+    #[non_exhaustive]
     #[derive(Debug, Clone, PartialEq)]
     pub enum Token {
         MapBegin(Option<usize>),
