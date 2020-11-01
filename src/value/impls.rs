@@ -267,12 +267,20 @@ mod std_support {
 
     use crate::std::{
         collections::HashMap,
+        error,
         hash::{
             BuildHasher,
             Hash,
         },
         sync::Arc,
     };
+
+    impl Value for dyn error::Error + 'static {
+        #[inline]
+        fn stream(&self, stream: &mut value::Stream) -> value::Result {
+            stream.error(self)
+        }
+    }
 
     impl<T: ?Sized> Value for Arc<T>
     where
@@ -460,6 +468,7 @@ mod tests {
         use crate::{
             std::{
                 collections::HashMap,
+                error,
                 io,
                 sync::Arc,
             },
@@ -498,6 +507,15 @@ mod tests {
                     io::ErrorKind::Other
                 )))],
                 test::tokens(MyError)
+            );
+        }
+
+        #[test]
+        fn stream_dyn_error() {
+            let err: &(dyn error::Error + 'static) = &io::Error::from(io::ErrorKind::Other);
+            assert_eq!(
+                vec![Token::Error(test::Source::new(err))],
+                test::tokens(err)
             );
         }
 
