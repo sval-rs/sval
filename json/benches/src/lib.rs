@@ -18,14 +18,14 @@ fn input_struct() -> Twitter {
 #[bench]
 fn primitive_miniserde(b: &mut test::Bencher) {
     b.iter(|| {
-        miniserde::json::to_string(&42);
+        miniserde::json::to_string(&42)
     });
 }
 
 #[bench]
 fn primitive_serde(b: &mut test::Bencher) {
     b.iter(|| {
-        serde_json::to_string(&42).unwrap();
+        serde_json::to_string(&42).unwrap()
     });
 }
 
@@ -34,21 +34,21 @@ fn primitive_erased_serde(b: &mut test::Bencher) {
     let s: Box<dyn erased_serde::Serialize> = Box::new(42);
 
     b.iter(|| {
-        serde_json::to_string(&s).unwrap();
+        serde_json::to_string(&s).unwrap()
     });
 }
 
 #[bench]
 fn primitive_sval(b: &mut test::Bencher) {
     b.iter(|| {
-        sval_json::to_string(&42).unwrap();
+        sval_json::to_string(&42).unwrap()
     });
 }
 
 #[bench]
 fn primitive_sval_noop(b: &mut test::Bencher) {
     b.iter(|| {
-        sval_noop(&42).unwrap();
+        sval_noop(&42).unwrap()
     });
 }
 
@@ -56,7 +56,7 @@ fn primitive_sval_noop(b: &mut test::Bencher) {
 fn twitter_miniserde(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        miniserde::json::to_string(&s);
+        miniserde::json::to_string(&s)
     });
 }
 
@@ -64,7 +64,7 @@ fn twitter_miniserde(b: &mut test::Bencher) {
 fn twitter_serde(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        serde_json::to_string(&s).unwrap();
+        serde_json::to_string(&s).unwrap()
     });
 }
 
@@ -72,7 +72,7 @@ fn twitter_serde(b: &mut test::Bencher) {
 fn twitter_erased_serde(b: &mut test::Bencher) {
     let s: Box<dyn erased_serde::Serialize> = Box::new(input_struct());
     b.iter(|| {
-        serde_json::to_string(&s).unwrap();
+        serde_json::to_string(&s).unwrap()
     });
 }
 
@@ -80,7 +80,7 @@ fn twitter_erased_serde(b: &mut test::Bencher) {
 fn twitter_sval(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        sval_json::to_string(&s).unwrap();
+        sval_json::to_string(&s).unwrap()
     });
 }
 
@@ -88,7 +88,7 @@ fn twitter_sval(b: &mut test::Bencher) {
 fn twitter_sval_noop(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        sval_noop(&s).unwrap();
+        sval_noop(&s).unwrap()
     });
 }
 
@@ -96,7 +96,7 @@ fn twitter_sval_noop(b: &mut test::Bencher) {
 fn twitter_sval_to_serde(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        serde_json::to_string(&sval::serde::v1::to_serialize(&s)).unwrap();
+        serde_json::to_string(&sval::serde::v1::to_serialize(&s)).unwrap()
     });
 }
 
@@ -104,7 +104,7 @@ fn twitter_sval_to_serde(b: &mut test::Bencher) {
 fn twitter_serde_to_sval(b: &mut test::Bencher) {
     let s = input_struct();
     b.iter(|| {
-        sval_json::to_string(sval::serde::v1::to_value(&s)).unwrap();
+        sval_json::to_string(sval::serde::v1::to_value(&s)).unwrap()
     });
 }
 
@@ -115,7 +115,23 @@ fn twitter_serde_to_sval_to_serde(b: &mut test::Bencher) {
         serde_json::to_string(&sval::serde::v1::to_serialize(sval::serde::v1::to_value(
             &s,
         )))
-        .unwrap();
+        .unwrap()
+    });
+}
+
+#[bench]
+fn twitter_sval_collect(b: &mut test::Bencher) {
+    let s = input_struct();
+    b.iter(|| {
+        sval::value::OwnedValue::collect(&s)
+    });
+}
+
+#[bench]
+fn twitter_serde_collect(b: &mut test::Bencher) {
+    let s = input_struct();
+    b.iter(|| {
+        serde_json::to_value(&s).unwrap()
     });
 }
 

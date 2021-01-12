@@ -275,6 +275,7 @@ mod std {
         rc,
         string,
         vec,
+        sync,
     };
 
     pub use crate::core_lib::*;

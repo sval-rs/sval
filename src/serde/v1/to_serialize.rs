@@ -92,7 +92,7 @@ where
     ok: Option<S::Ok>,
     pos: Option<Pos>,
     #[cfg(feature = "alloc")]
-    buffered: Option<self::alloc_support::Buf>,
+    buffered: Option<self::alloc_support::TokenBuf>,
     current: Option<Current<S>>,
 }
 
@@ -445,7 +445,7 @@ mod alloc_support {
     };
 
     pub(super) use crate::value::owned::{
-        Buf,
+        TokenBuf,
         Token,
     };
 
@@ -456,11 +456,11 @@ mod alloc_support {
         /**
         Begin a buffer with the given token or push it if a buffer already exists.
         */
-        fn buffer_begin(&mut self) -> &mut Buf {
+        fn buffer_begin(&mut self) -> &mut TokenBuf {
             match self.buffered {
                 Some(ref mut buffered) => buffered,
                 None => {
-                    self.buffered = Some(Buf::new());
+                    self.buffered = Some(TokenBuf::new());
                     self.buffered.as_mut().unwrap()
                 }
             }
@@ -486,7 +486,7 @@ mod alloc_support {
         Get a reference to the buffer if it's active.
         */
         #[inline]
-        fn buffer(&mut self) -> Option<&mut Buf> {
+        fn buffer(&mut self) -> Option<&mut TokenBuf> {
             match self.buffered {
                 None => None,
                 Some(ref mut buffered) if buffered.tokens().len() > 0 => Some(buffered),
@@ -814,81 +814,81 @@ mod alloc_support {
         where
             S: Serializer,
         {
-            use self::value::owned::Kind;
+            use self::value::owned::TokenKind;
 
             let mut reader = self.reader();
 
             match reader.next() {
                 None => serializer.serialize_none(),
                 Some(token) => match token.kind {
-                    Kind::Signed(v) => {
+                    TokenKind::Signed(v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::Unsigned(v) => {
+                    TokenKind::Unsigned(v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::BigSigned(v) => {
+                    TokenKind::BigSigned(v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::BigUnsigned(v) => {
+                    TokenKind::BigUnsigned(v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::Float(v) => {
+                    TokenKind::Float(v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::Bool(v) => {
+                    TokenKind::Bool(v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::Char(v) => {
+                    TokenKind::Char(v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::Str(ref v) => {
+                    TokenKind::Str(ref v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         v.serialize(serializer)
                     }
-                    Kind::Error(ref v) => {
+                    TokenKind::Error(ref v) => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         stream::Source::from(&**v)
                             .to_serialize()
                             .serialize(serializer)
                     }
-                    Kind::None => {
+                    TokenKind::None => {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         serializer.serialize_none()
                     }
-                    Kind::MapBegin(len) => {
+                    TokenKind::MapBegin(len) => {
                         let mut map = serializer.serialize_map(len)?;
 
                         while let Some(next) = reader.next() {
                             match next.kind {
-                                Kind::MapKey => {
+                                TokenKind::MapKey => {
                                     let key = reader.next_serializable(next.depth.clone());
 
                                     map.serialize_key(&key)?;
                                 }
-                                Kind::MapValue => {
+                                TokenKind::MapValue => {
                                     let value = reader.next_serializable(next.depth.clone());
 
                                     map.serialize_value(&value)?;
                                 }
-                                Kind::MapEnd => {
+                                TokenKind::MapEnd => {
                                     reader.expect_empty().map_err(S::Error::custom)?;
                                     break;
                                 }
@@ -900,17 +900,17 @@ mod alloc_support {
 
                         map.end()
                     }
-                    Kind::SeqBegin(len) => {
+                    TokenKind::SeqBegin(len) => {
                         let mut seq = serializer.serialize_seq(len)?;
 
                         while let Some(next) = reader.next() {
                             match next.kind {
-                                Kind::SeqElem => {
+                                TokenKind::SeqElem => {
                                     let elem = reader.next_serializable(next.depth.clone());
 
                                     seq.serialize_element(&elem)?;
                                 }
-                                Kind::SeqEnd => {
+                                TokenKind::SeqEnd => {
                                     reader.expect_empty().map_err(S::Error::custom)?;
                                     break;
                                 }

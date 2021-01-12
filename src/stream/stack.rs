@@ -40,7 +40,7 @@ to have the same depth or greater.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Depth(usize);
 
-#[cfg(feature = "alloc")]
+#[cfg(any(test, feature = "test"))]
 impl Depth {
     pub(crate) fn root() -> Self {
         Depth(0)
