@@ -28,8 +28,8 @@ mod alloc_support {
         },
         value::{
             owned::{
-                TokenKind,
                 OwnedSource,
+                TokenKind,
             },
             OwnedValue,
             Value,

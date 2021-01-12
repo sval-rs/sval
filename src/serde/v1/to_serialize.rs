@@ -445,8 +445,8 @@ mod alloc_support {
     };
 
     pub(super) use crate::value::owned::{
-        TokenBuf,
         Token,
+        TokenBuf,
     };
 
     impl<S> Stream<S>

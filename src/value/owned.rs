@@ -6,15 +6,15 @@ use crate::{
     std::{
         boxed::Box,
         fmt,
+        ops::Deref,
+        ptr,
+        str,
         string::{
             String,
             ToString,
         },
-        vec::Vec,
         sync::Arc,
-        ptr,
-        str,
-        ops::Deref,
+        vec::Vec,
     },
     stream::{
         self,
@@ -302,10 +302,8 @@ where
             InlineStringInner::Inline(len, ref buf) => {
                 // SAFETY: The written portion of `buf[..len]` is a valid UTF8 string
                 // SAFETY: `len` is within the bounds of `buf`
-                unsafe {
-                    str::from_utf8_unchecked(buf.get_unchecked(0..len as usize))
-                }
-            },
+                unsafe { str::from_utf8_unchecked(buf.get_unchecked(0..len as usize)) }
+            }
             InlineStringInner::Shared(ref s) => &*s,
         }
     }
@@ -488,7 +486,10 @@ impl Stream for TokenBuf {
     fn error(&mut self, v: stream::Source) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(TokenKind::Error(SharedContainer::from(OwnedSource::from(v))), depth);
+        self.push(
+            TokenKind::Error(SharedContainer::from(OwnedSource::from(v))),
+            depth,
+        );
 
         Ok(())
     }
@@ -672,7 +673,7 @@ impl Primitive {
                 Primitive::Char(v) => TokenKind::Char(v),
                 Primitive::Error(ref v) => TokenKind::Error(v.clone()),
                 Primitive::None => TokenKind::None,
-            }
+            },
         }
     }
 }
@@ -708,7 +709,9 @@ impl Stream for PrimitiveBuf {
     }
 
     fn error(&mut self, v: stream::Source) -> stream::Result {
-        self.set(Primitive::Error(SharedContainer::from(OwnedSource::from(v))));
+        self.set(Primitive::Error(SharedContainer::from(OwnedSource::from(
+            v,
+        ))));
 
         Ok(())
     }
@@ -946,11 +949,7 @@ mod tests {
 
     #[test]
     fn inline_str_small() {
-        let strs = vec![
-            "",
-            "a",
-            "1234567890123456789012",
-        ];
+        let strs = vec!["", "a", "1234567890123456789012"];
 
         for s in strs {
             let inline = InlineString::<Box<str>>::from(s);
@@ -962,10 +961,7 @@ mod tests {
 
     #[test]
     fn inline_str_large() {
-        let strs = vec![
-            "😎😎😎😎😎😎😎😎",    
-            "12345678901234567890123",
-        ];
+        let strs = vec!["😎😎😎😎😎😎😎😎", "12345678901234567890123"];
 
         for s in strs {
             let inline = InlineString::<Box<str>>::from(s);

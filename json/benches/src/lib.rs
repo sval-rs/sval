@@ -17,95 +17,71 @@ fn input_struct() -> Twitter {
 
 #[bench]
 fn primitive_miniserde(b: &mut test::Bencher) {
-    b.iter(|| {
-        miniserde::json::to_string(&42)
-    });
+    b.iter(|| miniserde::json::to_string(&42));
 }
 
 #[bench]
 fn primitive_serde(b: &mut test::Bencher) {
-    b.iter(|| {
-        serde_json::to_string(&42).unwrap()
-    });
+    b.iter(|| serde_json::to_string(&42).unwrap());
 }
 
 #[bench]
 fn primitive_erased_serde(b: &mut test::Bencher) {
     let s: Box<dyn erased_serde::Serialize> = Box::new(42);
 
-    b.iter(|| {
-        serde_json::to_string(&s).unwrap()
-    });
+    b.iter(|| serde_json::to_string(&s).unwrap());
 }
 
 #[bench]
 fn primitive_sval(b: &mut test::Bencher) {
-    b.iter(|| {
-        sval_json::to_string(&42).unwrap()
-    });
+    b.iter(|| sval_json::to_string(&42).unwrap());
 }
 
 #[bench]
 fn primitive_sval_noop(b: &mut test::Bencher) {
-    b.iter(|| {
-        sval_noop(&42).unwrap()
-    });
+    b.iter(|| sval_noop(&42).unwrap());
 }
 
 #[bench]
 fn twitter_miniserde(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        miniserde::json::to_string(&s)
-    });
+    b.iter(|| miniserde::json::to_string(&s));
 }
 
 #[bench]
 fn twitter_serde(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        serde_json::to_string(&s).unwrap()
-    });
+    b.iter(|| serde_json::to_string(&s).unwrap());
 }
 
 #[bench]
 fn twitter_erased_serde(b: &mut test::Bencher) {
     let s: Box<dyn erased_serde::Serialize> = Box::new(input_struct());
-    b.iter(|| {
-        serde_json::to_string(&s).unwrap()
-    });
+    b.iter(|| serde_json::to_string(&s).unwrap());
 }
 
 #[bench]
 fn twitter_sval(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        sval_json::to_string(&s).unwrap()
-    });
+    b.iter(|| sval_json::to_string(&s).unwrap());
 }
 
 #[bench]
 fn twitter_sval_noop(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        sval_noop(&s).unwrap()
-    });
+    b.iter(|| sval_noop(&s).unwrap());
 }
 
 #[bench]
 fn twitter_sval_to_serde(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        serde_json::to_string(&sval::serde::v1::to_serialize(&s)).unwrap()
-    });
+    b.iter(|| serde_json::to_string(&sval::serde::v1::to_serialize(&s)).unwrap());
 }
 
 #[bench]
 fn twitter_serde_to_sval(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        sval_json::to_string(sval::serde::v1::to_value(&s)).unwrap()
-    });
+    b.iter(|| sval_json::to_string(sval::serde::v1::to_value(&s)).unwrap());
 }
 
 #[bench]
@@ -122,17 +98,13 @@ fn twitter_serde_to_sval_to_serde(b: &mut test::Bencher) {
 #[bench]
 fn twitter_sval_collect(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        sval::value::OwnedValue::collect(&s)
-    });
+    b.iter(|| sval::value::OwnedValue::collect(&s));
 }
 
 #[bench]
 fn twitter_serde_collect(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| {
-        serde_json::to_value(&s).unwrap()
-    });
+    b.iter(|| serde_json::to_value(&s).unwrap());
 }
 
 fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
