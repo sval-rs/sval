@@ -126,7 +126,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: beta
           override: true
 
       - name: Default features
@@ -146,7 +146,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: beta
+          toolchain: nightly
           override: true
 
       - name: Default features
