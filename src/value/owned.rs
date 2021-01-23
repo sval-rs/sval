@@ -853,6 +853,9 @@ mod std_support {
 mod tests {
     use super::*;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     use crate::{
         std::mem,
         test::{

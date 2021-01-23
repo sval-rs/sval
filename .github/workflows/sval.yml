@@ -166,7 +166,7 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       
       - name: Default features
-        run: wasm-pack test --headless --firefox
+        run: wasm-pack test --headless --firefox -- --all-features
 
   benches:
     name: Build (benches)
