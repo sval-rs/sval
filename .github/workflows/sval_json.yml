@@ -72,12 +72,6 @@ jobs:
 
       - name: Default features
         run: cd json; wasm-pack test --headless --firefox
-      
-      - name: All features
-        run: cd json; wasm-pack test --headless --firefox --all-features
-
-      - name: No features
-        run: cd json; wasm-pack test --headless --firefox --no-features
 
   nodeps:
     name: Build (no dev deps)
