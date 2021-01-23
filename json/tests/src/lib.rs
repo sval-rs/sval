@@ -4,9 +4,13 @@ extern crate serde;
 #[macro_use]
 extern crate sval;
 
+#[cfg(all(test, target_arch = "wasm32"))]
+use wasm_bindgen_test::*;
+
 use miniserde::Serialize as MiniSerialize;
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn sval_json_writer_is_valid() {
     sval::test::stream_exhaustive(
         || sval_json::Writer::new(Vec::new()),
@@ -23,9 +27,12 @@ fn sval_json_writer_is_valid() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn sval_json_is_valid() {
+    let content = include_str!("../twitter.json");
+
     let s: Twitter =
-        serde_json::from_str(&std::fs::read_to_string("twitter.json").unwrap()).unwrap();
+        serde_json::from_str(content).unwrap();
 
     let json = sval_json::to_string(&s).unwrap();
 

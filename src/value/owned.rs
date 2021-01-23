@@ -853,6 +853,9 @@ mod std_support {
 mod tests {
     use super::*;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     use crate::{
         std::mem,
         test::{
@@ -891,9 +894,20 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_value_size() {
         let size = mem::size_of::<OwnedValue>();
-        let limit = mem::size_of::<u64>() * 6;
+        let limit = {
+            #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+            {
+                mem::size_of::<u64>() * 6
+            }
+
+            #[cfg(not(all(target_arch = "aarch64", target_os = "macos")))]
+            {
+                mem::size_of::<u64>() * 5
+            }
+        };
 
         if size > limit {
             panic!(
@@ -907,6 +921,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_value_is_send_sync() {
         fn is_send_sync<T: Send + Sync>() {}
 
@@ -914,6 +929,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_primitive() {
         assert_eq!(
             vec![Token::Str("a format 1".into())],
@@ -943,6 +959,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_map() {
         let v = test::tokens(Map);
 
@@ -960,6 +977,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_seq() {
         let v = test::tokens(Seq);
 
@@ -975,6 +993,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn inline_str_small() {
         let strs = vec!["", "a", "1234567890123456789012"];
 
@@ -987,6 +1006,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn inline_str_large() {
         let strs = vec!["😎😎😎😎😎😎😎😎", "12345678901234567890123"];
 
@@ -1003,6 +1023,7 @@ mod tests {
         use super::*;
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn owned_error() {
             let v = test::tokens(stream::Source::empty());
 
@@ -1021,6 +1042,7 @@ mod tests {
         };
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn owned_error() {
             #[derive(Debug)]
             struct TestError {

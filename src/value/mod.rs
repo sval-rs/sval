@@ -18,7 +18,7 @@ Then derive the `Value` for struct-like datastructures:
 
 ```
 # fn main() {}
-# #[cfg(feature = "derive")]
+# #[cfg(all(feature = "std", feature = "derive"))]
 # mod test {
 use sval::Value;
 

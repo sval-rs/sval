@@ -1,0 +1,168 @@
+name: sval
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+      
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
+
+      - name: Powerset
+        run: cargo hack test --feature-powerset
+  
+  wasm:
+    name: Test (wasm)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+      - name: All features
+        run: wasm-pack test --node -- --all-features
+
+  fmt:
+    name: Test (fmt consistency)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p sval_fmt_tests
+  
+  serdealloc:
+    name: Test (serde alloc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p sval_serde_alloc_tests
+  
+  serdenoalloc:
+    name: Test (serde no-alloc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p sval_serde_no_alloc_tests
+
+  embedded:
+    name: Build (embedded)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: thumbv6m-none-eabi
+          override: true
+
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
+
+      - name: Powerset
+        run: cargo hack check --each-feature --exclude-features std,test -Z avoid-dev-deps --target thumbv6m-none-eabi
+
+  benches:
+    name: Build (benches)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: bench
+          args: --no-run --all
+
+  nodeps:
+    name: Build (no dev deps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
+
+      - name: Powerset
+        run: cargo hack check --feature-powerset -Z avoid-dev-deps
