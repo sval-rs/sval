@@ -23,8 +23,8 @@ version = "1"
 [dependencies.miniserde]
 version = "0.1"
 
-[dev-dependencies.wasm-bindgen]
+[target.'cfg(target_arch = "wasm32")'.dependencies.wasm-bindgen]
 version = "0.2"
 
-[dev-dependencies.wasm-bindgen-test]
+[target.'cfg(target_arch = "wasm32")'.dependencies.wasm-bindgen-test]
 version = "0.3"

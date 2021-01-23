@@ -314,9 +314,6 @@ mod std_support {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[cfg(feature = "alloc")]
     mod alloc_support {
         use crate::{
@@ -332,6 +329,9 @@ mod tests {
                 Token,
             },
         };
+
+        #[cfg(target_arch = "wasm32")]
+        use wasm_bindgen_test::*;
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -495,6 +495,9 @@ mod tests {
                 Value,
             },
         };
+
+        #[cfg(target_arch = "wasm32")]
+        use wasm_bindgen_test::*;
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]

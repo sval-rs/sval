@@ -30,25 +30,21 @@ jobs:
       - name: Install cargo-hack
         run: cargo install cargo-hack
 
-      - name: Default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-      - name: No features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features
-    
-      - name: All features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features
-
       - name: Powerset
         run: cargo hack test --feature-powerset
+  
+  wasm:
+    name: Test (wasm)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+      - name: Default features
+        run: wasm-pack test --headless --firefox -- --all-features
 
   fmt:
     name: Test (fmt consistency)
@@ -91,7 +87,7 @@ jobs:
           args: -p sval_serde_alloc_tests
   
   serdenoalloc:
-    name: Test (serde embedded)
+    name: Test (serde no-alloc)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -125,48 +121,11 @@ jobs:
           target: thumbv6m-none-eabi
           override: true
 
-      - name: Default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --target thumbv6m-none-eabi
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
 
-      - name: alloc
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features alloc
-
-      - name: arbitrary-depth
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features arbitrary-depth
-
-      - name: fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features fmt
-
-      - name: serde
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features serde
-
-  wasm:
-    name: Test (wasm)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      
-      - name: Default features
-        run: wasm-pack test --headless --firefox -- --all-features
+      - name: Powerset
+        run: cargo hack check --each-feature --exclude-features std,test -Z avoid-dev-deps --target thumbv6m-none-eabi
 
   benches:
     name: Build (benches)
@@ -202,20 +161,8 @@ jobs:
           toolchain: nightly
           override: true
 
-      - name: Default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
 
-      - name: No features
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --no-default-features
-
-      - name: All features
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --all-features
+      - name: Powerset
+        run: cargo hack check --feature-powerset -Z avoid-dev-deps
