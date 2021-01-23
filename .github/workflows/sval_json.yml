@@ -42,7 +42,7 @@ jobs:
       - name: Powerset
         run: cd json; cargo hack test --feature-powerset
   
-  test:
+  testcompat:
     name: Test (compat)
     runs-on: ubuntu-latest
     strategy:
