@@ -119,4 +119,12 @@ jobs:
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: cd json
-      - run: wasm-pack test --headless --firefox
+
+      - name: Default features
+        run: wasm-pack test --headless --firefox
+      
+      - name: All features
+        run: wasm-pack test --headless --firefox --all-features
+
+    - name: No features
+        run: wasm-pack test --headless --firefox --no-features
