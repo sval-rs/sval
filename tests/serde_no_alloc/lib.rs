@@ -11,7 +11,6 @@ sval_if_alloc! {
     else
     {
         use sval::{
-            test::Token,
             value::{
                 self,
                 Value,
@@ -68,25 +67,12 @@ sval_if_alloc! {
                 c: Nested { a: 3, b: "Hello!" },
             });
 
-            let v = sval::test::tokens(sval::serde::v1::to_value(ser));
-            assert_eq!(
-                vec![
-                    Token::MapBegin(Some(3)),
-                    Token::Str(String::from("a")),
-                    Token::Signed(1),
-                    Token::Str(String::from("b")),
-                    Token::Signed(2),
-                    Token::Str(String::from("renamed")),
-                    Token::MapBegin(Some(2)),
-                    Token::Str(String::from("a")),
-                    Token::Signed(3),
-                    Token::Str(String::from("b")),
-                    Token::Str(String::from("Hello!")),
-                    Token::MapEnd,
-                    Token::MapEnd,
-                ],
-                v
-            );
+            let mut buf = String::new();
+            let value = sval_json::to_fmt(&mut buf, sval::serde::v1::to_value(ser)).unwrap();
+
+            let expected = "{\"a\":1,\"b\":2,\"renamed\":{\"a\":3,\"b\":\"Hello!\"}}";
+
+            assert_eq!(expected, value);
         }
 
         #[test]
@@ -95,7 +81,8 @@ sval_if_alloc! {
             let ser = sval::serde::v1::to_serialize(Anonymous);
 
             // The anonymous map isn't supported in no-std
-            sval::test::tokens(sval::serde::v1::to_value(ser));
+            let mut buf = String::new();
+            sval_json::to_fmt(&mut buf, sval::serde::v1::to_value(ser)).unwrap();
         }
     }
 }
