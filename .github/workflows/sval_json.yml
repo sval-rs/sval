@@ -29,28 +29,18 @@ jobs:
       
       - name: Install cargo-hack
         run: cargo install cargo-hack
-      
-      - run: cd json
 
       - name: Default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cd json; cargo test
 
       - name: No features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features
+        run: cd json; cargo test --no-default-features
     
       - name: All features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features
+        run: cd json; cargo test --all-features
 
       - name: Powerset
-        run: cargo hack test --feature-powerset
+        run: cd json; cargo hack test --feature-powerset
 
   embedded:
     name: Build (embedded)
@@ -66,14 +56,10 @@ jobs:
           toolchain: nightly
           target: thumbv6m-none-eabi
           override: true
-      
-      - run: cd json
 
       - name: Default features
         uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --target thumbv6m-none-eabi
+        run: cd json; cargo build -Z avoid-dev-deps --target thumbv6m-none-eabi
 
   wasm:
     name: Test (wasm)
@@ -84,16 +70,15 @@ jobs:
 
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - run: cd json
 
       - name: Default features
-        run: wasm-pack test --headless --firefox
+        run: cd json; wasm-pack test --headless --firefox
       
       - name: All features
-        run: wasm-pack test --headless --firefox --all-features
+        run: cd json; wasm-pack test --headless --firefox --all-features
 
       - name: No features
-        run: wasm-pack test --headless --firefox --no-features
+        run: cd json; wasm-pack test --headless --firefox --no-features
 
   nodeps:
     name: Build (no dev deps)
@@ -108,23 +93,15 @@ jobs:
           profile: minimal
           toolchain: nightly
           override: true
-      
-      - run: cd json
 
       - name: Default features
         uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps
+        run: cd json; cargo build -Z avoid-dev-deps
 
       - name: No features
         uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --no-default-features
+        run: cd json; cargo build -Z avoid-dev-deps --no-default-features
 
       - name: All features
         uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -Z avoid-dev-deps --all-features
+        run: cd json; cargo build -Z avoid-dev-deps --all-features
