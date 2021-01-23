@@ -30,9 +30,6 @@ categories = ["encoding", "no-std"]
 [package.metadata.docs.rs]
 features = ["derive", "serde", "fmt", "test", "std"]
 
-[badges]
-travis-ci = { repository = "sval-rs/sval" }
-
 [features]
 # Support the standard library
 std = ["alloc"]

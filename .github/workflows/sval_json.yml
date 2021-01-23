@@ -41,6 +41,30 @@ jobs:
 
       - name: Powerset
         run: cd json; cargo hack test --feature-powerset
+  
+  test:
+    name: Test (compat)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Default features
+        run: cd json/tests; cargo test
 
   embedded:
     name: Build (embedded)
@@ -61,7 +85,7 @@ jobs:
         run: cd json; cargo build -Z avoid-dev-deps --target thumbv6m-none-eabi
 
   wasm:
-    name: Test (wasm)
+    name: Test (compat wasm)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -71,7 +95,7 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Default features
-        run: cd json; wasm-pack test --headless --firefox
+        run: cd json/tests; wasm-pack test --headless --firefox
 
   nodeps:
     name: Build (no dev deps)
