@@ -29,9 +29,3 @@ version = "1"
 version = "0.4"
 features = ["i128"]
 default-features = false
-
-[dev-dependencies.wasm-bindgen]
-version = "0.2"
-
-[dev-dependencies.wasm-bindgen-test]
-version = "0.3"
