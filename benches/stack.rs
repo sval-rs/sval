@@ -8,13 +8,8 @@ use sval::{
         self,
         Stream,
     },
-    value::{
-        self,
-        Value,
-    },
+    value,
 };
-
-use std::fmt;
 
 use test::{
     black_box,
@@ -25,7 +20,17 @@ struct EmptyStream;
 
 impl Stream for EmptyStream {
     #[inline(never)]
+    fn str(&mut self, _: &str) -> stream::Result {
+        Ok(())
+    }
+
+    #[inline(never)]
     fn u64(&mut self, _: u64) -> stream::Result {
+        Ok(())
+    }
+
+    #[inline(never)]
+    fn i64(&mut self, _: i64) -> stream::Result {
         Ok(())
     }
 
@@ -65,6 +70,30 @@ impl Stream for EmptyStream {
     }
 }
 
+struct Map;
+impl value::Value for Map {
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        stream.map_begin(None)?;
+
+        stream.map_key("a")?;
+        stream.map_value(42)?;
+
+        stream.map_key("b")?;
+        stream.map_value(42)?;
+
+        stream.map_key("c")?;
+        stream.map_value(42)?;
+
+        stream.map_key("d")?;
+        stream.map_value(42)?;
+
+        stream.map_key("e")?;
+        stream.map_value(42)?;
+
+        stream.map_end()
+    }
+}
+
 #[bench]
 fn stack_map(b: &mut Bencher) {
     b.iter(|| {
@@ -74,17 +103,29 @@ fn stack_map(b: &mut Bencher) {
 
         stack.map_key().unwrap();
         stack.primitive().unwrap();
-
         stack.map_value().unwrap();
-        stack.map_begin().unwrap();
+        stack.primitive().unwrap();
 
         stack.map_key().unwrap();
         stack.primitive().unwrap();
-
         stack.map_value().unwrap();
         stack.primitive().unwrap();
 
-        stack.map_end().unwrap();
+        stack.map_key().unwrap();
+        stack.primitive().unwrap();
+        stack.map_value().unwrap();
+        stack.primitive().unwrap();
+
+        stack.map_key().unwrap();
+        stack.primitive().unwrap();
+        stack.map_value().unwrap();
+        stack.primitive().unwrap();
+
+        stack.map_key().unwrap();
+        stack.primitive().unwrap();
+        stack.map_value().unwrap();
+        stack.primitive().unwrap();
+
         stack.map_end().unwrap();
 
         stack.end().unwrap();
@@ -121,18 +162,19 @@ fn raw_stream_map(b: &mut Bencher) {
         stream.map_begin(None).unwrap();
 
         stream.map_key().unwrap();
-        stream.u64(1).unwrap();
+        stream.str("a").unwrap();
 
         stream.map_value().unwrap();
-        stream.map_begin(None).unwrap();
+        stream.str("b").unwrap();
 
         stream.map_key().unwrap();
-        stream.u64(2).unwrap();
+        stream.str("c").unwrap();
 
         stream.map_value().unwrap();
-        stream.u64(42).unwrap();
+        stream.str("d").unwrap();
 
-        stream.map_end().unwrap();
+        stream.map_value().unwrap();
+        stream.str("e").unwrap();
 
         stream.map_end().unwrap();
 
@@ -142,25 +184,5 @@ fn raw_stream_map(b: &mut Bencher) {
 
 #[bench]
 fn stream_map(b: &mut Bencher) {
-    struct Map;
-
-    impl Value for Map {
-        fn stream(&self, stream: &mut value::Stream) -> value::Result {
-            stream.map_begin(None)?;
-
-            stream.map_key(1)?;
-
-            stream.map_value_begin()?.map_begin(None)?;
-
-            stream.map_key(2)?;
-
-            stream.map_value(42)?;
-
-            stream.map_end()?;
-
-            stream.map_end()
-        }
-    }
-
     b.iter(|| sval::stream(EmptyStream, Map))
 }

@@ -7,7 +7,7 @@ publish = false
 
 [dependencies.sval]
 path = "../../"
-features = ["derive", "serde"]
+features = ["derive", "serde", "std"]
 
 [dependencies.sval_json]
 path = "../"

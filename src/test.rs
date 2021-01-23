@@ -28,8 +28,8 @@ mod alloc_support {
         },
         value::{
             owned::{
-                Kind,
                 OwnedSource,
+                TokenKind,
             },
             OwnedValue,
             Value,
@@ -85,20 +85,20 @@ mod alloc_support {
             .unwrap()
             .iter()
             .filter_map(|token| match token.kind {
-                Kind::MapBegin(len) => Some(Token::MapBegin(len)),
-                Kind::MapEnd => Some(Token::MapEnd),
-                Kind::SeqBegin(len) => Some(Token::SeqBegin(len)),
-                Kind::SeqEnd => Some(Token::SeqEnd),
-                Kind::Signed(v) => Some(Token::Signed(v)),
-                Kind::Unsigned(v) => Some(Token::Unsigned(v)),
-                Kind::BigSigned(v) => Some(Token::BigSigned(v)),
-                Kind::BigUnsigned(v) => Some(Token::BigUnsigned(v)),
-                Kind::Float(v) => Some(Token::Float(v)),
-                Kind::Bool(v) => Some(Token::Bool(v)),
-                Kind::Char(v) => Some(Token::Char(v)),
-                Kind::Str(ref v) => Some(Token::Str((**v).into())),
-                Kind::None => Some(Token::None),
-                Kind::Error(ref err) => Some(Token::Error(Source((**err).clone()))),
+                TokenKind::MapBegin(len) => Some(Token::MapBegin(len)),
+                TokenKind::MapEnd => Some(Token::MapEnd),
+                TokenKind::SeqBegin(len) => Some(Token::SeqBegin(len)),
+                TokenKind::SeqEnd => Some(Token::SeqEnd),
+                TokenKind::Signed(v) => Some(Token::Signed(v)),
+                TokenKind::Unsigned(v) => Some(Token::Unsigned(v)),
+                TokenKind::BigSigned(v) => Some(Token::BigSigned(v)),
+                TokenKind::BigUnsigned(v) => Some(Token::BigUnsigned(v)),
+                TokenKind::Float(v) => Some(Token::Float(v)),
+                TokenKind::Bool(v) => Some(Token::Bool(v)),
+                TokenKind::Char(v) => Some(Token::Char(v)),
+                TokenKind::Str(ref v) => Some(Token::Str((**v).into())),
+                TokenKind::None => Some(Token::None),
+                TokenKind::Error(ref err) => Some(Token::Error(Source((**err).clone()))),
                 _ => None,
             })
             .collect()

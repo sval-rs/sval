@@ -39,6 +39,15 @@ fn allocate_string(b: &mut Bencher) {
 }
 
 #[bench]
+fn from_primitive(b: &mut Bencher) {
+    b.iter(|| {
+        let value = value::OwnedValue::from(1);
+
+        black_box(value);
+    })
+}
+
+#[bench]
 fn from_primitive_string(b: &mut Bencher) {
     b.iter(|| {
         let value = value::OwnedValue::from("A string");
@@ -67,28 +76,42 @@ fn clone_primitive_string(b: &mut Bencher) {
     })
 }
 
-struct Map;
+#[bench]
+fn clone_primitive_allocated_string(b: &mut Bencher) {
+    let value = value::OwnedValue::from(String::from("some string"));
 
+    b.iter(|| {
+        let value = value.clone();
+        black_box(value);
+    })
+}
+
+struct Map;
 impl value::Value for Map {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
-        stream.map_key(1)?;
-
-        stream.map_value_begin()?.map_begin(None)?;
-
-        stream.map_key(2)?;
-
+        stream.map_key("a")?;
         stream.map_value(42)?;
 
-        stream.map_end()?;
+        stream.map_key("b")?;
+        stream.map_value(42)?;
+
+        stream.map_key("c")?;
+        stream.map_value(42)?;
+
+        stream.map_key("d")?;
+        stream.map_value(42)?;
+
+        stream.map_key("e")?;
+        stream.map_value(42)?;
 
         stream.map_end()
     }
 }
 
 #[bench]
-fn collect_complex(b: &mut Bencher) {
+fn collect_map(b: &mut Bencher) {
     b.iter(|| {
         let value = value::OwnedValue::collect(Map);
 
@@ -97,7 +120,7 @@ fn collect_complex(b: &mut Bencher) {
 }
 
 #[bench]
-fn clone_complex(b: &mut Bencher) {
+fn clone_map(b: &mut Bencher) {
     let value = value::OwnedValue::collect(Map);
 
     b.iter(|| {

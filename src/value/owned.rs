@@ -4,7 +4,11 @@ Owned values.
 
 use crate::{
     std::{
+        boxed::Box,
         fmt,
+        ops::Deref,
+        ptr,
+        str,
         string::{
             String,
             ToString,
@@ -23,11 +27,8 @@ use crate::{
     },
 };
 
-#[cfg(not(feature = "std"))]
-type Container<T> = crate::std::boxed::Box<T>;
-
 #[cfg(feature = "std")]
-type Container<T> = crate::std::sync::Arc<T>;
+use crate::std::sync::Arc;
 
 /**
 An owned, immutable value.
@@ -66,13 +67,13 @@ impl OwnedValue {
         // If the value is a simple primitive that can
         // be represented in a single token then we can avoid
         // allocating for it.
-        if let Some(primitive) = Primitive::collect(&v) {
+        if let Some(primitive) = PrimitiveBuf::collect(&v) {
             return OwnedValue(ValueInner::Primitive(primitive));
         }
 
-        Buf::collect(v)
+        TokenBuf::collect(v)
             .map(|tokens| OwnedValue(ValueInner::Stream(tokens.into())))
-            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(err.to_string())))
+            .unwrap_or_else(|err| OwnedValue(ValueInner::Error(err.to_string().into())))
     }
 
     /**
@@ -83,18 +84,18 @@ impl OwnedValue {
     [`Value`]: struct.Value.html
     */
     #[cfg(feature = "std")]
-    pub fn from_shared(v: impl Into<Container<dyn Value + Send + Sync>>) -> Self {
+    pub fn from_shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
         OwnedValue(ValueInner::Shared(v.into()))
     }
 }
 
 #[derive(Clone)]
 enum ValueInner {
-    Error(String),
+    Error(Box<str>),
     #[cfg(feature = "std")]
-    Shared(Container<dyn Value + Send + Sync>),
-    Primitive(Token),
-    Stream(Container<[Token]>),
+    Shared(SharedContainer<dyn Value + Send + Sync>),
+    Primitive(Primitive),
+    Stream(SharedContainer<[Token]>),
 }
 
 impl Value for OwnedValue {
@@ -131,185 +132,189 @@ impl fmt::Debug for OwnedValue {
 
 impl From<usize> for OwnedValue {
     fn from(v: usize) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Unsigned(v as u64)))
     }
 }
 
 impl From<u8> for OwnedValue {
     fn from(v: u8) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Unsigned(v as u64)))
     }
 }
 
 impl From<u16> for OwnedValue {
     fn from(v: u16) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Unsigned(v as u64)))
     }
 }
 
 impl From<u32> for OwnedValue {
     fn from(v: u32) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v as u64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Unsigned(v as u64)))
     }
 }
 
 impl From<u64> for OwnedValue {
     fn from(v: u64) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Unsigned(v),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Unsigned(v)))
     }
 }
 
 impl From<u128> for OwnedValue {
     fn from(v: u128) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::BigUnsigned(v),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::BigUnsigned(v)))
     }
 }
 
 impl From<isize> for OwnedValue {
     fn from(v: isize) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Signed(v as i64)))
     }
 }
 
 impl From<i8> for OwnedValue {
     fn from(v: i8) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Signed(v as i64)))
     }
 }
 
 impl From<i16> for OwnedValue {
     fn from(v: i16) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Signed(v as i64)))
     }
 }
 
 impl From<i32> for OwnedValue {
     fn from(v: i32) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Signed(v as i64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Signed(v as i64)))
     }
 }
 
 impl From<i64> for OwnedValue {
     fn from(v: i64) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Signed(v),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Signed(v)))
     }
 }
 
 impl From<i128> for OwnedValue {
     fn from(v: i128) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::BigSigned(v),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::BigSigned(v)))
     }
 }
 
 impl From<f32> for OwnedValue {
     fn from(v: f32) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Float(v as f64),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Float(v as f64)))
     }
 }
 
 impl From<f64> for OwnedValue {
     fn from(v: f64) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Float(v),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Float(v)))
     }
 }
 
 impl From<bool> for OwnedValue {
     fn from(v: bool) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Bool(v),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Bool(v)))
     }
 }
 
 impl From<char> for OwnedValue {
     fn from(v: char) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Char(v),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Char(v)))
     }
 }
 
 impl<'a> From<&'a str> for OwnedValue {
     fn from(v: &'a str) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Str(v.into()),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Str(v.into())))
     }
 }
 
 impl From<String> for OwnedValue {
     fn from(v: String) -> Self {
-        OwnedValue(ValueInner::Primitive(Token {
-            depth: stack::Depth::root(),
-            kind: Kind::Str(v.into()),
-        }))
+        OwnedValue(ValueInner::Primitive(Primitive::Str(v.into())))
     }
 }
 
+type OwnedContainer<T> = Box<T>;
+
+#[cfg(feature = "std")]
+type SharedContainer<T> = Arc<T>;
+#[cfg(not(feature = "std"))]
+type SharedContainer<T> = OwnedContainer<T>;
+
+type StringContainer<T> = InlineString<T>;
+
 #[derive(Clone)]
-pub(crate) enum Kind {
-    MapBegin(Option<usize>),
-    MapKey,
-    MapValue,
-    MapEnd,
-    SeqBegin(Option<usize>),
-    SeqElem,
-    SeqEnd,
-    Signed(i64),
-    Unsigned(u64),
-    Float(f64),
-    BigSigned(i128),
-    BigUnsigned(u128),
-    Bool(bool),
-    Str(Container<str>),
-    Char(char),
-    Error(Container<OwnedSource>),
-    None,
+pub(crate) struct InlineString<T = OwnedContainer<str>>(InlineStringInner<T>);
+// Deliberately chosen so that capacity + 1 (for the initialized len) + 1 (for the discriminant) = size_of::<String>()
+const SHARED_STR_INLINE_CAPACITY: usize = 22;
+
+#[derive(Clone)]
+enum InlineStringInner<T> {
+    Inline(u8, [u8; SHARED_STR_INLINE_CAPACITY]),
+    Shared(T),
+}
+
+impl<'a, T> From<&'a str> for InlineString<T>
+where
+    T: From<&'a str>,
+{
+    #[inline]
+    fn from(s: &'a str) -> InlineString<T> {
+        let src = s.as_bytes();
+
+        InlineString(if src.len() <= SHARED_STR_INLINE_CAPACITY {
+            // NOTE: We could use `MaybeUninit` here, but it's not really faster
+            // and the complexity doesn't seem worth it.
+            let mut dst = [0; SHARED_STR_INLINE_CAPACITY];
+
+            let src_ptr = src.as_ptr();
+            let dst_ptr = (&mut dst[..]).as_mut_ptr();
+
+            // SAFETY: The `src` is a valid, initialized `str`
+            // The `dst` has enough capacity for `src.len()` bytes
+            unsafe {
+                ptr::copy_nonoverlapping(src_ptr, dst_ptr, src.len());
+            }
+
+            // Because `src.len()` is less than 255 we can convert it to a `u8`
+            InlineStringInner::Inline(src.len() as u8, dst)
+        } else {
+            InlineStringInner::Shared(s.into())
+        })
+    }
+}
+
+impl<T> From<String> for InlineString<T>
+where
+    T: From<String>,
+{
+    #[inline]
+    fn from(s: String) -> InlineString<T> {
+        InlineString(InlineStringInner::Shared(s.into()))
+    }
+}
+
+impl<T> Deref for InlineString<T>
+where
+    T: Deref<Target = str>,
+{
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        match self.0 {
+            InlineStringInner::Inline(len, ref buf) => {
+                // SAFETY: The written portion of `buf[..len]` is a valid UTF8 string
+                // SAFETY: `len` is within the bounds of `buf`
+                unsafe { str::from_utf8_unchecked(buf.get_unchecked(0..len as usize)) }
+            }
+            InlineStringInner::Shared(ref s) => &*s,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -318,7 +323,7 @@ pub(crate) struct OwnedSource {
     debug: String,
     display: String,
     #[cfg(feature = "std")]
-    source: Option<Container<OwnedSource>>,
+    source: Option<SharedContainer<OwnedSource>>,
 }
 
 #[cfg(not(feature = "std"))]
@@ -373,21 +378,38 @@ impl fmt::Display for OwnedSource {
     }
 }
 
-pub(crate) struct Buf {
-    stack: Stack,
-    tokens: Vec<Token>,
-}
-
 #[derive(Clone)]
 pub(crate) struct Token {
     #[allow(dead_code)]
     pub(crate) depth: stack::Depth,
-    pub(crate) kind: Kind,
+    pub(crate) kind: TokenKind,
+}
+
+// Embedded within a `Token`, which will be shared
+#[derive(Clone)]
+pub(crate) enum TokenKind {
+    MapBegin(Option<usize>),
+    MapKey,
+    MapValue,
+    MapEnd,
+    SeqBegin(Option<usize>),
+    SeqElem,
+    SeqEnd,
+    Signed(i64),
+    Unsigned(u64),
+    Float(f64),
+    BigSigned(i128),
+    BigUnsigned(u128),
+    Bool(bool),
+    Str(StringContainer<OwnedContainer<str>>),
+    Char(char),
+    Error(OwnedContainer<OwnedSource>),
+    None,
 }
 
 impl Token {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        use self::Kind::*;
+        use self::TokenKind::*;
 
         match self.kind {
             Signed(v) => stream.i64(v)?,
@@ -419,28 +441,52 @@ impl Token {
     }
 }
 
-impl Buf {
-    pub(crate) fn new() -> Buf {
-        Buf {
+pub(crate) struct TokenBuf {
+    stack: Stack,
+    tokens: Vec<Token>,
+}
+
+impl TokenBuf {
+    #[inline]
+    pub(crate) fn new() -> TokenBuf {
+        TokenBuf {
             stack: Stack::new(),
             tokens: Vec::new(),
         }
     }
 
+    #[inline]
     fn collect(v: impl Value) -> Result<Vec<Token>, crate::Error> {
-        crate::stream(Buf::new(), v).map(|buf| buf.tokens)
+        crate::stream(TokenBuf::new(), v).map(|buf| buf.tokens)
     }
 
-    fn push(&mut self, kind: Kind, depth: stack::Depth) {
+    #[inline]
+    fn push(&mut self, kind: TokenKind, depth: stack::Depth) {
         self.tokens.push(Token { depth, kind });
     }
 }
 
-impl Stream for Buf {
+#[cfg(feature = "serde1")]
+impl TokenBuf {
+    pub(crate) fn clear(&mut self) {
+        self.tokens.clear();
+        self.stack.clear();
+    }
+
+    pub(crate) fn tokens(&self) -> &[Token] {
+        &self.tokens
+    }
+
+    pub(crate) fn is_streamable(&self) -> bool {
+        self.stack.can_end()
+    }
+}
+
+impl Stream for TokenBuf {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Str(Container::from(f.to_string())), depth);
+        self.push(TokenKind::Str(StringContainer::from(f.to_string())), depth);
 
         Ok(())
     }
@@ -448,7 +494,10 @@ impl Stream for Buf {
     fn error(&mut self, v: stream::Source) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Error(Container::from(OwnedSource::from(v))), depth);
+        self.push(
+            TokenKind::Error(OwnedContainer::from(OwnedSource::from(v))),
+            depth,
+        );
 
         Ok(())
     }
@@ -456,7 +505,7 @@ impl Stream for Buf {
     fn i64(&mut self, v: i64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Signed(v), depth);
+        self.push(TokenKind::Signed(v), depth);
 
         Ok(())
     }
@@ -464,7 +513,7 @@ impl Stream for Buf {
     fn u64(&mut self, v: u64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Unsigned(v), depth);
+        self.push(TokenKind::Unsigned(v), depth);
 
         Ok(())
     }
@@ -472,7 +521,7 @@ impl Stream for Buf {
     fn i128(&mut self, v: i128) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::BigSigned(v), depth);
+        self.push(TokenKind::BigSigned(v), depth);
 
         Ok(())
     }
@@ -480,7 +529,7 @@ impl Stream for Buf {
     fn u128(&mut self, v: u128) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::BigUnsigned(v), depth);
+        self.push(TokenKind::BigUnsigned(v), depth);
 
         Ok(())
     }
@@ -488,7 +537,7 @@ impl Stream for Buf {
     fn f64(&mut self, v: f64) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Float(v), depth);
+        self.push(TokenKind::Float(v), depth);
 
         Ok(())
     }
@@ -496,7 +545,7 @@ impl Stream for Buf {
     fn bool(&mut self, v: bool) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Bool(v), depth);
+        self.push(TokenKind::Bool(v), depth);
 
         Ok(())
     }
@@ -504,7 +553,7 @@ impl Stream for Buf {
     fn char(&mut self, v: char) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Char(v), depth);
+        self.push(TokenKind::Char(v), depth);
 
         Ok(())
     }
@@ -512,7 +561,7 @@ impl Stream for Buf {
     fn str(&mut self, v: &str) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::Str(Container::from(v)), depth);
+        self.push(TokenKind::Str(StringContainer::from(v)), depth);
 
         Ok(())
     }
@@ -520,7 +569,7 @@ impl Stream for Buf {
     fn none(&mut self) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
-        self.push(Kind::None, depth);
+        self.push(TokenKind::None, depth);
 
         Ok(())
     }
@@ -528,7 +577,7 @@ impl Stream for Buf {
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         let depth = self.stack.map_begin()?.depth();
 
-        self.push(Kind::MapBegin(len), depth);
+        self.push(TokenKind::MapBegin(len), depth);
 
         Ok(())
     }
@@ -536,7 +585,7 @@ impl Stream for Buf {
     fn map_key(&mut self) -> stream::Result {
         let depth = self.stack.map_key()?.depth();
 
-        self.push(Kind::MapKey, depth);
+        self.push(TokenKind::MapKey, depth);
 
         Ok(())
     }
@@ -544,7 +593,7 @@ impl Stream for Buf {
     fn map_value(&mut self) -> stream::Result {
         let depth = self.stack.map_value()?.depth();
 
-        self.push(Kind::MapValue, depth);
+        self.push(TokenKind::MapValue, depth);
 
         Ok(())
     }
@@ -552,7 +601,7 @@ impl Stream for Buf {
     fn map_end(&mut self) -> stream::Result {
         let depth = self.stack.map_end()?.depth();
 
-        self.push(Kind::MapEnd, depth);
+        self.push(TokenKind::MapEnd, depth);
 
         Ok(())
     }
@@ -560,7 +609,7 @@ impl Stream for Buf {
     fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
         let depth = self.stack.seq_begin()?.depth();
 
-        self.push(Kind::SeqBegin(len), depth);
+        self.push(TokenKind::SeqBegin(len), depth);
 
         Ok(())
     }
@@ -568,7 +617,7 @@ impl Stream for Buf {
     fn seq_elem(&mut self) -> stream::Result {
         let depth = self.stack.seq_elem()?.depth();
 
-        self.push(Kind::SeqElem, depth);
+        self.push(TokenKind::SeqElem, depth);
 
         Ok(())
     }
@@ -576,98 +625,155 @@ impl Stream for Buf {
     fn seq_end(&mut self) -> stream::Result {
         let depth = self.stack.seq_end()?.depth();
 
-        self.push(Kind::SeqEnd, depth);
+        self.push(TokenKind::SeqEnd, depth);
 
         Ok(())
     }
 }
 
-struct Primitive {
-    token: Option<Token>,
+// Not embedded within a `Token`
+#[derive(Clone)]
+pub(crate) enum Primitive {
+    Signed(i64),
+    Unsigned(u64),
+    Float(f64),
+    BigSigned(i128),
+    BigUnsigned(u128),
+    Bool(bool),
+    Str(StringContainer<SharedContainer<str>>),
+    Char(char),
+    Error(SharedContainer<OwnedSource>),
+    None,
 }
 
 impl Primitive {
-    fn new() -> Primitive {
-        Primitive { token: None }
+    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        use self::Primitive::*;
+
+        match *self {
+            Signed(v) => stream.i64(v)?,
+            Unsigned(v) => stream.u64(v)?,
+            Float(v) => stream.f64(v)?,
+            BigSigned(v) => stream.i128(v)?,
+            BigUnsigned(v) => stream.u128(v)?,
+            Bool(v) => stream.bool(v)?,
+            Str(ref v) => stream.str(&*v)?,
+            Char(v) => stream.char(v)?,
+            Error(ref v) => stream.any(stream::Source::from(&**v))?,
+            None => stream.none()?,
+        }
+
+        Ok(())
     }
 
-    fn collect(v: impl Value) -> Option<Token> {
-        crate::stream(Primitive::new(), v)
-            .ok()
-            .and_then(|buf| buf.token)
-    }
-
-    fn set(&mut self, kind: Kind) {
-        self.token = Some(Token {
+    #[cfg(any(test, feature = "test"))]
+    fn to_token(&self) -> Token {
+        Token {
             depth: stack::Depth::root(),
-            kind,
-        });
+            kind: match *self {
+                Primitive::Signed(v) => TokenKind::Signed(v),
+                Primitive::Unsigned(v) => TokenKind::Unsigned(v),
+                Primitive::Float(v) => TokenKind::Float(v),
+                Primitive::BigSigned(v) => TokenKind::BigSigned(v),
+                Primitive::BigUnsigned(v) => TokenKind::BigUnsigned(v),
+                Primitive::Bool(v) => TokenKind::Bool(v),
+                Primitive::Str(ref v) => TokenKind::Str((&**v).into()),
+                Primitive::Char(v) => TokenKind::Char(v),
+                Primitive::Error(ref v) => TokenKind::Error((&**v).clone().into()),
+                Primitive::None => TokenKind::None,
+            },
+        }
     }
 }
 
-impl Stream for Primitive {
+struct PrimitiveBuf {
+    primitive: Option<Primitive>,
+}
+
+impl PrimitiveBuf {
+    #[inline]
+    fn new() -> PrimitiveBuf {
+        PrimitiveBuf { primitive: None }
+    }
+
+    #[inline]
+    fn collect(v: impl Value) -> Option<Primitive> {
+        crate::stream(PrimitiveBuf::new(), v)
+            .ok()
+            .and_then(|buf| buf.primitive)
+    }
+
+    #[inline]
+    fn set(&mut self, primitive: Primitive) {
+        self.primitive = Some(primitive);
+    }
+}
+
+impl Stream for PrimitiveBuf {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
-        self.set(Kind::Str(Container::from(f.to_string())));
+        self.set(Primitive::Str(StringContainer::from(f.to_string())));
 
         Ok(())
     }
 
     fn error(&mut self, v: stream::Source) -> stream::Result {
-        self.set(Kind::Error(Container::from(OwnedSource::from(v))));
+        self.set(Primitive::Error(SharedContainer::from(OwnedSource::from(
+            v,
+        ))));
 
         Ok(())
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
-        self.set(Kind::Signed(v));
+        self.set(Primitive::Signed(v));
 
         Ok(())
     }
 
     fn u64(&mut self, v: u64) -> stream::Result {
-        self.set(Kind::Unsigned(v));
+        self.set(Primitive::Unsigned(v));
 
         Ok(())
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        self.set(Kind::BigSigned(v));
+        self.set(Primitive::BigSigned(v));
 
         Ok(())
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        self.set(Kind::BigUnsigned(v));
+        self.set(Primitive::BigUnsigned(v));
 
         Ok(())
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        self.set(Kind::Float(v));
+        self.set(Primitive::Float(v));
 
         Ok(())
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        self.set(Kind::Bool(v));
+        self.set(Primitive::Bool(v));
 
         Ok(())
     }
 
     fn char(&mut self, v: char) -> stream::Result {
-        self.set(Kind::Char(v));
+        self.set(Primitive::Char(v));
 
         Ok(())
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        self.set(Kind::Str(Container::from(v)));
+        self.set(Primitive::Str(StringContainer::from(v)));
 
         Ok(())
     }
 
     fn none(&mut self) -> stream::Result {
-        self.set(Kind::None);
+        self.set(Primitive::None);
 
         Ok(())
     }
@@ -701,29 +807,13 @@ impl Stream for Primitive {
     }
 }
 
-#[cfg(feature = "serde1")]
-impl Buf {
-    pub(crate) fn clear(&mut self) {
-        self.tokens.clear();
-        self.stack.clear();
-    }
-
-    pub(crate) fn tokens(&self) -> &[Token] {
-        &self.tokens
-    }
-
-    pub(crate) fn is_streamable(&self) -> bool {
-        self.stack.can_end()
-    }
-}
-
 #[cfg(any(test, feature = "test"))]
 impl OwnedValue {
     pub(crate) fn tokens(
         &self,
     ) -> Result<impl crate::std::ops::Deref<Target = [Token]>, crate::Error> {
         match &self.0 {
-            ValueInner::Primitive(token) => Ok(vec![(*token).clone()].into()),
+            ValueInner::Primitive(ref primitive) => Ok(vec![primitive.to_token()].into()),
             ValueInner::Stream(tokens) => Ok(tokens.clone()),
             ValueInner::Error(err) => Err(crate::Error::custom(err)),
             #[cfg(feature = "std")]
@@ -734,10 +824,7 @@ impl OwnedValue {
 
 #[cfg(feature = "std")]
 mod std_support {
-    use super::{
-        Container,
-        OwnedSource,
-    };
+    use super::*;
 
     use crate::std::error::Error;
 
@@ -748,7 +835,7 @@ mod std_support {
                 display: format!("{}", err),
                 source: err
                     .source()
-                    .map(|source| Container::from(OwnedSource::collect(source))),
+                    .map(|source| SharedContainer::from(OwnedSource::collect(source))),
             }
         }
     }
@@ -766,9 +853,12 @@ mod std_support {
 mod tests {
     use super::*;
 
-    use crate::test::{
-        self,
-        Token,
+    use crate::{
+        std::mem,
+        test::{
+            self,
+            Token,
+        }
     };
 
     struct Map;
@@ -797,6 +887,22 @@ mod tests {
             stream.seq_elem(2)?;
 
             stream.seq_end()
+        }
+    }
+
+    #[test]
+    fn owned_value_size() {
+        let size = mem::size_of::<OwnedValue>();
+        let limit = mem::size_of::<u64>() * 6;
+
+        if size > limit {
+            panic!(
+                "`OwnedValue` size ({} bytes) is too large (expected up to {} bytes)\n`Primitive`: {} bytes\n`TokenKind`: {} bytes",
+                size,
+                limit,
+                mem::size_of::<Primitive>(),
+                mem::size_of::<TokenKind>(),
+            );
         }
     }
 
@@ -866,6 +972,30 @@ mod tests {
             ],
             v
         );
+    }
+
+    #[test]
+    fn inline_str_small() {
+        let strs = vec!["", "a", "1234567890123456789012"];
+
+        for s in strs {
+            let inline = InlineString::<Box<str>>::from(s);
+
+            assert!(matches!(&inline.0, InlineStringInner::Inline(_, _)));
+            assert_eq!(s, &*inline);
+        }
+    }
+
+    #[test]
+    fn inline_str_large() {
+        let strs = vec!["😎😎😎😎😎😎😎😎", "12345678901234567890123"];
+
+        for s in strs {
+            let inline = InlineString::<Box<str>>::from(s);
+
+            assert!(matches!(&inline.0, InlineStringInner::Shared(_)));
+            assert_eq!(s, &*inline);
+        }
     }
 
     #[cfg(not(feature = "std"))]
