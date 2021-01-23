@@ -76,9 +76,6 @@ version = "1.0.0-alpha.4"
 path = "./derive"
 optional = true
 
-[dependencies.inlinable_string]
-version = "0.1"
-
 [dev-dependencies.quickcheck]
 version = "0.9"
 
