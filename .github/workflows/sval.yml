@@ -34,7 +34,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all
 
       - name: No features
         uses: actions-rs/cargo@v1
@@ -70,6 +69,46 @@ jobs:
         with:
           command: test
           args: -p sval_fmt_tests
+  
+  serdealloc:
+    name: Test (serde alloc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p sval_serde_alloc_tests
+  
+  serdenoalloc:
+    name: Test (serde embedded)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p sval_serde_no_alloc_tests
 
   embedded:
     name: Build (embedded)
