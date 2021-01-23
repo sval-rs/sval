@@ -274,7 +274,6 @@ mod std {
         collections,
         rc,
         string,
-        sync,
         vec,
     };
 

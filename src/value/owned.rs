@@ -13,7 +13,6 @@ use crate::{
             String,
             ToString,
         },
-        sync::Arc,
         vec::Vec,
     },
     stream::{
@@ -27,6 +26,9 @@ use crate::{
         Value,
     },
 };
+
+#[cfg(feature = "std")]
+use crate::std::sync::Arc;
 
 /**
 An owned, immutable value.
@@ -236,11 +238,17 @@ impl From<String> for OwnedValue {
     }
 }
 
+type OwnedContainer<T> = Box<T>;
+
+#[cfg(feature = "std")]
 type SharedContainer<T> = Arc<T>;
+#[cfg(not(feature = "std"))]
+type SharedContainer<T> = OwnedContainer<T>;
+
 type StringContainer<T> = InlineString<T>;
 
 #[derive(Clone)]
-pub(crate) struct InlineString<T = Box<str>>(InlineStringInner<T>);
+pub(crate) struct InlineString<T = OwnedContainer<str>>(InlineStringInner<T>);
 // Deliberately chosen so that capacity + 1 (for the initialized len) + 1 (for the discriminant) = size_of::<String>()
 const SHARED_STR_INLINE_CAPACITY: usize = 22;
 
@@ -393,9 +401,9 @@ pub(crate) enum TokenKind {
     BigSigned(i128),
     BigUnsigned(u128),
     Bool(bool),
-    Str(StringContainer<Box<str>>),
+    Str(StringContainer<OwnedContainer<str>>),
     Char(char),
-    Error(SharedContainer<OwnedSource>),
+    Error(OwnedContainer<OwnedSource>),
     None,
 }
 
@@ -487,7 +495,7 @@ impl Stream for TokenBuf {
         let depth = self.stack.primitive()?.depth();
 
         self.push(
-            TokenKind::Error(SharedContainer::from(OwnedSource::from(v))),
+            TokenKind::Error(OwnedContainer::from(OwnedSource::from(v))),
             depth,
         );
 
@@ -632,7 +640,7 @@ pub(crate) enum Primitive {
     BigSigned(i128),
     BigUnsigned(u128),
     Bool(bool),
-    Str(StringContainer<Arc<str>>),
+    Str(StringContainer<SharedContainer<str>>),
     Char(char),
     Error(SharedContainer<OwnedSource>),
     None,
@@ -671,7 +679,7 @@ impl Primitive {
                 Primitive::Bool(v) => TokenKind::Bool(v),
                 Primitive::Str(ref v) => TokenKind::Str((&**v).into()),
                 Primitive::Char(v) => TokenKind::Char(v),
-                Primitive::Error(ref v) => TokenKind::Error(v.clone()),
+                Primitive::Error(ref v) => TokenKind::Error((&**v).clone().into()),
                 Primitive::None => TokenKind::None,
             },
         }
