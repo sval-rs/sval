@@ -79,5 +79,11 @@ optional = true
 [dev-dependencies.quickcheck]
 version = "0.9"
 
+[dev-dependencies.wasm-bindgen]
+version = "0.2"
+
+[dev-dependencies.wasm-bindgen-test]
+version = "0.3"
+
 [profile.release]
 debug = true
