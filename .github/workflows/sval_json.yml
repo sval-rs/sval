@@ -58,7 +58,6 @@ jobs:
           override: true
 
       - name: Default features
-        uses: actions-rs/cargo@v1
         run: cd json; cargo build -Z avoid-dev-deps --target thumbv6m-none-eabi
 
   wasm:
@@ -95,13 +94,10 @@ jobs:
           override: true
 
       - name: Default features
-        uses: actions-rs/cargo@v1
         run: cd json; cargo build -Z avoid-dev-deps
 
       - name: No features
-        uses: actions-rs/cargo@v1
         run: cd json; cargo build -Z avoid-dev-deps --no-default-features
 
       - name: All features
-        uses: actions-rs/cargo@v1
         run: cd json; cargo build -Z avoid-dev-deps --all-features
