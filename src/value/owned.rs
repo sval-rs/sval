@@ -853,9 +853,12 @@ mod std_support {
 mod tests {
     use super::*;
 
-    use crate::test::{
-        self,
-        Token,
+    use crate::{
+        std::mem,
+        test::{
+            self,
+            Token,
+        }
     };
 
     struct Map;
@@ -884,6 +887,22 @@ mod tests {
             stream.seq_elem(2)?;
 
             stream.seq_end()
+        }
+    }
+
+    #[test]
+    fn owned_value_size() {
+        let size = mem::size_of::<OwnedValue>();
+        let limit = mem::size_of::<u64>() * 6;
+
+        if size > limit {
+            panic!(
+                "`OwnedValue` size ({} bytes) is too large (expected up to {} bytes)\n`Primitive`: {} bytes\n`TokenKind`: {} bytes",
+                size,
+                limit,
+                mem::size_of::<Primitive>(),
+                mem::size_of::<TokenKind>(),
+            );
         }
     }
 
