@@ -76,6 +76,16 @@ fn clone_primitive_string(b: &mut Bencher) {
     })
 }
 
+#[bench]
+fn clone_primitive_allocated_string(b: &mut Bencher) {
+    let value = value::OwnedValue::from(String::from("some string"));
+
+    b.iter(|| {
+        let value = value.clone();
+        black_box(value);
+    })
+}
+
 struct Map;
 impl value::Value for Map {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
