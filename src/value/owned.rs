@@ -897,7 +897,17 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_value_size() {
         let size = mem::size_of::<OwnedValue>();
-        let limit = mem::size_of::<u64>() * 5;
+        let limit = {
+            #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+            {
+                mem::size_of::<u64>() * 6
+            }
+
+            #[cfg(not(all(target_arch = "aarch64", target_os = "macos")))]
+            {
+                mem::size_of::<u64>() * 5
+            }
+        };
 
         if size > limit {
             panic!(
