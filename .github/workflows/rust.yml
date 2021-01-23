@@ -1,0 +1,179 @@
+name: Rust
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+      
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: No features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features
+    
+      - name: All features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
+
+      - name: Powerset
+        run: cargo hack test --feature-powerset
+
+  embedded:
+    name: Build (embedded)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: thumbv6m-none-eabi
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps --target thumbv6m-none-eabi
+
+      - name: alloc
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features alloc
+
+      - name: arbitrary-depth
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features arbitrary-depth
+
+      - name: fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features fmt
+
+      - name: serde
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features serde
+
+  benches:
+    name: Build (benches)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: bench
+          args: --no-run --all
+
+  fmt:
+    name: Test (fmt consistency)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p sval_fmt_tests
+
+  nodeps:
+    name: Build (no dev deps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps
+
+      - name: No features
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps --no-default-features
+
+      - name: All features
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -Z avoid-dev-deps --all-features
+
+  wasm:
+    name: Test (wasm)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: wasm-pack test --headless --firefox

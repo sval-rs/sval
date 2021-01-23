@@ -12,7 +12,7 @@ members = [
 
 [package]
 name = "sval"
-version = "1.0.0-alpha.4"
+version = "1.0.0-alpha.5"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 documentation = "https://docs.rs/sval"
@@ -72,7 +72,7 @@ default-features = false
 package = "serde"
 
 [dependencies.sval_derive]
-version = "1.0.0-alpha.4"
+version = "1.0.0-alpha.5"
 path = "./derive"
 optional = true
 

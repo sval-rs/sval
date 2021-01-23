@@ -893,7 +893,7 @@ mod tests {
     #[test]
     fn owned_value_size() {
         let size = mem::size_of::<OwnedValue>();
-        let limit = mem::size_of::<u64>() * 6;
+        let limit = mem::size_of::<u64>() * 4;
 
         if size > limit {
             panic!(
