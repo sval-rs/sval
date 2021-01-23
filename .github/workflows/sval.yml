@@ -43,7 +43,7 @@ jobs:
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       
-      - name: Default features
+      - name: All features
         run: wasm-pack test --node -- --all-features
 
   fmt:

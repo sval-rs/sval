@@ -4,7 +4,7 @@ extern crate serde;
 #[macro_use]
 extern crate sval;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(test, target_arch = "wasm32"))]
 use wasm_bindgen_test::*;
 
 use miniserde::Serialize as MiniSerialize;
