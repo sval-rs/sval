@@ -6,7 +6,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
+  test:
     name: Test
     runs-on: ubuntu-latest
     strategy:
@@ -49,6 +49,26 @@ jobs:
 
       - name: Powerset
         run: cargo hack test --feature-powerset
+
+  fmt:
+    name: Test (fmt consistency)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+
+      - name: Default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p sval_fmt_tests
 
   embedded:
     name: Build (embedded)
@@ -95,6 +115,25 @@ jobs:
           command: build
           args: -Z avoid-dev-deps --target thumbv6m-none-eabi --features serde
 
+  wasm:
+    name: Test (wasm)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+      - name: Default features
+        run: wasm-pack test --headless --firefox
+      
+      - name: All features
+        run: wasm-pack test --headless --firefox --all-features
+
+      - name: No features
+        run: wasm-pack test --headless --firefox --no-features
+
   benches:
     name: Build (benches)
     runs-on: ubuntu-latest
@@ -114,26 +153,6 @@ jobs:
         with:
           command: bench
           args: --no-run --all
-
-  fmt:
-    name: Test (fmt consistency)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: beta
-          override: true
-
-      - name: Default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p sval_fmt_tests
 
   nodeps:
     name: Build (no dev deps)
@@ -166,14 +185,3 @@ jobs:
         with:
           command: build
           args: -Z avoid-dev-deps --all-features
-
-  wasm:
-    name: Test (wasm)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - run: wasm-pack test --headless --firefox
