@@ -207,6 +207,8 @@ mod fmt;
 pub mod stack;
 mod value;
 
+pub mod stack2;
+
 pub use self::{
     error::Source,
     fmt::Arguments,
