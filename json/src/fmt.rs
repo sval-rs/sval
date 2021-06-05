@@ -1,8 +1,7 @@
 use sval::{
     stream::{
         self,
-        stack,
-        Stack,
+        stack2::{self as stack, Stack},
         Stream,
     },
     value::Value,
@@ -58,7 +57,7 @@ assert_eq!("42", json);
 */
 pub struct Formatter<W> {
     stack: Stack,
-    delim: Option<char>,
+    is_current_depth_empty: bool,
     out: W,
 }
 
@@ -72,7 +71,7 @@ where
     pub fn new(out: W) -> Self {
         Formatter {
             stack: Stack::new(),
-            delim: None,
+            is_current_depth_empty: true,
             out,
         }
     }
@@ -103,19 +102,6 @@ where
     pub fn into_inner_unchecked(self) -> W {
         self.out
     }
-
-    #[inline]
-    fn next_delim(pos: stack::Pos) -> Option<char> {
-        if pos.is_value() || pos.is_elem() {
-            return Some(',');
-        }
-
-        if pos.is_key() {
-            return Some(':');
-        }
-
-        return None;
-    }
 }
 
 impl<W> Stream for Formatter<W>
@@ -124,11 +110,7 @@ where
 {
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
-        }
+        self.stack.primitive()?;
 
         self.out.write_char('"')?;
         fmt::write(&mut Escape(&mut self.out), format_args!("{}", v))?;
@@ -154,16 +136,10 @@ where
 
     #[inline]
     fn i128(&mut self, v: i128) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if pos.is_key() {
+        if self.stack.primitive()?.is_key() {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
-        }
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
         }
 
         self.out.write_str(itoa::Buffer::new().format(v))?;
@@ -173,16 +149,10 @@ where
 
     #[inline]
     fn u128(&mut self, v: u128) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if pos.is_key() {
+        if self.stack.primitive()?.is_key() {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
-        }
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
         }
 
         self.out.write_str(itoa::Buffer::new().format(v))?;
@@ -192,16 +162,10 @@ where
 
     #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if pos.is_key() {
+        if self.stack.primitive()?.is_key() {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
-        }
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
         }
 
         self.out.write_str(ryu::Buffer::new().format(v))?;
@@ -211,16 +175,10 @@ where
 
     #[inline]
     fn bool(&mut self, v: bool) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if pos.is_key() {
+        if self.stack.primitive()?.is_key() {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
-        }
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
         }
 
         self.out.write_str(if v { "true" } else { "false" })?;
@@ -230,16 +188,10 @@ where
 
     #[inline]
     fn char(&mut self, v: char) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if pos.is_key() {
+        if self.stack.primitive()?.is_key() {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
-        }
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
         }
 
         self.out.write_char(v)?;
@@ -249,11 +201,7 @@ where
 
     #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
-        }
+        self.stack.primitive()?;
 
         self.out.write_char('"')?;
         escape_str(&v, &mut self.out)?;
@@ -264,16 +212,10 @@ where
 
     #[inline]
     fn none(&mut self) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        if pos.is_key() {
+        if self.stack.primitive()?.is_key() {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
-        }
-
-        if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
-            self.out.write_char(delim)?;
         }
 
         self.out.write_str("null")?;
@@ -289,10 +231,7 @@ where
             ));
         }
 
-        if let Some(delim) = self.delim.take() {
-            self.out.write_char(delim)?;
-        }
-
+        self.is_current_depth_empty = true;
         self.out.write_char('{')?;
 
         Ok(())
@@ -301,6 +240,12 @@ where
     #[inline]
     fn map_key(&mut self) -> stream::Result {
         self.stack.map_key()?;
+
+        if !self.is_current_depth_empty {
+            self.out.write_char(',')?;
+        }
+
+        self.is_current_depth_empty = false;
 
         Ok(())
     }
@@ -317,6 +262,8 @@ where
     fn map_value(&mut self) -> stream::Result {
         self.stack.map_value()?;
 
+        self.out.write_char(':')?;
+
         Ok(())
     }
 
@@ -330,9 +277,10 @@ where
 
     #[inline]
     fn map_end(&mut self) -> stream::Result {
-        let pos = self.stack.map_end()?;
+        self.stack.map_end()?;
 
-        self.delim = Self::next_delim(pos);
+        self.is_current_depth_empty = false;
+
         self.out.write_char('}')?;
 
         Ok(())
@@ -346,9 +294,7 @@ where
             ));
         }
 
-        if let Some(delim) = self.delim.take() {
-            self.out.write_char(delim)?;
-        }
+        self.is_current_depth_empty = true;
 
         self.out.write_char('[')?;
 
@@ -358,6 +304,12 @@ where
     #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         self.stack.seq_elem()?;
+
+        if !self.is_current_depth_empty {
+            self.out.write_char(',')?;
+        }
+
+        self.is_current_depth_empty = false;
 
         Ok(())
     }
@@ -372,9 +324,10 @@ where
 
     #[inline]
     fn seq_end(&mut self) -> stream::Result {
-        let pos = self.stack.seq_end()?;
+        self.stack.seq_end()?;
 
-        self.delim = Self::next_delim(pos);
+        self.is_current_depth_empty = false;
+
         self.out.write_char(']')?;
 
         Ok(())
