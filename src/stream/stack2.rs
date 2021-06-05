@@ -21,6 +21,7 @@ The expected position in the stream.
 */
 #[derive(Clone)]
 pub struct Pos {
+    // TODO: Return a `u64` of the whole stack here to mask the depth off
     slot: u8,
     depth: u8,
 }
@@ -47,7 +48,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_key(&self) -> bool {
-        self.slot == Slot::IS_MAP_KEY
+        self.slot & Slot::MASK_SLOT == Slot::IS_MAP_KEY
     }
 
     /**
@@ -55,7 +56,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_value(&self) -> bool {
-        self.slot == Slot::IS_MAP_VALUE
+        self.slot & Slot::MASK_SLOT == Slot::IS_MAP_VALUE
     }
 
     /**
@@ -63,7 +64,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_elem(&self) -> bool {
-        self.slot == Slot::IS_SEQ_ELEM
+        self.slot & Slot::MASK_SLOT == Slot::IS_SEQ_ELEM
     }
 
     /**
@@ -71,7 +72,7 @@ impl Pos {
     */
     #[inline]
     pub fn is_value_elem(&self) -> bool {
-        self.is_value() || self.is_elem()
+        self.slot & Slot::MASK_VALUE_ELEM != 0
     }
 
     /**
@@ -104,19 +105,21 @@ impl Pos {
 struct Slot(u8);
 
 impl Slot {
-    const IS_EMPTY: u8 = 0b0000_0000;
+    const IS_EMPTY: u8 =        0b0000_0000;
+    const IS_MAP_KEY: u8 =      0b0000_0010;
+    const IS_MAP_VALUE: u8 =    0b0000_0110;
+    const IS_SEQ_ELEM: u8 =     0b0000_1000;
 
-    const NEEDS_ITEM: u8 = 0b0000_0001;
+    const MASK_VALUE_ELEM: u8 = 0b0000_1100;
 
-    const IS_MAP: u8 = 0b1000_0000;
-    const IS_MAP_KEY: u8 = 0b1000_0010;
-    const IS_MAP_VALUE: u8 = 0b1000_0110;
-    const NEEDS_MAP_KEY: u8 = 0b0000_0100;
+    const NEEDS_ITEM: u8 =      0b0000_0001;
+    const NEEDS_MAP_KEY: u8 =   0b0000_0100;
     const NEEDS_MAP_VALUE: u8 = 0b0000_0010;
+    const NEEDS_SEQ_ELEM: u8 =  0b0000_1000;
 
-    const IS_SEQ: u8 = 0b0100_0000;
-    const IS_SEQ_ELEM: u8 = 0b0100_1000;
-    const NEEDS_SEQ_ELEM: u8 = 0b0000_1000;
+    const MASK_SLOT: u8 = u8::MAX >> Slot::SIZE;
+
+    const SIZE: usize = 4;
 
     #[inline]
     fn pos(self, depth: u8) -> Pos {
@@ -139,20 +142,19 @@ impl Default for Stack {
     }
 }
 
-type RawStack = u128;
+type RawStack = u64;
 
 #[derive(Clone)]
 pub struct Stack {
     inner: RawStack,
+    // TODO: Encode the depth somewhere in the `RawStack`
     depth: u8,
 }
 
 impl Stack {
-    const DEPTH: u8 = std::mem::size_of::<RawStack>() as u8;
-    const MAX_DEPTH: u8 = Self::DEPTH - 1;
+    const MAX_DEPTH: u8 = (std::mem::size_of::<RawStack>() as u8 * 2) - 1;
 
-    const MASK_SLOT: RawStack = RawStack::MAX << 8;
-    const MASK_SLOT_BEGIN: RawStack = (RawStack::MAX << 8) ^ (Slot::NEEDS_ITEM as RawStack) << 8;
+    const MASK_SLOT_BEGIN: RawStack = (RawStack::MAX << Slot::SIZE) ^ (Slot::NEEDS_ITEM as RawStack) << Slot::SIZE;
 
     /**
     Create a new stack.
@@ -198,11 +200,8 @@ impl Stack {
     */
     #[inline]
     pub fn primitive(&mut self) -> Result<Pos, crate::Error> {
-        // In order to add a primitive, the stack must need an item
-        const MASK: u8 = Slot::NEEDS_ITEM;
+        const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
-
-        // After adding the primitive, the stack will expect something else
         const EXPECT_NEXT: RawStack = Slot::NEEDS_ITEM as RawStack;
 
         if self.inner as u8 & MASK == VALID {
@@ -221,17 +220,16 @@ impl Stack {
     */
     #[inline]
     pub fn map_begin(&mut self) -> Result<Pos, crate::Error> {
-        const MASK: u8 = Slot::NEEDS_ITEM;
+        const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
-
-        const EXPECT: RawStack = (Slot::IS_MAP | Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE) as RawStack;
+        const EXPECT: RawStack = (Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE) as RawStack;
 
         if self.depth == Self::MAX_DEPTH {
             return err_invalid("more depth at the start of a map");
         }
 
         if self.inner as u8 & MASK == VALID {
-            self.inner = self.inner.rotate_left(8) & Self::MASK_SLOT_BEGIN | EXPECT;
+            self.inner = (self.inner << Slot::SIZE) & Self::MASK_SLOT_BEGIN | EXPECT;
             self.depth += 1;
 
             Ok(Slot(self.inner as u8).pos(self.depth))
@@ -248,11 +246,11 @@ impl Stack {
     */
     #[inline]
     pub fn map_key(&mut self) -> Result<Pos, crate::Error> {
-        const VALID: u8 = Slot::IS_MAP | Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
-
+        const MASK: u8 = Slot::MASK_SLOT;
+        const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
         const EXPECT: RawStack = (Slot::NEEDS_MAP_KEY | Slot::NEEDS_ITEM) as RawStack;
 
-        if self.inner as u8 == VALID {
+        if self.inner as u8 & MASK == VALID {
             self.inner ^= EXPECT;
 
             Ok(Slot(self.inner as u8).pos(self.depth))
@@ -269,11 +267,11 @@ impl Stack {
     */
     #[inline]
     pub fn map_value(&mut self) -> Result<Pos, crate::Error> {
-        const VALID: u8 = Slot::IS_MAP | Slot::NEEDS_MAP_VALUE;
-
+        const MASK: u8 = Slot::MASK_SLOT;
+        const VALID: u8 = Slot::NEEDS_MAP_VALUE;
         const EXPECT: RawStack = (Slot::NEEDS_MAP_KEY | Slot::NEEDS_ITEM) as RawStack;
 
-        if self.inner as u8 == VALID {
+        if self.inner as u8 & MASK == VALID {
             self.inner ^= EXPECT;
 
             Ok(Slot(self.inner as u8).pos(self.depth))
@@ -287,10 +285,11 @@ impl Stack {
     */
     #[inline]
     pub fn map_end(&mut self) -> Result<Pos, crate::Error> {
-        const VALID: u8 = Slot::IS_MAP | Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
+        const MASK: u8 = Slot::MASK_SLOT;
+        const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
 
-        if self.inner as u8 == VALID {
-            self.inner = self.inner.rotate_right(8);
+        if self.inner as u8 & MASK == VALID {
+            self.inner = self.inner >> Slot::SIZE;
             self.depth -= 1;
 
             Ok(Slot(self.inner as u8).pos(self.depth + 1))
@@ -306,17 +305,16 @@ impl Stack {
     */
     #[inline]
     pub fn seq_begin(&mut self) -> Result<Pos, crate::Error> {
-        const MASK: u8 = Slot::NEEDS_ITEM;
+        const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
-
-        const EXPECT: RawStack = (Slot::IS_SEQ | Slot::NEEDS_SEQ_ELEM) as RawStack;
+        const EXPECT: RawStack = (Slot::NEEDS_SEQ_ELEM) as RawStack;
 
         if self.depth == Self::MAX_DEPTH {
             return err_invalid("more depth at the start of a sequence");
         }
 
         if self.inner as u8 & MASK == VALID {
-            self.inner = self.inner.rotate_left(8) & Self::MASK_SLOT_BEGIN | EXPECT;
+            self.inner = (self.inner << Slot::SIZE) & Self::MASK_SLOT_BEGIN | EXPECT;
             self.depth += 1;
 
             Ok(Slot(self.inner as u8).pos(self.depth))
@@ -333,12 +331,11 @@ impl Stack {
     */
     #[inline]
     pub fn seq_elem(&mut self) -> Result<Pos, crate::Error> {
-        const VALID: u8 = Slot::IS_SEQ | Slot::NEEDS_SEQ_ELEM;
-
-        // After adding a seq elem, the stack will expect another seq elem
+        const MASK: u8 = Slot::MASK_SLOT;
+        const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
         const EXPECT: RawStack = Slot::NEEDS_ITEM as RawStack;
 
-        if self.inner as u8 == VALID {
+        if self.inner as u8 & MASK == VALID {
             self.inner |= EXPECT;
 
             Ok(Slot(self.inner as u8).pos(self.depth))
@@ -352,10 +349,11 @@ impl Stack {
     */
     #[inline]
     pub fn seq_end(&mut self) -> Result<Pos, crate::Error> {
-        const VALID: u8 = Slot::IS_SEQ | Slot::NEEDS_SEQ_ELEM;
+        const MASK: u8 = Slot::MASK_SLOT;
+        const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
 
-        if self.inner as u8 == VALID {
-            self.inner = self.inner.rotate_right(8);
+        if self.inner as u8 & MASK == VALID {
+            self.inner = self.inner >> Slot::SIZE;
             self.depth -= 1;
 
             Ok(Slot(self.inner as u8).pos(self.depth + 1))
