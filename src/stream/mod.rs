@@ -600,6 +600,7 @@ pub trait Stream {
     Stream a unicode character.
     */
     #[cfg(not(test))]
+    #[inline]
     fn char(&mut self, v: char) -> Result {
         let mut b = [0; 4];
         self.str(&*v.encode_utf8(&mut b))
@@ -655,6 +656,7 @@ pub trait Stream {
     Collect a map key.
     */
     #[cfg(not(test))]
+    #[inline]
     fn map_key_collect(&mut self, k: &Value) -> Result {
         self.map_key()?;
         k.stream(self)
@@ -678,6 +680,7 @@ pub trait Stream {
     Collect a map value.
     */
     #[cfg(not(test))]
+    #[inline]
     fn map_value_collect(&mut self, v: &Value) -> Result {
         self.map_value()?;
         v.stream(self)
@@ -722,6 +725,7 @@ pub trait Stream {
     Collect a sequence element.
     */
     #[cfg(not(test))]
+    #[inline]
     fn seq_elem_collect(&mut self, v: &Value) -> Result {
         self.seq_elem()?;
         v.stream(self)
