@@ -29,9 +29,7 @@ where
     V: value::Value,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let mut stream = stream::OwnedStream::new(Stream::new(f));
-
-        stream.any(&self.0).map_err(crate::Error::into_fmt_error)?;
+        crate::stream(Stream::new(f), &self.0).map_err(crate::Error::into_fmt_error)?;
 
         Ok(())
     }

@@ -54,13 +54,13 @@ to see whether a given value is a `u64`:
 ```
 use sval::{
     value::Value,
-    stream::{self, Stream, OwnedStream},
+    stream::{self, Stream},
 };
 
 assert!(is_u64(42u64));
 
 pub fn is_u64(v: impl Value) -> bool {
-    OwnedStream::stream(IsU64(None), v)
+    sval::stream(IsU64(None), v)
         .map(|is_u64| is_u64.0.is_some())
         .unwrap_or(false)
 }
@@ -204,8 +204,8 @@ structures aren't supported. See the [`stream::Stack`] type for more details.
 
 mod error;
 mod fmt;
-mod value;
 pub mod stack;
+mod value;
 
 pub use self::{
     error::Source,
@@ -652,6 +652,17 @@ pub trait Stream {
     fn map_key(&mut self) -> Result;
 
     /**
+    Collect a map key.
+    */
+    #[cfg(not(test))]
+    fn map_key_collect(&mut self, k: &Value) -> Result {
+        self.map_key()?;
+        k.stream(self)
+    }
+    #[cfg(test)]
+    fn map_key_collect(&mut self, k: &Value) -> Result;
+
+    /**
     Begin a map value.
 
     The value will be implicitly ended by the stream methods that follow it.
@@ -662,6 +673,17 @@ pub trait Stream {
     }
     #[cfg(test)]
     fn map_value(&mut self) -> Result;
+
+    /**
+    Collect a map value.
+    */
+    #[cfg(not(test))]
+    fn map_value_collect(&mut self, v: &Value) -> Result {
+        self.map_value()?;
+        v.stream(self)
+    }
+    #[cfg(test)]
+    fn map_value_collect(&mut self, v: &Value) -> Result;
 
     /**
     End a map.
@@ -697,38 +719,6 @@ pub trait Stream {
     fn seq_elem(&mut self) -> Result;
 
     /**
-    End a sequence.
-    */
-    #[cfg(not(test))]
-    fn seq_end(&mut self) -> Result {
-        Err(crate::Error::default_unsupported("Stream::seq_end"))
-    }
-    #[cfg(test)]
-    fn seq_end(&mut self) -> Result;
-
-    /**
-    Collect a map key.
-    */
-    #[cfg(not(test))]
-    fn map_key_collect(&mut self, k: &Value) -> Result {
-        self.map_key()?;
-        k.stream(self)
-    }
-    #[cfg(test)]
-    fn map_key_collect(&mut self, k: &Value) -> Result;
-    
-    /**
-    Collect a map value.
-    */
-    #[cfg(not(test))]
-    fn map_value_collect(&mut self, v: &Value) -> Result {
-        self.map_value()?;
-        v.stream(self)
-    }
-    #[cfg(test)]
-    fn map_value_collect(&mut self, v: &Value) -> Result;
-
-    /**
     Collect a sequence element.
     */
     #[cfg(not(test))]
@@ -738,6 +728,16 @@ pub trait Stream {
     }
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: &Value) -> Result;
+
+    /**
+    End a sequence.
+    */
+    #[cfg(not(test))]
+    fn seq_end(&mut self) -> Result {
+        Err(crate::Error::default_unsupported("Stream::seq_end"))
+    }
+    #[cfg(test)]
+    fn seq_end(&mut self) -> Result;
 }
 
 impl<'a, T: ?Sized> Stream for &'a mut T
@@ -810,8 +810,18 @@ where
     }
 
     #[inline]
+    fn map_key_collect(&mut self, k: &Value) -> Result {
+        (**self).map_key_collect(k)
+    }
+
+    #[inline]
     fn map_value(&mut self) -> Result {
         (**self).map_value()
+    }
+
+    #[inline]
+    fn map_value_collect(&mut self, v: &Value) -> Result {
+        (**self).map_value_collect(v)
     }
 
     #[inline]
@@ -827,6 +837,11 @@ where
     #[inline]
     fn seq_elem(&mut self) -> Result {
         (**self).seq_elem()
+    }
+
+    #[inline]
+    fn seq_elem_collect(&mut self, v: &Value) -> Result {
+        (**self).seq_elem_collect(v)
     }
 
     #[inline]

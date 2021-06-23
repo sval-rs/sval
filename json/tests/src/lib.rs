@@ -31,8 +31,7 @@ fn sval_json_writer_is_valid() {
 fn sval_json_is_valid() {
     let content = include_str!("../twitter.json");
 
-    let s: Twitter =
-        serde_json::from_str(content).unwrap();
+    let s: Twitter = serde_json::from_str(content).unwrap();
 
     let json = sval_json::to_string(&s).unwrap();
 

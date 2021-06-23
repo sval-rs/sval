@@ -861,7 +861,7 @@ mod tests {
         test::{
             self,
             Token,
-        }
+        },
     };
 
     struct Map;

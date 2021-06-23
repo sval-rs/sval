@@ -73,7 +73,7 @@ impl<'a> Stream<'a> {
     #[inline]
     #[cfg(feature = "std")]
     pub fn error(&mut self, v: &(dyn error::Error + 'static)) -> stream::Result {
-        self.0.error(v)
+        self.0.error(stream::Source::new(v))
     }
 
     /**
@@ -304,8 +304,18 @@ impl<'a> stream::Stream for Stream<'a> {
     }
 
     #[inline]
+    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+        self.map_key(k).map(|_| ())
+    }
+
+    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.map_value_begin().map(|_| ())
+    }
+
+    #[inline]
+    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.map_value(v).map(|_| ())
     }
 
     #[inline]
@@ -324,6 +334,11 @@ impl<'a> stream::Stream for Stream<'a> {
     }
 
     #[inline]
+    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.seq_elem(v).map(|_| ())
+    }
+
+    #[inline]
     fn seq_end(&mut self) -> stream::Result {
         self.seq_end()
     }
@@ -336,15 +351,15 @@ mod tests {
     use crate::stream::Stack;
 
     #[test]
-    fn owned_stream_method_resolution() {
-        fn takes_owned_stream(mut stream: OwnedStream<impl Stream>) -> stream::Result {
+    fn stream_method_resolution() {
+        fn takes_value_stream(mut stream: Stream) -> stream::Result {
             stream.map_begin(None)?;
             stream.map_key("key")?;
             stream.map_value(42)?;
             stream.map_end()
         }
 
-        fn takes_stream(mut stream: impl Stream) -> stream::Result {
+        fn takes_stream(mut stream: impl stream::Stream) -> stream::Result {
             stream.map_begin(None)?;
             stream.map_key()?;
             stream.str("key")?;
@@ -353,31 +368,8 @@ mod tests {
             stream.map_end()
         }
 
-        takes_owned_stream(OwnedStream::new(Stack::default())).expect("failed to use owned stream");
-        takes_stream(OwnedStream::new(Stack::default())).expect("failed to use stream");
-    }
-
-    #[test]
-    fn ref_mut_stream_method_resolution() {
-        fn takes_ref_mut_stream(mut stream: Stream) -> stream::Result {
-            stream.map_begin(None)?;
-            stream.map_key("key")?;
-            stream.map_value(42)?;
-            stream.map_end()
-        }
-
-        fn takes_stream(mut stream: impl Stream) -> stream::Result {
-            stream.map_begin(None)?;
-            stream.map_key()?;
-            stream.str("key")?;
-            stream.map_value()?;
-            stream.i64(42)?;
-            stream.map_end()
-        }
-
-        takes_ref_mut_stream(OwnedStream::new(Stack::default()).borrow_mut())
+        takes_value_stream(Stream::new(&mut Stack::default()))
             .expect("failed to use ref mut stream");
-        takes_stream(OwnedStream::new(Stack::default()).borrow_mut())
-            .expect("failed to use stream");
+        takes_stream(Stream::new(&mut Stack::default())).expect("failed to use stream");
     }
 }
