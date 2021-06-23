@@ -590,12 +590,22 @@ impl Stream for TokenBuf {
         Ok(())
     }
 
+    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+        self.map_key()?;
+        k.stream(self)
+    }
+
     fn map_value(&mut self) -> stream::Result {
         let depth = self.stack.map_value()?.depth();
 
         self.push(TokenKind::MapValue, depth);
 
         Ok(())
+    }
+
+    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.map_value()?;
+        v.stream(self)
     }
 
     fn map_end(&mut self) -> stream::Result {
@@ -620,6 +630,11 @@ impl Stream for TokenBuf {
         self.push(TokenKind::SeqElem, depth);
 
         Ok(())
+    }
+
+    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.seq_elem()?;
+        v.stream(self)
     }
 
     fn seq_end(&mut self) -> stream::Result {
@@ -786,7 +801,15 @@ impl Stream for PrimitiveBuf {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 
+    fn map_key_collect(&mut self, _: &stream::Value) -> stream::Result {
+        Err(crate::Error::unsupported("unsupported primitive"))
+    }
+
     fn map_value(&mut self) -> stream::Result {
+        Err(crate::Error::unsupported("unsupported primitive"))
+    }
+
+    fn map_value_collect(&mut self, _: &stream::Value) -> stream::Result {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 
@@ -799,6 +822,10 @@ impl Stream for PrimitiveBuf {
     }
 
     fn seq_elem(&mut self) -> stream::Result {
+        Err(crate::Error::unsupported("unsupported primitive"))
+    }
+
+    fn seq_elem_collect(&mut self, _: &stream::Value) -> stream::Result {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 
