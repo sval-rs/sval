@@ -122,11 +122,12 @@ impl Value for Map {
 */
 
 mod impls;
+mod stream;
 
 #[cfg(feature = "alloc")]
 pub(crate) mod owned;
 
-pub use crate::stream::RefMutStream as Stream;
+pub use self::stream::Stream;
 
 #[cfg(feature = "alloc")]
 pub use self::owned::OwnedValue;

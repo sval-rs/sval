@@ -204,17 +204,14 @@ structures aren't supported. See the [`stream::Stack`] type for more details.
 
 mod error;
 mod fmt;
-pub(crate) mod owned;
+mod value;
 pub mod stack;
 
 pub use self::{
     error::Source,
     fmt::Arguments,
-    owned::{
-        OwnedStream,
-        RefMutStream,
-    },
     stack::Stack,
+    value::Value,
 };
 
 /**
@@ -708,6 +705,39 @@ pub trait Stream {
     }
     #[cfg(test)]
     fn seq_end(&mut self) -> Result;
+
+    /**
+    Collect a map key.
+    */
+    #[cfg(not(test))]
+    fn map_key_collect(&mut self, k: &Value) -> Result {
+        self.map_key()?;
+        k.stream(self)
+    }
+    #[cfg(test)]
+    fn map_key_collect(&mut self, k: &Value) -> Result;
+    
+    /**
+    Collect a map value.
+    */
+    #[cfg(not(test))]
+    fn map_value_collect(&mut self, v: &Value) -> Result {
+        self.map_value()?;
+        v.stream(self)
+    }
+    #[cfg(test)]
+    fn map_value_collect(&mut self, v: &Value) -> Result;
+
+    /**
+    Collect a sequence element.
+    */
+    #[cfg(not(test))]
+    fn seq_elem_collect(&mut self, v: &Value) -> Result {
+        self.seq_elem()?;
+        v.stream(self)
+    }
+    #[cfg(test)]
+    fn seq_elem_collect(&mut self, v: &Value) -> Result;
 }
 
 impl<'a, T: ?Sized> Stream for &'a mut T

@@ -287,7 +287,6 @@ extern crate core as std;
 
 #[macro_use]
 mod error;
-mod collect;
 
 #[cfg(any(test, feature = "test"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "test")))]
@@ -317,9 +316,11 @@ Stream the structure of a [`Value`] using the given [`Stream`].
 
 This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
 */
-pub fn stream<S>(stream: S, value: impl Value) -> Result<S, Error>
+pub fn stream<S>(mut stream: S, value: impl Value) -> Result<S, Error>
 where
     S: Stream,
 {
-    crate::stream::OwnedStream::stream(stream, value)
+    value.stream(&mut value::Stream::new(&mut stream))?;
+
+    Ok(stream)
 }
