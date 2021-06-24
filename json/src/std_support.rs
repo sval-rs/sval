@@ -71,12 +71,11 @@ Create an owned json stream:
 ```
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 # use std::str;
-use sval::stream::OwnedStream;
 use sval_json::Writer;
 
-let mut stream = OwnedStream::new(Writer::new(Vec::<u8>::new()));
-stream.any(42)?;
-let json = stream.into_inner().end()?;
+let mut stream = Writer::new(Vec::<u8>::new());
+sval::stream(&mut stream, 42)?;
+let json = stream.end()?;
 
 assert_eq!(Some("42"), str::from_utf8(&json).ok());
 # Ok(())

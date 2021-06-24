@@ -575,8 +575,20 @@ impl Stream for Stack {
     }
 
     #[inline]
+    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+        self.map_key()?;
+        k.stream(self)
+    }
+
+    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.map_value().map(|_| ())
+    }
+
+    #[inline]
+    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.map_value()?;
+        v.stream(self)
     }
 
     #[inline]
@@ -592,6 +604,12 @@ impl Stream for Stack {
     #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         self.seq_elem().map(|_| ())
+    }
+
+    #[inline]
+    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.seq_elem()?;
+        v.stream(self)
     }
 
     #[inline]

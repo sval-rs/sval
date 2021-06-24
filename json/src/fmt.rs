@@ -45,12 +45,11 @@ Create an owned json stream:
 # fn main() {}
 # #[cfg(feature = "std")]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use sval::stream::OwnedStream;
 use sval_json::Formatter;
 
-let mut stream = OwnedStream::new(Formatter::new(String::new()));
-stream.any(42)?;
-let json = stream.into_inner().end()?;
+let mut stream = Formatter::new(String::new());
+sval::stream(&mut stream, 42)?;
+let json = stream.end()?;
 
 assert_eq!("42", json);
 # Ok(())
@@ -307,8 +306,24 @@ where
     }
 
     #[inline]
+    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+        self.map_key()?;
+        k.stream(self)?;
+
+        Ok(())
+    }
+
+    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.stack.map_value()?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.map_value()?;
+        v.stream(self)?;
 
         Ok(())
     }
@@ -343,6 +358,14 @@ where
     #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         self.stack.seq_elem()?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.seq_elem()?;
+        v.stream(self)?;
 
         Ok(())
     }

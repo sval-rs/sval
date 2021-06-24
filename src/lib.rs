@@ -44,83 +44,6 @@ sval::stream(MyStream, 42)?;
 
 where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 
-## over multiple calls
-
-More involved use-cases may want to build up structure over time. Use a [`stream::OwnedStream`](stream/struct.OwnedStream.html)
-to hang on to a stream and pass it values over time.
-
-The following example wraps up a stream in an API that lets callers treat it like a map:
-
-```no_run
-# #[cfg(not(feature = "std"))]
-# fn main() {}
-# #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-# let my_stream = MyStream;
-// Create a `Map` stream that wraps up another one
-let mut stream = Map::new(my_stream)?;
-
-// Stream it some entries
-stream.entry("a", 42)?;
-stream.entry("b", 17)?;
-
-// Eventually we end the wrapper and return the original stream
-let my_stream = stream.end()?;
-# struct MyStream;
-# struct Map;
-# impl Map {
-#     fn new<T>(_: T) -> Result<Self, Box<dyn std::error::Error>> { Ok(Map) }
-#     fn entry<K, V>(&mut self, _: K, _: V) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
-#     fn end(self) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
-# }
-# Ok(())
-}
-```
-
-An implementation of `Map` could then look like this:
-
-```no_run
-use sval::{
-    value::Value,
-    stream::{self, OwnedStream},
-};
-
-struct Map {
-    // Using `OwnedStream<MyStream>` instead of just `MyStream`
-    // gives us better ergonomics and validation
-    stream: OwnedStream<MyStream>,
-}
-
-impl Map {
-    fn new(stream: MyStream) -> Result<Self, sval::Error> {
-        let mut stream = OwnedStream::new(stream);
-        stream.map_begin(None)?;
-
-        Ok(Map {
-            stream,
-        })
-    }
-
-    fn entry(&mut self, k: impl Value, v: impl Value) -> Result<(), sval::Error> {
-        self.stream.map_key(k)?;
-        self.stream.map_value(v)?;
-
-        Ok(())
-    }
-
-    fn end(mut self) -> Result<MyStream, sval::Error> {
-        self.stream.map_end()?;
-
-        Ok(self.stream.into_inner())
-    }
-}
-# use sval::stream::Stream;
-# struct MyStream;
-# impl Stream for MyStream {
-#     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
-# }
-```
-
 # `serde` integration
 
 Use the `serde` Cargo feature to enable integration with `serde`:
@@ -142,7 +65,6 @@ extern crate sval;
 pub enum Data {
     Variant(i32, String),
 }
-# }
 ```
 
 # `std::fmt` integration
@@ -287,7 +209,6 @@ extern crate core as std;
 
 #[macro_use]
 mod error;
-mod collect;
 
 #[cfg(any(test, feature = "test"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "test")))]
@@ -317,9 +238,11 @@ Stream the structure of a [`Value`] using the given [`Stream`].
 
 This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
 */
-pub fn stream<S>(stream: S, value: impl Value) -> Result<S, Error>
+pub fn stream<S>(mut stream: S, value: impl Value) -> Result<S, Error>
 where
     S: Stream,
 {
-    crate::stream::OwnedStream::stream(stream, value)
+    value.stream(&mut value::Stream::new(&mut stream))?;
+
+    Ok(stream)
 }
