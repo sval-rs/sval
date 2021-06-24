@@ -16,13 +16,20 @@ A stream that can receive the structure of a value.
 pub struct Stream<'a>(&'a mut dyn stream::Stream);
 
 impl<'a> Stream<'a> {
+    /**
+    Wrap an implementation of [`Stream`].
+
+    [`Stream`]: ../stream/trait.Stream.html
+    */
     #[inline]
-    pub(crate) fn new(stream: &'a mut impl stream::Stream) -> Self {
+    pub fn new(stream: &'a mut impl stream::Stream) -> Self {
         Stream(stream)
     }
 
     /**
-    Stream a value.
+    Stream an implementation of [`Value`].
+
+    [`Value`]: ./trait.Value.html
     */
     #[inline]
     pub fn any(&mut self, v: impl Value) -> stream::Result {

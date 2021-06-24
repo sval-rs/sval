@@ -357,17 +357,14 @@ pub trait Value {
 
     # Examples
 
-    Use a [`stream::OwnedStream`] to stream a value:
+    Use a [`sval::stream`] to stream a value:
 
     ```no_run
     # #[cfg(not(feature = "std"))]
     # fn main() {}
     # #[cfg(feature = "std")]
     # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use sval::stream::OwnedStream;
-
-    let mut stream = OwnedStream::new(MyStream);
-    stream.any(42)?;
+    sval::stream(MyStream, 42)?;
     # Ok(())
     # }
     # use sval::stream::{self, Stream};
@@ -377,21 +374,16 @@ pub trait Value {
     # }
     ```
 
-    It's less convenient, but the `stream` method can be called directly
-    instead of using `OwnedStream.any`:
+    It's less convenient, but the `stream` method can be called directly:
 
     ```no_run
     # #[cfg(not(feature = "std"))]
     # fn main() {}
     # #[cfg(feature = "std")]
     # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use sval::{
-        stream::OwnedStream,
-        value::Value,
-    };
+    use sval::value::{self, Value};
 
-    let mut stream = OwnedStream::new(MyStream);
-    42.stream(&mut stream.borrow_mut())?;
+    42.stream(&mut value::Stream::new(&mut MyStream))?;
     # Ok(())
     # }
     # use sval::stream::{self, Stream};
@@ -402,7 +394,6 @@ pub trait Value {
     ```
 
     [`sval::stream`]: ../fn.stream.html
-    [`stream::OwnedStream`]: ../stream/struct.OwnedStream.html
     */
     fn stream(&self, stream: &mut Stream) -> Result;
 }
