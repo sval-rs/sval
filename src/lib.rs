@@ -65,7 +65,6 @@ extern crate sval;
 pub enum Data {
     Variant(i32, String),
 }
-# }
 ```
 
 # `std::fmt` integration

@@ -220,9 +220,6 @@ A receiver for the structure of a value.
 The `Stream` trait has a flat, stateless structure, but it may need to work with
 nested values. Implementations can use a [`Stack`] to track state for them.
 
-The [`OwnedStream`] type is an ergonomic wrapper over a raw `Stream` that adds
-the concept of [`Value`](../value/trait.Value.html)s.
-
 # Implementing `Stream`
 
 A stream may choose what kinds of structures it supports by selectively
