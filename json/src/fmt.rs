@@ -45,12 +45,11 @@ Create an owned json stream:
 # fn main() {}
 # #[cfg(feature = "std")]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use sval::stream::OwnedStream;
 use sval_json::Formatter;
 
-let mut stream = OwnedStream::new(Formatter::new(String::new()));
-stream.any(42)?;
-let json = stream.into_inner().end()?;
+let mut stream = Formatter::new(String::new());
+sval::stream(&mut stream, 42)?;
+let json = stream.end()?;
 
 assert_eq!("42", json);
 # Ok(())
