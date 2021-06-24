@@ -23,6 +23,11 @@ version = "1"
 [dependencies.miniserde]
 version = "0.1"
 
+[dependencies.valuable]
+git = "https://github.com/tokio-rs/valuable"
+branch = "taiki-e/json"
+features = ["derive"]
+
 [target.'cfg(target_arch = "wasm32")'.dependencies.wasm-bindgen]
 version = "0.2"
 

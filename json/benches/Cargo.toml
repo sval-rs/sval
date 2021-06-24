@@ -28,3 +28,7 @@ version = "0.1"
 
 [dependencies.erased-serde]
 version = "0.3"
+
+[dependencies.valuable-json]
+git = "https://github.com/tokio-rs/valuable"
+branch = "taiki-e/json"
