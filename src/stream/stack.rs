@@ -508,7 +508,7 @@ impl Stack {
     }
 }
 
-impl Stream for Stack {
+impl<'stream> Stream<'stream> for Stack {
     #[inline]
     fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
         self.primitive().map(|_| ())
@@ -556,6 +556,11 @@ impl Stream for Stack {
 
     #[inline]
     fn str(&mut self, _: &str) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn borrowed_str(&mut self, _: &'stream str) -> stream::Result {
         self.primitive().map(|_| ())
     }
 

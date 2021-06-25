@@ -396,6 +396,15 @@ pub trait Value {
     [`sval::stream`]: ../fn.stream.html
     */
     fn stream(&self, stream: &mut Stream) -> Result;
+
+    /**
+    Stream this value with a concrete lifetime.
+    */
+    // TODO: We don't have a pit-of-success here for borrowed data
+    // TODO: For instance, a `BTreeMap<&'a str, i32> will used non-borrowed keys
+    fn borrowed_stream<'stream>(&'stream self, stream: &mut Stream<'_, 'stream>) -> Result {
+        self.stream(stream)
+    }
 }
 
 impl<'a, T: ?Sized> Value for &'a T
@@ -405,6 +414,11 @@ where
     #[inline]
     fn stream(&self, stream: &mut Stream) -> Result {
         (**self).stream(stream)
+    }
+
+    #[inline]
+    fn borrowed_stream<'stream>(&'stream self, stream: &mut Stream<'_, 'stream>) -> Result {
+        (**self).borrowed_stream(stream)
     }
 }
 

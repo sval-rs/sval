@@ -44,6 +44,31 @@ sval::stream(MyStream, 42)?;
 
 where `42` is a [`Value`] and `MyStream` is a [`Stream`].
 
+## with borrowed data
+
+```
+fn short_lived<'s>(s: &'s str) {
+    use sval::stream::{self, Stream};
+
+    #[derive(Default)]
+    struct CaptureBorrowedString<'stream>(Option<&'stream str>);
+
+    impl<'stream> Stream<'stream> for CaptureBorrowedString<'stream> {
+        fn borrowed_str(&mut self, v: &'stream str) -> stream::Result {
+            self.0 = Some(v);
+            Ok(())
+        }
+    }
+
+    let capture = sval::borrowed_stream(CaptureBorrowedString::default(), s).unwrap();
+
+    assert_eq!(Some(s), capture.0);
+}
+
+let s = String::from("a short lived string");
+short_lived(&s);
+```
+
 # `serde` integration
 
 Use the `serde` Cargo feature to enable integration with `serde`:
@@ -240,9 +265,22 @@ This method is a convenient way of calling [`OwnedStream::stream`](stream/struct
 */
 pub fn stream<S>(mut stream: S, value: impl Value) -> Result<S, Error>
 where
-    S: Stream,
+    S: for<'stream> Stream<'stream>,
 {
     value.stream(&mut value::Stream::new(&mut stream))?;
+
+    Ok(stream)
+}
+
+/**
+Stream the structure of a [`Value`] with a concrete lifetime.
+*/
+pub fn borrowed_stream<'stream, S, V>(mut stream: S, value: &'stream V) -> Result<S, Error>
+where
+    S: Stream<'stream>,
+    V: Value + ?Sized,
+{
+    value.borrowed_stream(&mut value::Stream::new(&mut stream))?;
 
     Ok(stream)
 }

@@ -506,7 +506,7 @@ impl Stream for MyStream {
 [`Value`]: ../trait.Value.html
 [`Error::unsupported`]: struct.Error.html#method.unsupported
 */
-pub trait Stream {
+pub trait Stream<'stream> {
     /**
     Stream a debuggable type.
     */
@@ -615,6 +615,16 @@ pub trait Stream {
     }
     #[cfg(test)]
     fn str(&mut self, v: &str) -> Result;
+
+    /**
+    Stream a borrowed UTF-8 string slice.
+    */
+    #[cfg(not(test))]
+    fn borrowed_str(&mut self, v: &'stream str) -> Result {
+        self.str(v)
+    }
+    #[cfg(test)]
+    fn borrowed_str(&mut self, v: &'stream str) -> Result;
 
     /**
     Stream an empty value.
@@ -741,9 +751,9 @@ pub trait Stream {
     fn seq_end(&mut self) -> Result;
 }
 
-impl<'a, T: ?Sized> Stream for &'a mut T
+impl<'a, 'stream, T: ?Sized> Stream<'stream> for &'a mut T
 where
-    T: Stream,
+    T: Stream<'stream>,
 {
     #[inline]
     fn fmt(&mut self, v: Arguments) -> Result {
@@ -793,6 +803,11 @@ where
     #[inline]
     fn str(&mut self, v: &str) -> Result {
         (**self).str(v)
+    }
+
+    #[inline]
+    fn borrowed_str(&mut self, v: &'stream str) -> Result {
+        (**self).borrowed_str(v)
     }
 
     #[inline]

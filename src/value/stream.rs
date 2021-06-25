@@ -13,16 +13,16 @@ use crate::std::error;
 /**
 A stream that can receive the structure of a value.
 */
-pub struct Stream<'a>(&'a mut dyn stream::Stream);
+pub struct Stream<'a, 'stream>(&'a mut dyn stream::Stream<'stream>);
 
-impl<'a> Stream<'a> {
+impl<'a, 'stream> Stream<'a, 'stream> {
     /**
     Wrap an implementation of [`Stream`].
 
     [`Stream`]: ../stream/trait.Stream.html
     */
     #[inline]
-    pub fn new(stream: &'a mut impl stream::Stream) -> Self {
+    pub fn new(stream: &'a mut impl stream::Stream<'stream>) -> Self {
         Stream(stream)
     }
 
@@ -148,6 +148,14 @@ impl<'a> Stream<'a> {
     }
 
     /**
+    Stream a UTF8 string.
+    */
+    #[inline]
+    pub fn borrowed_str(&mut self, v: &'stream str) -> stream::Result {
+        self.0.borrowed_str(v)
+    }
+
+    /**
     Stream an empty value.
     */
     #[inline]
@@ -212,7 +220,7 @@ impl<'a> Stream<'a> {
     }
 }
 
-impl<'a> Stream<'a> {
+impl<'a, 'stream> Stream<'a, 'stream> {
     /**
     Begin a map key.
     */
@@ -244,7 +252,7 @@ impl<'a> Stream<'a> {
     }
 }
 
-impl<'a> stream::Stream for Stream<'a> {
+impl<'a, 'stream> stream::Stream<'stream> for Stream<'a, 'stream> {
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.any(v)
@@ -293,6 +301,11 @@ impl<'a> stream::Stream for Stream<'a> {
     #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
         self.str(v)
+    }
+
+    #[inline]
+    fn borrowed_str(&mut self, v: &'stream str) -> stream::Result {
+        self.borrowed_str(v)
     }
 
     #[inline]
@@ -366,7 +379,7 @@ mod tests {
             stream.map_end()
         }
 
-        fn takes_stream(mut stream: impl stream::Stream) -> stream::Result {
+        fn takes_stream<'stream>(mut stream: impl stream::Stream<'stream>) -> stream::Result {
             stream.map_begin(None)?;
             stream.map_key()?;
             stream.str("key")?;

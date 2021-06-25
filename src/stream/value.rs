@@ -25,7 +25,7 @@ impl<'a> Value<'a> {
     [`Stream`]: ./trait.Stream.html
     */
     #[inline]
-    pub fn stream(&self, mut stream: impl Stream) -> value::Result {
+    pub fn stream<'stream>(&self, mut stream: impl Stream<'stream>) -> value::Result {
         self.0.stream(&mut value::Stream::new(&mut stream))?;
 
         Ok(())

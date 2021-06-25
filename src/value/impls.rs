@@ -162,6 +162,11 @@ impl Value for str {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.str(self)
     }
+
+    #[inline]
+    fn borrowed_stream<'stream>(&'stream self, stream: &mut value::Stream<'_, 'stream>) -> value::Result {
+        stream.borrowed_str(self)
+    }
 }
 
 impl<'a> Value for fmt::Arguments<'a> {
