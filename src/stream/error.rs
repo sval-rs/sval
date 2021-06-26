@@ -92,7 +92,7 @@ mod std_support {
         /**
         Get the inner error.
         */
-        pub fn get(&self) -> &(dyn Error + 'static) {
+        pub fn get(&self) -> &'a (dyn Error + 'static) {
             self.inner.0
         }
     }

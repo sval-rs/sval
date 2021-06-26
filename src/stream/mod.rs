@@ -506,11 +506,12 @@ impl Stream for MyStream {
 [`Value`]: ../trait.Value.html
 [`Error::unsupported`]: struct.Error.html#method.unsupported
 */
-pub trait Stream<'stream> {
+pub trait Stream<'value> {
     /**
     Stream a debuggable type.
     */
     #[cfg(not(test))]
+    #[inline]
     fn fmt(&mut self, v: Arguments) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::fmt"))
@@ -518,16 +519,27 @@ pub trait Stream<'stream> {
     #[cfg(test)]
     fn fmt(&mut self, v: Arguments) -> Result;
 
+    #[inline]
+    fn borrowed_fmt(&mut self, v: Arguments<'value>) -> Result {
+        self.fmt(v)
+    }
+
     /**
     Stream an error.
     */
     #[cfg(not(test))]
+    #[inline]
     fn error(&mut self, v: Source) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::error"))
     }
     #[cfg(test)]
     fn error(&mut self, v: Source) -> Result;
+
+    #[inline]
+    fn borrowed_error(&mut self, v: Source<'value>) -> Result {
+        self.error(v)
+    }
 
     /**
     Stream a signed integer.
@@ -620,11 +632,11 @@ pub trait Stream<'stream> {
     Stream a borrowed UTF-8 string slice.
     */
     #[cfg(not(test))]
-    fn borrowed_str(&mut self, v: &'stream str) -> Result {
+    fn borrowed_str(&mut self, v: &'value str) -> Result {
         self.str(v)
     }
     #[cfg(test)]
-    fn borrowed_str(&mut self, v: &'stream str) -> Result;
+    fn borrowed_str(&mut self, v: &'value str) -> Result;
 
     /**
     Stream an empty value.
@@ -671,6 +683,12 @@ pub trait Stream<'stream> {
     #[cfg(test)]
     fn map_key_collect(&mut self, k: &Value) -> Result;
 
+    #[inline]
+    fn borrowed_map_key_collect(&mut self, k: &Value<'value>) -> Result {
+        self.map_key()?;
+        k.borrowed_stream(self)
+    }
+
     /**
     Begin a map value.
 
@@ -694,6 +712,12 @@ pub trait Stream<'stream> {
     }
     #[cfg(test)]
     fn map_value_collect(&mut self, v: &Value) -> Result;
+
+    #[inline]
+    fn borrowed_map_value_collect(&mut self, v: &Value<'value>) -> Result {
+        self.map_value()?;
+        v.borrowed_stream(self)
+    }
 
     /**
     End a map.
@@ -740,6 +764,12 @@ pub trait Stream<'stream> {
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: &Value) -> Result;
 
+    #[inline]
+    fn borrowed_seq_elem_collect(&mut self, v: &Value<'value>) -> Result {
+        self.seq_elem()?;
+        v.borrowed_stream(self)
+    }
+
     /**
     End a sequence.
     */
@@ -751,9 +781,9 @@ pub trait Stream<'stream> {
     fn seq_end(&mut self) -> Result;
 }
 
-impl<'a, 'stream, T: ?Sized> Stream<'stream> for &'a mut T
+impl<'stream, 'value, T: ?Sized> Stream<'value> for &'stream mut T
 where
-    T: Stream<'stream>,
+    T: Stream<'value>,
 {
     #[inline]
     fn fmt(&mut self, v: Arguments) -> Result {
@@ -806,7 +836,7 @@ where
     }
 
     #[inline]
-    fn borrowed_str(&mut self, v: &'stream str) -> Result {
+    fn borrowed_str(&mut self, v: &'value str) -> Result {
         (**self).borrowed_str(v)
     }
 

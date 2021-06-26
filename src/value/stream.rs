@@ -13,16 +13,16 @@ use crate::std::error;
 /**
 A stream that can receive the structure of a value.
 */
-pub struct Stream<'a, 'stream>(&'a mut dyn stream::Stream<'stream>);
+pub struct Stream<'stream, 'value>(&'stream mut dyn stream::Stream<'value>);
 
-impl<'a, 'stream> Stream<'a, 'stream> {
+impl<'stream, 'value> Stream<'stream, 'value> {
     /**
     Wrap an implementation of [`Stream`].
 
     [`Stream`]: ../stream/trait.Stream.html
     */
     #[inline]
-    pub fn new(stream: &'a mut impl stream::Stream<'stream>) -> Self {
+    pub fn new(stream: &'stream mut impl stream::Stream<'value>) -> Self {
         Stream(stream)
     }
 
@@ -151,7 +151,7 @@ impl<'a, 'stream> Stream<'a, 'stream> {
     Stream a UTF8 string.
     */
     #[inline]
-    pub fn borrowed_str(&mut self, v: &'stream str) -> stream::Result {
+    pub fn borrowed_str(&mut self, v: &'value str) -> stream::Result {
         self.0.borrowed_str(v)
     }
 
@@ -180,11 +180,27 @@ impl<'a, 'stream> Stream<'a, 'stream> {
     }
 
     /**
+    Stream a map key.
+    */
+    #[inline]
+    pub fn borrowed_map_key(&mut self, k: &'value impl Value) -> stream::Result {
+        self.0.borrowed_map_key_collect(&stream::Value::new(k))
+    }
+
+    /**
     Stream a map value.
     */
     #[inline]
     pub fn map_value(&mut self, v: impl Value) -> stream::Result {
         self.0.map_value_collect(&stream::Value::new(&v))
+    }
+
+    /**
+    Stream a map value.
+    */
+    #[inline]
+    pub fn borrowed_map_value(&mut self, v: &'value impl Value) -> stream::Result {
+        self.0.borrowed_map_value_collect(&stream::Value::new(v))
     }
 
     /**
@@ -212,6 +228,14 @@ impl<'a, 'stream> Stream<'a, 'stream> {
     }
 
     /**
+    Stream a map value.
+    */
+    #[inline]
+    pub fn borrowed_seq_elem(&mut self, v: &'value impl Value) -> stream::Result {
+        self.0.borrowed_seq_elem_collect(&stream::Value::new(v))
+    }
+
+    /**
     End a sequence.
     */
     #[inline]
@@ -220,7 +244,7 @@ impl<'a, 'stream> Stream<'a, 'stream> {
     }
 }
 
-impl<'a, 'stream> Stream<'a, 'stream> {
+impl<'stream, 'value> Stream<'stream, 'value> {
     /**
     Begin a map key.
     */
@@ -252,7 +276,7 @@ impl<'a, 'stream> Stream<'a, 'stream> {
     }
 }
 
-impl<'a, 'stream> stream::Stream<'stream> for Stream<'a, 'stream> {
+impl<'stream, 'value> stream::Stream<'value> for Stream<'stream, 'value> {
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.any(v)
@@ -304,7 +328,7 @@ impl<'a, 'stream> stream::Stream<'stream> for Stream<'a, 'stream> {
     }
 
     #[inline]
-    fn borrowed_str(&mut self, v: &'stream str) -> stream::Result {
+    fn borrowed_str(&mut self, v: &'value str) -> stream::Result {
         self.borrowed_str(v)
     }
 

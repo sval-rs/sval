@@ -263,9 +263,9 @@ Stream the structure of a [`Value`] using the given [`Stream`].
 
 This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
 */
-pub fn stream<S>(mut stream: S, value: impl Value) -> Result<S, Error>
+pub fn stream<'a, S>(mut stream: S, value: impl Value) -> Result<S, Error>
 where
-    S: for<'stream> Stream<'stream>,
+    S: Stream<'a>,
 {
     value.stream(&mut value::Stream::new(&mut stream))?;
 
@@ -275,9 +275,9 @@ where
 /**
 Stream the structure of a [`Value`] with a concrete lifetime.
 */
-pub fn borrowed_stream<'stream, S, V>(mut stream: S, value: &'stream V) -> Result<S, Error>
+pub fn borrowed_stream<'value, S, V>(mut stream: S, value: &'value V) -> Result<S, Error>
 where
-    S: Stream<'stream>,
+    S: Stream<'value>,
     V: Value + ?Sized,
 {
     value.borrowed_stream(&mut value::Stream::new(&mut stream))?;
