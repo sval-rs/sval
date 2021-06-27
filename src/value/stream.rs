@@ -13,17 +13,32 @@ use crate::std::error;
 /**
 A stream that can receive the structure of a value.
 */
-pub struct Stream<'stream, 'value>(&'stream mut dyn stream::Stream<'value>);
+pub struct Stream<'s, 'v>(ShortLived<&'s mut dyn stream::Stream<'v>>);
 
-impl<'stream, 'value> Stream<'stream, 'value> {
+struct ShortLived<S>(S);
+
+impl<'s, 'v> Stream<'s, 'v> {
     /**
     Wrap an implementation of [`Stream`].
 
     [`Stream`]: ../stream/trait.Stream.html
     */
     #[inline]
-    pub fn new(stream: &'stream mut impl stream::Stream<'value>) -> Self {
-        Stream(stream)
+    pub fn new(stream: &'s mut impl stream::Stream<'v>) -> Self {
+        Stream(ShortLived(stream))
+    }
+
+    /**
+    Wrap this stream so it can accept borrowed data of any lifetime.
+    */
+    #[inline]
+    pub fn short_lived<'a, 'b>(&'a mut self) -> Stream<'a, 'b> {
+        Stream(ShortLived(&mut self.0))
+    }
+
+    #[inline]
+    fn long_lived(&mut self) -> &mut dyn stream::Stream<'v> {
+        (self.0).0
     }
 
     /**
@@ -41,7 +56,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn debug(&mut self, v: impl Debug) -> stream::Result {
-        self.0.fmt(stream::Arguments::debug(&v))
+        self.long_lived().fmt(stream::Arguments::debug(&v))
     }
 
     /**
@@ -49,7 +64,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn display(&mut self, v: impl Display) -> stream::Result {
-        self.0.fmt(stream::Arguments::display(&v))
+        self.long_lived().fmt(stream::Arguments::display(&v))
     }
 
     /**
@@ -80,7 +95,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     #[inline]
     #[cfg(feature = "std")]
     pub fn error(&mut self, v: &(dyn error::Error + 'static)) -> stream::Result {
-        self.0.error(stream::Source::new(v))
+        self.long_lived().error(stream::Source::new(v))
     }
 
     /**
@@ -88,7 +103,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn i64(&mut self, v: i64) -> stream::Result {
-        self.0.i64(v)
+        self.long_lived().i64(v)
     }
 
     /**
@@ -96,7 +111,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn u64(&mut self, v: u64) -> stream::Result {
-        self.0.u64(v)
+        self.long_lived().u64(v)
     }
 
     /**
@@ -104,7 +119,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn i128(&mut self, v: i128) -> stream::Result {
-        self.0.i128(v)
+        self.long_lived().i128(v)
     }
 
     /**
@@ -112,7 +127,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn u128(&mut self, v: u128) -> stream::Result {
-        self.0.u128(v)
+        self.long_lived().u128(v)
     }
 
     /**
@@ -120,7 +135,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn f64(&mut self, v: f64) -> stream::Result {
-        self.0.f64(v)
+        self.long_lived().f64(v)
     }
 
     /**
@@ -128,7 +143,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn bool(&mut self, v: bool) -> stream::Result {
-        self.0.bool(v)
+        self.long_lived().bool(v)
     }
 
     /**
@@ -136,7 +151,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn char(&mut self, v: char) -> stream::Result {
-        self.0.char(v)
+        self.long_lived().char(v)
     }
 
     /**
@@ -144,15 +159,15 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn str(&mut self, v: &str) -> stream::Result {
-        self.0.str(v)
+        self.long_lived().str(v)
     }
 
     /**
     Stream a UTF8 string.
     */
     #[inline]
-    pub fn borrowed_str(&mut self, v: &'value str) -> stream::Result {
-        self.0.borrowed_str(v)
+    pub fn borrowed_str(&mut self, v: &'v str) -> stream::Result {
+        self.long_lived().borrowed_str(v)
     }
 
     /**
@@ -160,7 +175,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn none(&mut self) -> stream::Result {
-        self.0.none()
+        self.long_lived().none()
     }
 
     /**
@@ -168,7 +183,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.0.map_begin(len)
+        self.long_lived().map_begin(len)
     }
 
     /**
@@ -176,15 +191,15 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn map_key(&mut self, k: impl Value) -> stream::Result {
-        self.0.map_key_collect(&stream::Value::new(&k))
+        self.long_lived().map_key_collect(&stream::Value::new(&k))
     }
 
     /**
     Stream a map key.
     */
     #[inline]
-    pub fn borrowed_map_key(&mut self, k: &'value impl Value) -> stream::Result {
-        self.0.borrowed_map_key_collect(&stream::Value::new(k))
+    pub fn borrowed_map_key(&mut self, k: &'v impl Value) -> stream::Result {
+        self.long_lived().borrowed_map_key_collect(&stream::Value::new(k))
     }
 
     /**
@@ -192,15 +207,15 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn map_value(&mut self, v: impl Value) -> stream::Result {
-        self.0.map_value_collect(&stream::Value::new(&v))
+        self.long_lived().map_value_collect(&stream::Value::new(&v))
     }
 
     /**
     Stream a map value.
     */
     #[inline]
-    pub fn borrowed_map_value(&mut self, v: &'value impl Value) -> stream::Result {
-        self.0.borrowed_map_value_collect(&stream::Value::new(v))
+    pub fn borrowed_map_value(&mut self, v: &'v impl Value) -> stream::Result {
+        self.long_lived().borrowed_map_value_collect(&stream::Value::new(v))
     }
 
     /**
@@ -208,7 +223,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn map_end(&mut self) -> stream::Result {
-        self.0.map_end()
+        self.long_lived().map_end()
     }
 
     /**
@@ -216,7 +231,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.0.seq_begin(len)
+        self.long_lived().seq_begin(len)
     }
 
     /**
@@ -224,15 +239,15 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn seq_elem(&mut self, v: impl Value) -> stream::Result {
-        self.0.seq_elem_collect(&stream::Value::new(&v))
+        self.long_lived().seq_elem_collect(&stream::Value::new(&v))
     }
 
     /**
     Stream a map value.
     */
     #[inline]
-    pub fn borrowed_seq_elem(&mut self, v: &'value impl Value) -> stream::Result {
-        self.0.borrowed_seq_elem_collect(&stream::Value::new(v))
+    pub fn borrowed_seq_elem(&mut self, v: &'v impl Value) -> stream::Result {
+        self.long_lived().borrowed_seq_elem_collect(&stream::Value::new(v))
     }
 
     /**
@@ -240,17 +255,17 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn seq_end(&mut self) -> stream::Result {
-        self.0.seq_end()
+        self.long_lived().seq_end()
     }
 }
 
-impl<'stream, 'value> Stream<'stream, 'value> {
+impl<'s, 'v> Stream<'s, 'v> {
     /**
     Begin a map key.
     */
     #[inline]
     pub fn map_key_begin(&mut self) -> Result<&mut Self, crate::Error> {
-        self.0.map_key()?;
+        self.long_lived().map_key()?;
 
         Ok(self)
     }
@@ -260,7 +275,7 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn map_value_begin(&mut self) -> Result<&mut Self, crate::Error> {
-        self.0.map_value()?;
+        self.long_lived().map_value()?;
 
         Ok(self)
     }
@@ -270,13 +285,13 @@ impl<'stream, 'value> Stream<'stream, 'value> {
     */
     #[inline]
     pub fn seq_elem_begin(&mut self) -> Result<&mut Self, crate::Error> {
-        self.0.seq_elem()?;
+        self.long_lived().seq_elem()?;
 
         Ok(self)
     }
 }
 
-impl<'stream, 'value> stream::Stream<'value> for Stream<'stream, 'value> {
+impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.any(v)
@@ -328,7 +343,7 @@ impl<'stream, 'value> stream::Stream<'value> for Stream<'stream, 'value> {
     }
 
     #[inline]
-    fn borrowed_str(&mut self, v: &'value str) -> stream::Result {
+    fn borrowed_str(&mut self, v: &'v str) -> stream::Result {
         self.borrowed_str(v)
     }
 
@@ -388,6 +403,121 @@ impl<'stream, 'value> stream::Stream<'value> for Stream<'stream, 'value> {
     }
 }
 
+impl<'a, 'v, S> stream::Stream<'v> for ShortLived<S>
+where
+    S: stream::Stream<'a>,
+{
+    #[inline]
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+        self.0.fmt(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.0.error(v)
+    }
+
+    #[inline]
+    fn i64(&mut self, v: i64) -> stream::Result {
+        self.0.i64(v)
+    }
+
+    #[inline]
+    fn u64(&mut self, v: u64) -> stream::Result {
+        self.0.u64(v)
+    }
+
+    #[inline]
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.0.i128(v)
+    }
+
+    #[inline]
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.0.u128(v)
+    }
+
+    #[inline]
+    fn f64(&mut self, v: f64) -> stream::Result {
+        self.0.f64(v)
+    }
+
+    #[inline]
+    fn bool(&mut self, v: bool) -> stream::Result {
+        self.0.bool(v)
+    }
+
+    #[inline]
+    fn char(&mut self, v: char) -> stream::Result {
+        self.0.char(v)
+    }
+
+    #[inline]
+    fn str(&mut self, v: &str) -> stream::Result {
+        self.0.str(v)
+    }
+
+    #[inline]
+    fn borrowed_str(&mut self, v: &'v str) -> stream::Result {
+        self.0.str(v)
+    }
+
+    #[inline]
+    fn none(&mut self) -> stream::Result {
+        self.0.none()
+    }
+
+    #[inline]
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.0.map_begin(len)
+    }
+
+    #[inline]
+    fn map_key(&mut self) -> stream::Result {
+        self.0.map_key()
+    }
+
+    #[inline]
+    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+        self.0.map_key_collect(k)
+    }
+
+    #[inline]
+    fn map_value(&mut self) -> stream::Result {
+        self.0.map_value()
+    }
+
+    #[inline]
+    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.0.map_value_collect(v)
+    }
+
+    #[inline]
+    fn map_end(&mut self) -> stream::Result {
+        self.0.map_end()
+    }
+
+    #[inline]
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.0.seq_begin(len)
+    }
+
+    #[inline]
+    fn seq_elem(&mut self) -> stream::Result {
+        self.0.seq_elem()
+    }
+
+    #[inline]
+    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.0.seq_elem_collect(v)
+    }
+
+    #[inline]
+    fn seq_end(&mut self) -> stream::Result {
+        self.0.seq_end()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -403,7 +533,7 @@ mod tests {
             stream.map_end()
         }
 
-        fn takes_stream<'stream>(mut stream: impl stream::Stream<'stream>) -> stream::Result {
+        fn takes_stream<'s>(mut stream: impl stream::Stream<'s>) -> stream::Result {
             stream.map_begin(None)?;
             stream.map_key()?;
             stream.str("key")?;

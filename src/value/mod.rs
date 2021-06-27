@@ -402,7 +402,7 @@ pub trait Value {
     */
     // TODO: We don't have a pit-of-success here for borrowed data
     // TODO: For instance, a `BTreeMap<&'a str, i32> will used non-borrowed keys
-    fn borrowed_stream<'stream, 'value>(&'value self, stream: &mut Stream<'stream, 'value>) -> Result {
+    fn borrowed_stream<'s, 'v>(&'v self, stream: &mut Stream<'s, 'v>) -> Result {
         self.stream(stream)
     }
 }
@@ -417,7 +417,7 @@ where
     }
 
     #[inline]
-    fn borrowed_stream<'stream, 'value>(&'value self, stream: &mut Stream<'stream, 'value>) -> Result {
+    fn borrowed_stream<'s, 'v>(&'v self, stream: &mut Stream<'s, 'v>) -> Result {
         (**self).borrowed_stream(stream)
     }
 }

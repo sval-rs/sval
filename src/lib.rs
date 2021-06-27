@@ -51,10 +51,10 @@ fn short_lived<'s>(s: &'s str) {
     use sval::stream::{self, Stream};
 
     #[derive(Default)]
-    struct CaptureBorrowedString<'stream>(Option<&'stream str>);
+    struct CaptureBorrowedString<'s>(Option<&'s str>);
 
-    impl<'stream> Stream<'stream> for CaptureBorrowedString<'stream> {
-        fn borrowed_str(&mut self, v: &'stream str) -> stream::Result {
+    impl<'s> Stream<'s> for CaptureBorrowedString<'s> {
+        fn borrowed_str(&mut self, v: &'s str) -> stream::Result {
             self.0 = Some(v);
             Ok(())
         }
@@ -275,9 +275,9 @@ where
 /**
 Stream the structure of a [`Value`] with a concrete lifetime.
 */
-pub fn borrowed_stream<'value, S, V>(mut stream: S, value: &'value V) -> Result<S, Error>
+pub fn borrowed_stream<'v, S, V>(mut stream: S, value: &'v V) -> Result<S, Error>
 where
-    S: Stream<'value>,
+    S: Stream<'v>,
     V: Value + ?Sized,
 {
     value.borrowed_stream(&mut value::Stream::new(&mut stream))?;

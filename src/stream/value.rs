@@ -6,16 +6,16 @@ use crate::{
 /**
 A value that can emit its structure to a stream.
 */
-pub struct Value<'value>(&'value dyn value::Value);
+pub struct Value<'v>(&'v dyn value::Value);
 
-impl<'value> Value<'value> {
+impl<'v> Value<'v> {
     /**
     Wrap an implementation of [`Value`].
 
     [`Value`]: ../value/trait.Value.html
     */
     #[inline]
-    pub fn new(value: &'value impl value::Value) -> Self {
+    pub fn new(value: &'v impl value::Value) -> Self {
         Value(value)
     }
 
@@ -37,7 +37,7 @@ impl<'value> Value<'value> {
     [`Stream`]: ./trait.Stream.html
     */
     #[inline]
-    pub fn borrowed_stream(&self, mut stream: impl Stream<'value>) -> value::Result {
+    pub fn borrowed_stream(&self, mut stream: impl Stream<'v>) -> value::Result {
         self.0.stream(&mut value::Stream::new(&mut stream))?;
 
         Ok(())
@@ -51,7 +51,7 @@ impl<'a> value::Value for Value<'a> {
     }
 
     #[inline]
-    fn borrowed_stream<'stream, 'value>(&'value self, stream: &mut value::Stream<'stream, 'value>) -> value::Result {
+    fn borrowed_stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
         self.0.borrowed_stream(stream)
     }
 }

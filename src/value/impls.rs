@@ -164,7 +164,7 @@ impl Value for str {
     }
 
     #[inline]
-    fn borrowed_stream<'stream, 'value>(&'value self, stream: &mut value::Stream<'stream, 'value>) -> value::Result {
+    fn borrowed_stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
         stream.borrowed_str(self)
     }
 }
