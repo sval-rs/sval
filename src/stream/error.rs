@@ -12,15 +12,15 @@ error types, that may have backtraces and other metadata.
 but streams can still work with them by formatting them or passing
 them along even in no-std environments where the `Error` trait isn't available.
 */
-pub struct Source<'a> {
+pub struct Source<'v> {
     #[cfg(feature = "std")]
-    inner: self::std_support::SourceError<'a>,
+    inner: self::std_support::SourceError<'v>,
     #[cfg(not(feature = "std"))]
-    _marker: crate::std::marker::PhantomData<&'a dyn crate::std::any::Any>,
+    _marker: crate::std::marker::PhantomData<&'v dyn crate::std::any::Any>,
 }
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
-impl<'a> Source<'a> {
+impl<'v> Source<'v> {
     pub(crate) fn empty() -> Self {
         Source {
             _marker: Default::default(),
@@ -28,7 +28,7 @@ impl<'a> Source<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Source<'a> {
+impl<'v> fmt::Debug for Source<'v> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         #[cfg(feature = "std")]
         {
@@ -42,7 +42,7 @@ impl<'a> fmt::Debug for Source<'a> {
     }
 }
 
-impl<'a> fmt::Display for Source<'a> {
+impl<'v> fmt::Display for Source<'v> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         #[cfg(feature = "std")]
         {
@@ -65,46 +65,46 @@ mod std_support {
 
     use super::Source;
 
-    pub(super) struct SourceError<'a>(&'a (dyn Error + 'static));
+    pub(super) struct SourceError<'v>(&'v (dyn Error + 'static));
 
-    impl<'a> fmt::Debug for SourceError<'a> {
+    impl<'v> fmt::Debug for SourceError<'v> {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             fmt::Debug::fmt(&self.0, f)
         }
     }
 
-    impl<'a> fmt::Display for SourceError<'a> {
+    impl<'v> fmt::Display for SourceError<'v> {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             fmt::Display::fmt(&self.0, f)
         }
     }
 
-    impl<'a> Source<'a> {
+    impl<'v> Source<'v> {
         /**
         Capture an error source from a standard error.
 
         This method is only available when the `std` feature is enabled.
         */
-        pub fn new(err: &'a (dyn Error + 'static)) -> Self {
+        pub fn new(err: &'v (dyn Error + 'static)) -> Self {
             Source::from(err)
         }
 
         /**
         Get the inner error.
         */
-        pub fn get(&self) -> &'a (dyn Error + 'static) {
+        pub fn get(&self) -> &'v (dyn Error + 'static) {
             self.inner.0
         }
     }
 
-    impl<'a> AsRef<dyn Error + 'static> for Source<'a> {
+    impl<'v> AsRef<dyn Error + 'static> for Source<'v> {
         fn as_ref(&self) -> &(dyn Error + 'static) {
             self.inner.0
         }
     }
 
-    impl<'a> From<&'a (dyn Error + 'static)> for Source<'a> {
-        fn from(err: &'a (dyn Error + 'static)) -> Self {
+    impl<'v> From<&'v (dyn Error + 'static)> for Source<'v> {
+        fn from(err: &'v (dyn Error + 'static)) -> Self {
             Source {
                 inner: SourceError(err),
             }

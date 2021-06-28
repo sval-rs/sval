@@ -259,13 +259,12 @@ use self::{
 };
 
 /**
-Stream the structure of a [`Value`] using the given [`Stream`].
-
-This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
+Stream the structure of a [`Value`] with a concrete lifetime.
 */
-pub fn stream<'a, S>(mut stream: S, value: impl Value) -> Result<S, Error>
+pub fn stream<'v, S, V>(mut stream: S, value: &'v V) -> Result<S, Error>
 where
-    S: Stream<'a>,
+    S: Stream<'v>,
+    V: Value + ?Sized,
 {
     value.stream(&mut value::Stream::new(&mut stream))?;
 
@@ -273,14 +272,13 @@ where
 }
 
 /**
-Stream the structure of a [`Value`] with a concrete lifetime.
+Stream the structure of a [`Value`] using the given [`Stream`].
 */
-pub fn borrowed_stream<'v, S, V>(mut stream: S, value: &'v V) -> Result<S, Error>
+pub fn stream_owned<'v, S>(mut stream: S, value: &impl Value) -> Result<S, Error>
 where
     S: Stream<'v>,
-    V: Value + ?Sized,
 {
-    value.borrowed_stream(&mut value::Stream::new(&mut stream))?;
+    value.stream_owned(&mut value::Stream::new(&mut stream))?;
 
     Ok(stream)
 }

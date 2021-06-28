@@ -519,10 +519,13 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn fmt(&mut self, v: Arguments) -> Result;
 
+    #[cfg(not(test))]
     #[inline]
-    fn borrowed_fmt(&mut self, v: Arguments<'v>) -> Result {
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
         self.fmt(v)
     }
+    #[cfg(test)]
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result;
 
     /**
     Stream an error.
@@ -536,10 +539,13 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn error(&mut self, v: Source) -> Result;
 
+    #[cfg(not(test))]
     #[inline]
-    fn borrowed_error(&mut self, v: Source<'v>) -> Result {
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
         self.error(v)
     }
+    #[cfg(test)]
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result;
 
     /**
     Stream a signed integer.
@@ -678,16 +684,18 @@ pub trait Stream<'v> {
     #[inline]
     fn map_key_collect(&mut self, k: &Value) -> Result {
         self.map_key()?;
-        k.stream(self)
+        k.stream_owned(self)
     }
     #[cfg(test)]
     fn map_key_collect(&mut self, k: &Value) -> Result;
 
+    #[cfg(not(test))]
     #[inline]
-    fn borrowed_map_key_collect(&mut self, k: &Value<'v>) -> Result {
-        self.map_key()?;
-        k.borrowed_stream(self)
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
+        self.map_key_collect(k)
     }
+    #[cfg(test)]
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result;
 
     /**
     Begin a map value.
@@ -708,16 +716,18 @@ pub trait Stream<'v> {
     #[inline]
     fn map_value_collect(&mut self, v: &Value) -> Result {
         self.map_value()?;
-        v.stream(self)
+        v.stream_owned(self)
     }
     #[cfg(test)]
     fn map_value_collect(&mut self, v: &Value) -> Result;
 
+    #[cfg(not(test))]
     #[inline]
-    fn borrowed_map_value_collect(&mut self, v: &Value<'v>) -> Result {
-        self.map_value()?;
-        v.borrowed_stream(self)
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        self.map_value_collect(v)
     }
+    #[cfg(test)]
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
 
     /**
     End a map.
@@ -759,16 +769,18 @@ pub trait Stream<'v> {
     #[inline]
     fn seq_elem_collect(&mut self, v: &Value) -> Result {
         self.seq_elem()?;
-        v.stream(self)
+        v.stream_owned(self)
     }
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: &Value) -> Result;
 
+    #[cfg(not(test))]
     #[inline]
-    fn borrowed_seq_elem_collect(&mut self, v: &Value<'v>) -> Result {
-        self.seq_elem()?;
-        v.borrowed_stream(self)
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        self.seq_elem_collect(v)
     }
+    #[cfg(test)]
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
 
     /**
     End a sequence.
