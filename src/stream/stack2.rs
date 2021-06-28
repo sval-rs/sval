@@ -109,6 +109,7 @@ impl Slot {
     const IS_MAP_KEY: u8 =      0b0000_0010;
     const IS_MAP_VALUE: u8 =    0b0000_0110;
     const IS_SEQ_ELEM: u8 =     0b0000_1000;
+    const RESERVED: u8 =        0b0001_0000;
 
     const MASK_VALUE_ELEM: u8 = 0b0000_1100;
 
@@ -117,9 +118,11 @@ impl Slot {
     const NEEDS_MAP_VALUE: u8 = 0b0000_0010;
     const NEEDS_SEQ_ELEM: u8 =  0b0000_1000;
 
-    const MASK_SLOT: u8 = u8::MAX >> Slot::SIZE;
+    const MASK_SLOT: u8 = u8::MAX >> (u8::BITS as u8 - Slot::SIZE as u8);
 
-    const SIZE: usize = 4;
+    // NOTE: This leaves us with 4 "spare" bits at the end of a 64bit stack
+    // This is where we could encode whether or not the map or sequence is empty
+    const SIZE: usize = 5;
 
     #[inline]
     fn pos(self, depth: u8) -> Pos {
@@ -147,12 +150,11 @@ type RawStack = u64;
 #[derive(Clone)]
 pub struct Stack {
     inner: RawStack,
-    // TODO: Encode the depth somewhere in the `RawStack`
     depth: u8,
 }
 
 impl Stack {
-    const MAX_DEPTH: u8 = (std::mem::size_of::<RawStack>() as u8 * 2) - 1;
+    const MAX_DEPTH: u8 = (RawStack::BITS as u8 / Slot::SIZE as u8);
 
     const MASK_SLOT_BEGIN: RawStack = (RawStack::MAX << Slot::SIZE) ^ (Slot::NEEDS_ITEM as RawStack) << Slot::SIZE;
 
