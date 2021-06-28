@@ -54,13 +54,13 @@ fn short_lived<'s>(s: &'s str) {
     struct CaptureBorrowedString<'s>(Option<&'s str>);
 
     impl<'s> Stream<'s> for CaptureBorrowedString<'s> {
-        fn borrowed_str(&mut self, v: &'s str) -> stream::Result {
+        fn str_borrowed(&mut self, v: &'s str) -> stream::Result {
             self.0 = Some(v);
             Ok(())
         }
     }
 
-    let capture = sval::borrowed_stream(CaptureBorrowedString::default(), s).unwrap();
+    let capture = sval::str_borrowedeam(CaptureBorrowedString::default(), s).unwrap();
 
     assert_eq!(Some(s), capture.0);
 }

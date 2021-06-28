@@ -317,8 +317,8 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
     }
 
     #[inline]
-    fn borrowed_str(&mut self, v: &'v str) -> stream::Result {
-        self.inner().borrowed_str(v)
+    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
+        self.inner().str_borrowed(v)
     }
 
     #[inline]
@@ -447,7 +447,7 @@ where
     }
 
     #[inline]
-    fn borrowed_str(&mut self, v: &'v str) -> stream::Result {
+    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
         self.0.str(v)
     }
 

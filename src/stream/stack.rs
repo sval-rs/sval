@@ -560,7 +560,7 @@ impl<'v> Stream<'v> for Stack {
     }
 
     #[inline]
-    fn borrowed_str(&mut self, _: &'v str) -> stream::Result {
+    fn str_borrowed(&mut self, _: &'v str) -> stream::Result {
         self.primitive().map(|_| ())
     }
 

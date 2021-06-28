@@ -519,14 +519,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn fmt(&mut self, v: Arguments) -> Result;
 
-    #[cfg(not(test))]
-    #[inline]
-    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
-        self.fmt(v)
-    }
-    #[cfg(test)]
-    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result;
-
     /**
     Stream an error.
     */
@@ -538,14 +530,6 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn error(&mut self, v: Source) -> Result;
-
-    #[cfg(not(test))]
-    #[inline]
-    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
-        self.error(v)
-    }
-    #[cfg(test)]
-    fn error_borrowed(&mut self, v: Source<'v>) -> Result;
 
     /**
     Stream a signed integer.
@@ -635,16 +619,6 @@ pub trait Stream<'v> {
     fn str(&mut self, v: &str) -> Result;
 
     /**
-    Stream a borrowed UTF-8 string slice.
-    */
-    #[cfg(not(test))]
-    fn borrowed_str(&mut self, v: &'v str) -> Result {
-        self.str(v)
-    }
-    #[cfg(test)]
-    fn borrowed_str(&mut self, v: &'v str) -> Result;
-
-    /**
     Stream an empty value.
     */
     #[cfg(not(test))]
@@ -689,14 +663,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_key_collect(&mut self, k: &Value) -> Result;
 
-    #[cfg(not(test))]
-    #[inline]
-    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
-        self.map_key_collect(k)
-    }
-    #[cfg(test)]
-    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result;
-
     /**
     Begin a map value.
 
@@ -720,14 +686,6 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn map_value_collect(&mut self, v: &Value) -> Result;
-
-    #[cfg(not(test))]
-    #[inline]
-    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
-        self.map_value_collect(v)
-    }
-    #[cfg(test)]
-    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
 
     /**
     End a map.
@@ -774,14 +732,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: &Value) -> Result;
 
-    #[cfg(not(test))]
-    #[inline]
-    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
-        self.seq_elem_collect(v)
-    }
-    #[cfg(test)]
-    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
-
     /**
     End a sequence.
     */
@@ -791,6 +741,56 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn seq_end(&mut self) -> Result;
+
+    #[cfg(not(test))]
+    #[inline]
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
+        self.fmt(v)
+    }
+    #[cfg(test)]
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result;
+
+    #[cfg(not(test))]
+    #[inline]
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
+        self.error(v)
+    }
+    #[cfg(test)]
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result;
+
+    /**
+    Stream a borrowed UTF-8 string slice.
+    */
+    #[cfg(not(test))]
+    fn str_borrowed(&mut self, v: &'v str) -> Result {
+        self.str(v)
+    }
+    #[cfg(test)]
+    fn str_borrowed(&mut self, v: &'v str) -> Result;
+
+    #[cfg(not(test))]
+    #[inline]
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
+        self.map_key_collect(k)
+    }
+    #[cfg(test)]
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result;
+
+    #[cfg(not(test))]
+    #[inline]
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        self.map_value_collect(v)
+    }
+    #[cfg(test)]
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
+
+    #[cfg(not(test))]
+    #[inline]
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        self.seq_elem_collect(v)
+    }
+    #[cfg(test)]
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
 }
 
 impl<'s, 'v, T: ?Sized> Stream<'v> for &'s mut T
@@ -848,8 +848,8 @@ where
     }
 
     #[inline]
-    fn borrowed_str(&mut self, v: &'v str) -> Result {
-        (**self).borrowed_str(v)
+    fn str_borrowed(&mut self, v: &'v str) -> Result {
+        (**self).str_borrowed(v)
     }
 
     #[inline]
