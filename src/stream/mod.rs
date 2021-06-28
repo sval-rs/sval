@@ -508,7 +508,8 @@ impl Stream for MyStream {
 */
 pub trait Stream<'v> {
     /**
-    Stream a debuggable type.
+    Stream a formattable type. Implementors should override this method if they
+    expect to accept formattable types.
     */
     #[cfg(not(test))]
     #[inline]
@@ -520,7 +521,8 @@ pub trait Stream<'v> {
     fn fmt(&mut self, v: Arguments) -> Result;
 
     /**
-    Stream an error.
+    Stream an error. Implementors should override this method if they
+    expect to accept errors.
     */
     #[cfg(not(test))]
     #[inline]
@@ -532,7 +534,8 @@ pub trait Stream<'v> {
     fn error(&mut self, v: Source) -> Result;
 
     /**
-    Stream a signed integer.
+    Stream a signed integer. Implementors should override this method if they
+    expect to accept signed integers.
     */
     #[cfg(not(test))]
     fn i64(&mut self, v: i64) -> Result {
@@ -542,7 +545,8 @@ pub trait Stream<'v> {
     fn i64(&mut self, v: i64) -> Result;
 
     /**
-    Stream an unsigned integer.
+    Stream an unsigned integer. Implementors should override this method if they
+    expect to accept unsigned integers.
     */
     #[cfg(not(test))]
     fn u64(&mut self, v: u64) -> Result {
@@ -552,7 +556,8 @@ pub trait Stream<'v> {
     fn u64(&mut self, v: u64) -> Result;
 
     /**
-    Stream a 128bit signed integer.
+    Stream a 128bit signed integer. Implementors should override this method if they
+    expect to accept 128bit signed integers.
     */
     #[cfg(not(test))]
     fn i128(&mut self, v: i128) -> Result {
@@ -563,7 +568,8 @@ pub trait Stream<'v> {
     fn i128(&mut self, v: i128) -> Result;
 
     /**
-    Stream a 128bit unsigned integer.
+    Stream a 128bit unsigned integer. Implementors should override this method if they
+    expect to accept 128bit unsigned integers.
     */
     #[cfg(not(test))]
     fn u128(&mut self, v: u128) -> Result {
@@ -574,7 +580,8 @@ pub trait Stream<'v> {
     fn u128(&mut self, v: u128) -> Result;
 
     /**
-    Stream a floating point value.
+    Stream a floating point value. Implementors should override this method if they
+    expect to accept floating point numbers.
     */
     #[cfg(not(test))]
     fn f64(&mut self, v: f64) -> Result {
@@ -585,7 +592,8 @@ pub trait Stream<'v> {
     fn f64(&mut self, v: f64) -> Result;
 
     /**
-    Stream a boolean.
+    Stream a boolean. Implementors should override this method if they
+    expect to accept booleans.
     */
     #[cfg(not(test))]
     fn bool(&mut self, v: bool) -> Result {
@@ -608,7 +616,8 @@ pub trait Stream<'v> {
     fn char(&mut self, v: char) -> Result;
 
     /**
-    Stream a UTF-8 string slice.
+    Stream a UTF-8 string slice. Implementors should override this method if they
+    expect to accept strings.
     */
     #[cfg(not(test))]
     fn str(&mut self, v: &str) -> Result {
@@ -619,7 +628,8 @@ pub trait Stream<'v> {
     fn str(&mut self, v: &str) -> Result;
 
     /**
-    Stream an empty value.
+    Stream an empty value. Implementors should override this method if they
+    expect to accept empty values.
     */
     #[cfg(not(test))]
     fn none(&mut self) -> Result {
@@ -629,7 +639,8 @@ pub trait Stream<'v> {
     fn none(&mut self) -> Result;
 
     /**
-    Begin a map.
+    Begin a map. Implementors should override this method if they
+    expect to accept maps.
     */
     #[cfg(not(test))]
     fn map_begin(&mut self, len: Option<usize>) -> Result {
@@ -640,7 +651,8 @@ pub trait Stream<'v> {
     fn map_begin(&mut self, len: Option<usize>) -> Result;
 
     /**
-    Begin a map key.
+    Begin a map key. Implementors should override this method if they
+    expect to accept maps.
 
     The key will be implicitly ended by the stream methods that follow it.
     */
@@ -650,6 +662,66 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn map_key(&mut self) -> Result;
+
+    /**
+    Begin a map value. Implementors should override this method if they
+    expect to accept maps.
+
+    The value will be implicitly ended by the stream methods that follow it.
+    */
+    #[cfg(not(test))]
+    fn map_value(&mut self) -> Result {
+        Err(crate::Error::default_unsupported("Stream::map_value"))
+    }
+    #[cfg(test)]
+    fn map_value(&mut self) -> Result;
+
+    /**
+    End a map. Implementors should override this method if they
+    expect to accept maps.
+    */
+    #[cfg(not(test))]
+    fn map_end(&mut self) -> Result {
+        Err(crate::Error::default_unsupported("Stream::map_end"))
+    }
+    #[cfg(test)]
+    fn map_end(&mut self) -> Result;
+
+    /**
+    Begin a sequence. Implementors should override this method if they
+    expect to accept sequences.
+    */
+    #[cfg(not(test))]
+    fn seq_begin(&mut self, len: Option<usize>) -> Result {
+        let _ = len;
+        Err(crate::Error::default_unsupported("Stream::seq_begin"))
+    }
+    #[cfg(test)]
+    fn seq_begin(&mut self, len: Option<usize>) -> Result;
+
+    /**
+    Begin a sequence element. Implementors should override this method if they
+    expect to accept sequences.
+
+    The element will be implicitly ended by the stream methods that follow it.
+    */
+    #[cfg(not(test))]
+    fn seq_elem(&mut self) -> Result {
+        Err(crate::Error::default_unsupported("Stream::seq_elem"))
+    }
+    #[cfg(test)]
+    fn seq_elem(&mut self) -> Result;
+
+    /**
+    End a sequence. Implementors should override this method if they
+    expect to accept sequences.
+    */
+    #[cfg(not(test))]
+    fn seq_end(&mut self) -> Result {
+        Err(crate::Error::default_unsupported("Stream::seq_end"))
+    }
+    #[cfg(test)]
+    fn seq_end(&mut self) -> Result;
 
     /**
     Collect a map key.
@@ -664,18 +736,6 @@ pub trait Stream<'v> {
     fn map_key_collect(&mut self, k: &Value) -> Result;
 
     /**
-    Begin a map value.
-
-    The value will be implicitly ended by the stream methods that follow it.
-    */
-    #[cfg(not(test))]
-    fn map_value(&mut self) -> Result {
-        Err(crate::Error::default_unsupported("Stream::map_value"))
-    }
-    #[cfg(test)]
-    fn map_value(&mut self) -> Result;
-
-    /**
     Collect a map value.
     */
     #[cfg(not(test))]
@@ -688,39 +748,6 @@ pub trait Stream<'v> {
     fn map_value_collect(&mut self, v: &Value) -> Result;
 
     /**
-    End a map.
-    */
-    #[cfg(not(test))]
-    fn map_end(&mut self) -> Result {
-        Err(crate::Error::default_unsupported("Stream::map_end"))
-    }
-    #[cfg(test)]
-    fn map_end(&mut self) -> Result;
-
-    /**
-    Begin a sequence.
-    */
-    #[cfg(not(test))]
-    fn seq_begin(&mut self, len: Option<usize>) -> Result {
-        let _ = len;
-        Err(crate::Error::default_unsupported("Stream::seq_begin"))
-    }
-    #[cfg(test)]
-    fn seq_begin(&mut self, len: Option<usize>) -> Result;
-
-    /**
-    Begin a sequence element.
-
-    The element will be implicitly ended by the stream methods that follow it.
-    */
-    #[cfg(not(test))]
-    fn seq_elem(&mut self) -> Result {
-        Err(crate::Error::default_unsupported("Stream::seq_elem"))
-    }
-    #[cfg(test)]
-    fn seq_elem(&mut self) -> Result;
-
-    /**
     Collect a sequence element.
     */
     #[cfg(not(test))]
@@ -731,16 +758,6 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: &Value) -> Result;
-
-    /**
-    End a sequence.
-    */
-    #[cfg(not(test))]
-    fn seq_end(&mut self) -> Result {
-        Err(crate::Error::default_unsupported("Stream::seq_end"))
-    }
-    #[cfg(test)]
-    fn seq_end(&mut self) -> Result;
 
     #[cfg(not(test))]
     #[inline]
