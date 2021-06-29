@@ -118,11 +118,11 @@ impl Slot {
     const NEEDS_MAP_VALUE: u8 = 0b0000_0010;
     const NEEDS_SEQ_ELEM: u8 =  0b0000_1000;
 
-    const MASK_SLOT: u8 = u8::MAX >> (u8::BITS as u8 - Slot::SIZE as u8);
+    const MASK_SLOT: u8 = u8::MAX >> (u8::BITS as u8 - Slot::BITS);
 
     // NOTE: This leaves us with 4 "spare" bits at the end of a 64bit stack
     // This is where we could encode whether or not the map or sequence is empty
-    const SIZE: usize = 5;
+    const BITS: u8 = 5;
 
     #[inline]
     fn pos(self, depth: u8) -> Pos {
@@ -145,18 +145,23 @@ impl Default for Stack {
     }
 }
 
-type RawStack = u64;
+type RawStack = u128;
 
 #[derive(Clone)]
 pub struct Stack {
     inner: RawStack,
-    depth: u8,
 }
 
 impl Stack {
-    const MAX_DEPTH: u8 = (RawStack::BITS as u8 / Slot::SIZE as u8);
+    const MAX_DEPTH: u8 = Self::SLOT_BITS / Slot::BITS;
 
-    const MASK_SLOT_BEGIN: RawStack = (RawStack::MAX << Slot::SIZE) ^ (Slot::NEEDS_ITEM as RawStack) << Slot::SIZE;
+    const BITS: u8 = RawStack::BITS as u8;
+    const DEPTH_BITS: u8 = u8::BITS as u8;
+    const SLOT_BITS: u8 = Self::BITS - Self::DEPTH_BITS;
+
+    const DEPTH_BYTE_OFFSET: usize = std::mem::size_of::<RawStack>() - std::mem::size_of::<u8>();
+
+    const MASK_SLOT_BEGIN: RawStack = (RawStack::MAX << Slot::BITS) ^ (Slot::NEEDS_ITEM as RawStack) << Slot::BITS;
 
     /**
     Create a new stack.
@@ -165,7 +170,6 @@ impl Stack {
     pub fn new() -> Self {
         Stack {
             inner: Slot::NEEDS_ITEM as RawStack,
-            depth: 0,
         }
     }
 
@@ -185,6 +189,22 @@ impl Stack {
     #[inline]
     pub fn current(&self) -> Pos {
         unimplemented!()
+    }
+
+    #[inline]
+    fn depth(&self) -> u8 {
+        unsafe {
+            let ptr = &self.inner as *const RawStack as *const u8;
+            std::ptr::read(ptr.add(Self::DEPTH_BYTE_OFFSET))
+        }
+    }
+
+    #[inline]
+    fn set_depth(&mut self, depth: u8) {
+        unsafe {
+            let ptr = &mut self.inner as *mut RawStack as *mut u8;
+            std::ptr::write(ptr.add(Self::DEPTH_BYTE_OFFSET), depth);
+        }
     }
 
     /**
@@ -209,7 +229,7 @@ impl Stack {
         if self.inner as u8 & MASK == VALID {
             self.inner ^= EXPECT_NEXT;
 
-            Ok(Slot(self.inner as u8).pos(self.depth))
+            Ok(Slot(self.inner as u8).pos(self.depth()))
         } else {
             err_invalid("a primitive")
         }
@@ -226,15 +246,17 @@ impl Stack {
         const VALID: u8 = Slot::NEEDS_ITEM;
         const EXPECT: RawStack = (Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE) as RawStack;
 
-        if self.depth == Self::MAX_DEPTH {
+        let depth = self.depth();
+
+        if depth == Self::MAX_DEPTH {
             return err_invalid("more depth at the start of a map");
         }
 
         if self.inner as u8 & MASK == VALID {
-            self.inner = (self.inner << Slot::SIZE) & Self::MASK_SLOT_BEGIN | EXPECT;
-            self.depth += 1;
+            self.inner = (self.inner << Slot::BITS) & Self::MASK_SLOT_BEGIN | EXPECT;
+            self.set_depth(depth + 1);
 
-            Ok(Slot(self.inner as u8).pos(self.depth))
+            Ok(Slot(self.inner as u8).pos(depth + 1))
         } else {
             err_invalid("the start of a map")
         }
@@ -255,7 +277,7 @@ impl Stack {
         if self.inner as u8 & MASK == VALID {
             self.inner ^= EXPECT;
 
-            Ok(Slot(self.inner as u8).pos(self.depth))
+            Ok(Slot(self.inner as u8).pos(self.depth()))
         } else {
             err_invalid("a map key")
         }
@@ -276,7 +298,7 @@ impl Stack {
         if self.inner as u8 & MASK == VALID {
             self.inner ^= EXPECT;
 
-            Ok(Slot(self.inner as u8).pos(self.depth))
+            Ok(Slot(self.inner as u8).pos(self.depth()))
         } else {
             err_invalid("a map value")
         }
@@ -290,11 +312,13 @@ impl Stack {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
 
-        if self.inner as u8 & MASK == VALID {
-            self.inner = self.inner >> Slot::SIZE;
-            self.depth -= 1;
+        let depth = self.depth();
 
-            Ok(Slot(self.inner as u8).pos(self.depth + 1))
+        if self.inner as u8 & MASK == VALID {
+            self.inner = self.inner >> Slot::BITS;
+            self.set_depth(depth - 1);
+
+            Ok(Slot(self.inner as u8).pos(depth))
         } else {
             err_invalid("the end of a map")
         }
@@ -311,15 +335,17 @@ impl Stack {
         const VALID: u8 = Slot::NEEDS_ITEM;
         const EXPECT: RawStack = (Slot::NEEDS_SEQ_ELEM) as RawStack;
 
-        if self.depth == Self::MAX_DEPTH {
+        let depth = self.depth();
+
+        if depth == Self::MAX_DEPTH {
             return err_invalid("more depth at the start of a sequence");
         }
 
         if self.inner as u8 & MASK == VALID {
-            self.inner = (self.inner << Slot::SIZE) & Self::MASK_SLOT_BEGIN | EXPECT;
-            self.depth += 1;
+            self.inner = (self.inner << Slot::BITS) & Self::MASK_SLOT_BEGIN | EXPECT;
+            self.set_depth(depth + 1);
 
-            Ok(Slot(self.inner as u8).pos(self.depth))
+            Ok(Slot(self.inner as u8).pos(depth + 1))
         } else {
             err_invalid("the start of a sequence")
         }
@@ -340,7 +366,7 @@ impl Stack {
         if self.inner as u8 & MASK == VALID {
             self.inner |= EXPECT;
 
-            Ok(Slot(self.inner as u8).pos(self.depth))
+            Ok(Slot(self.inner as u8).pos(self.depth()))
         } else {
             err_invalid("a sequence element")
         }
@@ -354,11 +380,13 @@ impl Stack {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
 
-        if self.inner as u8 & MASK == VALID {
-            self.inner = self.inner >> Slot::SIZE;
-            self.depth -= 1;
+        let depth = self.depth();
 
-            Ok(Slot(self.inner as u8).pos(self.depth + 1))
+        if self.inner as u8 & MASK == VALID {
+            self.inner = self.inner >> Slot::BITS;
+            self.set_depth(depth - 1);
+
+            Ok(Slot(self.inner as u8).pos(depth))
         } else {
             err_invalid("the end of a sequence")
         }
@@ -369,7 +397,11 @@ impl Stack {
     */
     #[inline]
     pub fn can_end(&self) -> bool {
-        self.depth == 0
+        // In order to end the stream, the stack must be completed
+        const MASK: u8 = !Slot::NEEDS_ITEM;
+        const VALID: u8 = Slot::IS_EMPTY;
+
+        self.depth() == 0 && self.inner as u8 & MASK == VALID
     }
 
     /**
@@ -380,11 +412,7 @@ impl Stack {
     */
     #[inline]
     pub fn end(&mut self) -> Result<(), crate::Error> {
-        // In order to end the stream, the stack must be completed
-        const MASK: u8 = !Slot::NEEDS_ITEM;
-        const VALID: u8 = Slot::IS_EMPTY;
-
-        if self.depth == 0 && self.inner as u8 & MASK == VALID {
+        if self.can_end() {
             Ok(())
         } else {
             err_invalid("the end of the stream")
