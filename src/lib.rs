@@ -261,10 +261,9 @@ use self::{
 /**
 Stream the structure of a [`Value`] with a concrete lifetime.
 */
-pub fn stream<'v, S, V>(mut stream: S, value: &'v V) -> Result<S, Error>
+pub fn stream<'v, S>(mut stream: S, value: &'v (impl Value + ?Sized)) -> Result<S, Error>
 where
     S: Stream<'v>,
-    V: Value + ?Sized,
 {
     value.stream(&mut value::Stream::new(&mut stream))?;
 

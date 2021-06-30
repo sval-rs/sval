@@ -53,7 +53,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     [`Value`]: ./trait.Value.html
     */
     #[inline]
-    pub fn any(&mut self, v: &'v impl Value) -> stream::Result {
+    pub fn any(&mut self, v: &'v (impl Value + ?Sized)) -> stream::Result {
         v.stream(self)
     }
 
@@ -189,6 +189,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     #[inline]
     pub fn map_key(&mut self, k: &'v impl Value) -> stream::Result {
+        // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
+        // This would let us continue to forward to `collect_borrowed` for sized values
         self.inner().map_key_collect_borrowed(&stream::Value::new(k))
     }
 
@@ -197,6 +199,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     #[inline]
     pub fn map_value(&mut self, v: &'v impl Value) -> stream::Result {
+        // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
+        // This would let us continue to forward to `collect_borrowed` for sized values
         self.inner().map_value_collect_borrowed(&stream::Value::new(v))
     }
 
@@ -221,6 +225,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     #[inline]
     pub fn seq_elem(&mut self, v: &'v impl Value) -> stream::Result {
+        // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
+        // This would let us continue to forward to `collect_borrowed` for sized values
         self.inner().seq_elem_collect_borrowed(&stream::Value::new(v))
     }
 
