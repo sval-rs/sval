@@ -96,30 +96,10 @@ where
     }
 
     /**
-    Whether the stream has seen a complete, valid json structure.
-    */
-    pub fn is_valid(&self) -> bool {
-        self.0.is_valid()
-    }
-
-    /**
-    Complete the stream and return the inner writer.
-
-    If the writer contains incomplete json then this method will fail.
-    The returned error can be used to pull the original stream back out.
-    */
-    pub fn end(self) -> Result<W, End<Self>> {
-        match self.0.end() {
-            Ok(w) => Ok(w.0),
-            Err(End { err, stream, .. }) => Err(End::new(err, Writer(stream))),
-        }
-    }
-
-    /**
     Get the inner writer back out of the stream without ensuring it's valid.
     */
-    pub fn into_inner_unchecked(self) -> W {
-        self.0.into_inner_unchecked().0
+    pub fn into_inner(self) -> W {
+        self.0.into_inner().0
     }
 }
 

@@ -27,7 +27,7 @@ where
 {
     let fmt = Formatter::new(fmt);
 
-    sval::stream(fmt, v).map(|fmt| fmt.into_inner_unchecked())
+    sval::stream(fmt, v).map(|fmt| fmt.into_inner())
 }
 
 /**
@@ -56,7 +56,7 @@ assert_eq!("42", json);
 ```
 */
 pub struct Formatter<W> {
-    stack: Stack,
+    is_key: bool,
     is_current_depth_empty: bool,
     out: W,
 }
@@ -70,36 +70,16 @@ where
     */
     pub fn new(out: W) -> Self {
         Formatter {
-            stack: Stack::new(),
+            is_key: false,
             is_current_depth_empty: true,
             out,
         }
     }
 
     /**
-    Whether the stream has seen a complete, valid json structure.
-    */
-    pub fn is_valid(&self) -> bool {
-        self.stack.can_end()
-    }
-
-    /**
-    Complete the stream and return the inner writer.
-
-    If the writer contains incomplete json then this method will fail.
-    The returned error can be used to pull the original stream back out.
-    */
-    pub fn end(mut self) -> Result<W, End<Self>> {
-        match self.stack.end() {
-            Ok(()) => Ok(self.out),
-            Err(e) => Err(End::new(e, self)),
-        }
-    }
-
-    /**
     Get the inner writer back out of the stream without ensuring it's valid.
     */
-    pub fn into_inner_unchecked(self) -> W {
+    pub fn into_inner(self) -> W {
         self.out
     }
 }
@@ -110,8 +90,6 @@ where
 {
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-        self.stack.primitive()?;
-
         self.out.write_char('"')?;
         fmt::write(&mut Escape(&mut self.out), format_args!("{}", v))?;
         self.out.write_char('"')?;
@@ -126,17 +104,33 @@ where
 
     #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
-        self.i128(v as i128)
+        if self.is_key {
+            return Err(sval::Error::unsupported(
+                "only strings are supported as json keys",
+            ));
+        }
+
+        self.out.write_str(itoa::Buffer::new().format(v))?;
+
+        Ok(())
     }
 
     #[inline]
     fn u64(&mut self, v: u64) -> stream::Result {
-        self.u128(v as u128)
+        if self.is_key {
+            return Err(sval::Error::unsupported(
+                "only strings are supported as json keys",
+            ));
+        }
+
+        self.out.write_str(itoa::Buffer::new().format(v))?;
+
+        Ok(())
     }
 
     #[inline]
     fn i128(&mut self, v: i128) -> stream::Result {
-        if self.stack.primitive()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -149,7 +143,7 @@ where
 
     #[inline]
     fn u128(&mut self, v: u128) -> stream::Result {
-        if self.stack.primitive()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -162,7 +156,7 @@ where
 
     #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
-        if self.stack.primitive()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -175,7 +169,7 @@ where
 
     #[inline]
     fn bool(&mut self, v: bool) -> stream::Result {
-        if self.stack.primitive()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -188,7 +182,7 @@ where
 
     #[inline]
     fn char(&mut self, v: char) -> stream::Result {
-        if self.stack.primitive()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -201,8 +195,6 @@ where
 
     #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
-        self.stack.primitive()?;
-
         self.out.write_char('"')?;
         escape_str(&v, &mut self.out)?;
         self.out.write_char('"')?;
@@ -212,7 +204,7 @@ where
 
     #[inline]
     fn none(&mut self) -> stream::Result {
-        if self.stack.primitive()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -225,7 +217,7 @@ where
 
     #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
-        if self.stack.map_begin()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -239,7 +231,7 @@ where
 
     #[inline]
     fn map_key(&mut self) -> stream::Result {
-        self.stack.map_key()?;
+        self.is_key = true;
 
         if !self.is_current_depth_empty {
             self.out.write_char(',')?;
@@ -260,7 +252,7 @@ where
 
     #[inline]
     fn map_value(&mut self) -> stream::Result {
-        self.stack.map_value()?;
+        self.is_key = false;
 
         self.out.write_char(':')?;
 
@@ -277,8 +269,6 @@ where
 
     #[inline]
     fn map_end(&mut self) -> stream::Result {
-        self.stack.map_end()?;
-
         self.is_current_depth_empty = false;
 
         self.out.write_char('}')?;
@@ -288,7 +278,7 @@ where
 
     #[inline]
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        if self.stack.seq_begin()?.is_key() {
+        if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
             ));
@@ -303,8 +293,6 @@ where
 
     #[inline]
     fn seq_elem(&mut self) -> stream::Result {
-        self.stack.seq_elem()?;
-
         if !self.is_current_depth_empty {
             self.out.write_char(',')?;
         }
@@ -324,8 +312,6 @@ where
 
     #[inline]
     fn seq_end(&mut self) -> stream::Result {
-        self.stack.seq_end()?;
-
         self.is_current_depth_empty = false;
 
         self.out.write_char(']')?;
