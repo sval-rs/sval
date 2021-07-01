@@ -18,7 +18,7 @@ use test::{
 
 struct EmptyStream;
 
-impl Stream for EmptyStream {
+impl<'v> Stream<'v> for EmptyStream {
     #[inline(never)]
     fn str(&mut self, _: &str) -> stream::Result {
         Ok(())
@@ -75,20 +75,20 @@ impl value::Value for Map {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
-        stream.map_key("a")?;
-        stream.map_value(42)?;
+        stream.map_key(&"a")?;
+        stream.map_value(&42)?;
 
-        stream.map_key("b")?;
-        stream.map_value(42)?;
+        stream.map_key(&"b")?;
+        stream.map_value(&42)?;
 
-        stream.map_key("c")?;
-        stream.map_value(42)?;
+        stream.map_key(&"c")?;
+        stream.map_value(&42)?;
 
-        stream.map_key("d")?;
-        stream.map_value(42)?;
+        stream.map_key(&"d")?;
+        stream.map_value(&42)?;
 
-        stream.map_key("e")?;
-        stream.map_value(42)?;
+        stream.map_key(&"e")?;
+        stream.map_value(&42)?;
 
         stream.map_end()
     }
@@ -184,5 +184,5 @@ fn raw_stream_map(b: &mut Bencher) {
 
 #[bench]
 fn stream_map(b: &mut Bencher) {
-    b.iter(|| sval::stream(EmptyStream, Map))
+    b.iter(|| sval::stream(EmptyStream, &Map))
 }
