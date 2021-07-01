@@ -28,7 +28,7 @@ impl<T> Error for End<T> {
 /**
 Write a [`Value`] to a string.
 */
-pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
+pub fn to_string(v: &(impl Value + ?Sized)) -> Result<String, sval::Error> {
     let mut out = String::new();
 
     crate::to_fmt(&mut out, v)?;
@@ -39,7 +39,7 @@ pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
 /**
 Write a [`Value`] to a writer.
 */
-pub fn to_writer<W>(writer: W, v: impl Value) -> Result<W, sval::Error>
+pub fn to_writer<W>(writer: W, v: &(impl Value + ?Sized)) -> Result<W, sval::Error>
 where
     W: Write,
 {
@@ -74,7 +74,7 @@ Create an owned json stream:
 use sval_json::Writer;
 
 let mut stream = Writer::new(Vec::<u8>::new());
-sval::stream(&mut stream, 42)?;
+sval::stream(&mut stream, &42)?;
 let json = stream.end()?;
 
 assert_eq!(Some("42"), str::from_utf8(&json).ok());

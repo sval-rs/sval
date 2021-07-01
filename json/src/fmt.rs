@@ -22,13 +22,13 @@ use crate::{
 /**
 Write a [`Value`] to a formatter.
 */
-pub fn to_fmt<W>(fmt: W, v: impl Value) -> Result<W, sval::Error>
+pub fn to_fmt<W>(fmt: W, v: &(impl Value + ?Sized)) -> Result<W, sval::Error>
 where
     W: Write,
 {
     let fmt = Formatter::new(fmt);
 
-    sval::stream_owned(fmt, &v).map(|fmt| fmt.into_inner_unchecked())
+    sval::stream_owned(fmt, v).map(|fmt| fmt.into_inner_unchecked())
 }
 
 /**
@@ -48,7 +48,7 @@ Create an owned json stream:
 use sval_json::Formatter;
 
 let mut stream = Formatter::new(String::new());
-sval::stream(&mut stream, 42)?;
+sval::stream(&mut stream, &42)?;
 let json = stream.end()?;
 
 assert_eq!("42", json);

@@ -62,7 +62,7 @@ impl OwnedValue {
 
     [`Value`]: struct.Value.html
     */
-    pub fn collect(v: impl Value) -> Self {
+    pub fn collect(v: &(impl Value + ?Sized)) -> Self {
         // Try get a primitive first
         // If the value is a simple primitive that can
         // be represented in a single token then we can avoid
@@ -1012,35 +1012,35 @@ mod tests {
     fn owned_primitive() {
         assert_eq!(
             vec![Token::Str("a format 1".into())],
-            test::tokens(format_args!("a format {}", 1))
+            test::tokens(&format_args!("a format {}", 1))
         );
 
         assert_eq!(
             vec![Token::Str("a string".into())],
-            test::tokens("a string")
+            test::tokens(&"a string")
         );
 
-        assert_eq!(vec![Token::Unsigned(42u64)], test::tokens(42u64));
+        assert_eq!(vec![Token::Unsigned(42u64)], test::tokens(&42u64));
 
-        assert_eq!(vec![Token::Signed(42i64)], test::tokens(42i64));
+        assert_eq!(vec![Token::Signed(42i64)], test::tokens(&42i64));
 
-        assert_eq!(vec![Token::BigUnsigned(42u128)], test::tokens(42u128));
+        assert_eq!(vec![Token::BigUnsigned(42u128)], test::tokens(&42u128));
 
-        assert_eq!(vec![Token::BigSigned(42i128)], test::tokens(42i128));
+        assert_eq!(vec![Token::BigSigned(42i128)], test::tokens(&42i128));
 
-        assert_eq!(vec![Token::Float(42f64)], test::tokens(42f64));
+        assert_eq!(vec![Token::Float(42f64)], test::tokens(&42f64));
 
-        assert_eq!(vec![Token::Bool(true)], test::tokens(true));
+        assert_eq!(vec![Token::Bool(true)], test::tokens(&true));
 
-        assert_eq!(vec![Token::Char('a')], test::tokens('a'));
+        assert_eq!(vec![Token::Char('a')], test::tokens(&'a'));
 
-        assert_eq!(vec![Token::None], test::tokens(Option::None::<()>));
+        assert_eq!(vec![Token::None], test::tokens(&Option::None::<()>));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_map() {
-        let v = test::tokens(Map);
+        let v = test::tokens(&Map);
 
         assert_eq!(
             vec![
@@ -1058,7 +1058,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn owned_seq() {
-        let v = test::tokens(Seq);
+        let v = test::tokens(&Seq);
 
         assert_eq!(
             vec![
@@ -1104,7 +1104,7 @@ mod tests {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn owned_error() {
-            let v = test::tokens(stream::Source::empty());
+            let v = test::tokens(&stream::Source::empty());
 
             assert_eq!(vec![Token::None,], v);
         }
@@ -1146,7 +1146,7 @@ mod tests {
                 source: io::Error::from(io::ErrorKind::Other),
             };
 
-            let v = test::tokens(stream::Source::new(&err));
+            let v = test::tokens(&stream::Source::new(&err));
 
             assert_eq!(vec![Token::Error(test::Source::new(&err)),], v);
         }

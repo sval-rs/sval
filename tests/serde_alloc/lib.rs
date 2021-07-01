@@ -74,7 +74,7 @@ impl Value for Anonymous {
 fn sval_derive() {
     use self::SvalToken as Token;
 
-    let v = sval::test::tokens(Struct {
+    let v = sval::test::tokens(&Struct {
         a: 1,
         b: 2,
         c: Nested { a: 3, b: "Hello!" },
@@ -103,7 +103,7 @@ fn sval_derive() {
 fn sval_derive_from_serde() {
     use self::SvalToken as Token;
 
-    let v = sval::test::tokens(Tagged::NewType(1));
+    let v = sval::test::tokens(&Tagged::NewType(1));
     assert_eq!(
         vec![
             Token::MapBegin(Some(1)),
@@ -121,10 +121,10 @@ fn sval_derive_from_serde() {
 fn serde_to_sval_tagged() {
     use self::SvalToken as Token;
 
-    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::Unit));
+    let v = sval::test::tokens(&sval::serde::v1::to_value(Tagged::Unit));
     assert_eq!(vec![Token::Str(String::from("Unit"))], v);
 
-    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::NewType(1)));
+    let v = sval::test::tokens(&sval::serde::v1::to_value(Tagged::NewType(1)));
     assert_eq!(
         vec![
             Token::MapBegin(Some(1)),
@@ -137,7 +137,7 @@ fn serde_to_sval_tagged() {
         v
     );
 
-    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::Tuple(1, 2)));
+    let v = sval::test::tokens(&sval::serde::v1::to_value(Tagged::Tuple(1, 2)));
     assert_eq!(
         vec![
             Token::MapBegin(Some(1)),
@@ -151,7 +151,7 @@ fn serde_to_sval_tagged() {
         v
     );
 
-    let v = sval::test::tokens(sval::serde::v1::to_value(Tagged::Struct { a: 1, b: 2 }));
+    let v = sval::test::tokens(&sval::serde::v1::to_value(Tagged::Struct { a: 1, b: 2 }));
     assert_eq!(
         vec![
             Token::MapBegin(Some(1)),

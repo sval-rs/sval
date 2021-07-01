@@ -336,43 +336,43 @@ mod tests {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_unsigned() {
-            assert_eq!(vec![Token::Unsigned(1)], test::tokens(1u8));
+            assert_eq!(vec![Token::Unsigned(1)], test::tokens(&1u8));
 
-            assert_eq!(vec![Token::Unsigned(1)], test::tokens(1u16));
+            assert_eq!(vec![Token::Unsigned(1)], test::tokens(&1u16));
 
-            assert_eq!(vec![Token::Unsigned(1)], test::tokens(1u32));
+            assert_eq!(vec![Token::Unsigned(1)], test::tokens(&1u32));
 
-            assert_eq!(vec![Token::Unsigned(1)], test::tokens(1u64));
+            assert_eq!(vec![Token::Unsigned(1)], test::tokens(&1u64));
 
-            assert_eq!(vec![Token::BigUnsigned(1)], test::tokens(1u128));
+            assert_eq!(vec![Token::BigUnsigned(1)], test::tokens(&1u128));
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_signed() {
-            assert_eq!(vec![Token::Signed(1)], test::tokens(1i8));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&1i8));
 
-            assert_eq!(vec![Token::Signed(1)], test::tokens(1i16));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&1i16));
 
-            assert_eq!(vec![Token::Signed(1)], test::tokens(1i32));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&1i32));
 
-            assert_eq!(vec![Token::Signed(1)], test::tokens(1i64));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&1i64));
 
-            assert_eq!(vec![Token::BigSigned(1)], test::tokens(1i128));
+            assert_eq!(vec![Token::BigSigned(1)], test::tokens(&1i128));
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_float() {
-            assert_eq!(vec![Token::Float(1.0)], test::tokens(1f32));
+            assert_eq!(vec![Token::Float(1.0)], test::tokens(&1f32));
 
-            assert_eq!(vec![Token::Float(1.0)], test::tokens(1f64));
+            assert_eq!(vec![Token::Float(1.0)], test::tokens(&1f64));
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_bool() {
-            assert_eq!(vec![Token::Bool(false)], test::tokens(false));
+            assert_eq!(vec![Token::Bool(false)], test::tokens(&false));
         }
 
         #[test]
@@ -380,28 +380,28 @@ mod tests {
         fn stream_str() {
             assert_eq!(
                 vec![Token::Str("a string".into())],
-                test::tokens("a string")
+                test::tokens(&"a string")
             );
 
             assert_eq!(
                 vec![Token::Str("a string".into())],
-                test::tokens(String::from("a string"))
+                test::tokens(&String::from("a string"))
             );
 
             assert_eq!(
                 vec![Token::Str("a format 1".into())],
-                test::tokens(format_args!("a format {}", 1))
+                test::tokens(&format_args!("a format {}", 1))
             );
 
-            assert_eq!(vec![Token::Char('a')], test::tokens('a'));
+            assert_eq!(vec![Token::Char('a')], test::tokens(&'a'));
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_option() {
-            assert_eq!(vec![Token::None], test::tokens(Option::None::<i32>));
+            assert_eq!(vec![Token::None], test::tokens(&Option::None::<i32>));
 
-            assert_eq!(vec![Token::Signed(1)], test::tokens(Some(1)));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&Some(1)));
         }
 
         #[test]
@@ -422,10 +422,10 @@ mod tests {
                 v
             );
 
-            let v = test::tokens(Vec::<i32>::new());
+            let v = test::tokens(&Vec::<i32>::new());
             assert_eq!(vec![Token::SeqBegin(Some(0)), Token::SeqEnd], v);
 
-            let v = test::tokens(vec![1, 2, 3]);
+            let v = test::tokens(&vec![1, 2, 3]);
             assert_eq!(
                 vec![
                     Token::SeqBegin(Some(3)),
@@ -441,10 +441,10 @@ mod tests {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_map() {
-            let v = test::tokens(BTreeMap::<i32, i32>::new());
+            let v = test::tokens(&BTreeMap::<i32, i32>::new());
             assert_eq!(vec![Token::MapBegin(Some(0)), Token::MapEnd], v);
 
-            let v = test::tokens({
+            let v = test::tokens(&{
                 let mut map = BTreeMap::new();
                 map.insert(1, 11);
                 map.insert(2, 22);
@@ -466,13 +466,13 @@ mod tests {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_box() {
-            assert_eq!(vec![Token::Signed(1)], test::tokens(Box::new(1i8)));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&Box::new(1i8)));
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_rc() {
-            assert_eq!(vec![Token::Signed(1)], test::tokens(Rc::new(1i8)));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&Rc::new(1i8)));
         }
     }
 
@@ -505,7 +505,7 @@ mod tests {
             let err = io::Error::from(io::ErrorKind::Other);
             assert_eq!(
                 vec![Token::Error(test::Source::new(&err))],
-                test::tokens(Source::new(&err))
+                test::tokens(&Source::new(&err))
             );
         }
 
@@ -524,7 +524,7 @@ mod tests {
                 vec![Token::Error(test::Source::new(&io::Error::from(
                     io::ErrorKind::Other
                 )))],
-                test::tokens(MyError)
+                test::tokens(&MyError)
             );
         }
 
@@ -534,21 +534,21 @@ mod tests {
             let err: &(dyn error::Error + 'static) = &io::Error::from(io::ErrorKind::Other);
             assert_eq!(
                 vec![Token::Error(test::Source::new(err))],
-                test::tokens(err)
+                test::tokens(&err)
             );
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_map() {
-            let v = test::tokens(HashMap::<i32, i32>::new());
+            let v = test::tokens(&HashMap::<i32, i32>::new());
             assert_eq!(vec![Token::MapBegin(Some(0)), Token::MapEnd], v);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn stream_rc() {
-            assert_eq!(vec![Token::Signed(1)], test::tokens(Arc::new(1i8)));
+            assert_eq!(vec![Token::Signed(1)], test::tokens(&Arc::new(1i8)));
         }
     }
 }

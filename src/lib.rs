@@ -23,52 +23,6 @@ version = "1.0.0-alpha.5"
 
 The structure of a [`Value`] can be streamed to a [`Stream`].
 
-## in a single call
-
-For simple use-cases, use the [`stream`](function.stream.html) function to stream the structure of a value:
-
-```no_run
-# #[cfg(not(feature = "std"))]
-# fn main() {}
-# #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-sval::stream(MyStream, 42)?;
-# Ok(())
-# }
-# use sval::stream::{self, Stream};
-# struct MyStream;
-# impl Stream for MyStream {
-#     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
-# }
-```
-
-where `42` is a [`Value`] and `MyStream` is a [`Stream`].
-
-## with borrowed data
-
-```
-fn short_lived<'s>(s: &'s str) {
-    use sval::stream::{self, Stream};
-
-    #[derive(Default)]
-    struct CaptureBorrowedString<'s>(Option<&'s str>);
-
-    impl<'s> Stream<'s> for CaptureBorrowedString<'s> {
-        fn str_borrowed(&mut self, v: &'s str) -> stream::Result {
-            self.0 = Some(v);
-            Ok(())
-        }
-    }
-
-    let capture = sval::str_borrowedeam(CaptureBorrowedString::default(), s).unwrap();
-
-    assert_eq!(Some(s), capture.0);
-}
-
-let s = String::from("a short lived string");
-short_lived(&s);
-```
-
 # `serde` integration
 
 Use the `serde` Cargo feature to enable integration with `serde`:

@@ -81,7 +81,7 @@ fn twitter_sval_to_serde(b: &mut test::Bencher) {
 #[bench]
 fn twitter_serde_to_sval(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| sval_json::to_string(sval::serde::v1::to_value(&s)).unwrap());
+    b.iter(|| sval_json::to_string(&sval::serde::v1::to_value(&s)).unwrap());
 }
 
 #[bench]

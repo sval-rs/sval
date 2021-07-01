@@ -77,26 +77,6 @@ impl<'s, 'v> Stream<'s, 'v> {
     Stream an error.
 
     This method is only available when the `std` feature is enabled.
-
-    # Examples
-
-    Errors that don't satisfy the trait bounds needed by this method can go through [`Source`](struct.Source.html):
-
-    ```
-    # #![cfg(feature = "std")]
-    # use sval::value::{self, Value};
-    # struct MyError {
-    #    error: std::io::Error,
-    # }
-    impl Value for MyError {
-        fn stream(&self, stream: &mut value::Stream) -> value::Result {
-            use sval::stream::Source;
-
-            stream.any(Source::new(&self.error))
-        }
-    }
-    # fn main() {}
-    ```
     */
     #[inline]
     #[cfg(feature = "std")]
@@ -242,6 +222,8 @@ impl<'s, 'v> Stream<'s, 'v> {
 impl<'s, 'v> Stream<'s, 'v> {
     /**
     Begin a map key.
+
+    The map key must be followed by an item.
     */
     #[inline]
     pub fn map_key_begin(&mut self) -> Result<&mut Self, crate::Error> {
@@ -252,6 +234,8 @@ impl<'s, 'v> Stream<'s, 'v> {
 
     /**
     Begin a map value.
+
+    The map value must be followed by an item.
     */
     #[inline]
     pub fn map_value_begin(&mut self) -> Result<&mut Self, crate::Error> {
@@ -262,6 +246,8 @@ impl<'s, 'v> Stream<'s, 'v> {
 
     /**
     Begin a sequence element.
+
+    The sequence element must be followed by an item.
     */
     #[inline]
     pub fn seq_elem_begin(&mut self) -> Result<&mut Self, crate::Error> {
