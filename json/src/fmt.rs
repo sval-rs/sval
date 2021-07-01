@@ -123,7 +123,7 @@ where
     W: Write,
 {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -138,7 +138,7 @@ where
     }
 
     #[inline]
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.fmt(stream::Arguments::display(&v))
     }
 

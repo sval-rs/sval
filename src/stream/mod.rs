@@ -15,7 +15,7 @@ use sval::stream::{self, Stream};
 struct Fmt;
 
 impl Stream for Fmt {
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         println!("{}", v);
 
         Ok(())
@@ -106,7 +106,7 @@ impl Fmt {
 }
 
 impl Stream for Fmt {
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
@@ -513,12 +513,12 @@ pub trait Stream<'v> {
     */
     #[cfg(not(test))]
     #[inline]
-    fn fmt(&mut self, v: Arguments) -> Result {
+    fn fmt(&mut self, v: &Arguments) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::fmt"))
     }
     #[cfg(test)]
-    fn fmt(&mut self, v: Arguments) -> Result;
+    fn fmt(&mut self, v: &Arguments) -> Result;
 
     /**
     Stream an error. Implementors should override this method if they
@@ -526,12 +526,12 @@ pub trait Stream<'v> {
     */
     #[cfg(not(test))]
     #[inline]
-    fn error(&mut self, v: Source) -> Result {
+    fn error(&mut self, v: &Source) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::error"))
     }
     #[cfg(test)]
-    fn error(&mut self, v: Source) -> Result;
+    fn error(&mut self, v: &Source) -> Result;
 
     /**
     Stream a signed integer. Implementors should override this method if they
@@ -761,19 +761,19 @@ pub trait Stream<'v> {
 
     #[cfg(not(test))]
     #[inline]
-    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
+    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result {
         self.fmt(v)
     }
     #[cfg(test)]
-    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result;
+    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result;
 
     #[cfg(not(test))]
     #[inline]
-    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
+    fn error_borrowed(&mut self, v: &Source<'v>) -> Result {
         self.error(v)
     }
     #[cfg(test)]
-    fn error_borrowed(&mut self, v: Source<'v>) -> Result;
+    fn error_borrowed(&mut self, v: &Source<'v>) -> Result;
 
     /**
     Stream a borrowed UTF-8 string slice.
@@ -815,13 +815,23 @@ where
     T: Stream<'v>,
 {
     #[inline]
-    fn fmt(&mut self, v: Arguments) -> Result {
+    fn fmt(&mut self, v: &Arguments) -> Result {
         (**self).fmt(v)
     }
 
     #[inline]
-    fn error(&mut self, v: Source) -> Result {
+    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result {
+        (**self).fmt_borrowed(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: &Source) -> Result {
         (**self).error(v)
+    }
+
+    #[inline]
+    fn error_borrowed(&mut self, v: &Source<'v>) -> Result {
+        (**self).error_borrowed(v)
     }
 
     #[inline]
@@ -890,6 +900,11 @@ where
     }
 
     #[inline]
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
+        (**self).map_key_collect_borrowed(k)
+    }
+
+    #[inline]
     fn map_value(&mut self) -> Result {
         (**self).map_value()
     }
@@ -897,6 +912,11 @@ where
     #[inline]
     fn map_value_collect(&mut self, v: &Value) -> Result {
         (**self).map_value_collect(v)
+    }
+
+    #[inline]
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        (**self).map_value_collect_borrowed(v)
     }
 
     #[inline]
@@ -917,6 +937,11 @@ where
     #[inline]
     fn seq_elem_collect(&mut self, v: &Value) -> Result {
         (**self).seq_elem_collect(v)
+    }
+
+    #[inline]
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        (**self).seq_elem_collect_borrowed(v)
     }
 
     #[inline]

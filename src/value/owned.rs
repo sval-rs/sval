@@ -99,7 +99,7 @@ enum ValueInner {
 }
 
 impl Value for OwnedValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
         match self.0 {
             ValueInner::Error(ref e) => Err(crate::Error::custom(e)),
             #[cfg(feature = "std")]
@@ -336,8 +336,8 @@ impl OwnedSource {
     }
 }
 
-impl<'a> From<stream::Source<'a>> for OwnedSource {
-    fn from(err: stream::Source<'a>) -> OwnedSource {
+impl<'a, 'b> From<&'a stream::Source<'b>> for OwnedSource {
+    fn from(err: &'a stream::Source<'b>) -> OwnedSource {
         #[cfg(feature = "std")]
         {
             OwnedSource::collect(err.as_ref())
@@ -418,9 +418,9 @@ impl Token {
             BigSigned(v) => stream.i128(v)?,
             BigUnsigned(v) => stream.u128(v)?,
             Bool(v) => stream.bool(v)?,
-            Str(ref v) => stream.str(&*v)?,
+            Str(ref v) => stream.owned().str(&*v)?,
             Char(v) => stream.char(v)?,
-            Error(ref v) => stream.any(stream::Source::from(&**v))?,
+            Error(ref v) => stream.owned().any(&stream::Source::from(&**v))?,
             None => stream.none()?,
             MapBegin(len) => stream.map_begin(len)?,
             MapKey => {
@@ -457,7 +457,7 @@ impl TokenBuf {
 
     #[inline]
     fn collect(v: impl Value) -> Result<Vec<Token>, crate::Error> {
-        crate::stream(TokenBuf::new(), v).map(|buf| buf.tokens)
+        crate::stream_owned(TokenBuf::new(), &v).map(|buf| buf.tokens)
     }
 
     #[inline]
@@ -482,8 +482,8 @@ impl TokenBuf {
     }
 }
 
-impl Stream for TokenBuf {
-    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
+impl<'v> Stream<'v> for TokenBuf {
+    fn fmt(&mut self, f: &stream::Arguments) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(TokenKind::Str(StringContainer::from(f.to_string())), depth);
@@ -491,7 +491,11 @@ impl Stream for TokenBuf {
         Ok(())
     }
 
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn fmt_borrowed(&mut self, f: &stream::Arguments<'v>) -> stream::Result {
+        self.fmt(f)
+    }
+
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
         self.push(
@@ -500,6 +504,10 @@ impl Stream for TokenBuf {
         );
 
         Ok(())
+    }
+
+    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+        self.error(v)
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
@@ -566,6 +574,10 @@ impl Stream for TokenBuf {
         Ok(())
     }
 
+    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
+        self.str(v)
+    }
+
     fn none(&mut self) -> stream::Result {
         let depth = self.stack.primitive()?.depth();
 
@@ -595,6 +607,10 @@ impl Stream for TokenBuf {
         k.stream(self)
     }
 
+    fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+        self.map_key_collect(k)
+    }
+
     fn map_value(&mut self) -> stream::Result {
         let depth = self.stack.map_value()?.depth();
 
@@ -606,6 +622,10 @@ impl Stream for TokenBuf {
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
         v.stream(self)
+    }
+
+    fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.map_value_collect(v)
     }
 
     fn map_end(&mut self) -> stream::Result {
@@ -635,6 +655,10 @@ impl Stream for TokenBuf {
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
         v.stream(self)
+    }
+
+    fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.seq_elem_collect(v)
     }
 
     fn seq_end(&mut self) -> stream::Result {
@@ -672,9 +696,9 @@ impl Primitive {
             BigSigned(v) => stream.i128(v)?,
             BigUnsigned(v) => stream.u128(v)?,
             Bool(v) => stream.bool(v)?,
-            Str(ref v) => stream.str(&*v)?,
+            Str(ref v) => stream.owned().str(&*v)?,
             Char(v) => stream.char(v)?,
-            Error(ref v) => stream.any(stream::Source::from(&**v))?,
+            Error(ref v) => stream.owned().any(&stream::Source::from(&**v))?,
             None => stream.none()?,
         }
 
@@ -713,7 +737,7 @@ impl PrimitiveBuf {
 
     #[inline]
     fn collect(v: impl Value) -> Option<Primitive> {
-        crate::stream(PrimitiveBuf::new(), v)
+        crate::stream_owned(PrimitiveBuf::new(), &v)
             .ok()
             .and_then(|buf| buf.primitive)
     }
@@ -724,19 +748,27 @@ impl PrimitiveBuf {
     }
 }
 
-impl Stream for PrimitiveBuf {
-    fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
+impl<'v> Stream<'v> for PrimitiveBuf {
+    fn fmt(&mut self, f: &stream::Arguments) -> stream::Result {
         self.set(Primitive::Str(StringContainer::from(f.to_string())));
 
         Ok(())
     }
 
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn fmt_borrowed(&mut self, f: &stream::Arguments<'v>) -> stream::Result {
+        self.fmt(f)
+    }
+
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.set(Primitive::Error(SharedContainer::from(OwnedSource::from(
             v,
         ))));
 
         Ok(())
+    }
+
+    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+        self.error(v)
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
@@ -787,6 +819,10 @@ impl Stream for PrimitiveBuf {
         Ok(())
     }
 
+    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
+        self.str(v)
+    }
+
     fn none(&mut self) -> stream::Result {
         self.set(Primitive::None);
 
@@ -805,12 +841,20 @@ impl Stream for PrimitiveBuf {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 
+    fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+        self.map_key_collect(k)
+    }
+
     fn map_value(&mut self) -> stream::Result {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 
     fn map_value_collect(&mut self, _: &stream::Value) -> stream::Result {
         Err(crate::Error::unsupported("unsupported primitive"))
+    }
+
+    fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.map_value_collect(v)
     }
 
     fn map_end(&mut self) -> stream::Result {
@@ -827,6 +871,10 @@ impl Stream for PrimitiveBuf {
 
     fn seq_elem_collect(&mut self, _: &stream::Value) -> stream::Result {
         Err(crate::Error::unsupported("unsupported primitive"))
+    }
+
+    fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.seq_elem_collect(v)
     }
 
     fn seq_end(&mut self) -> stream::Result {
@@ -894,14 +942,16 @@ mod tests {
     struct Map;
 
     impl Value for Map {
-        fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        fn stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
+            let mut stream = stream.owned();
+
             stream.map_begin(Some(2))?;
 
-            stream.map_key(1)?;
-            stream.map_value(11)?;
+            stream.map_key(&1)?;
+            stream.map_value(&11)?;
 
-            stream.map_key(2)?;
-            stream.map_value(22)?;
+            stream.map_key(&2)?;
+            stream.map_value(&22)?;
 
             stream.map_end()
         }
@@ -910,11 +960,13 @@ mod tests {
     struct Seq;
 
     impl Value for Seq {
-        fn stream(&self, stream: &mut value::Stream) -> value::Result {
+        fn stream<'s, 'v>(&self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
+            let mut stream = stream.owned();
+
             stream.seq_begin(Some(2))?;
 
-            stream.seq_elem(1)?;
-            stream.seq_elem(2)?;
+            stream.seq_elem(&1)?;
+            stream.seq_elem(&2)?;
 
             stream.seq_end()
         }

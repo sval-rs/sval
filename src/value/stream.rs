@@ -62,7 +62,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     #[inline]
     pub fn debug(&mut self, v: &'v impl Debug) -> stream::Result {
-        self.inner().fmt_borrowed(stream::Arguments::debug(v))
+        self.inner().fmt_borrowed(&stream::Arguments::debug(v))
     }
 
     /**
@@ -70,7 +70,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     #[inline]
     pub fn display(&mut self, v: &'v impl Display) -> stream::Result {
-        self.inner().fmt_borrowed(stream::Arguments::display(v))
+        self.inner().fmt_borrowed(&stream::Arguments::display(v))
     }
 
     /**
@@ -101,7 +101,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     #[inline]
     #[cfg(feature = "std")]
     pub fn error(&mut self, v: &'v (dyn error::Error + 'static)) -> stream::Result {
-        self.inner().error_borrowed(stream::Source::new(v))
+        self.inner().error_borrowed(&stream::Source::new(v))
     }
 
     /**
@@ -267,13 +267,23 @@ impl<'s, 'v> Stream<'s, 'v> {
 
 impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.inner().fmt(v)
     }
 
     #[inline]
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+        self.inner().fmt_borrowed(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.inner().error(v)
+    }
+
+    #[inline]
+    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+        self.inner().error_borrowed(v)
     }
 
     #[inline]
@@ -397,12 +407,22 @@ where
     S: stream::Stream<'a>,
 {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
     #[inline]
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+        self.0.fmt(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
+        self.0.error(v)
+    }
+
+    #[inline]
+    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
         self.0.error(v)
     }
 
@@ -532,8 +552,8 @@ mod tests {
     fn stream_method_resolution() {
         fn takes_value_stream(mut stream: Stream) -> stream::Result {
             stream.map_begin(None)?;
-            stream.map_key("key")?;
-            stream.map_value(42)?;
+            stream.map_key(&"key")?;
+            stream.map_value(&42)?;
             stream.map_end()
         }
 

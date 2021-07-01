@@ -93,12 +93,22 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 
 impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.fmt(v)
     }
 
     #[inline]
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+        self.fmt(v)
+    }
+
+    #[inline]
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
+        self.fmt(v)
+    }
+
+    #[inline]
+    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
         self.fmt(v)
     }
 
@@ -139,6 +149,11 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
 
     #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
+        self.fmt(v)
+    }
+
+    #[inline]
+    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
         self.fmt(v)
     }
 
@@ -189,6 +204,11 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     }
 
     #[inline]
+    fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+        self.map_key_collect(k)
+    }
+
+    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.stack.map_value()?;
 
@@ -199,6 +219,11 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
         v.stream(self)
+    }
+
+    #[inline]
+    fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.map_value_collect(v)
     }
 
     #[inline]
@@ -264,6 +289,11 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
         v.stream(self)
+    }
+
+    #[inline]
+    fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.seq_elem_collect(v)
     }
 
     #[inline]

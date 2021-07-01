@@ -128,12 +128,12 @@ where
     W: Write,
 {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
     #[inline]
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.0.error(v)
     }
 

@@ -111,9 +111,9 @@ mod alloc_support {
 
     Any new methods added to `Stream` may cause this method to panic until the given `Stream` is updated.
     */
-    pub fn stream_exhaustive<S>(build: impl Fn() -> S, check: impl Fn(Result<S, crate::Error>))
+    pub fn stream_exhaustive<'v, S>(build: impl Fn() -> S, check: impl Fn(Result<S, crate::Error>))
     where
-        S: Stream,
+        S: Stream<'v>,
     {
         use crate::std::{
             boxed::Box,
@@ -195,7 +195,7 @@ mod alloc_support {
 
         macro_rules! check {
             ($build:expr, $value:expr) => {
-                let r = crate::stream($build, &$value);
+                let r = crate::stream_owned($build, &$value);
 
                 if let Err(e) = &r {
                     // We only care about errors from the stream when a method isn't overridden
