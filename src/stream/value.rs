@@ -43,7 +43,7 @@ impl<'v> Value<'v> {
     [`Stream`]: ./trait.Stream.html
     */
     #[inline]
-    pub fn stream_owned<'s>(&self, mut stream: impl Stream<'s>) -> value::Result {
+    pub fn stream_owned<'a>(&self, mut stream: impl Stream<'a>) -> value::Result {
         self.0.stream_owned(&mut value::Stream::new(&mut stream))?;
 
         Ok(())

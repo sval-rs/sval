@@ -274,7 +274,7 @@ where
 /**
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
-pub fn stream_owned<'v, S>(mut stream: S, value: &impl Value) -> Result<S, Error>
+pub fn stream_owned<'v, S>(mut stream: S, value: &(impl Value + ?Sized)) -> Result<S, Error>
 where
     S: Stream<'v>,
 {
