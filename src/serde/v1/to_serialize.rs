@@ -28,7 +28,7 @@ where
     where
         S: Serializer,
     {
-        let stream = crate::stream(Stream::new(serializer), &self.0).map_err(S::Error::custom)?;
+        let stream = crate::stream_owned(Stream::new(serializer), &self.0).map_err(S::Error::custom)?;
 
         Ok(stream.take_ok())
     }
@@ -268,7 +268,7 @@ enum Pos {
 mod no_alloc_support {
     use super::*;
 
-    impl<S> stream::Stream for Stream<S>
+    impl<'v, S> stream::Stream<'v> for Stream<S>
     where
         S: Serializer,
     {

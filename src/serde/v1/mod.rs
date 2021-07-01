@@ -113,9 +113,9 @@ Stream a [`Serialize`] using the given [`Stream`].
 */
 pub fn stream<S>(stream: S, value: impl Serialize) -> Result<S, Error>
 where
-    S: Stream,
+    S: for<'v> Stream<'v>,
 {
-    crate::stream(stream, to_value(value))
+    crate::stream(stream, &to_value(value))
 }
 
 #[doc(hidden)]

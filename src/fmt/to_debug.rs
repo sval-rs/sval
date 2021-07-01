@@ -91,7 +91,7 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
     }
 }
 
-impl<'a, 'b: 'a> stream::Stream for Stream<'a, 'b> {
+impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     #[inline]
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.fmt(v)
