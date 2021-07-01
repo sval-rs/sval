@@ -91,7 +91,7 @@ where
 /**
 Serialize a [`Value`] using the given [`Serializer`].
 */
-pub fn serialize<S>(serializer: S, value: impl Value) -> Result<S::Ok, S::Error>
+pub fn serialize<S>(serializer: S, value: &(impl Value + ?Sized)) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -111,11 +111,11 @@ where
 /**
 Stream a [`Serialize`] using the given [`Stream`].
 */
-pub fn stream<S>(stream: S, value: impl Serialize) -> Result<S, Error>
+pub fn stream_owned<'a, S>(stream: S, value: &(impl Serialize + ?Sized)) -> Result<S, Error>
 where
-    S: for<'v> Stream<'v>,
+    S: Stream<'a>,
 {
-    crate::stream(stream, &to_value(value))
+    crate::stream_owned(stream, &to_value(value))
 }
 
 #[doc(hidden)]
