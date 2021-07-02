@@ -28,9 +28,8 @@ impl<T> Error for End<T> {
 /**
 Write a [`Value`] to a string.
 */
-pub fn to_string(v: &(impl Value + ?Sized)) -> Result<String, sval::Error> {
+pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
     let mut out = String::new();
-
     crate::to_fmt(&mut out, v)?;
 
     Ok(out)
@@ -39,7 +38,7 @@ pub fn to_string(v: &(impl Value + ?Sized)) -> Result<String, sval::Error> {
 /**
 Write a [`Value`] to a writer.
 */
-pub fn to_writer(writer: impl Write, v: &(impl Value + ?Sized)) -> Result<(), sval::Error> {
+pub fn to_writer(writer: impl Write, v: impl Value) -> Result<(), sval::Error> {
     crate::to_fmt(FmtToIo(writer), v)
 }
 
@@ -104,11 +103,11 @@ impl<'v, W> Stream<'v> for Writer<W>
 where
     W: Write,
 {
-    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
-    fn error(&mut self, v: &stream::Source) -> stream::Result {
+    fn error(&mut self, v: stream::Source) -> stream::Result {
         self.0.error(v)
     }
 
@@ -156,7 +155,7 @@ where
         self.0.map_key()
     }
 
-    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
         self.0.map_key_collect(k)
     }
 
@@ -164,7 +163,7 @@ where
         self.0.map_value()
     }
 
-    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
         self.0.map_value_collect(v)
     }
 
@@ -180,7 +179,7 @@ where
         self.0.seq_elem()
     }
 
-    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
         self.0.seq_elem_collect(v)
     }
 

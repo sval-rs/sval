@@ -123,7 +123,7 @@ fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
 
     impl<'v> sval::stream::Stream<'v> for NoOp {
         #[inline(never)]
-        fn fmt(&mut self, v: &Arguments) -> sval::stream::Result {
+        fn fmt(&mut self, v: Arguments) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }

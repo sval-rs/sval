@@ -61,14 +61,14 @@ impl<'s, 'v> Stream<'s, 'v> {
     Stream a debuggable type.
     */
     pub fn debug(&mut self, v: &'v impl Debug) -> stream::Result {
-        self.inner().fmt_borrowed(&stream::Arguments::debug(v))
+        self.inner().fmt_borrowed(stream::Arguments::debug(v))
     }
 
     /**
     Stream a displayable type.
     */
     pub fn display(&mut self, v: &'v impl Display) -> stream::Result {
-        self.inner().fmt_borrowed(&stream::Arguments::display(v))
+        self.inner().fmt_borrowed(stream::Arguments::display(v))
     }
 
     /**
@@ -78,7 +78,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     #[cfg(feature = "std")]
     pub fn error(&mut self, v: &'v (dyn error::Error + 'static)) -> stream::Result {
-        self.inner().error_borrowed(&stream::Source::new(v))
+        self.inner().error_borrowed(stream::Source::new(v))
     }
 
     /**
@@ -157,7 +157,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn map_key(&mut self, k: &'v impl Value) -> stream::Result {
         // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
         // This would let us continue to forward to `collect_borrowed` for sized values
-        self.inner().map_key_collect_borrowed(&stream::Value::new(k))
+        self.inner().map_key_collect_borrowed(stream::Value::new(k))
     }
 
     /**
@@ -166,7 +166,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn map_value(&mut self, v: &'v impl Value) -> stream::Result {
         // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
         // This would let us continue to forward to `collect_borrowed` for sized values
-        self.inner().map_value_collect_borrowed(&stream::Value::new(v))
+        self.inner().map_value_collect_borrowed(stream::Value::new(v))
     }
 
     /**
@@ -189,7 +189,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn seq_elem(&mut self, v: &'v impl Value) -> stream::Result {
         // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
         // This would let us continue to forward to `collect_borrowed` for sized values
-        self.inner().seq_elem_collect_borrowed(&stream::Value::new(v))
+        self.inner().seq_elem_collect_borrowed(stream::Value::new(v))
     }
 
     /**
@@ -236,19 +236,19 @@ impl<'s, 'v> Stream<'s, 'v> {
 }
 
 impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
-    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.inner().fmt(v)
     }
 
-    fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+    fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
         self.inner().fmt_borrowed(v)
     }
 
-    fn error(&mut self, v: &stream::Source) -> stream::Result {
+    fn error(&mut self, v: stream::Source) -> stream::Result {
         self.inner().error(v)
     }
 
-    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+    fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
         self.inner().error_borrowed(v)
     }
 
@@ -300,11 +300,11 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().map_key()
     }
 
-    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
         self.inner().map_key_collect(k)
     }
 
-    fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
         self.inner().map_key_collect_borrowed(k)
     }
 
@@ -312,11 +312,11 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().map_value()
     }
 
-    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
         self.inner().map_value_collect(v)
     }
 
-    fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.inner().map_value_collect_borrowed(v)
     }
 
@@ -332,11 +332,11 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().seq_elem()
     }
 
-    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
         self.inner().seq_elem_collect(v)
     }
 
-    fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+    fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.inner().seq_elem_collect_borrowed(v)
     }
 
@@ -349,19 +349,19 @@ impl<'a, 'v, S> stream::Stream<'v> for Owned<S>
 where
     S: stream::Stream<'a>,
 {
-    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
-    fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+    fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
         self.0.fmt(v)
     }
 
-    fn error(&mut self, v: &stream::Source) -> stream::Result {
+    fn error(&mut self, v: stream::Source) -> stream::Result {
         self.0.error(v)
     }
 
-    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+    fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
         self.0.error(v)
     }
 
@@ -413,11 +413,11 @@ where
         self.0.map_key()
     }
 
-    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
         self.0.map_key_collect(k)
     }
 
-    fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
         self.0.map_key_collect(k)
     }
 
@@ -425,11 +425,11 @@ where
         self.0.map_value()
     }
 
-    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
         self.0.map_value_collect(v)
     }
 
-    fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.0.map_value_collect(v)
     }
 
@@ -445,11 +445,11 @@ where
         self.0.seq_elem()
     }
 
-    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
         self.0.seq_elem_collect(v)
     }
 
-    fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+    fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.0.seq_elem_collect(v)
     }
 

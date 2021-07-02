@@ -21,7 +21,7 @@ use crate::{
 /**
 Write a [`Value`] to a formatter.
 */
-pub fn to_fmt(fmt: impl Write, v: &(impl Value + ?Sized)) -> Result<(), sval::Error> {
+pub fn to_fmt(fmt: impl Write, v: impl Value) -> Result<(), sval::Error> {
     sval::stream_owned(Formatter::new(fmt), v)
 }
 
@@ -83,7 +83,7 @@ impl<'v, W> Stream<'v> for Formatter<W>
 where
     W: Write,
 {
-    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.out.write_char('"')?;
         fmt::write(&mut Escape(&mut self.out), format_args!("{}", v))?;
         self.out.write_char('"')?;
@@ -91,8 +91,8 @@ where
         Ok(())
     }
 
-    fn error(&mut self, v: &stream::Source) -> stream::Result {
-        self.fmt(&stream::Arguments::display(&v))
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.fmt(stream::Arguments::display(&v))
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
@@ -224,7 +224,7 @@ where
         Ok(())
     }
 
-    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
         self.map_key()?;
         k.stream(self)?;
 
@@ -239,7 +239,7 @@ where
         Ok(())
     }
 
-    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
         self.map_value()?;
         v.stream(self)?;
 
@@ -278,7 +278,7 @@ where
         Ok(())
     }
 
-    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
         self.seq_elem()?;
         v.stream(self)?;
 

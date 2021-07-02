@@ -19,7 +19,7 @@ where
 {
     fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         match self {
-            Some(v) => stream.any(v),
+            Some(v) => v.stream(stream),
             None => stream.none(),
         }
     }

@@ -57,6 +57,6 @@ where
 /**
 Format a [`Value`] using the given [`Formatter`].
 */
-pub fn debug(f: &mut Formatter, value: &(impl Value + ?Sized)) -> fmt::Result {
+pub fn debug(f: &mut Formatter, value: impl Value) -> fmt::Result {
     to_debug(value).fmt(f)
 }

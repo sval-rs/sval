@@ -224,7 +224,7 @@ pub fn stream<'v>(mut stream: impl Stream<'v>, value: &'v (impl Value + ?Sized))
 /**
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
-pub fn stream_owned<'a>(mut stream: impl Stream<'a>, value: &(impl Value + ?Sized)) -> Result<(), Error> {
+pub fn stream_owned<'a>(mut stream: impl Stream<'a>, value: impl Value) -> Result<(), Error> {
     value.stream_owned(value::Stream::new(&mut stream))?;
 
     Ok(())
