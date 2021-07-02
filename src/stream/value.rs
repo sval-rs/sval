@@ -55,4 +55,9 @@ impl<'a> value::Value for Value<'a> {
     fn stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
         self.0.stream(stream)
     }
+
+    #[inline]
+    fn stream_owned(&self, stream: &mut value::Stream) -> value::Result {
+        self.0.stream_owned(stream)
+    }
 }
