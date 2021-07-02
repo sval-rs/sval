@@ -730,7 +730,7 @@ pub trait Stream<'v> {
     #[inline]
     fn map_key_collect(&mut self, k: &Value) -> Result {
         self.map_key()?;
-        k.stream_owned(self)
+        k.stream_owned(self).map(|_| ())
     }
     #[cfg(test)]
     fn map_key_collect(&mut self, k: &Value) -> Result;
@@ -742,7 +742,7 @@ pub trait Stream<'v> {
     #[inline]
     fn map_value_collect(&mut self, v: &Value) -> Result {
         self.map_value()?;
-        v.stream_owned(self)
+        v.stream_owned(self).map(|_| ())
     }
     #[cfg(test)]
     fn map_value_collect(&mut self, v: &Value) -> Result;
@@ -754,7 +754,7 @@ pub trait Stream<'v> {
     #[inline]
     fn seq_elem_collect(&mut self, v: &Value) -> Result {
         self.seq_elem()?;
-        v.stream_owned(self)
+        v.stream_owned(self).map(|_| ())
     }
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: &Value) -> Result;
@@ -953,7 +953,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = crate::std::result::Result<(), crate::Error>;
+pub type Result<T = ()> = crate::std::result::Result<T, crate::Error>;
 
 #[cfg(test)]
 mod tests {

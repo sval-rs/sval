@@ -52,7 +52,7 @@ impl Value for Anonymous {
 
         stream.map_value_begin()?.map_begin(None)?;
 
-        stream.map_key(2)?;
+        stream.map_key(&2)?;
 
         stream.map_value_begin()?.seq_begin(None)?;
 
@@ -62,9 +62,9 @@ impl Value for Anonymous {
 
         stream.map_end()?;
 
-        stream.map_key(11)?;
+        stream.map_key(&11)?;
 
-        stream.map_value(111)?;
+        stream.map_value(&111)?;
 
         stream.map_end()
     }

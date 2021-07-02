@@ -110,7 +110,7 @@ fn twitter_serde_collect(b: &mut test::Bencher) {
 fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
     struct NoOp;
 
-    impl sval::stream::Stream for NoOp {
+    impl<'v> sval::stream::Stream<'v> for NoOp {
         #[inline(never)]
         fn fmt(&mut self, v: &Arguments) -> sval::stream::Result {
             let _ = v;
@@ -208,7 +208,7 @@ fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
         }
     }
 
-    sval::stream(NoOp, v)?;
+    sval::stream(NoOp, &v)?;
 
     Ok(())
 }

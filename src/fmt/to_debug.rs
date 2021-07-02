@@ -200,7 +200,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     #[inline]
     fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
         self.map_key()?;
-        k.stream(self)
+        k.stream(self).map(|_| ())
     }
 
     #[inline]
@@ -218,7 +218,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     #[inline]
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
-        v.stream(self)
+        v.stream(self).map(|_| ())
     }
 
     #[inline]
@@ -288,7 +288,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     #[inline]
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
-        v.stream(self)
+        v.stream(self).map(|_| ())
     }
 
     #[inline]

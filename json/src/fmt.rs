@@ -28,7 +28,7 @@ where
 {
     let fmt = Formatter::new(fmt);
 
-    sval::stream(fmt, v).map(|fmt| fmt.into_inner_unchecked())
+    sval::stream_owned(fmt, &v).map(|fmt| fmt.into_inner_unchecked())
 }
 
 /**
@@ -118,7 +118,7 @@ where
     }
 }
 
-impl<W> Stream for Formatter<W>
+impl<'v, W> Stream<'v> for Formatter<W>
 where
     W: Write,
 {
@@ -139,7 +139,7 @@ where
 
     #[inline]
     fn error(&mut self, v: &stream::Source) -> stream::Result {
-        self.fmt(stream::Arguments::display(&v))
+        self.fmt(&stream::Arguments::display(&v))
     }
 
     #[inline]

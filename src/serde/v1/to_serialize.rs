@@ -504,7 +504,7 @@ mod alloc_support {
         }
     }
 
-    impl<S> stream::Stream for Stream<S>
+    impl<'v, S> stream::Stream<'v> for Stream<S>
     where
         S: Serializer,
     {
@@ -551,9 +551,14 @@ mod alloc_support {
                 None => self.serialize_elem(ToSerialize(Value::new(v))),
                 Some(buffered) => {
                     buffered.seq_elem()?;
-                    v.stream(buffered)
+                    v.stream(buffered).map(|_| ())
                 }
             }
+        }
+
+        #[inline]
+        fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+            self.seq_elem_collect(v)
         }
 
         #[inline]
@@ -619,9 +624,14 @@ mod alloc_support {
                 None => self.serialize_key(ToSerialize(Value::new(k))),
                 Some(buffered) => {
                     buffered.map_key()?;
-                    k.stream(buffered)
+                    k.stream(buffered).map(|_| ())
                 }
             }
+        }
+
+        #[inline]
+        fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+            self.map_key_collect(k)
         }
 
         #[inline]
@@ -642,9 +652,14 @@ mod alloc_support {
                 None => self.serialize_value(ToSerialize(Value::new(v))),
                 Some(buffered) => {
                     buffered.map_value()?;
-                    v.stream(buffered)
+                    v.stream(buffered).map(|_| ())
                 }
             }
+        }
+
+        #[inline]
+        fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+            self.map_value_collect(v)
         }
 
         #[inline]
@@ -733,6 +748,11 @@ mod alloc_support {
         }
 
         #[inline]
+        fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
+            self.str(v)
+        }
+
+        #[inline]
         fn none(&mut self) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(Option::None::<()>),
@@ -749,11 +769,21 @@ mod alloc_support {
         }
 
         #[inline]
+        fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+            self.error(v)
+        }
+
+        #[inline]
         fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v.to_serialize()),
                 Some(buffered) => buffered.fmt(v),
             }
+        }
+
+        #[inline]
+        fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+            self.fmt(v)
         }
     }
 

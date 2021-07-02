@@ -123,7 +123,7 @@ where
     }
 }
 
-impl<W> Stream for Writer<W>
+impl<'v, W> Stream<'v> for Writer<W>
 where
     W: Write,
 {
