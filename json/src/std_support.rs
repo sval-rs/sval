@@ -170,8 +170,18 @@ where
     }
 
     #[inline]
+    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+        self.0.map_key_collect(k)
+    }
+
+    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.0.map_value()
+    }
+
+    #[inline]
+    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.0.map_value_collect(v)
     }
 
     #[inline]
@@ -187,6 +197,11 @@ where
     #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         self.0.seq_elem()
+    }
+
+    #[inline]
+    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+        self.0.seq_elem_collect(v)
     }
 
     #[inline]

@@ -43,6 +43,11 @@ impl<'s, 'v> Stream<'s, 'v> {
     }
 
     #[inline]
+    pub fn borrowed<'a>(&'a mut self) -> Stream<'a, 'v> {
+        Stream(Owned((self.0).0))
+    }
+
+    #[inline]
     fn inner(&mut self) -> &mut dyn stream::Stream<'v> {
         (self.0).0
     }
@@ -54,7 +59,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     #[inline]
     pub fn any(&mut self, v: &'v (impl Value + ?Sized)) -> stream::Result {
-        v.stream(self)
+        v.stream(self.borrowed())
     }
 
     /**

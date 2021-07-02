@@ -99,15 +99,15 @@ enum ValueInner {
 }
 
 impl Value for OwnedValue {
-    fn stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         match self.0 {
             ValueInner::Error(ref e) => Err(crate::Error::custom(e)),
             #[cfg(feature = "std")]
-            ValueInner::Shared(ref v) => v.stream(stream),
-            ValueInner::Primitive(ref v) => v.stream(stream),
+            ValueInner::Shared(ref v) => v.stream_owned(stream.borrowed()),
+            ValueInner::Primitive(ref v) => v.stream_owned(stream.borrowed()),
             ValueInner::Stream(ref v) => {
                 for token in v.iter() {
-                    token.stream(stream)?;
+                    token.stream_owned(stream.borrowed())?;
                 }
 
                 Ok(())
@@ -408,7 +408,7 @@ pub(crate) enum TokenKind {
 }
 
 impl Token {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream_owned(&self, mut stream: value::Stream) -> value::Result {
         use self::TokenKind::*;
 
         match self.kind {
@@ -607,7 +607,7 @@ impl<'v> Stream<'v> for TokenBuf {
 
     fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
         self.map_key()?;
-        k.stream(self).map(|_| ())
+        k.stream(self)
     }
 
     fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
@@ -624,7 +624,7 @@ impl<'v> Stream<'v> for TokenBuf {
 
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
-        v.stream(self).map(|_| ())
+        v.stream(self)
     }
 
     fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
@@ -657,7 +657,7 @@ impl<'v> Stream<'v> for TokenBuf {
 
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
-        v.stream(self).map(|_| ())
+        v.stream(self)
     }
 
     fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
@@ -689,25 +689,6 @@ pub(crate) enum Primitive {
 }
 
 impl Primitive {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        use self::Primitive::*;
-
-        match *self {
-            Signed(v) => stream.i64(v)?,
-            Unsigned(v) => stream.u64(v)?,
-            Float(v) => stream.f64(v)?,
-            BigSigned(v) => stream.i128(v)?,
-            BigUnsigned(v) => stream.u128(v)?,
-            Bool(v) => stream.bool(v)?,
-            Str(ref v) => stream.owned().str(&*v)?,
-            Char(v) => stream.char(v)?,
-            Error(ref v) => stream.owned().any(&stream::Source::from(&**v))?,
-            None => stream.none()?,
-        }
-
-        Ok(())
-    }
-
     #[cfg(any(test, feature = "test"))]
     fn to_token(&self) -> Token {
         Token {
@@ -725,6 +706,27 @@ impl Primitive {
                 Primitive::None => TokenKind::None,
             },
         }
+    }
+}
+
+impl Value for Primitive {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
+        use self::Primitive::*;
+
+        match *self {
+            Signed(v) => stream.i64(v)?,
+            Unsigned(v) => stream.u64(v)?,
+            Float(v) => stream.f64(v)?,
+            BigSigned(v) => stream.i128(v)?,
+            BigUnsigned(v) => stream.u128(v)?,
+            Bool(v) => stream.bool(v)?,
+            Str(ref v) => stream.owned().str(&*v)?,
+            Char(v) => stream.char(v)?,
+            Error(ref v) => stream.owned().any(&&stream::Source::from(&**v))?,
+            None => stream.none()?,
+        }
+
+        Ok(())
     }
 }
 
@@ -946,7 +948,7 @@ mod tests {
     struct Map;
 
     impl Value for Map {
-        fn stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
+        fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
             let mut stream = stream.owned();
 
             stream.map_begin(Some(2))?;
