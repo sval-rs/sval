@@ -275,7 +275,7 @@ pub trait Stream<'v> {
     #[inline]
     fn map_key_collect(&mut self, k: &Value) -> Result {
         self.map_key()?;
-        k.stream_owned(self).map(|_| ())
+        k.stream_owned(self)
     }
     #[cfg(test)]
     fn map_key_collect(&mut self, k: &Value) -> Result;
@@ -287,7 +287,7 @@ pub trait Stream<'v> {
     #[inline]
     fn map_value_collect(&mut self, v: &Value) -> Result {
         self.map_value()?;
-        v.stream_owned(self).map(|_| ())
+        v.stream_owned(self)
     }
     #[cfg(test)]
     fn map_value_collect(&mut self, v: &Value) -> Result;
@@ -299,7 +299,7 @@ pub trait Stream<'v> {
     #[inline]
     fn seq_elem_collect(&mut self, v: &Value) -> Result {
         self.seq_elem()?;
-        v.stream_owned(self).map(|_| ())
+        v.stream_owned(self)
     }
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: &Value) -> Result;

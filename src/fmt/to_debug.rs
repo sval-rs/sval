@@ -29,7 +29,7 @@ where
     V: value::Value,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        crate::stream(Stream::new(f), &self.0).map_err(crate::Error::into_fmt_error)?;
+        crate::stream(&mut Stream::new(f), &self.0).map_err(crate::Error::into_fmt_error)?;
 
         Ok(())
     }

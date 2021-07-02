@@ -31,13 +31,10 @@ impl<'v> Value<'v> {
     [`Stream`]: ./trait.Stream.html
     */
     #[inline]
-    pub fn stream<S>(&self, mut stream: S) -> value::Result<S>
-    where
-        S: Stream<'v>,
-    {
+    pub fn stream(&self, mut stream: &mut (impl Stream<'v> + ?Sized)) -> value::Result {
         self.0.stream(&mut value::Stream::new(&mut stream))?;
 
-        Ok(stream)
+        Ok(())
     }
 
     /**
@@ -46,13 +43,10 @@ impl<'v> Value<'v> {
     [`Stream`]: ./trait.Stream.html
     */
     #[inline]
-    pub fn stream_owned<'a, S>(&self, mut stream: S) -> value::Result<S>
-    where
-        S: Stream<'a>,
-    {
+    pub fn stream_owned<'a>(&self, mut stream: &mut (impl Stream<'a> + ?Sized)) -> value::Result {
         self.0.stream_owned(&mut value::Stream::new(&mut stream))?;
 
-        Ok(stream)
+        Ok(())
     }
 }
 

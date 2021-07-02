@@ -215,23 +215,17 @@ use self::{
 /**
 Stream the structure of a [`Value`] with a concrete lifetime.
 */
-pub fn stream<'v, S>(mut stream: S, value: &'v (impl Value + ?Sized)) -> Result<S, Error>
-where
-    S: Stream<'v>,
-{
+pub fn stream<'v>(mut stream: &mut (impl Stream<'v> + ?Sized), value: &'v (impl Value + ?Sized)) -> Result<(), Error> {
     value.stream(&mut value::Stream::new(&mut stream))?;
 
-    Ok(stream)
+    Ok(())
 }
 
 /**
 Stream the structure of a [`Value`] using the given [`Stream`].
 */
-pub fn stream_owned<'a, S>(mut stream: S, value: &(impl Value + ?Sized)) -> Result<S, Error>
-where
-    S: Stream<'a>,
-{
+pub fn stream_owned<'a>(mut stream: &mut (impl Stream<'a> + ?Sized), value: &(impl Value + ?Sized)) -> Result<(), Error> {
     value.stream_owned(&mut value::Stream::new(&mut stream))?;
 
-    Ok(stream)
+    Ok(())
 }

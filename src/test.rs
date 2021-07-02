@@ -195,7 +195,9 @@ mod alloc_support {
 
         macro_rules! check {
             ($build:expr, $value:expr) => {
-                let r = crate::stream_owned($build, &$value);
+                let mut s = $build;
+
+                let r = crate::stream_owned(&mut s, &$value);
 
                 if let Err(e) = &r {
                     // We only care about errors from the stream when a method isn't overridden
@@ -206,7 +208,7 @@ mod alloc_support {
                     }
                 }
 
-                check(r);
+                check(r.map(|_| s));
             };
         }
 

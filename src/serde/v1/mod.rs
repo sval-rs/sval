@@ -111,10 +111,7 @@ where
 /**
 Stream a [`Serialize`] using the given [`Stream`].
 */
-pub fn stream_owned<'a, S>(stream: S, value: &(impl Serialize + ?Sized)) -> Result<S, Error>
-where
-    S: Stream<'a>,
-{
+pub fn stream_owned<'a, S>(stream: &mut (impl Stream<'a> + ?Sized), value: &(impl Serialize + ?Sized)) -> Result<(), Error> {
     crate::stream_owned(stream, &to_value(value))
 }
 

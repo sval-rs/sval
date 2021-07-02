@@ -22,13 +22,8 @@ use crate::{
 /**
 Write a [`Value`] to a formatter.
 */
-pub fn to_fmt<W>(fmt: W, v: &(impl Value + ?Sized)) -> Result<W, sval::Error>
-where
-    W: Write,
-{
-    let fmt = Formatter::new(fmt);
-
-    sval::stream_owned(fmt, v).map(|fmt| fmt.into_inner_unchecked())
+pub fn to_fmt(fmt: impl Write, v: &(impl Value + ?Sized)) -> Result<(), sval::Error> {
+    sval::stream_owned(&mut Formatter::new(fmt), v)
 }
 
 /**

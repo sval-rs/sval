@@ -457,7 +457,10 @@ impl TokenBuf {
 
     #[inline]
     fn collect(v: impl Value) -> Result<Vec<Token>, crate::Error> {
-        crate::stream_owned(TokenBuf::new(), &v).map(|buf| buf.tokens)
+        let mut buf = TokenBuf::new();
+        crate::stream_owned(&mut buf, &v)?;
+
+        Ok(buf.tokens)
     }
 
     #[inline]
@@ -737,9 +740,10 @@ impl PrimitiveBuf {
 
     #[inline]
     fn collect(v: impl Value) -> Option<Primitive> {
-        crate::stream_owned(PrimitiveBuf::new(), &v)
-            .ok()
-            .and_then(|buf| buf.primitive)
+        let mut buf = PrimitiveBuf::new();
+        crate::stream_owned(&mut buf, &v).ok()?;
+
+        buf.primitive
     }
 
     #[inline]

@@ -28,7 +28,8 @@ where
     where
         S: Serializer,
     {
-        let stream = crate::stream_owned(Stream::new(serializer), &self.0).map_err(S::Error::custom)?;
+        let mut stream = Stream::new(serializer);
+        crate::stream_owned(&mut stream, &self.0).map_err(S::Error::custom)?;
 
         Ok(stream.take_ok())
     }

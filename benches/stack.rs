@@ -184,5 +184,5 @@ fn raw_stream_map(b: &mut Bencher) {
 
 #[bench]
 fn stream_map(b: &mut Bencher) {
-    b.iter(|| sval::stream(EmptyStream, &Map))
+    b.iter(|| sval::stream(&mut EmptyStream, &Map))
 }
