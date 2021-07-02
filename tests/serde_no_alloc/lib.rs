@@ -68,11 +68,11 @@ sval_if_alloc! {
             });
 
             let mut buf = String::new();
-            let value = sval_json::to_fmt(&mut buf, &sval::serde::v1::to_value(ser)).unwrap();
+            sval_json::to_fmt(&mut buf, &sval::serde::v1::to_value(ser)).unwrap();
 
             let expected = "{\"a\":1,\"b\":2,\"renamed\":{\"a\":3,\"b\":\"Hello!\"}}";
 
-            assert_eq!(expected, value);
+            assert_eq!(expected, buf);
         }
 
         #[test]
