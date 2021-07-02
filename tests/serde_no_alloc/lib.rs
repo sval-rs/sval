@@ -41,7 +41,7 @@ sval_if_alloc! {
 
                 stream.map_value_begin()?.map_begin(None)?;
 
-                stream.map_key(2)?;
+                stream.map_key(&2)?;
 
                 stream.map_value_begin()?.seq_begin(None)?;
 
@@ -51,9 +51,9 @@ sval_if_alloc! {
 
                 stream.map_end()?;
 
-                stream.map_key(11)?;
+                stream.map_key(&11)?;
 
-                stream.map_value(111)?;
+                stream.map_value(&111)?;
 
                 stream.map_end()
             }
@@ -68,11 +68,11 @@ sval_if_alloc! {
             });
 
             let mut buf = String::new();
-            let value = sval_json::to_fmt(&mut buf, sval::serde::v1::to_value(ser)).unwrap();
+            sval_json::to_fmt(&mut buf, &sval::serde::v1::to_value(ser)).unwrap();
 
             let expected = "{\"a\":1,\"b\":2,\"renamed\":{\"a\":3,\"b\":\"Hello!\"}}";
 
-            assert_eq!(expected, value);
+            assert_eq!(expected, buf);
         }
 
         #[test]
@@ -82,7 +82,7 @@ sval_if_alloc! {
 
             // The anonymous map isn't supported in no-std
             let mut buf = String::new();
-            sval_json::to_fmt(&mut buf, sval::serde::v1::to_value(ser)).unwrap();
+            sval_json::to_fmt(&mut buf, &sval::serde::v1::to_value(ser)).unwrap();
         }
     }
 }

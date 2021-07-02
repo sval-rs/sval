@@ -22,13 +22,8 @@ use crate::{
 /**
 Write a [`Value`] to a formatter.
 */
-pub fn to_fmt<W>(fmt: W, v: impl Value) -> Result<W, sval::Error>
-where
-    W: Write,
-{
-    let fmt = Formatter::new(fmt);
-
-    sval::stream(fmt, v).map(|fmt| fmt.into_inner_unchecked())
+pub fn to_fmt(fmt: impl Write, v: &(impl Value + ?Sized)) -> Result<(), sval::Error> {
+    sval::stream_owned(&mut Formatter::new(fmt), v)
 }
 
 /**
@@ -48,7 +43,7 @@ Create an owned json stream:
 use sval_json::Formatter;
 
 let mut stream = Formatter::new(String::new());
-sval::stream(&mut stream, 42)?;
+sval::stream(&mut stream, &42)?;
 let json = stream.end()?;
 
 assert_eq!("42", json);
@@ -118,12 +113,12 @@ where
     }
 }
 
-impl<W> Stream for Formatter<W>
+impl<'v, W> Stream<'v> for Formatter<W>
 where
     W: Write,
 {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         let pos = self.stack.primitive()?;
 
         if let Some(delim) = mem::replace(&mut self.delim, Self::next_delim(pos)) {
@@ -138,8 +133,8 @@ where
     }
 
     #[inline]
-    fn error(&mut self, v: stream::Source) -> stream::Result {
-        self.fmt(stream::Arguments::display(&v))
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
+        self.fmt(&stream::Arguments::display(&v))
     }
 
     #[inline]

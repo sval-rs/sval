@@ -29,96 +29,6 @@ pub struct Data {
 }
 # }
 ```
-
-The trait can also be implemented manually:
-
-```
-use sval::value::{self, Value};
-
-pub struct Id(u64);
-
-impl Value for Id {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.u64(self.0)
-    }
-}
-```
-
-## Sequences
-
-A sequence can be visited by iterating over its elements:
-
-```
-use sval::value::{self, Value};
-
-pub struct Seq(Vec<u64>);
-
-impl Value for Seq {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.seq_begin(Some(self.0.len()))?;
-
-        for v in &self.0 {
-            stream.seq_elem(v)?;
-        }
-
-        stream.seq_end()
-    }
-}
-```
-
-## Maps
-
-A map can be visited by iterating over its key-value pairs:
-
-```
-# fn main() {}
-# #[cfg(feature = "std")]
-# mod test {
-use std::collections::BTreeMap;
-use sval::value::{self, Value};
-
-pub struct Map(BTreeMap<String, u64>);
-
-impl Value for Map {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(Some(self.0.len()))?;
-
-        for (k, v) in &self.0 {
-            stream.map_key(k)?;
-            stream.map_value(v)?;
-        }
-
-        stream.map_end()
-    }
-}
-# }
-```
-
-## Structure that isn't known upfront
-
-Types can stream a structure that's different than what they use internally.
-In the following example, the `Map` type doesn't have any keys or values,
-but serializes a nested map like `{"nested": {"key": 42}}`:
-
-```
-use sval::value::{self, Value};
-
-pub struct Map;
-
-impl Value for Map {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(Some(1))?;
-
-        stream.map_key_begin()?.str("nested")?;
-        stream.map_value_begin()?.map_begin(Some(1))?;
-        stream.map_key_begin()?.str("key")?;
-        stream.map_value_begin()?.u64(42)?;
-        stream.map_end()?;
-
-        stream.map_end()
-    }
-}
-```
 */
 
 mod impls;
@@ -134,284 +44,45 @@ pub use self::owned::OwnedValue;
 
 /**
 A value with a streamable structure.
-
-# Implementing `Value`
-
-Implementations of `Value` are expected to conform to the following
-model:
-
-## Only a single primitive, map or sequence is streamed
-
-The following `Value` is valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        // VALID: The stream can take the primitive
-        // value 42
-        stream.any(42)
-    }
-}
-```
-
-The following `Value` is not valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.any(42)?;
-
-        // INVALID: The stream already received the
-        // primitive value 42
-        stream.any(43)
-    }
-}
-```
-
-## All maps and sequences are completed, and in the right order
-
-The following `Value` is valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(None)?;
-        stream.map_key("a")?;
-        stream.map_value_begin()?.seq_begin(None)?;
-
-        // VALID: The sequence is completed, then the map is completed
-        stream.seq_end()?;
-        stream.map_end()
-    }
-}
-```
-
-The following `Value` is not valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(None)?;
-        stream.map_key("a")?;
-        stream.map_value_begin()?.seq_begin(None)?;
-
-        // INVALID: The map is completed before the sequence,
-        // even though the sequence was started last.
-        stream.map_end()?;
-        stream.seq_end()
-    }
-}
-```
-
-The following `Value` is not valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(None)?;
-
-        // INVALID: The map is never completed
-        Ok(())
-    }
-}
-```
-
-## Map keys and values are received before their corresponding structure
-
-The following `Value` is valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(None)?;
-
-        // VALID: The `map_key` and `map_value` methods
-        // always call the underlying stream correctly
-        stream.map_key("a")?;
-        stream.map_value("b")?;
-
-        // VALID: `map_key` and `map_value` are called before
-        // their actual values are given
-        stream.map_key_begin()?.any("c")?;
-        stream.map_value_begin()?.any("d")?;
-
-        stream.map_end()
-    }
-}
-```
-
-The following `Value` is not valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(None)?;
-
-        // INVALID: The underlying `map_key` and `map_value` methods
-        // aren't being called before their actual values are given
-        stream.any("a")?;
-        stream.any("b")?;
-
-        stream.map_end()
-    }
-}
-```
-
-## Map keys are received before values
-
-The following `Value` is valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(None)?;
-
-        // VALID: The key is streamed before the value
-        stream.map_key("a")?;
-        stream.map_value("b")?;
-
-        stream.map_end()
-    }
-}
-```
-
-The following `Value` is not valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.map_begin(None)?;
-
-        // INVALID: The value is streamed before the key
-        stream.map_value("b")?;
-        stream.map_key("a")?;
-
-        stream.map_end()
-    }
-}
-```
-
-## Sequence elements are received before their corresponding structure
-
-The following `Value` is valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.seq_begin(None)?;
-
-        // VALID: The `seq_elem` method
-        // always calls the underlying stream correctly
-        stream.seq_elem("a")?;
-
-        // VALID: `seq_elem` is called before
-        // their actual values are given
-        stream.seq_elem_begin()?.any("b")?;
-
-        stream.seq_end()
-    }
-}
-```
-
-The following `Value` is not valid:
-
-```
-# use sval::value::{self, Value};
-# struct MyValue;
-impl Value for MyValue {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
-        stream.seq_begin(None)?;
-
-        // INVALID: The underlying `seq_elem` method
-        // isn't being called before the actual value is given
-        stream.any("a")?;
-
-        stream.seq_end()
-    }
-}
-```
 */
 pub trait Value {
     /**
     Stream this value.
 
-    # Examples
-
-    Use a [`sval::stream`] to stream a value:
-
-    ```no_run
-    # #[cfg(not(feature = "std"))]
-    # fn main() {}
-    # #[cfg(feature = "std")]
-    # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    sval::stream(MyStream, 42)?;
-    # Ok(())
-    # }
-    # use sval::stream::{self, Stream};
-    # struct MyStream;
-    # impl Stream for MyStream {
-    #     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
-    # }
-    ```
-
-    It's less convenient, but the `stream` method can be called directly:
-
-    ```no_run
-    # #[cfg(not(feature = "std"))]
-    # fn main() {}
-    # #[cfg(feature = "std")]
-    # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use sval::value::{self, Value};
-
-    42.stream(&mut value::Stream::new(&mut MyStream))?;
-    # Ok(())
-    # }
-    # use sval::stream::{self, Stream};
-    # struct MyStream;
-    # impl Stream for MyStream {
-    #     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
-    # }
-    ```
-
-    [`sval::stream`]: ../fn.stream.html
+    Data passed to the stream may satisfy the `'v` lifetime so that
+    the stream can hold onto it across calls.
     */
-    fn stream(&self, stream: &mut Stream) -> Result;
+    fn stream<'s, 'v>(&'v self, stream: &mut Stream<'s, 'v>) -> Result;
+
+    /**
+    Stream this value.
+
+    Data passed to the stream may have an arbitrarily short lifetime.
+    That means the stream can't borrow that data across calls, but the
+    value is free to produce any short-lived values it needs.
+    */
+    fn stream_owned(&self, stream: &mut Stream) -> Result {
+        self.stream(&mut stream.owned())
+    }
 }
 
 impl<'a, T: ?Sized> Value for &'a T
 where
     T: Value,
 {
-    #[inline]
-    fn stream(&self, stream: &mut Stream) -> Result {
+    fn stream<'s, 'v>(&'v self, stream: &mut Stream<'s, 'v>) -> Result {
         (**self).stream(stream)
+    }
+
+    fn stream_owned(&self, stream: &mut Stream) -> Result {
+        (**self).stream_owned(stream)
     }
 }
 
 /**
 The type returned by streaming methods.
 */
-pub type Result = crate::std::result::Result<(), crate::Error>;
+pub type Result<T = ()> = crate::std::result::Result<T, crate::Error>;
 
 #[cfg(test)]
 mod tests {

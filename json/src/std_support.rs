@@ -28,7 +28,7 @@ impl<T> Error for End<T> {
 /**
 Write a [`Value`] to a string.
 */
-pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
+pub fn to_string(v: &(impl Value + ?Sized)) -> Result<String, sval::Error> {
     let mut out = String::new();
 
     crate::to_fmt(&mut out, v)?;
@@ -39,11 +39,8 @@ pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
 /**
 Write a [`Value`] to a writer.
 */
-pub fn to_writer<W>(writer: W, v: impl Value) -> Result<W, sval::Error>
-where
-    W: Write,
-{
-    crate::to_fmt(FmtToIo(writer), v).map(|writer| writer.0)
+pub fn to_writer(writer: impl Write, v: &(impl Value + ?Sized)) -> Result<(), sval::Error> {
+    crate::to_fmt(FmtToIo(writer), v)
 }
 
 struct FmtToIo<W>(W);
@@ -74,7 +71,7 @@ Create an owned json stream:
 use sval_json::Writer;
 
 let mut stream = Writer::new(Vec::<u8>::new());
-sval::stream(&mut stream, 42)?;
+sval::stream(&mut stream, &42)?;
 let json = stream.end()?;
 
 assert_eq!(Some("42"), str::from_utf8(&json).ok());
@@ -123,17 +120,17 @@ where
     }
 }
 
-impl<W> Stream for Writer<W>
+impl<'v, W> Stream<'v> for Writer<W>
 where
     W: Write,
 {
     #[inline]
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
     #[inline]
-    fn error(&mut self, v: stream::Source) -> stream::Result {
+    fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.0.error(v)
     }
 

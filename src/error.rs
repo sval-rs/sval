@@ -11,12 +11,6 @@ use crate::std::{
 
 /**
 An error encountered while visiting a value.
-
-# Converting an `Error` into a standard error
-
-The `Error` type doesn't implement the `std::error::Error` trait directly.
-When `std` is available, the `into_error` method will convert an
-`Error` into a value that implements `std::error::Error`.
 */
 pub struct Error(ErrorInner);
 

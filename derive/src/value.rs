@@ -42,7 +42,7 @@ pub(crate) fn derive_from_serde(input: DeriveInput) -> TokenStream {
                 fn stream(&self, stream: &mut sval::value::Stream) -> sval::value::Result {
                     sval::derive_from_serde!(
                         if #[cfg(feature = "serde1_lib")] {
-                            stream.any(sval::serde::v1::to_value(self))
+                            stream.owned().any(&sval::serde::v1::to_value(self))
                         }
                         else {
                             compile_error!("#[sval(derive_from = \"serde\")] requires the `serde` feature of `sval`")
@@ -85,11 +85,11 @@ pub(crate) fn derive_from_sval(input: DeriveInput) -> TokenStream {
             extern crate sval;
 
             impl #impl_generics sval::value::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream(&self, stream: &mut sval::value::Stream) -> sval::value::Result {
+                fn stream<'s, 'v>(&'v self, stream: &mut sval::value::Stream<'s, 'v>) -> sval::value::Result {
                     stream.map_begin(Some(#num_fields))?;
 
                     #(
-                        stream.map_key(#fieldstr)?;
+                        stream.map_key(&#fieldstr)?;
                         stream.map_value(&self.#fieldname)?;
                     )*
 

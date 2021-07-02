@@ -31,7 +31,7 @@ impl<T> value::Value for ToValue<T>
 where
     T: Serialize,
 {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'s self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
         self.0
             .serialize(Serializer(stream))
             .map_err(err("error streaming serde"))?;
@@ -42,17 +42,17 @@ where
 
 struct Serializer<T>(T);
 
-impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> ser::Serializer for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = Serializer<&'a mut value::Stream<'b>>;
-    type SerializeTuple = Serializer<&'a mut value::Stream<'b>>;
-    type SerializeTupleStruct = Serializer<&'a mut value::Stream<'b>>;
-    type SerializeTupleVariant = Serializer<&'a mut value::Stream<'b>>;
-    type SerializeMap = Serializer<&'a mut value::Stream<'b>>;
-    type SerializeStruct = Serializer<&'a mut value::Stream<'b>>;
-    type SerializeStructVariant = Serializer<&'a mut value::Stream<'b>>;
+    type SerializeSeq = Serializer<&'a mut value::Stream<'b, 'v>>;
+    type SerializeTuple = Serializer<&'a mut value::Stream<'b, 'v>>;
+    type SerializeTupleStruct = Serializer<&'a mut value::Stream<'b, 'v>>;
+    type SerializeTupleVariant = Serializer<&'a mut value::Stream<'b, 'v>>;
+    type SerializeMap = Serializer<&'a mut value::Stream<'b, 'v>>;
+    type SerializeStruct = Serializer<&'a mut value::Stream<'b, 'v>>;
+    type SerializeStructVariant = Serializer<&'a mut value::Stream<'b, 'v>>;
 
     #[inline]
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -140,7 +140,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
 
     #[inline]
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.0.str(v)?;
+        self.0.owned().str(v)?;
         Ok(())
     }
 
@@ -149,7 +149,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + fmt::Display,
     {
-        self.0.any(stream::Arguments::from(format_args!("{}", v)))?;
+        self.0.owned().any(&stream::Arguments::from(format_args!("{}", v)))?;
         Ok(())
     }
 
@@ -158,7 +158,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         self.0.seq_begin(Some(v.len()))?;
 
         for b in v {
-            self.0.seq_elem(b)?;
+            self.0.owned().seq_elem(&b)?;
         }
 
         self.0.seq_end()?;
@@ -224,10 +224,10 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         T: ?Sized + Serialize,
     {
         self.0.map_begin(Some(1))?;
-        self.0.map_key(variant)?;
+        self.0.owned().map_key(&variant)?;
 
         self.0.map_value_begin()?.seq_begin(Some(1))?;
-        self.0.seq_elem(ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         self.0.seq_end()?;
 
         self.0.map_end()?;
@@ -266,7 +266,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         self.0.map_begin(Some(1))?;
-        self.0.map_key(variant)?;
+        self.0.owned().map_key(&variant)?;
 
         self.0.map_value_begin()?.seq_begin(Some(len))?;
 
@@ -298,7 +298,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         self.0.map_begin(Some(1))?;
-        self.0.map_key(variant)?;
+        self.0.owned().map_key(&variant)?;
 
         self.0.map_value_begin()?.map_begin(Some(len))?;
 
@@ -306,7 +306,7 @@ impl<'a, 'b> ser::Serializer for Serializer<&'a mut value::Stream<'b>> {
     }
 }
 
-impl<'a, 'b> SerializeSeq for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> SerializeSeq for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
@@ -315,7 +315,7 @@ impl<'a, 'b> SerializeSeq for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.seq_elem(ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -326,7 +326,7 @@ impl<'a, 'b> SerializeSeq for Serializer<&'a mut value::Stream<'b>> {
     }
 }
 
-impl<'a, 'b> SerializeTuple for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> SerializeTuple for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
@@ -335,7 +335,7 @@ impl<'a, 'b> SerializeTuple for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.seq_elem(ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -346,7 +346,7 @@ impl<'a, 'b> SerializeTuple for Serializer<&'a mut value::Stream<'b>> {
     }
 }
 
-impl<'a, 'b> SerializeTupleStruct for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> SerializeTupleStruct for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
@@ -355,7 +355,7 @@ impl<'a, 'b> SerializeTupleStruct for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.seq_elem(ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -366,7 +366,7 @@ impl<'a, 'b> SerializeTupleStruct for Serializer<&'a mut value::Stream<'b>> {
     }
 }
 
-impl<'a, 'b> SerializeTupleVariant for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> SerializeTupleVariant for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
@@ -375,7 +375,7 @@ impl<'a, 'b> SerializeTupleVariant for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.seq_elem(ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -388,7 +388,7 @@ impl<'a, 'b> SerializeTupleVariant for Serializer<&'a mut value::Stream<'b>> {
     }
 }
 
-impl<'a, 'b> SerializeMap for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> SerializeMap for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
@@ -397,7 +397,7 @@ impl<'a, 'b> SerializeMap for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.map_key(ToValue(key))?;
+        self.0.owned().map_key(&ToValue(key))?;
         Ok(())
     }
 
@@ -406,7 +406,7 @@ impl<'a, 'b> SerializeMap for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.map_value(ToValue(value))?;
+        self.0.owned().map_value(&ToValue(value))?;
         Ok(())
     }
 
@@ -417,7 +417,7 @@ impl<'a, 'b> SerializeMap for Serializer<&'a mut value::Stream<'b>> {
     }
 }
 
-impl<'a, 'b> SerializeStruct for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> SerializeStruct for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
@@ -426,8 +426,8 @@ impl<'a, 'b> SerializeStruct for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.map_key(key)?;
-        self.0.map_value(ToValue(value))?;
+        self.0.owned().map_key(&key)?;
+        self.0.owned().map_value(&ToValue(value))?;
         Ok(())
     }
 
@@ -438,7 +438,7 @@ impl<'a, 'b> SerializeStruct for Serializer<&'a mut value::Stream<'b>> {
     }
 }
 
-impl<'a, 'b> SerializeStructVariant for Serializer<&'a mut value::Stream<'b>> {
+impl<'a, 'b, 'v> SerializeStructVariant for Serializer<&'a mut value::Stream<'b, 'v>> {
     type Ok = ();
     type Error = Error;
 
@@ -447,8 +447,8 @@ impl<'a, 'b> SerializeStructVariant for Serializer<&'a mut value::Stream<'b>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.map_key(key)?;
-        self.0.map_value(ToValue(value))?;
+        self.0.owned().map_key(&key)?;
+        self.0.owned().map_value(&ToValue(value))?;
         Ok(())
     }
 
