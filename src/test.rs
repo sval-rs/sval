@@ -78,7 +78,7 @@ mod alloc_support {
     /**
     Collect a value into a sequence of tokens.
     */
-    pub fn tokens(v: impl Value) -> Vec<Token> {
+    pub fn tokens(v: &(impl Value + ?Sized)) -> Vec<Token> {
         OwnedValue::collect(v)
             .tokens()
             .unwrap()
@@ -111,9 +111,9 @@ mod alloc_support {
 
     Any new methods added to `Stream` may cause this method to panic until the given `Stream` is updated.
     */
-    pub fn stream_exhaustive<S>(build: impl Fn() -> S, check: impl Fn(Result<S, crate::Error>))
+    pub fn stream_exhaustive<'v, S>(build: impl Fn() -> S, check: impl Fn(Result<S, crate::Error>))
     where
-        S: Stream,
+        S: Stream<'v>,
     {
         use crate::std::{
             boxed::Box,
@@ -195,7 +195,9 @@ mod alloc_support {
 
         macro_rules! check {
             ($build:expr, $value:expr) => {
-                let r = crate::stream($build, &$value);
+                let mut s = $build;
+
+                let r = crate::stream_owned(&mut s, &$value);
 
                 if let Err(e) = &r {
                     // We only care about errors from the stream when a method isn't overridden
@@ -206,7 +208,7 @@ mod alloc_support {
                     }
                 }
 
-                check(r);
+                check(r.map(|_| s));
             };
         }
 

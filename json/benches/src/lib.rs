@@ -92,7 +92,7 @@ fn twitter_sval_to_serde(b: &mut test::Bencher) {
 #[bench]
 fn twitter_serde_to_sval(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| sval_json::to_string(sval::serde::v1::to_value(&s)).unwrap());
+    b.iter(|| sval_json::to_string(&sval::serde::v1::to_value(&s)).unwrap());
 }
 
 #[bench]
@@ -121,9 +121,9 @@ fn twitter_serde_collect(b: &mut test::Bencher) {
 fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
     struct NoOp;
 
-    impl sval::stream::Stream for NoOp {
+    impl<'v> sval::stream::Stream<'v> for NoOp {
         #[inline(never)]
-        fn fmt(&mut self, v: Arguments) -> sval::stream::Result {
+        fn fmt(&mut self, v: &Arguments) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }
@@ -219,7 +219,7 @@ fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
         }
     }
 
-    sval::stream(NoOp, v)?;
+    sval::stream(&mut NoOp, &v)?;
 
     Ok(())
 }

@@ -32,23 +32,23 @@ impl Value for OuterMap {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
-        stream.map_key(1)?;
-        stream.map_value(1)?;
+        stream.map_key(&1)?;
+        stream.map_value(&1)?;
 
-        stream.map_key("a")?;
-        stream.map_value("a")?;
+        stream.map_key(&"a")?;
+        stream.map_value(&"a")?;
 
-        stream.map_key("map")?;
-        stream.map_value(InnerMap)?;
+        stream.map_key(&"map")?;
+        stream.map_value(&InnerMap)?;
 
-        stream.map_key("seq")?;
-        stream.map_value(InnerSeq)?;
+        stream.map_key(&"seq")?;
+        stream.map_value(&InnerSeq)?;
 
-        stream.map_key("empty_map")?;
-        stream.map_value(EmptyMap)?;
+        stream.map_key(&"empty_map")?;
+        stream.map_value(&EmptyMap)?;
 
-        stream.map_key("empty_seq")?;
-        stream.map_value(EmptySeq)?;
+        stream.map_key(&"empty_seq")?;
+        stream.map_value(&EmptySeq)?;
 
         stream.map_end()
     }
@@ -70,11 +70,11 @@ impl Value for InnerMap {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
-        stream.map_key(1)?;
-        stream.map_value(1)?;
+        stream.map_key(&1)?;
+        stream.map_value(&1)?;
 
-        stream.map_key("a")?;
-        stream.map_value("a")?;
+        stream.map_key(&"a")?;
+        stream.map_value(&"a")?;
 
         stream.map_end()
     }
@@ -115,12 +115,12 @@ impl Value for OuterSeq {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.seq_begin(None)?;
 
-        stream.seq_elem(1)?;
-        stream.seq_elem("a")?;
-        stream.seq_elem(InnerMap)?;
-        stream.seq_elem(InnerSeq)?;
-        stream.seq_elem(EmptyMap)?;
-        stream.seq_elem(EmptySeq)?;
+        stream.seq_elem(&1)?;
+        stream.seq_elem(&"a")?;
+        stream.seq_elem(&InnerMap)?;
+        stream.seq_elem(&InnerSeq)?;
+        stream.seq_elem(&EmptyMap)?;
+        stream.seq_elem(&EmptySeq)?;
 
         stream.seq_end()
     }
@@ -142,8 +142,8 @@ impl Value for InnerSeq {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.seq_begin(None)?;
 
-        stream.seq_elem(1)?;
-        stream.seq_elem("a")?;
+        stream.seq_elem(&1)?;
+        stream.seq_elem(&"a")?;
 
         stream.seq_end()
     }
@@ -180,11 +180,11 @@ impl Value for WeirdMapKeys {
     fn stream(&self, stream: &mut value::Stream) -> value::Result {
         stream.map_begin(None)?;
 
-        stream.map_key(InnerMap)?;
-        stream.map_value(1)?;
+        stream.map_key(&InnerMap)?;
+        stream.map_value(&1)?;
 
-        stream.map_key(InnerSeq)?;
-        stream.map_value("a")?;
+        stream.map_key(&InnerSeq)?;
+        stream.map_value(&"a")?;
 
         stream.map_end()
     }

@@ -7,193 +7,14 @@ A [`Stream`] is a type that receives and works with abstract data-structures.
 
 ## Streams without state
 
-Implement the `Stream` trait to visit the structure of a [`Value`]:
-
-```
-use sval::stream::{self, Stream};
-
-struct Fmt;
-
-impl Stream for Fmt {
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-        println!("{}", v);
-
-        Ok(())
-    }
-
-    fn i128(&mut self, v: i128) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn u128(&mut self, v: u128) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn f64(&mut self, v: f64) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn bool(&mut self, v: bool) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn str(&mut self, v: &str) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn none(&mut self) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&()))
-    }
-}
-```
-
 A `Stream` might only care about a single kind of value.
-The following example overrides the provided `u64` method
-to see whether a given value is a `u64`:
-
-```
-use sval::{
-    value::Value,
-    stream::{self, Stream},
-};
-
-assert!(is_u64(42u64));
-
-pub fn is_u64(v: impl Value) -> bool {
-    sval::stream(IsU64(None), v)
-        .map(|is_u64| is_u64.0.is_some())
-        .unwrap_or(false)
-}
-
-struct IsU64(Option<u64>);
-impl Stream for IsU64 {
-    fn u64(&mut self, v: u64) -> stream::Result {
-        self.0 = Some(v);
-
-        Ok(())
-    }
-}
-```
 
 ## Streams with state
 
 There are more methods on `Stream` that can be overriden for more complex
 datastructures like sequences and maps. The following example uses a
 [`stream::Stack`] to track the state of any sequences and maps and ensure
-they're valid:
-
-```
-use std::{fmt, mem};
-use sval::stream::{self, stack, Stream, Stack};
-
-struct Fmt {
-    stack: stream::Stack,
-    delim: &'static str,
-}
-
-impl Fmt {
-    fn next_delim(pos: stack::Pos) -> &'static str {
-        if pos.is_key() {
-            return ": ";
-        }
-
-        if pos.is_value() || pos.is_elem() {
-            return ", ";
-        }
-
-        return "";
-    }
-}
-
-impl Stream for Fmt {
-    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        let delim = mem::replace(&mut self.delim, Self::next_delim(pos));
-        print!("{}{:?}", delim, v);
-
-        Ok(())
-    }
-
-    fn i128(&mut self, v: i128) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn u128(&mut self, v: u128) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn f64(&mut self, v: f64) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn bool(&mut self, v: bool) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn str(&mut self, v: &str) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&v))
-    }
-
-    fn none(&mut self) -> stream::Result {
-        self.fmt(stream::Arguments::debug(&()))
-    }
-
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        self.stack.seq_begin()?;
-
-        let delim = mem::replace(&mut self.delim, "");
-        print!("{}[", delim);
-
-        Ok(())
-    }
-
-    fn seq_elem(&mut self) -> stream::Result {
-        self.stack.seq_elem()?;
-
-        Ok(())
-    }
-
-    fn seq_end(&mut self) -> stream::Result {
-        let pos = self.stack.seq_end()?;
-
-        self.delim = Self::next_delim(pos);
-        print!("]");
-
-        Ok(())
-    }
-
-    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
-        self.stack.map_begin()?;
-
-        let delim = mem::replace(&mut self.delim, "");
-        print!("{}{{", delim);
-
-        Ok(())
-    }
-
-    fn map_key(&mut self) -> stream::Result {
-        self.stack.map_key()?;
-
-        Ok(())
-    }
-
-    fn map_value(&mut self) -> stream::Result {
-        self.stack.map_value()?;
-
-        Ok(())
-    }
-
-    fn map_end(&mut self) -> stream::Result {
-        let pos = self.stack.map_end()?;
-
-        self.delim = Self::next_delim(pos);
-        print!("}}");
-
-        Ok(())
-    }
-}
-```
+they're valid.
 
 By default, the `Stack` type has a fixed depth. That means deeply nested
 structures aren't supported. See the [`stream::Stack`] type for more details.
@@ -229,310 +50,37 @@ implementing methods on the trait. Other methods default to returning
 [`Error::unsupported`]. Implementations may also choose to return
 `Error::unsupported` for other reasons.
 
-## Supporting primitives
-
-The following stream can support any primitive value:
-
-```
-# struct MyStream;
-use sval::stream::{self, Stream};
-
-impl Stream for MyStream {
-    fn fmt(&mut self, args: stream::Arguments) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn i128(&mut self, v: i128) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn u128(&mut self, v: u128) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn f64(&mut self, v: f64) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn bool(&mut self, v: bool) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn str(&mut self, v: &str) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn none(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-}
-```
-
-## Supporting maps
-
-In addition to the [methods needed for streaming primitives](#supporting-primitives),
-a stream that supports maps needs to implement a few additional methods:
-
-```
-# struct MyStream;
-use sval::stream::{self, Stream};
-
-impl Stream for MyStream {
-    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn map_key(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn map_value(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn map_end(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-}
-```
-
-## Supporting sequences
-
-In addition to the [methods needed for streaming primitives](#supporting-primitives),
-a stream that supports sequences needs to implement a few additional methods:
-
-```
-# struct MyStream;
-use sval::stream::{self, Stream};
-
-impl Stream for MyStream {
-    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn seq_elem(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn seq_end(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-}
-```
-
-## Supporting all structure
-
-```
-# struct MyStream;
-use sval::stream::{self, Stream};
-
-impl Stream for MyStream {
-    fn fmt(&mut self, args: stream::Arguments) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn error(&mut self, source: stream::Source) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn i128(&mut self, v: i128) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn u128(&mut self, v: u128) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn f64(&mut self, v: f64) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn bool(&mut self, v: bool) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn str(&mut self, v: &str) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn none(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn map_key(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn map_value(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn map_end(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn seq_elem(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-
-    fn seq_end(&mut self) -> stream::Result {
-#       /*
-        ..
-#       */
-
-        Ok(())
-    }
-}
-```
-
 [`Value`]: ../trait.Value.html
 [`Error::unsupported`]: struct.Error.html#method.unsupported
 */
-pub trait Stream {
+pub trait Stream<'v> {
     /**
-    Stream a debuggable type.
+    Stream a formattable type. Implementors should override this method if they
+    expect to accept formattable types.
     */
     #[cfg(not(test))]
-    fn fmt(&mut self, v: Arguments) -> Result {
+    fn fmt(&mut self, v: &Arguments) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::fmt"))
     }
     #[cfg(test)]
-    fn fmt(&mut self, v: Arguments) -> Result;
+    fn fmt(&mut self, v: &Arguments) -> Result;
 
     /**
-    Stream an error.
+    Stream an error. Implementors should override this method if they
+    expect to accept errors.
     */
     #[cfg(not(test))]
-    fn error(&mut self, v: Source) -> Result {
+    fn error(&mut self, v: &Source) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::error"))
     }
     #[cfg(test)]
-    fn error(&mut self, v: Source) -> Result;
+    fn error(&mut self, v: &Source) -> Result;
 
     /**
-    Stream a signed integer.
+    Stream a signed integer. Implementors should override this method if they
+    expect to accept signed integers.
     */
     #[cfg(not(test))]
     fn i64(&mut self, v: i64) -> Result {
@@ -542,7 +90,8 @@ pub trait Stream {
     fn i64(&mut self, v: i64) -> Result;
 
     /**
-    Stream an unsigned integer.
+    Stream an unsigned integer. Implementors should override this method if they
+    expect to accept unsigned integers.
     */
     #[cfg(not(test))]
     fn u64(&mut self, v: u64) -> Result {
@@ -552,7 +101,8 @@ pub trait Stream {
     fn u64(&mut self, v: u64) -> Result;
 
     /**
-    Stream a 128bit signed integer.
+    Stream a 128bit signed integer. Implementors should override this method if they
+    expect to accept 128bit signed integers.
     */
     #[cfg(not(test))]
     fn i128(&mut self, v: i128) -> Result {
@@ -563,7 +113,8 @@ pub trait Stream {
     fn i128(&mut self, v: i128) -> Result;
 
     /**
-    Stream a 128bit unsigned integer.
+    Stream a 128bit unsigned integer. Implementors should override this method if they
+    expect to accept 128bit unsigned integers.
     */
     #[cfg(not(test))]
     fn u128(&mut self, v: u128) -> Result {
@@ -574,7 +125,8 @@ pub trait Stream {
     fn u128(&mut self, v: u128) -> Result;
 
     /**
-    Stream a floating point value.
+    Stream a floating point value. Implementors should override this method if they
+    expect to accept floating point numbers.
     */
     #[cfg(not(test))]
     fn f64(&mut self, v: f64) -> Result {
@@ -585,7 +137,8 @@ pub trait Stream {
     fn f64(&mut self, v: f64) -> Result;
 
     /**
-    Stream a boolean.
+    Stream a boolean. Implementors should override this method if they
+    expect to accept booleans.
     */
     #[cfg(not(test))]
     fn bool(&mut self, v: bool) -> Result {
@@ -599,7 +152,6 @@ pub trait Stream {
     Stream a unicode character.
     */
     #[cfg(not(test))]
-    #[inline]
     fn char(&mut self, v: char) -> Result {
         let mut b = [0; 4];
         self.str(&*v.encode_utf8(&mut b))
@@ -608,7 +160,8 @@ pub trait Stream {
     fn char(&mut self, v: char) -> Result;
 
     /**
-    Stream a UTF-8 string slice.
+    Stream a UTF-8 string slice. Implementors should override this method if they
+    expect to accept strings.
     */
     #[cfg(not(test))]
     fn str(&mut self, v: &str) -> Result {
@@ -619,7 +172,8 @@ pub trait Stream {
     fn str(&mut self, v: &str) -> Result;
 
     /**
-    Stream an empty value.
+    Stream an empty value. Implementors should override this method if they
+    expect to accept empty values.
     */
     #[cfg(not(test))]
     fn none(&mut self) -> Result {
@@ -629,7 +183,8 @@ pub trait Stream {
     fn none(&mut self) -> Result;
 
     /**
-    Begin a map.
+    Begin a map. Implementors should override this method if they
+    expect to accept maps.
     */
     #[cfg(not(test))]
     fn map_begin(&mut self, len: Option<usize>) -> Result {
@@ -640,7 +195,8 @@ pub trait Stream {
     fn map_begin(&mut self, len: Option<usize>) -> Result;
 
     /**
-    Begin a map key.
+    Begin a map key. Implementors should override this method if they
+    expect to accept maps.
 
     The key will be implicitly ended by the stream methods that follow it.
     */
@@ -652,19 +208,8 @@ pub trait Stream {
     fn map_key(&mut self) -> Result;
 
     /**
-    Collect a map key.
-    */
-    #[cfg(not(test))]
-    #[inline]
-    fn map_key_collect(&mut self, k: &Value) -> Result {
-        self.map_key()?;
-        k.stream(self)
-    }
-    #[cfg(test)]
-    fn map_key_collect(&mut self, k: &Value) -> Result;
-
-    /**
-    Begin a map value.
+    Begin a map value. Implementors should override this method if they
+    expect to accept maps.
 
     The value will be implicitly ended by the stream methods that follow it.
     */
@@ -676,19 +221,8 @@ pub trait Stream {
     fn map_value(&mut self) -> Result;
 
     /**
-    Collect a map value.
-    */
-    #[cfg(not(test))]
-    #[inline]
-    fn map_value_collect(&mut self, v: &Value) -> Result {
-        self.map_value()?;
-        v.stream(self)
-    }
-    #[cfg(test)]
-    fn map_value_collect(&mut self, v: &Value) -> Result;
-
-    /**
-    End a map.
+    End a map. Implementors should override this method if they
+    expect to accept maps.
     */
     #[cfg(not(test))]
     fn map_end(&mut self) -> Result {
@@ -698,7 +232,8 @@ pub trait Stream {
     fn map_end(&mut self) -> Result;
 
     /**
-    Begin a sequence.
+    Begin a sequence. Implementors should override this method if they
+    expect to accept sequences.
     */
     #[cfg(not(test))]
     fn seq_begin(&mut self, len: Option<usize>) -> Result {
@@ -709,7 +244,8 @@ pub trait Stream {
     fn seq_begin(&mut self, len: Option<usize>) -> Result;
 
     /**
-    Begin a sequence element.
+    Begin a sequence element. Implementors should override this method if they
+    expect to accept sequences.
 
     The element will be implicitly ended by the stream methods that follow it.
     */
@@ -721,19 +257,8 @@ pub trait Stream {
     fn seq_elem(&mut self) -> Result;
 
     /**
-    Collect a sequence element.
-    */
-    #[cfg(not(test))]
-    #[inline]
-    fn seq_elem_collect(&mut self, v: &Value) -> Result {
-        self.seq_elem()?;
-        v.stream(self)
-    }
-    #[cfg(test)]
-    fn seq_elem_collect(&mut self, v: &Value) -> Result;
-
-    /**
-    End a sequence.
+    End a sequence. Implementors should override this method if they
+    expect to accept sequences.
     */
     #[cfg(not(test))]
     fn seq_end(&mut self) -> Result {
@@ -741,113 +266,194 @@ pub trait Stream {
     }
     #[cfg(test)]
     fn seq_end(&mut self) -> Result;
+
+    /**
+    Collect a map key.
+    */
+    #[cfg(not(test))]
+    fn map_key_collect(&mut self, k: &Value) -> Result {
+        self.map_key()?;
+        k.stream_owned(self)
+    }
+    #[cfg(test)]
+    fn map_key_collect(&mut self, k: &Value) -> Result;
+
+    /**
+    Collect a map value.
+    */
+    #[cfg(not(test))]
+    fn map_value_collect(&mut self, v: &Value) -> Result {
+        self.map_value()?;
+        v.stream_owned(self)
+    }
+    #[cfg(test)]
+    fn map_value_collect(&mut self, v: &Value) -> Result;
+
+    /**
+    Collect a sequence element.
+    */
+    #[cfg(not(test))]
+    fn seq_elem_collect(&mut self, v: &Value) -> Result {
+        self.seq_elem()?;
+        v.stream_owned(self)
+    }
+    #[cfg(test)]
+    fn seq_elem_collect(&mut self, v: &Value) -> Result;
+
+    #[cfg(not(test))]
+    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result {
+        self.fmt(v)
+    }
+    #[cfg(test)]
+    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result;
+
+    #[cfg(not(test))]
+    fn error_borrowed(&mut self, v: &Source<'v>) -> Result {
+        self.error(v)
+    }
+    #[cfg(test)]
+    fn error_borrowed(&mut self, v: &Source<'v>) -> Result;
+
+    /**
+    Stream a borrowed UTF-8 string slice.
+    */
+    #[cfg(not(test))]
+    fn str_borrowed(&mut self, v: &'v str) -> Result {
+        self.str(v)
+    }
+    #[cfg(test)]
+    fn str_borrowed(&mut self, v: &'v str) -> Result;
+
+    #[cfg(not(test))]
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
+        self.map_key_collect(k)
+    }
+    #[cfg(test)]
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result;
+
+    #[cfg(not(test))]
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        self.map_value_collect(v)
+    }
+    #[cfg(test)]
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
+
+    #[cfg(not(test))]
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        self.seq_elem_collect(v)
+    }
+    #[cfg(test)]
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
 }
 
-impl<'a, T: ?Sized> Stream for &'a mut T
+impl<'s, 'v, T: ?Sized> Stream<'v> for &'s mut T
 where
-    T: Stream,
+    T: Stream<'v>,
 {
-    #[inline]
-    fn fmt(&mut self, v: Arguments) -> Result {
+    fn fmt(&mut self, v: &Arguments) -> Result {
         (**self).fmt(v)
     }
 
-    #[inline]
-    fn error(&mut self, v: Source) -> Result {
+    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result {
+        (**self).fmt_borrowed(v)
+    }
+
+    fn error(&mut self, v: &Source) -> Result {
         (**self).error(v)
     }
 
-    #[inline]
+    fn error_borrowed(&mut self, v: &Source<'v>) -> Result {
+        (**self).error_borrowed(v)
+    }
+
     fn i64(&mut self, v: i64) -> Result {
         (**self).i64(v)
     }
 
-    #[inline]
     fn u64(&mut self, v: u64) -> Result {
         (**self).u64(v)
     }
 
-    #[inline]
     fn i128(&mut self, v: i128) -> Result {
         (**self).i128(v)
     }
 
-    #[inline]
     fn u128(&mut self, v: u128) -> Result {
         (**self).u128(v)
     }
 
-    #[inline]
     fn f64(&mut self, v: f64) -> Result {
         (**self).f64(v)
     }
 
-    #[inline]
     fn bool(&mut self, v: bool) -> Result {
         (**self).bool(v)
     }
 
-    #[inline]
     fn char(&mut self, v: char) -> Result {
         (**self).char(v)
     }
 
-    #[inline]
     fn str(&mut self, v: &str) -> Result {
         (**self).str(v)
     }
 
-    #[inline]
+    fn str_borrowed(&mut self, v: &'v str) -> Result {
+        (**self).str_borrowed(v)
+    }
+
     fn none(&mut self) -> Result {
         (**self).none()
     }
 
-    #[inline]
     fn map_begin(&mut self, len: Option<usize>) -> Result {
         (**self).map_begin(len)
     }
 
-    #[inline]
     fn map_key(&mut self) -> Result {
         (**self).map_key()
     }
 
-    #[inline]
     fn map_key_collect(&mut self, k: &Value) -> Result {
         (**self).map_key_collect(k)
     }
 
-    #[inline]
+    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
+        (**self).map_key_collect_borrowed(k)
+    }
+
     fn map_value(&mut self) -> Result {
         (**self).map_value()
     }
 
-    #[inline]
     fn map_value_collect(&mut self, v: &Value) -> Result {
         (**self).map_value_collect(v)
     }
 
-    #[inline]
+    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        (**self).map_value_collect_borrowed(v)
+    }
+
     fn map_end(&mut self) -> Result {
         (**self).map_end()
     }
 
-    #[inline]
     fn seq_begin(&mut self, len: Option<usize>) -> Result {
         (**self).seq_begin(len)
     }
 
-    #[inline]
     fn seq_elem(&mut self) -> Result {
         (**self).seq_elem()
     }
 
-    #[inline]
     fn seq_elem_collect(&mut self, v: &Value) -> Result {
         (**self).seq_elem_collect(v)
     }
 
-    #[inline]
+    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+        (**self).seq_elem_collect_borrowed(v)
+    }
+
     fn seq_end(&mut self) -> Result {
         (**self).seq_end()
     }
@@ -856,7 +462,7 @@ where
 /**
 The type returned by streaming methods.
 */
-pub type Result = crate::std::result::Result<(), crate::Error>;
+pub type Result<T = ()> = crate::std::result::Result<T, crate::Error>;
 
 #[cfg(test)]
 mod tests {

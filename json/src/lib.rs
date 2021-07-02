@@ -20,7 +20,7 @@ version = "1.0.0-alpha.5"
 # fn main() {}
 # #[cfg(feature = "std")]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-let json = sval_json::to_fmt(MyWrite, 42)?;
+let json = sval_json::to_fmt(MyWrite, &42)?;
 # Ok(())
 # }
 # use std::fmt::{self, Write};
@@ -46,7 +46,7 @@ features = ["std"]
 # fn main() {}
 # #[cfg(feature = "std")]
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-let json = sval_json::to_string(42)?;
+let json = sval_json::to_string(&42)?;
 # Ok(())
 # }
 ```
@@ -73,7 +73,7 @@ features = ["std"]
 #     }
 #     fn flush(&mut self) -> io::Result<()> { Ok(()) }
 # }
-let json = sval_json::to_writer(MyWrite, 42)?;
+let json = sval_json::to_writer(MyWrite, &42)?;
 # Ok(())
 # }
 ```

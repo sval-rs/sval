@@ -3,15 +3,15 @@ use crate::std::fmt;
 /**
 A formattable value.
 */
-pub struct Arguments<'a>(ArgumentsInner<'a>);
+pub struct Arguments<'v>(ArgumentsInner<'v>);
 
-enum ArgumentsInner<'a> {
-    Debug(&'a dyn fmt::Debug),
-    Display(&'a dyn fmt::Display),
-    Args(fmt::Arguments<'a>),
+enum ArgumentsInner<'v> {
+    Debug(&'v dyn fmt::Debug),
+    Display(&'v dyn fmt::Display),
+    Args(fmt::Arguments<'v>),
 }
 
-impl<'a> Arguments<'a> {
+impl<'v> Arguments<'v> {
     /**
     Capture standard format arguments.
 
@@ -20,44 +20,44 @@ impl<'a> Arguments<'a> {
     because `format_args` will clobber any flags a stream
     might want to format these arguments with.
     */
-    pub fn new(v: fmt::Arguments<'a>) -> Self {
+    pub fn new(v: fmt::Arguments<'v>) -> Self {
         Arguments(ArgumentsInner::Args(v))
     }
 
     /**
     Capture arguments from a debuggable value.
     */
-    pub fn debug(v: &'a impl fmt::Debug) -> Self {
+    pub fn debug(v: &'v impl fmt::Debug) -> Self {
         Arguments(ArgumentsInner::Debug(v))
     }
 
     /**
     Capture arguments from a displayable value.
     */
-    pub fn display(v: &'a impl fmt::Display) -> Self {
+    pub fn display(v: &'v impl fmt::Display) -> Self {
         Arguments(ArgumentsInner::Display(v))
     }
 }
 
-impl<'a> From<fmt::Arguments<'a>> for Arguments<'a> {
-    fn from(v: fmt::Arguments<'a>) -> Self {
+impl<'v> From<fmt::Arguments<'v>> for Arguments<'v> {
+    fn from(v: fmt::Arguments<'v>) -> Self {
         Arguments(ArgumentsInner::Args(v))
     }
 }
 
-impl<'a> From<&'a dyn fmt::Debug> for Arguments<'a> {
-    fn from(v: &'a dyn fmt::Debug) -> Self {
+impl<'v> From<&'v dyn fmt::Debug> for Arguments<'v> {
+    fn from(v: &'v dyn fmt::Debug) -> Self {
         Arguments(ArgumentsInner::Debug(v))
     }
 }
 
-impl<'a> From<&'a dyn fmt::Display> for Arguments<'a> {
-    fn from(v: &'a dyn fmt::Display) -> Self {
+impl<'v> From<&'v dyn fmt::Display> for Arguments<'v> {
+    fn from(v: &'v dyn fmt::Display) -> Self {
         Arguments(ArgumentsInner::Display(v))
     }
 }
 
-impl<'a> fmt::Debug for Arguments<'a> {
+impl<'v> fmt::Debug for Arguments<'v> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.0 {
             ArgumentsInner::Debug(v) => v.fmt(f),
@@ -67,7 +67,7 @@ impl<'a> fmt::Debug for Arguments<'a> {
     }
 }
 
-impl<'a> fmt::Display for Arguments<'a> {
+impl<'v> fmt::Display for Arguments<'v> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.0 {
             ArgumentsInner::Debug(v) => v.fmt(f),

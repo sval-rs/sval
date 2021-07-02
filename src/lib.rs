@@ -23,27 +23,6 @@ version = "1.0.0-alpha.5"
 
 The structure of a [`Value`] can be streamed to a [`Stream`].
 
-## in a single call
-
-For simple use-cases, use the [`stream`](function.stream.html) function to stream the structure of a value:
-
-```no_run
-# #[cfg(not(feature = "std"))]
-# fn main() {}
-# #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-sval::stream(MyStream, 42)?;
-# Ok(())
-# }
-# use sval::stream::{self, Stream};
-# struct MyStream;
-# impl Stream for MyStream {
-#     fn fmt(&mut self, _: stream::Arguments) -> stream::Result { unimplemented!() }
-# }
-```
-
-where `42` is a [`Value`] and `MyStream` is a [`Stream`].
-
 # `serde` integration
 
 Use the `serde` Cargo feature to enable integration with `serde`:
@@ -234,15 +213,19 @@ use self::{
 };
 
 /**
-Stream the structure of a [`Value`] using the given [`Stream`].
-
-This method is a convenient way of calling [`OwnedStream::stream`](stream/struct.OwnedStream.html#method.stream).
+Stream the structure of a [`Value`] with a concrete lifetime.
 */
-pub fn stream<S>(mut stream: S, value: impl Value) -> Result<S, Error>
-where
-    S: Stream,
-{
+pub fn stream<'v>(mut stream: &mut (impl Stream<'v> + ?Sized), value: &'v (impl Value + ?Sized)) -> Result<(), Error> {
     value.stream(&mut value::Stream::new(&mut stream))?;
 
-    Ok(stream)
+    Ok(())
+}
+
+/**
+Stream the structure of a [`Value`] using the given [`Stream`].
+*/
+pub fn stream_owned<'a>(mut stream: &mut (impl Stream<'a> + ?Sized), value: &(impl Value + ?Sized)) -> Result<(), Error> {
+    value.stream_owned(&mut value::Stream::new(&mut stream))?;
+
+    Ok(())
 }

@@ -508,14 +508,24 @@ impl Stack {
     }
 }
 
-impl Stream for Stack {
+impl<'v> Stream<'v> for Stack {
     #[inline]
-    fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, _: &stream::Arguments) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
     #[inline]
-    fn error(&mut self, _: stream::Source) -> stream::Result {
+    fn fmt_borrowed(&mut self, _: &stream::Arguments<'v>) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn error(&mut self, _: &stream::Source) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
+    fn error_borrowed(&mut self, _: &stream::Source<'v>) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
@@ -560,6 +570,11 @@ impl Stream for Stack {
     }
 
     #[inline]
+    fn str_borrowed(&mut self, _: &'v str) -> stream::Result {
+        self.primitive().map(|_| ())
+    }
+
+    #[inline]
     fn none(&mut self) -> stream::Result {
         self.primitive().map(|_| ())
     }
@@ -577,7 +592,12 @@ impl Stream for Stack {
     #[inline]
     fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
         self.map_key()?;
-        k.stream(self)
+        k.stream(self).map(|_| ())
+    }
+
+    #[inline]
+    fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+        self.map_key_collect(k)
     }
 
     #[inline]
@@ -588,7 +608,12 @@ impl Stream for Stack {
     #[inline]
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
-        v.stream(self)
+        v.stream(self).map(|_| ())
+    }
+
+    #[inline]
+    fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.map_value_collect(v)
     }
 
     #[inline]
@@ -609,7 +634,12 @@ impl Stream for Stack {
     #[inline]
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
-        v.stream(self)
+        v.stream(self).map(|_| ())
+    }
+
+    #[inline]
+    fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        self.seq_elem_collect(v)
     }
 
     #[inline]
