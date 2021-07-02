@@ -16,13 +16,11 @@ pub struct Error(ErrorInner);
 
 impl Error {
     /** Capture a static message as an error. */
-    #[inline]
     pub fn msg(msg: &'static str) -> Self {
         Error(ErrorInner::Static(msg))
     }
 
     /** Declare some structure as unsupported. */
-    #[inline]
     pub fn unsupported(operation: &'static str) -> Self {
         Error(ErrorInner::Unsupported {
             msg: operation,
@@ -57,7 +55,6 @@ impl Error {
     }
 
     /** Convert into a `fmt::Error` */
-    #[inline]
     pub fn into_fmt_error(self) -> fmt::Error {
         fmt::Error
     }
@@ -186,7 +183,7 @@ mod std_support {
 
     impl Error {
         /** Convert into an io error. */
-        #[inline]
+
         pub fn into_io_error(self) -> io::Error {
             io::Error::new(io::ErrorKind::Other, self)
         }

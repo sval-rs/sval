@@ -48,7 +48,6 @@ struct Stream<'a, 'b: 'a> {
 }
 
 impl<'a, 'b: 'a> Stream<'a, 'b> {
-    #[inline]
     fn new(fmt: &'a mut Formatter<'b>) -> Self {
         Stream {
             stack: Stack::new(),
@@ -58,7 +57,6 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
         }
     }
 
-    #[inline]
     fn next_delim(&self, pos: stack::Pos) -> Option<&'static str> {
         if pos.is_value() || pos.is_elem() {
             return Some(if self.is_pretty() { "," } else { ", " });
@@ -71,12 +69,10 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
         return None;
     }
 
-    #[inline]
     fn is_pretty(&self) -> bool {
         self.fmt.alternate()
     }
 
-    #[inline]
     fn fmt(&mut self, v: impl fmt::Debug) -> stream::Result {
         let pos = self.stack.primitive()?;
 
@@ -92,77 +88,62 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 }
 
 impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
-    #[inline]
     fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn u64(&mut self, v: u64) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn i128(&mut self, v: i128) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn u128(&mut self, v: u128) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn bool(&mut self, v: bool) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn char(&mut self, v: char) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
         self.fmt(v)
     }
 
-    #[inline]
     fn none(&mut self) -> stream::Result {
         self.fmt(format_args!("None"))
     }
 
-    #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_pretty() {
             self.depth += 1;
@@ -179,7 +160,6 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         Ok(())
     }
 
-    #[inline]
     fn map_key(&mut self) -> stream::Result {
         if self.is_pretty() {
             if !self.stack.current().is_empty_map() {
@@ -197,36 +177,30 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         Ok(())
     }
 
-    #[inline]
     fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
         self.map_key()?;
         k.stream(self).map(|_| ())
     }
 
-    #[inline]
     fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
         self.map_key_collect(k)
     }
 
-    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.stack.map_value()?;
 
         Ok(())
     }
 
-    #[inline]
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
         v.stream(self).map(|_| ())
     }
 
-    #[inline]
     fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
         self.map_value_collect(v)
     }
 
-    #[inline]
     fn map_end(&mut self) -> stream::Result {
         if self.is_pretty() {
             self.depth -= 1;
@@ -250,7 +224,6 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         Ok(())
     }
 
-    #[inline]
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_pretty() {
             self.depth += 1;
@@ -267,7 +240,6 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         Ok(())
     }
 
-    #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         if self.is_pretty() {
             if !self.stack.current().is_empty_seq() {
@@ -285,18 +257,15 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         Ok(())
     }
 
-    #[inline]
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
         v.stream(self).map(|_| ())
     }
 
-    #[inline]
     fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
         self.seq_elem_collect(v)
     }
 
-    #[inline]
     fn seq_end(&mut self) -> stream::Result {
         if self.is_pretty() {
             self.depth -= 1;

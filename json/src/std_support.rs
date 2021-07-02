@@ -104,107 +104,86 @@ impl<'v, W> Stream<'v> for Writer<W>
 where
     W: Write,
 {
-    #[inline]
     fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
-    #[inline]
     fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.0.error(v)
     }
 
-    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.0.i64(v)
     }
 
-    #[inline]
     fn u64(&mut self, v: u64) -> stream::Result {
         self.0.u64(v)
     }
 
-    #[inline]
     fn i128(&mut self, v: i128) -> stream::Result {
         self.0.i128(v)
     }
 
-    #[inline]
     fn u128(&mut self, v: u128) -> stream::Result {
         self.0.u128(v)
     }
 
-    #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
         self.0.f64(v)
     }
 
-    #[inline]
     fn bool(&mut self, v: bool) -> stream::Result {
         self.0.bool(v)
     }
 
-    #[inline]
     fn char(&mut self, v: char) -> stream::Result {
         self.0.char(v)
     }
 
-    #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
         self.0.str(v)
     }
 
-    #[inline]
     fn none(&mut self) -> stream::Result {
         self.0.none()
     }
 
-    #[inline]
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.0.map_begin(len)
     }
 
-    #[inline]
     fn map_key(&mut self) -> stream::Result {
         self.0.map_key()
     }
 
-    #[inline]
     fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
         self.0.map_key_collect(k)
     }
 
-    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.0.map_value()
     }
 
-    #[inline]
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.0.map_value_collect(v)
     }
 
-    #[inline]
     fn map_end(&mut self) -> stream::Result {
         self.0.map_end()
     }
 
-    #[inline]
     fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.0.seq_begin(len)
     }
 
-    #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         self.0.seq_elem()
     }
 
-    #[inline]
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.0.seq_elem_collect(v)
     }
 
-    #[inline]
     fn seq_end(&mut self) -> stream::Result {
         self.0.seq_end()
     }

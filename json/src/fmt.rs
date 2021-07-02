@@ -22,7 +22,7 @@ use crate::{
 Write a [`Value`] to a formatter.
 */
 pub fn to_fmt(fmt: impl Write, v: &(impl Value + ?Sized)) -> Result<(), sval::Error> {
-    sval::stream_owned(&mut Formatter::new(fmt), v)
+    sval::stream_owned(Formatter::new(fmt), v)
 }
 
 /**
@@ -83,7 +83,6 @@ impl<'v, W> Stream<'v> for Formatter<W>
 where
     W: Write,
 {
-    #[inline]
     fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
         self.out.write_char('"')?;
         fmt::write(&mut Escape(&mut self.out), format_args!("{}", v))?;
@@ -92,12 +91,10 @@ where
         Ok(())
     }
 
-    #[inline]
     fn error(&mut self, v: &stream::Source) -> stream::Result {
         self.fmt(&stream::Arguments::display(&v))
     }
 
-    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -110,7 +107,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn u64(&mut self, v: u64) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -123,7 +119,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn i128(&mut self, v: i128) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -136,7 +131,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn u128(&mut self, v: u128) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -149,7 +143,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -162,7 +155,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn bool(&mut self, v: bool) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -175,7 +167,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn char(&mut self, v: char) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -188,7 +179,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
         self.out.write_char('"')?;
         escape_str(&v, &mut self.out)?;
@@ -197,7 +187,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn none(&mut self) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -210,7 +199,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -224,7 +212,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn map_key(&mut self) -> stream::Result {
         self.is_key = true;
 
@@ -237,7 +224,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
         self.map_key()?;
         k.stream(self)?;
@@ -245,7 +231,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.is_key = false;
 
@@ -254,7 +239,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
         v.stream(self)?;
@@ -262,7 +246,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn map_end(&mut self) -> stream::Result {
         self.is_current_depth_empty = false;
 
@@ -271,7 +254,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
@@ -286,7 +268,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         if !self.is_current_depth_empty {
             self.out.write_char(',')?;
@@ -297,7 +278,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
         v.stream(self)?;
@@ -305,7 +285,6 @@ where
         Ok(())
     }
 
-    #[inline]
     fn seq_end(&mut self) -> stream::Result {
         self.is_current_depth_empty = false;
 
@@ -320,7 +299,6 @@ This `escape_str` implementation has been shamelessly lifted from dtolnay's `min
 https://github.com/dtolnay/miniserde
 */
 
-#[inline]
 fn escape_str(value: &str, mut out: impl Write) -> Result<(), fmt::Error> {
     let bytes = value.as_bytes();
     let mut start = 0;

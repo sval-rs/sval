@@ -51,7 +51,6 @@ impl Pos {
     /**
     Whether the current position is a map key.
     */
-    #[inline]
     pub fn is_key(&self) -> bool {
         self.slot & Slot::MASK_POS == Slot::KEY
     }
@@ -59,7 +58,6 @@ impl Pos {
     /**
     Whether the current position is a map value.
     */
-    #[inline]
     pub fn is_value(&self) -> bool {
         self.slot & Slot::MASK_POS == Slot::VAL
     }
@@ -67,7 +65,6 @@ impl Pos {
     /**
     Whether the current position is a sequence element.
     */
-    #[inline]
     pub fn is_elem(&self) -> bool {
         self.slot & Slot::MASK_POS == Slot::ELEM
     }
@@ -75,7 +72,6 @@ impl Pos {
     /**
     Whether the current position is an empty map.
     */
-    #[inline]
     pub fn is_empty_map(&self) -> bool {
         self.slot == Slot::MAP_DONE
     }
@@ -83,7 +79,6 @@ impl Pos {
     /**
     Whether the current position is an empty sequence.
     */
-    #[inline]
     pub fn is_empty_seq(&self) -> bool {
         self.slot == Slot::SEQ_DONE
     }
@@ -91,7 +86,6 @@ impl Pos {
     /**
     The depth of this position.
     */
-    #[inline]
     pub fn depth(&self) -> Depth {
         Depth(self.depth)
     }
@@ -214,12 +208,10 @@ impl Slot {
     const SEQ_ELEM: u8 = Self::SEQ | Self::ELEM;
     const SEQ_ELEM_DONE: u8 = Self::SEQ_ELEM | Self::DONE;
 
-    #[inline]
     fn root() -> Self {
         Slot(Slot::ROOT)
     }
 
-    #[inline]
     fn pos(self, depth: usize) -> Pos {
         Pos {
             slot: self.0,
@@ -238,7 +230,6 @@ impl Stack {
     /**
     Create a new stack.
     */
-    #[inline]
     pub fn new() -> Self {
         Stack {
             inner: inner::Stack::new(),
@@ -250,7 +241,6 @@ impl Stack {
 
     Any state it currently contains will be lost.
     */
-    #[inline]
     pub fn clear(&mut self) {
         self.inner.clear();
     }
@@ -258,7 +248,6 @@ impl Stack {
     /**
     Get the current position in the stack.
     */
-    #[inline]
     pub fn current(&self) -> Pos {
         self.inner.current().pos(self.inner.depth())
     }
@@ -276,7 +265,6 @@ impl Stack {
     - `char`, `&str`
     - `Option<T>`.
     */
-    #[inline]
     pub fn primitive(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -298,7 +286,6 @@ impl Stack {
 
     The map must be completed by calling `map_end`.
     */
-    #[inline]
     pub fn map_begin(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -326,7 +313,6 @@ impl Stack {
     The key will be implicitly completed by the value
     that follows it.
     */
-    #[inline]
     pub fn map_key(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -350,7 +336,6 @@ impl Stack {
     The value will be implicitly completed by the value
     that follows it.
     */
-    #[inline]
     pub fn map_value(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -370,7 +355,6 @@ impl Stack {
     /**
     Complete the current map.
     */
-    #[inline]
     pub fn map_end(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -401,7 +385,6 @@ impl Stack {
 
     the sequence must be completed by calling `seq_end`.
     */
-    #[inline]
     pub fn seq_begin(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -429,7 +412,6 @@ impl Stack {
     The element will be implicitly completed by the value
     that follows it.
     */
-    #[inline]
     pub fn seq_elem(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -450,7 +432,6 @@ impl Stack {
     /**
     Complete the current sequence.
     */
-    #[inline]
     pub fn seq_end(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -479,7 +460,6 @@ impl Stack {
     /**
     Whether or not the stack has seen a complete and valid stream.
     */
-    #[inline]
     pub fn can_end(&self) -> bool {
         self.inner.depth() == 0
     }
@@ -490,7 +470,6 @@ impl Stack {
     This stack may be re-used after being completed
     by calling `begin`.
     */
-    #[inline]
     pub fn end(&mut self) -> Result<(), crate::Error> {
         // The stack must be on the root slot
         // It doesn't matter if the slot is
@@ -509,140 +488,113 @@ impl Stack {
 }
 
 impl<'v> Stream<'v> for Stack {
-    #[inline]
     fn fmt(&mut self, _: &stream::Arguments) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn fmt_borrowed(&mut self, _: &stream::Arguments<'v>) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn error(&mut self, _: &stream::Source) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn error_borrowed(&mut self, _: &stream::Source<'v>) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn i64(&mut self, _: i64) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn u64(&mut self, _: u64) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn i128(&mut self, _: i128) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn u128(&mut self, _: u128) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn f64(&mut self, _: f64) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn bool(&mut self, _: bool) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn char(&mut self, _: char) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn str(&mut self, _: &str) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn str_borrowed(&mut self, _: &'v str) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn none(&mut self) -> stream::Result {
         self.primitive().map(|_| ())
     }
 
-    #[inline]
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
         self.map_begin().map(|_| ())
     }
 
-    #[inline]
     fn map_key(&mut self) -> stream::Result {
         self.map_key().map(|_| ())
     }
 
-    #[inline]
     fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
         self.map_key()?;
         k.stream(self).map(|_| ())
     }
 
-    #[inline]
     fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
         self.map_key_collect(k)
     }
 
-    #[inline]
     fn map_value(&mut self) -> stream::Result {
         self.map_value().map(|_| ())
     }
 
-    #[inline]
     fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.map_value()?;
         v.stream(self).map(|_| ())
     }
 
-    #[inline]
     fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
         self.map_value_collect(v)
     }
 
-    #[inline]
     fn map_end(&mut self) -> stream::Result {
         self.map_end().map(|_| ())
     }
 
-    #[inline]
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
         self.seq_begin().map(|_| ())
     }
 
-    #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         self.seq_elem().map(|_| ())
     }
 
-    #[inline]
     fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
         self.seq_elem()?;
         v.stream(self).map(|_| ())
     }
 
-    #[inline]
     fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
         self.seq_elem_collect(v)
     }
 
-    #[inline]
     fn seq_end(&mut self) -> stream::Result {
         self.seq_end().map(|_| ())
     }
@@ -662,7 +614,7 @@ mod inner {
         const SLOTS: usize = 16;
         const MAX_DEPTH: usize = Self::SLOTS - 1;
 
-        #[inline]
+
         pub(super) fn new() -> Self {
             Stack {
                 slots: [Slot::root(); Self::SLOTS],
@@ -670,7 +622,7 @@ mod inner {
             }
         }
 
-        #[inline]
+
         pub(super) fn clear(&mut self) {
             *self = Stack {
                 slots: [Slot::root(); Self::SLOTS],
@@ -678,12 +630,12 @@ mod inner {
             }
         }
 
-        #[inline]
+
         pub(super) fn depth(&self) -> usize {
             self.depth
         }
 
-        #[inline]
+
         pub(super) fn push_depth(&mut self) -> Result<(), crate::Error> {
             if self.depth >= Self::MAX_DEPTH {
                 return Err(crate::Error::msg("nesting limit reached"));
@@ -695,12 +647,12 @@ mod inner {
         }
 
         // Callers must ensure `self.depth() > 0`
-        #[inline]
+
         pub(super) unsafe fn pop_depth(&mut self) {
             self.depth -= 1;
         }
 
-        #[inline]
+
         pub(super) fn current_mut(&mut self) -> &mut Slot {
             #[cfg(debug_assertions)]
             {
@@ -714,7 +666,7 @@ mod inner {
             }
         }
 
-        #[inline]
+
         pub(super) fn current(&self) -> Slot {
             #[cfg(debug_assertions)]
             {
@@ -740,7 +692,7 @@ mod inner {
     pub(super) struct Stack(SmallVec<[Slot; 16]>);
 
     impl Stack {
-        #[inline]
+
         pub(super) fn new() -> Self {
             let mut slots = SmallVec::new();
             slots.push(Slot::root());
@@ -748,35 +700,35 @@ mod inner {
             Stack(slots)
         }
 
-        #[inline]
+
         pub(super) fn clear(&mut self) {
             self.0.clear();
             self.0.push(Slot::root());
         }
 
-        #[inline]
+
         pub(super) fn depth(&self) -> usize {
             self.0.len() - 1
         }
 
-        #[inline]
+
         pub(super) fn push_depth(&mut self) -> Result<(), crate::Error> {
             self.0.push(Slot::root());
 
             Ok(())
         }
 
-        #[inline]
+
         pub(super) unsafe fn pop_depth(&mut self) {
             self.0.pop();
         }
 
-        #[inline]
+
         pub(super) fn current_mut(&mut self) -> &mut Slot {
             self.0.last_mut().expect("missing stack slot")
         }
 
-        #[inline]
+
         pub(super) fn current(&self) -> Slot {
             *self.0.last().expect("missing stack slot")
         }

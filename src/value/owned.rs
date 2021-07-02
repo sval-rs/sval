@@ -262,7 +262,6 @@ impl<'a, T> From<&'a str> for InlineString<T>
 where
     T: From<&'a str>,
 {
-    #[inline]
     fn from(s: &'a str) -> InlineString<T> {
         let src = s.as_bytes();
 
@@ -292,7 +291,6 @@ impl<T> From<String> for InlineString<T>
 where
     T: From<String>,
 {
-    #[inline]
     fn from(s: String) -> InlineString<T> {
         InlineString(InlineStringInner::Shared(s.into()))
     }
@@ -304,7 +302,6 @@ where
 {
     type Target = str;
 
-    #[inline]
     fn deref(&self) -> &Self::Target {
         match self.0 {
             InlineStringInner::Inline(len, ref buf) => {
@@ -447,7 +444,6 @@ pub(crate) struct TokenBuf {
 }
 
 impl TokenBuf {
-    #[inline]
     pub(crate) fn new() -> TokenBuf {
         TokenBuf {
             stack: Stack::new(),
@@ -455,7 +451,6 @@ impl TokenBuf {
         }
     }
 
-    #[inline]
     fn collect(v: impl Value) -> Result<Vec<Token>, crate::Error> {
         let mut buf = TokenBuf::new();
         crate::stream_owned(&mut buf, &v)?;
@@ -463,7 +458,6 @@ impl TokenBuf {
         Ok(buf.tokens)
     }
 
-    #[inline]
     fn push(&mut self, kind: TokenKind, depth: stack::Depth) {
         self.tokens.push(Token { depth, kind });
     }
@@ -735,12 +729,10 @@ struct PrimitiveBuf {
 }
 
 impl PrimitiveBuf {
-    #[inline]
     fn new() -> PrimitiveBuf {
         PrimitiveBuf { primitive: None }
     }
 
-    #[inline]
     fn collect(v: impl Value) -> Option<Primitive> {
         let mut buf = PrimitiveBuf::new();
         crate::stream_owned(&mut buf, &v).ok()?;
@@ -748,7 +740,6 @@ impl PrimitiveBuf {
         buf.primitive
     }
 
-    #[inline]
     fn set(&mut self, primitive: Primitive) {
         self.primitive = Some(primitive);
     }

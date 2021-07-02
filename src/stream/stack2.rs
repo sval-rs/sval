@@ -42,7 +42,6 @@ impl Pos {
     /**
     Whether the current position is a map key.
     */
-    #[inline]
     pub fn is_key(&self) -> bool {
         (self.0 as u8) & Slot::MASK_SLOT == Slot::IS_MAP_KEY
     }
@@ -50,7 +49,6 @@ impl Pos {
     /**
     Whether the current position is a map value.
     */
-    #[inline]
     pub fn is_value(&self) -> bool {
         (self.0 as u8) & Slot::MASK_SLOT == Slot::IS_MAP_VALUE
     }
@@ -58,7 +56,6 @@ impl Pos {
     /**
     Whether the current position is a sequence element.
     */
-    #[inline]
     pub fn is_elem(&self) -> bool {
         (self.0 as u8) & Slot::MASK_SLOT == Slot::IS_SEQ_ELEM
     }
@@ -66,7 +63,6 @@ impl Pos {
     /**
     Whether the current position is a map value or sequence element.
     */
-    #[inline]
     pub fn is_value_elem(&self) -> bool {
         (self.0 as u8) & Slot::MASK_VALUE_ELEM != 0
     }
@@ -74,7 +70,6 @@ impl Pos {
     /**
     Whether the current position is an empty map.
     */
-    #[inline]
     pub fn is_empty_map(&self) -> bool {
         unimplemented!()
     }
@@ -82,7 +77,6 @@ impl Pos {
     /**
     Whether the current position is an empty sequence.
     */
-    #[inline]
     pub fn is_empty_seq(&self) -> bool {
         unimplemented!()
     }
@@ -90,7 +84,6 @@ impl Pos {
     /**
     The depth of this position.
     */
-    #[inline]
     pub fn depth(&self) -> Depth {
         Depth(self.1 as usize)
     }
@@ -143,7 +136,6 @@ impl Stack {
     /**
     Create a new stack.
     */
-    #[inline]
     pub fn new() -> Self {
         Stack {
             inner: Slot::NEEDS_ITEM as RawStack,
@@ -156,7 +148,6 @@ impl Stack {
 
     Any state it currently contains will be lost.
     */
-    #[inline]
     pub fn clear(&mut self) {
         unimplemented!()
     }
@@ -164,7 +155,6 @@ impl Stack {
     /**
     Get the current position in the stack.
     */
-    #[inline]
     pub fn current(&self) -> Pos {
         unimplemented!()
     }
@@ -182,7 +172,6 @@ impl Stack {
     - `char`, `&str`
     - `Option<T>`.
     */
-    #[inline]
     pub fn primitive(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
@@ -202,7 +191,6 @@ impl Stack {
 
     The map must be completed by calling `map_end`.
     */
-    #[inline]
     pub fn map_begin(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
@@ -228,7 +216,6 @@ impl Stack {
     The key will be implicitly completed by the value
     that follows it.
     */
-    #[inline]
     pub fn map_key(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
@@ -249,7 +236,6 @@ impl Stack {
     The value will be implicitly completed by the value
     that follows it.
     */
-    #[inline]
     pub fn map_value(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_MAP_VALUE;
@@ -267,7 +253,6 @@ impl Stack {
     /**
     Complete the current map.
     */
-    #[inline]
     pub fn map_end(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
@@ -287,7 +272,6 @@ impl Stack {
 
     the sequence must be completed by calling `seq_end`.
     */
-    #[inline]
     pub fn seq_begin(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
@@ -313,7 +297,6 @@ impl Stack {
     The element will be implicitly completed by the value
     that follows it.
     */
-    #[inline]
     pub fn seq_elem(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
@@ -331,7 +314,6 @@ impl Stack {
     /**
     Complete the current sequence.
     */
-    #[inline]
     pub fn seq_end(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
@@ -349,7 +331,6 @@ impl Stack {
     /**
     Whether or not the stack has seen a complete and valid stream.
     */
-    #[inline]
     pub fn can_end(&self) -> bool {
         // In order to end the stream, the stack must be completed
         const MASK: u8 = !Slot::NEEDS_ITEM;
@@ -364,7 +345,6 @@ impl Stack {
     This stack may be re-used after being completed
     by calling `begin`.
     */
-    #[inline]
     pub fn end(&mut self) -> Result<(), crate::Error> {
         if self.can_end() {
             Ok(())
