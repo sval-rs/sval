@@ -6,8 +6,8 @@ members = [
     "tests/fmt",
 
     "json",
-    "json/benches",
-    "json/tests",
+    "json/benches/twitter",
+    "json/tests/twitter",
 
     "stack",
 ]

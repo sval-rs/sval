@@ -48,7 +48,7 @@ jobs:
           override: true
 
       - name: Default features
-        run: cd json/tests; cargo test
+        run: cd json/tests/twitter; cargo test
 
   wasm:
     name: Test (wasm)
@@ -61,7 +61,7 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: All features
-        run: cd json/tests; wasm-pack test --node -- --all-features
+        run: cd json/tests/twitter; wasm-pack test --node -- --all-features
 
   embedded:
     name: Build (embedded)

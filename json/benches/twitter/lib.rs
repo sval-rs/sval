@@ -4,10 +4,10 @@
 extern crate test;
 
 use sval::stream::Arguments;
-use sval_json_tests::Twitter;
+use sval_json_twitter_tests::Twitter;
 
 fn input_json() -> String {
-    std::fs::read_to_string("../tests/twitter.json").unwrap()
+    std::fs::read_to_string("../../tests/twitter/twitter.json").unwrap()
 }
 
 fn input_struct() -> Twitter {
@@ -30,11 +30,6 @@ fn primitive_erased_serde(b: &mut test::Bencher) {
     let s: Box<dyn erased_serde::Serialize> = Box::new(42);
 
     b.iter(|| serde_json::to_string(&s).unwrap());
-}
-
-#[bench]
-fn primitive_valuable(b: &mut test::Bencher) {
-    b.iter(|| valuable_json::to_string(&42).unwrap());
 }
 
 #[bench]
@@ -63,12 +58,6 @@ fn twitter_serde(b: &mut test::Bencher) {
 fn twitter_erased_serde(b: &mut test::Bencher) {
     let s: Box<dyn erased_serde::Serialize> = Box::new(input_struct());
     b.iter(|| serde_json::to_string(&s).unwrap());
-}
-
-#[bench]
-fn twitter_valuable(b: &mut test::Bencher) {
-    let s = input_struct();
-    b.iter(|| valuable_json::to_string(&s).unwrap());
 }
 
 #[bench]

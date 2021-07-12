@@ -2,9 +2,6 @@
 extern crate serde;
 
 #[macro_use]
-extern crate valuable;
-
-#[macro_use]
 extern crate sval;
 
 #[cfg(all(test, target_arch = "wasm32"))]
@@ -30,7 +27,7 @@ fn sval_json_writer_is_valid() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn sval_json_is_valid() {
-    let content = include_str!("../twitter.json");
+    let content = include_str!("./twitter.json");
 
     let s: Twitter = serde_json::from_str(content).unwrap();
 
@@ -39,13 +36,13 @@ fn sval_json_is_valid() {
     serde_json::from_str::<Twitter>(&json).unwrap();
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Twitter {
     statuses: Vec<Status>,
     search_metadata: SearchMetadata,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Status {
     metadata: Metadata,
     created_at: String,
@@ -74,13 +71,13 @@ pub struct Status {
     lang: String,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Metadata {
     result_type: String,
     iso_language_code: String,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct User {
     id: u32,
     id_str: String,
@@ -124,18 +121,18 @@ pub struct User {
     notifications: bool,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct UserEntities {
     url: Option<UserUrl>,
     description: UserEntitiesDescription,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct UserUrl {
     urls: Vec<Url>,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Url {
     url: String,
     expanded_url: String,
@@ -143,12 +140,12 @@ pub struct Url {
     indices: Indices,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct UserEntitiesDescription {
     urls: Vec<Url>,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct StatusEntities {
     hashtags: Vec<Hashtag>,
     symbols: Vec<()>,
@@ -157,13 +154,13 @@ pub struct StatusEntities {
     media: Option<Vec<Media>>,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Hashtag {
     text: String,
     indices: Indices,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct UserMention {
     screen_name: String,
     name: String,
@@ -172,7 +169,7 @@ pub struct UserMention {
     indices: Indices,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Media {
     id: u64,
     id_str: String,
@@ -190,7 +187,7 @@ pub struct Media {
     source_status_id_str: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Sizes {
     medium: Size,
     small: Size,
@@ -198,7 +195,7 @@ pub struct Sizes {
     large: Size,
 }
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct Size {
     w: u16,
     h: u16,
@@ -207,7 +204,7 @@ pub struct Size {
 
 pub type Indices = (u8, u8);
 
-#[derive(Serialize, Deserialize, MiniSerialize, Value, Valuable)]
+#[derive(Serialize, Deserialize, MiniSerialize, Value)]
 pub struct SearchMetadata {
     completed_in: f32,
     max_id: u64,

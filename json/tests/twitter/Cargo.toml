@@ -1,16 +1,19 @@
 [package]
-name = "sval_json_tests"
+name = "sval_json_twitter_tests"
 version = "0.0.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 publish = false
 
+[lib]
+path = "lib.rs"
+
 [dependencies.sval]
-path = "../../"
+path = "../../../"
 features = ["derive", "serde", "test"]
 
 [dependencies.sval_json]
-path = "../"
+path = "../../"
 features = ["std"]
 
 [dependencies.serde]
@@ -22,11 +25,6 @@ version = "1"
 
 [dependencies.miniserde]
 version = "0.1"
-
-[dependencies.valuable]
-git = "https://github.com/tokio-rs/valuable"
-branch = "taiki-e/json"
-features = ["derive"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.wasm-bindgen]
 version = "0.2"
