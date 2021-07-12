@@ -4,10 +4,10 @@
 extern crate test;
 
 use sval::stream::Arguments;
-use sval_json_tests::Twitter;
+use sval_json_twitter_tests::Twitter;
 
 fn input_json() -> String {
-    std::fs::read_to_string("../tests/twitter.json").unwrap()
+    std::fs::read_to_string("../../tests/twitter/twitter.json").unwrap()
 }
 
 fn input_struct() -> Twitter {
@@ -112,7 +112,7 @@ fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
 
     impl<'v> sval::stream::Stream<'v> for NoOp {
         #[inline(never)]
-        fn fmt(&mut self, v: &Arguments) -> sval::stream::Result {
+        fn fmt(&mut self, v: Arguments) -> sval::stream::Result {
             let _ = v;
             Ok(())
         }

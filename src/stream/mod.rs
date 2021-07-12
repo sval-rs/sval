@@ -5,33 +5,16 @@ A stream for datastructures.
 
 A [`Stream`] is a type that receives and works with abstract data-structures.
 
-## Streams without state
-
-A `Stream` might only care about a single kind of value.
-
-## Streams with state
-
-There are more methods on `Stream` that can be overriden for more complex
-datastructures like sequences and maps. The following example uses a
-[`stream::Stack`] to track the state of any sequences and maps and ensure
-they're valid.
-
-By default, the `Stack` type has a fixed depth. That means deeply nested
-structures aren't supported. See the [`stream::Stack`] type for more details.
-
 [`Value`]: ../value/trait.Value.html
-[`stream::Stack`]: stack/struct.Stack.html
 */
 
 mod error;
 mod fmt;
-pub mod stack;
 mod value;
 
 pub use self::{
     error::Source,
     fmt::Arguments,
-    stack::Stack,
     value::Value,
 };
 
@@ -57,24 +40,24 @@ pub trait Stream<'v> {
     expect to accept formattable types.
     */
     #[cfg(not(test))]
-    fn fmt(&mut self, v: &Arguments) -> Result {
+    fn fmt(&mut self, v: Arguments) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::fmt"))
     }
     #[cfg(test)]
-    fn fmt(&mut self, v: &Arguments) -> Result;
+    fn fmt(&mut self, v: Arguments) -> Result;
 
     /**
     Stream an error. Implementors should override this method if they
     expect to accept errors.
     */
     #[cfg(not(test))]
-    fn error(&mut self, v: &Source) -> Result {
+    fn error(&mut self, v: Source) -> Result {
         let _ = v;
         Err(crate::Error::default_unsupported("Stream::error"))
     }
     #[cfg(test)]
-    fn error(&mut self, v: &Source) -> Result;
+    fn error(&mut self, v: Source) -> Result;
 
     /**
     Stream a signed integer. Implementors should override this method if they
@@ -269,48 +252,48 @@ pub trait Stream<'v> {
     Collect a map key.
     */
     #[cfg(not(test))]
-    fn map_key_collect(&mut self, k: &Value) -> Result {
+    fn map_key_collect(&mut self, k: Value) -> Result {
         self.map_key()?;
         k.stream_owned(self)
     }
     #[cfg(test)]
-    fn map_key_collect(&mut self, k: &Value) -> Result;
+    fn map_key_collect(&mut self, k: Value) -> Result;
 
     /**
     Collect a map value.
     */
     #[cfg(not(test))]
-    fn map_value_collect(&mut self, v: &Value) -> Result {
+    fn map_value_collect(&mut self, v: Value) -> Result {
         self.map_value()?;
         v.stream_owned(self)
     }
     #[cfg(test)]
-    fn map_value_collect(&mut self, v: &Value) -> Result;
+    fn map_value_collect(&mut self, v: Value) -> Result;
 
     /**
     Collect a sequence element.
     */
     #[cfg(not(test))]
-    fn seq_elem_collect(&mut self, v: &Value) -> Result {
+    fn seq_elem_collect(&mut self, v: Value) -> Result {
         self.seq_elem()?;
         v.stream_owned(self)
     }
     #[cfg(test)]
-    fn seq_elem_collect(&mut self, v: &Value) -> Result;
+    fn seq_elem_collect(&mut self, v: Value) -> Result;
 
     #[cfg(not(test))]
-    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result {
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
         self.fmt(v)
     }
     #[cfg(test)]
-    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result;
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result;
 
     #[cfg(not(test))]
-    fn error_borrowed(&mut self, v: &Source<'v>) -> Result {
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
         self.error(v)
     }
     #[cfg(test)]
-    fn error_borrowed(&mut self, v: &Source<'v>) -> Result;
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result;
 
     /**
     Stream a borrowed UTF-8 string slice.
@@ -323,44 +306,44 @@ pub trait Stream<'v> {
     fn str_borrowed(&mut self, v: &'v str) -> Result;
 
     #[cfg(not(test))]
-    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
+    fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result {
         self.map_key_collect(k)
     }
     #[cfg(test)]
-    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result;
+    fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result;
 
     #[cfg(not(test))]
-    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+    fn map_value_collect_borrowed(&mut self, v: Value<'v>) -> Result {
         self.map_value_collect(v)
     }
     #[cfg(test)]
-    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
+    fn map_value_collect_borrowed(&mut self, v: Value<'v>) -> Result;
 
     #[cfg(not(test))]
-    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+    fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result {
         self.seq_elem_collect(v)
     }
     #[cfg(test)]
-    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result;
+    fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result;
 }
 
 impl<'s, 'v, T: ?Sized> Stream<'v> for &'s mut T
 where
     T: Stream<'v>,
 {
-    fn fmt(&mut self, v: &Arguments) -> Result {
+    fn fmt(&mut self, v: Arguments) -> Result {
         (**self).fmt(v)
     }
 
-    fn fmt_borrowed(&mut self, v: &Arguments<'v>) -> Result {
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
         (**self).fmt_borrowed(v)
     }
 
-    fn error(&mut self, v: &Source) -> Result {
+    fn error(&mut self, v: Source) -> Result {
         (**self).error(v)
     }
 
-    fn error_borrowed(&mut self, v: &Source<'v>) -> Result {
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
         (**self).error_borrowed(v)
     }
 
@@ -412,11 +395,11 @@ where
         (**self).map_key()
     }
 
-    fn map_key_collect(&mut self, k: &Value) -> Result {
+    fn map_key_collect(&mut self, k: Value) -> Result {
         (**self).map_key_collect(k)
     }
 
-    fn map_key_collect_borrowed(&mut self, k: &Value<'v>) -> Result {
+    fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result {
         (**self).map_key_collect_borrowed(k)
     }
 
@@ -424,11 +407,11 @@ where
         (**self).map_value()
     }
 
-    fn map_value_collect(&mut self, v: &Value) -> Result {
+    fn map_value_collect(&mut self, v: Value) -> Result {
         (**self).map_value_collect(v)
     }
 
-    fn map_value_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+    fn map_value_collect_borrowed(&mut self, v: Value<'v>) -> Result {
         (**self).map_value_collect_borrowed(v)
     }
 
@@ -444,11 +427,11 @@ where
         (**self).seq_elem()
     }
 
-    fn seq_elem_collect(&mut self, v: &Value) -> Result {
+    fn seq_elem_collect(&mut self, v: Value) -> Result {
         (**self).seq_elem_collect(v)
     }
 
-    fn seq_elem_collect_borrowed(&mut self, v: &Value<'v>) -> Result {
+    fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result {
         (**self).seq_elem_collect_borrowed(v)
     }
 

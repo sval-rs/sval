@@ -6,8 +6,10 @@ members = [
     "tests/fmt",
 
     "json",
-    "json/benches",
-    "json/tests",
+    "json/benches/twitter",
+    "json/tests/twitter",
+
+    "stack",
 ]
 
 [package]
@@ -37,9 +39,6 @@ std = ["alloc"]
 # Support alloc
 alloc = []
 
-# Support stacks with an arbitrary depth
-arbitrary-depth = ["alloc", "smallvec"]
-
 # Add a custom derive for `Value`
 derive = ["sval_derive"]
 
@@ -57,11 +56,6 @@ serde1 = ["serde1_lib"]
 # that can be inspected in tests
 test = ["std"]
 
-[dependencies.smallvec]
-version = "1"
-default-features = false
-optional = true
-
 [dependencies.serde1_lib]
 version = "1.0.104"
 optional = true
@@ -72,9 +66,6 @@ package = "serde"
 version = "1.0.0-alpha.5"
 path = "./derive"
 optional = true
-
-[dev-dependencies.quickcheck]
-version = "0.9"
 
 [dev-dependencies.wasm-bindgen]
 version = "0.2"

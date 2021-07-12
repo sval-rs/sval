@@ -52,7 +52,7 @@ pub trait Value {
     Data passed to the stream may satisfy the `'v` lifetime so that
     the stream can hold onto it across calls.
     */
-    fn stream<'s, 'v>(&'v self, stream: &mut Stream<'s, 'v>) -> Result;
+    fn stream<'s, 'v>(&'v self, stream: Stream<'s, 'v>) -> Result;
 
     /**
     Stream this value.
@@ -61,8 +61,8 @@ pub trait Value {
     That means the stream can't borrow that data across calls, but the
     value is free to produce any short-lived values it needs.
     */
-    fn stream_owned(&self, stream: &mut Stream) -> Result {
-        self.stream(&mut stream.owned())
+    fn stream_owned(&self, mut stream: Stream) -> Result {
+        self.stream(stream.owned())
     }
 }
 
@@ -70,11 +70,11 @@ impl<'a, T: ?Sized> Value for &'a T
 where
     T: Value,
 {
-    fn stream<'s, 'v>(&'v self, stream: &mut Stream<'s, 'v>) -> Result {
+    fn stream<'s, 'v>(&'v self, stream: Stream<'s, 'v>) -> Result {
         (**self).stream(stream)
     }
 
-    fn stream_owned(&self, stream: &mut Stream) -> Result {
+    fn stream_owned(&self, stream: Stream) -> Result {
         (**self).stream_owned(stream)
     }
 }

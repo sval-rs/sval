@@ -29,7 +29,7 @@ impl Debug for OuterMap {
 }
 
 impl Value for OuterMap {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.map_begin(None)?;
 
         stream.map_key(&1)?;
@@ -67,7 +67,7 @@ impl Debug for InnerMap {
 }
 
 impl Value for InnerMap {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.map_begin(None)?;
 
         stream.map_key(&1)?;
@@ -89,7 +89,7 @@ impl Debug for EmptyMap {
 }
 
 impl Value for EmptyMap {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.map_begin(None)?;
         stream.map_end()
     }
@@ -112,7 +112,7 @@ impl Debug for OuterSeq {
 }
 
 impl Value for OuterSeq {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.seq_begin(None)?;
 
         stream.seq_elem(&1)?;
@@ -139,7 +139,7 @@ impl Debug for InnerSeq {
 }
 
 impl Value for InnerSeq {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.seq_begin(None)?;
 
         stream.seq_elem(&1)?;
@@ -158,7 +158,7 @@ impl Debug for EmptySeq {
 }
 
 impl Value for EmptySeq {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.seq_begin(None)?;
         stream.seq_end()
     }
@@ -177,7 +177,7 @@ impl Debug for WeirdMapKeys {
 }
 
 impl Value for WeirdMapKeys {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.map_begin(None)?;
 
         stream.map_key(&InnerMap)?;

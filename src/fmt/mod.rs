@@ -17,7 +17,7 @@ a type that implements [`std::fmt::Debug`]:
 # use sval::value::{self, Value};
 # struct MyValue;
 # impl Value for MyValue {
-#     fn stream(&self, stream: &mut value::Stream) -> value::Result {
+#     fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
 #         unimplemented!()
 #     }
 # }
@@ -57,6 +57,6 @@ where
 /**
 Format a [`Value`] using the given [`Formatter`].
 */
-pub fn debug(f: &mut Formatter, value: &(impl Value + ?Sized)) -> fmt::Result {
+pub fn debug(f: &mut Formatter, value: impl Value) -> fmt::Result {
     to_debug(value).fmt(f)
 }

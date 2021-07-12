@@ -1,0 +1,26 @@
+[package]
+name = "sval_stack"
+version = "0.1.0"
+authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
+edition = "2018"
+documentation = "https://docs.rs/sval_stack"
+description = "An inline validating stack for sval"
+repository = "https://github.com/sval-rs/sval"
+license = "Apache-2.0 OR MIT"
+keywords = ["serialization", "no_std"]
+categories = ["encoding", "no-std"]
+publish = false
+
+[features]
+alloc = []
+
+# Support stacks with an arbitrary depth
+arbitrary-depth = ["alloc", "smallvec"]
+
+[dependencies.smallvec]
+version = "1"
+default-features = false
+optional = true
+
+[dev-dependencies.quickcheck]
+version = "0.9"

@@ -20,7 +20,6 @@ impl<'v> Value<'v> {
 
     [`Value`]: ../value/trait.Value.html
     */
-    #[inline]
     pub fn new(value: &'v impl value::Value) -> Self {
         Value(value)
     }
@@ -30,9 +29,8 @@ impl<'v> Value<'v> {
 
     [`Stream`]: ./trait.Stream.html
     */
-    #[inline]
-    pub fn stream(&self, mut stream: &mut (impl Stream<'v> + ?Sized)) -> value::Result {
-        self.0.stream(&mut value::Stream::new(&mut stream))?;
+    pub fn stream(&self, mut stream: impl Stream<'v>) -> value::Result {
+        self.0.stream(value::Stream::new(&mut stream))?;
 
         Ok(())
     }
@@ -42,17 +40,19 @@ impl<'v> Value<'v> {
 
     [`Stream`]: ./trait.Stream.html
     */
-    #[inline]
-    pub fn stream_owned<'a>(&self, mut stream: &mut (impl Stream<'a> + ?Sized)) -> value::Result {
-        self.0.stream_owned(&mut value::Stream::new(&mut stream))?;
+    pub fn stream_owned<'a>(&self, mut stream: impl Stream<'a>) -> value::Result {
+        self.0.stream_owned(value::Stream::new(&mut stream))?;
 
         Ok(())
     }
 }
 
 impl<'a> value::Value for Value<'a> {
-    #[inline]
-    fn stream<'s, 'v>(&'v self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
+    fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
         self.0.stream(stream)
+    }
+
+    fn stream_owned(&self, stream: value::Stream) -> value::Result {
+        self.0.stream_owned(stream)
     }
 }

@@ -1,20 +1,23 @@
 [package]
-name = "sval_json_benches"
+name = "sval_json_twitter_benches"
 version = "0.0.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2018"
 publish = false
 
+[lib]
+path = "lib.rs"
+
 [dependencies.sval]
-path = "../../"
+path = "../../../"
 features = ["derive", "serde", "std"]
 
 [dependencies.sval_json]
-path = "../"
+path = "../../"
 features = ["std"]
 
-[dependencies.sval_json_tests]
-path = "../tests"
+[dependencies.sval_json_twitter_tests]
+path = "../../tests/twitter"
 
 [dependencies.serde]
 version = "1"

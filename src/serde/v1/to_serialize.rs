@@ -23,38 +23,12 @@ impl<V> Serialize for ToSerialize<V>
 where
     V: value::Value,
 {
-    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut stream = Stream::new(serializer);
         crate::stream_owned(&mut stream, &self.0).map_err(S::Error::custom)?;
-
-        Ok(stream.take_ok())
-    }
-}
-
-// A wrapper around a `stream::Value` that can be called within
-// `serde::Serialize`
-struct Value<'a, 'b>(&'a stream::Value<'b>);
-
-impl<'a, 'b> Value<'a, 'b> {
-    #[inline]
-    fn new(value: &'a stream::Value<'b>) -> Self {
-        Value(value)
-    }
-}
-
-impl<'a, 'b> Serialize for ToSerialize<Value<'a, 'b>> {
-    #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut stream = Stream::new(serializer);
-
-        (self.0).0.stream(&mut stream).map_err(S::Error::custom)?;
 
         Ok(stream.take_ok())
     }
@@ -98,7 +72,6 @@ impl<S> Stream<S>
 where
     S: Serializer,
 {
-    #[inline]
     fn new(ser: S) -> Self {
         Stream {
             ok: None,
@@ -109,7 +82,6 @@ where
         }
     }
 
-    #[inline]
     fn take_ok(self) -> S::Ok {
         self.ok.expect("missing return value")
     }
@@ -119,7 +91,6 @@ impl<S> Current<S>
 where
     S: Serializer,
 {
-    #[inline]
     fn take_serializer(self) -> S {
         match self {
             Current::Serializer(ser) => ser,
@@ -127,7 +98,6 @@ where
         }
     }
 
-    #[inline]
     fn serialize_seq(&mut self) -> &mut S::SerializeSeq {
         match self {
             Current::SerializeSeq(seq) => seq,
@@ -135,7 +105,6 @@ where
         }
     }
 
-    #[inline]
     fn take_serialize_seq(self) -> S::SerializeSeq {
         match self {
             Current::SerializeSeq(seq) => seq,
@@ -143,7 +112,6 @@ where
         }
     }
 
-    #[inline]
     fn serialize_map(&mut self) -> &mut S::SerializeMap {
         match self {
             Current::SerializeMap(map) => map,
@@ -151,7 +119,6 @@ where
         }
     }
 
-    #[inline]
     fn take_serialize_map(self) -> S::SerializeMap {
         match self {
             Current::SerializeMap(map) => map,
@@ -164,21 +131,18 @@ impl<S> Stream<S>
 where
     S: Serializer,
 {
-    #[inline]
     fn take_current(&mut self) -> Current<S> {
         self.current
             .take()
             .expect("attempt to use an invalid serializer")
     }
 
-    #[inline]
     fn current(&mut self) -> &mut Current<S> {
         self.current
             .as_mut()
             .expect("attempt to use an invalid serializer")
     }
 
-    #[inline]
     fn serialize_any(&mut self, v: impl Serialize) -> stream::Result {
         match self.pos.take() {
             Some(Pos::Key) => self.serialize_key(v),
@@ -188,7 +152,6 @@ where
         }
     }
 
-    #[inline]
     fn serialize_elem(&mut self, v: impl Serialize) -> stream::Result {
         self.current()
             .serialize_seq()
@@ -196,7 +159,6 @@ where
             .map_err(err("error serializing sequence element"))
     }
 
-    #[inline]
     fn serialize_key(&mut self, k: impl Serialize) -> stream::Result {
         self.current()
             .serialize_map()
@@ -204,7 +166,6 @@ where
             .map_err(err("error map serializing key"))
     }
 
-    #[inline]
     fn serialize_value(&mut self, v: impl Serialize) -> stream::Result {
         self.current()
             .serialize_map()
@@ -212,7 +173,6 @@ where
             .map_err(err("error map serializing value"))
     }
 
-    #[inline]
     fn serialize_primitive(&mut self, v: impl Serialize) -> stream::Result {
         let ser = self.take_current().take_serializer();
 
@@ -226,10 +186,10 @@ where
 }
 
 impl<'a> stream::Arguments<'a> {
-    fn to_serialize<'b>(&'b self) -> impl Serialize + 'b {
-        struct SerializeArguments<'a, 'b>(&'b stream::Arguments<'a>);
+    fn into_serialize(self) -> impl Serialize + 'a {
+        struct SerializeArguments<'a>(stream::Arguments<'a>);
 
-        impl<'a, 'b> Serialize for SerializeArguments<'a, 'b> {
+        impl<'a> Serialize for SerializeArguments<'a> {
             fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -243,10 +203,10 @@ impl<'a> stream::Arguments<'a> {
 }
 
 impl<'a> stream::Source<'a> {
-    fn to_serialize<'b>(&'b self) -> impl Serialize + 'b {
-        struct SerializeSource<'a, 'b>(&'b stream::Source<'a>);
+    fn into_serialize(self) -> impl Serialize + 'a {
+        struct SerializeSource<'a>(stream::Source<'a>);
 
-        impl<'a, 'b> Serialize for SerializeSource<'a, 'b> {
+        impl<'a> Serialize for SerializeSource<'a> {
             fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -256,6 +216,12 @@ impl<'a> stream::Source<'a> {
         }
 
         SerializeSource(self)
+    }
+}
+
+impl<'a> stream::Value<'a> {
+    fn into_serialize(self) -> impl Serialize + 'a {
+        ToSerialize(self)
     }
 }
 
@@ -273,77 +239,62 @@ mod no_alloc_support {
     where
         S: Serializer,
     {
-        #[inline]
-        fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
-            self.serialize_any(v.to_serialize())
+        fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+            self.serialize_any(v.into_serialize())
         }
 
-        #[inline]
-        fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
-            self.serialize_any(v.to_serialize())
+        fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
+            self.serialize_any(v.into_serialize())
         }
 
-        #[inline]
-        fn error(&mut self, v: &stream::Source) -> stream::Result {
-            self.serialize_any(v.to_serialize())
+        fn error(&mut self, v: stream::Source) -> stream::Result {
+            self.serialize_any(v.into_serialize())
         }
 
-        #[inline]
-        fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
-            self.serialize_any(v.to_serialize())
+        fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
+            self.serialize_any(v.into_serialize())
         }
 
-        #[inline]
         fn i64(&mut self, v: i64) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn u64(&mut self, v: u64) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn i128(&mut self, v: i128) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn u128(&mut self, v: u128) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn f64(&mut self, v: f64) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn bool(&mut self, v: bool) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn char(&mut self, v: char) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn str(&mut self, v: &str) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
             self.serialize_any(v)
         }
 
-        #[inline]
         fn none(&mut self) -> stream::Result {
             self.serialize_any(Option::None::<()>)
         }
 
-        #[inline]
         fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
@@ -361,41 +312,34 @@ mod no_alloc_support {
             }
         }
 
-        #[inline]
         fn map_key(&mut self) -> stream::Result {
             self.pos = Some(Pos::Key);
 
             Ok(())
         }
 
-        #[inline]
-        fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
-            self.serialize_key(ToSerialize(Value::new(k)))
+        fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
+            self.serialize_key(k.into_serialize())
         }
 
-        #[inline]
-        fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
-            self.serialize_key(ToSerialize(Value::new(k)))
+        fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
+            self.serialize_key(k.into_serialize())
         }
 
-        #[inline]
         fn map_value(&mut self) -> stream::Result {
             self.pos = Some(Pos::Value);
 
             Ok(())
         }
 
-        #[inline]
-        fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
-            self.serialize_value(ToSerialize(Value::new(v)))
+        fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
+            self.serialize_value(v.into_serialize())
         }
 
-        #[inline]
-        fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
-            self.serialize_value(ToSerialize(Value::new(v)))
+        fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
+            self.serialize_value(v.into_serialize())
         }
 
-        #[inline]
         fn map_end(&mut self) -> stream::Result {
             let map = self.take_current().take_serialize_map();
             self.ok = Some(map.end().map_err(err("error completing map"))?);
@@ -403,7 +347,6 @@ mod no_alloc_support {
             Ok(())
         }
 
-        #[inline]
         fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
@@ -421,24 +364,20 @@ mod no_alloc_support {
             }
         }
 
-        #[inline]
         fn seq_elem(&mut self) -> stream::Result {
             self.pos = Some(Pos::Elem);
 
             Ok(())
         }
 
-        #[inline]
-        fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
-            self.serialize_elem(ToSerialize(Value::new(v)))
+        fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
+            self.serialize_elem(v.into_serialize())
         }
 
-        #[inline]
-        fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
-            self.serialize_elem(ToSerialize(Value::new(v)))
+        fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
+            self.serialize_elem(v.into_serialize())
         }
 
-        #[inline]
         fn seq_end(&mut self) -> stream::Result {
             let seq = self.take_current().take_serialize_seq();
             self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
@@ -451,8 +390,6 @@ mod no_alloc_support {
 #[cfg(feature = "alloc")]
 mod alloc_support {
     use super::*;
-
-    use crate::stream::stack;
 
     pub(super) use crate::value::owned::{
         Token,
@@ -495,11 +432,11 @@ mod alloc_support {
         /**
         Get a reference to the buffer if it's active.
         */
-        #[inline]
+
         fn buffer(&mut self) -> Option<&mut TokenBuf> {
             match self.buffered {
                 None => None,
-                Some(ref mut buffered) if buffered.tokens().len() > 0 => Some(buffered),
+                Some(ref mut buffered) if !buffered.tokens().is_empty() => Some(buffered),
                 _ => None,
             }
         }
@@ -509,7 +446,6 @@ mod alloc_support {
     where
         S: Serializer,
     {
-        #[inline]
         fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.buffer() {
                 None => {
@@ -534,7 +470,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn seq_elem(&mut self) -> stream::Result {
             match self.buffer() {
                 None => {
@@ -546,10 +481,9 @@ mod alloc_support {
             }
         }
 
-        #[inline]
-        fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+        fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_elem(ToSerialize(Value::new(v))),
+                None => self.serialize_elem(v.into_serialize()),
                 Some(buffered) => {
                     buffered.seq_elem()?;
                     v.stream(buffered).map(|_| ())
@@ -557,12 +491,10 @@ mod alloc_support {
             }
         }
 
-        #[inline]
-        fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
             self.seq_elem_collect(v)
         }
 
-        #[inline]
         fn seq_end(&mut self) -> stream::Result {
             match self.buffer() {
                 None => {
@@ -583,7 +515,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.buffer() {
                 None => {
@@ -607,7 +538,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn map_key(&mut self) -> stream::Result {
             match self.buffer() {
                 None => {
@@ -619,10 +549,9 @@ mod alloc_support {
             }
         }
 
-        #[inline]
-        fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+        fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_key(ToSerialize(Value::new(k))),
+                None => self.serialize_key(k.into_serialize()),
                 Some(buffered) => {
                     buffered.map_key()?;
                     k.stream(buffered).map(|_| ())
@@ -630,12 +559,10 @@ mod alloc_support {
             }
         }
 
-        #[inline]
-        fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+        fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
             self.map_key_collect(k)
         }
 
-        #[inline]
         fn map_value(&mut self) -> stream::Result {
             match self.buffer() {
                 None => {
@@ -647,10 +574,9 @@ mod alloc_support {
             }
         }
 
-        #[inline]
-        fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+        fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_value(ToSerialize(Value::new(v))),
+                None => self.serialize_value(v.into_serialize()),
                 Some(buffered) => {
                     buffered.map_value()?;
                     v.stream(buffered).map(|_| ())
@@ -658,12 +584,10 @@ mod alloc_support {
             }
         }
 
-        #[inline]
-        fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+        fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
             self.map_value_collect(v)
         }
 
-        #[inline]
         fn map_end(&mut self) -> stream::Result {
             match self.buffer() {
                 None => {
@@ -684,7 +608,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn i64(&mut self, v: i64) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -692,7 +615,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn u64(&mut self, v: u64) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -700,7 +622,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn i128(&mut self, v: i128) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -708,7 +629,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn u128(&mut self, v: u128) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -716,7 +636,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn f64(&mut self, v: f64) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -724,7 +643,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn bool(&mut self, v: bool) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -732,7 +650,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn char(&mut self, v: char) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -740,7 +657,6 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn str(&mut self, v: &str) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(v),
@@ -748,12 +664,10 @@ mod alloc_support {
             }
         }
 
-        #[inline]
         fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
             self.str(v)
         }
 
-        #[inline]
         fn none(&mut self) -> stream::Result {
             match self.buffer() {
                 None => self.serialize_any(Option::None::<()>),
@@ -761,29 +675,25 @@ mod alloc_support {
             }
         }
 
-        #[inline]
-        fn error(&mut self, v: &stream::Source) -> stream::Result {
+        fn error(&mut self, v: stream::Source) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_any(v.to_serialize()),
+                None => self.serialize_any(v.into_serialize()),
                 Some(buffered) => buffered.error(v),
             }
         }
 
-        #[inline]
-        fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+        fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
             self.error(v)
         }
 
-        #[inline]
-        fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
+        fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_any(v.to_serialize()),
+                None => self.serialize_any(v.into_serialize()),
                 Some(buffered) => buffered.fmt(v),
             }
         }
 
-        #[inline]
-        fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+        fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
             self.fmt(v)
         }
     }
@@ -796,7 +706,6 @@ mod alloc_support {
     }
 
     impl<'a> Tokens<'a> {
-        #[inline]
         fn reader(&self) -> TokensReader<'a> {
             TokensReader {
                 idx: 0,
@@ -806,7 +715,7 @@ mod alloc_support {
     }
 
     impl<'a> TokensReader<'a> {
-        fn next_serializable(&mut self, depth: stack::Depth) -> Tokens<'a> {
+        fn next_serializable(&mut self, depth: usize) -> Tokens<'a> {
             let start = self.idx;
 
             let take = self.tokens[self.idx..]
@@ -823,7 +732,6 @@ mod alloc_support {
             Tokens(&self.tokens[start..self.idx])
         }
 
-        #[inline]
         fn expect_empty(&self) -> stream::Result {
             if self.idx < self.tokens.len() {
                 Err(crate::Error::msg("unexpected trailing tokens"))
@@ -900,7 +808,7 @@ mod alloc_support {
                         reader.expect_empty().map_err(S::Error::custom)?;
 
                         stream::Source::from(&**v)
-                            .to_serialize()
+                            .into_serialize()
                             .serialize(serializer)
                     }
                     TokenKind::None => {
@@ -914,12 +822,12 @@ mod alloc_support {
                         while let Some(next) = reader.next() {
                             match next.kind {
                                 TokenKind::MapKey => {
-                                    let key = reader.next_serializable(next.depth.clone());
+                                    let key = reader.next_serializable(next.depth);
 
                                     map.serialize_key(&key)?;
                                 }
                                 TokenKind::MapValue => {
-                                    let value = reader.next_serializable(next.depth.clone());
+                                    let value = reader.next_serializable(next.depth);
 
                                     map.serialize_value(&value)?;
                                 }
@@ -941,7 +849,7 @@ mod alloc_support {
                         while let Some(next) = reader.next() {
                             match next.kind {
                                 TokenKind::SeqElem => {
-                                    let elem = reader.next_serializable(next.depth.clone());
+                                    let elem = reader.next_serializable(next.depth);
 
                                     seq.serialize_element(&elem)?;
                                 }

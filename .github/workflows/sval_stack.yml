@@ -1,4 +1,4 @@
-name: sval_json
+name: sval_stack
 
 on: [push, pull_request]
 
@@ -31,37 +31,7 @@ jobs:
         run: cargo install cargo-hack
 
       - name: Powerset
-        run: cd json; cargo hack test --feature-powerset
-  
-  testcompat:
-    name: Test (compat)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: beta
-          override: true
-
-      - name: Default features
-        run: cd json/tests/twitter; cargo test
-
-  wasm:
-    name: Test (wasm)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: All features
-        run: cd json/tests/twitter; wasm-pack test --node -- --all-features
+        run: cd stack; cargo hack test --feature-powerset
 
   embedded:
     name: Build (embedded)
@@ -79,7 +49,7 @@ jobs:
           override: true
 
       - name: Default features
-        run: cd json; cargo build -Z avoid-dev-deps --target thumbv6m-none-eabi
+        run: cd stack; cargo build -Z avoid-dev-deps --target thumbv6m-none-eabi
 
   nodeps:
     name: Build (no dev deps)
@@ -99,4 +69,4 @@ jobs:
         run: cargo install cargo-hack
 
       - name: Default features
-        run: cd json; cargo hack check --feature-powerset -Z avoid-dev-deps
+        run: cd stack; cargo hack check --feature-powerset -Z avoid-dev-deps

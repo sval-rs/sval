@@ -78,7 +78,7 @@ mod alloc_support {
     /**
     Collect a value into a sequence of tokens.
     */
-    pub fn tokens(v: &(impl Value + ?Sized)) -> Vec<Token> {
+    pub fn tokens(v: impl Value) -> Vec<Token> {
         OwnedValue::collect(v)
             .tokens()
             .unwrap()
@@ -134,6 +134,7 @@ mod alloc_support {
             }
         };
 
+        #[allow(clippy::excessive_precision)]
         let values: Vec<Box<dyn Value>> = vec![
             Box::new(u8::max_value()),
             Box::new(u16::max_value()),

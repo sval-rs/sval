@@ -6,31 +6,20 @@ use sval::{
     value::Value,
 };
 
-use crate::std::{
-    error::Error,
-    string::String,
-};
+use crate::std::string::String;
 use crate::{
     fmt::Formatter,
     std::{
         fmt,
         io::Write,
     },
-    End,
 };
-
-impl<T> Error for End<T> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.err.source()
-    }
-}
 
 /**
 Write a [`Value`] to a string.
 */
-pub fn to_string(v: &(impl Value + ?Sized)) -> Result<String, sval::Error> {
+pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
     let mut out = String::new();
-
     crate::to_fmt(&mut out, v)?;
 
     Ok(out)
@@ -39,7 +28,7 @@ pub fn to_string(v: &(impl Value + ?Sized)) -> Result<String, sval::Error> {
 /**
 Write a [`Value`] to a writer.
 */
-pub fn to_writer(writer: impl Write, v: &(impl Value + ?Sized)) -> Result<(), sval::Error> {
+pub fn to_writer(writer: impl Write, v: impl Value) -> Result<(), sval::Error> {
     crate::to_fmt(FmtToIo(writer), v)
 }
 
@@ -72,7 +61,7 @@ use sval_json::Writer;
 
 let mut stream = Writer::new(Vec::<u8>::new());
 sval::stream(&mut stream, &42)?;
-let json = stream.end()?;
+let json = stream.into_inner();
 
 assert_eq!(Some("42"), str::from_utf8(&json).ok());
 # Ok(())
@@ -93,30 +82,10 @@ where
     }
 
     /**
-    Whether the stream has seen a complete, valid json structure.
-    */
-    pub fn is_valid(&self) -> bool {
-        self.0.is_valid()
-    }
-
-    /**
-    Complete the stream and return the inner writer.
-
-    If the writer contains incomplete json then this method will fail.
-    The returned error can be used to pull the original stream back out.
-    */
-    pub fn end(self) -> Result<W, End<Self>> {
-        match self.0.end() {
-            Ok(w) => Ok(w.0),
-            Err(End { err, stream, .. }) => Err(End::new(err, Writer(stream))),
-        }
-    }
-
-    /**
     Get the inner writer back out of the stream without ensuring it's valid.
     */
-    pub fn into_inner_unchecked(self) -> W {
-        self.0.into_inner_unchecked().0
+    pub fn into_inner(self) -> W {
+        self.0.into_inner().0
     }
 }
 
@@ -124,92 +93,86 @@ impl<'v, W> Stream<'v> for Writer<W>
 where
     W: Write,
 {
-    #[inline]
-    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.0.fmt(v)
     }
 
-    #[inline]
-    fn error(&mut self, v: &stream::Source) -> stream::Result {
+    fn error(&mut self, v: stream::Source) -> stream::Result {
         self.0.error(v)
     }
 
-    #[inline]
     fn i64(&mut self, v: i64) -> stream::Result {
         self.0.i64(v)
     }
 
-    #[inline]
     fn u64(&mut self, v: u64) -> stream::Result {
         self.0.u64(v)
     }
 
-    #[inline]
     fn i128(&mut self, v: i128) -> stream::Result {
         self.0.i128(v)
     }
 
-    #[inline]
     fn u128(&mut self, v: u128) -> stream::Result {
         self.0.u128(v)
     }
 
-    #[inline]
     fn f64(&mut self, v: f64) -> stream::Result {
         self.0.f64(v)
     }
 
-    #[inline]
     fn bool(&mut self, v: bool) -> stream::Result {
         self.0.bool(v)
     }
 
-    #[inline]
     fn char(&mut self, v: char) -> stream::Result {
         self.0.char(v)
     }
 
-    #[inline]
     fn str(&mut self, v: &str) -> stream::Result {
         self.0.str(v)
     }
 
-    #[inline]
     fn none(&mut self) -> stream::Result {
         self.0.none()
     }
 
-    #[inline]
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.0.map_begin(len)
     }
 
-    #[inline]
     fn map_key(&mut self) -> stream::Result {
         self.0.map_key()
     }
 
-    #[inline]
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
+        self.0.map_key_collect(k)
+    }
+
     fn map_value(&mut self) -> stream::Result {
         self.0.map_value()
     }
 
-    #[inline]
+    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
+        self.0.map_value_collect(v)
+    }
+
     fn map_end(&mut self) -> stream::Result {
         self.0.map_end()
     }
 
-    #[inline]
     fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.0.seq_begin(len)
     }
 
-    #[inline]
     fn seq_elem(&mut self) -> stream::Result {
         self.0.seq_elem()
     }
 
-    #[inline]
+    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
+        self.0.seq_elem_collect(v)
+    }
+
     fn seq_end(&mut self) -> stream::Result {
         self.0.seq_end()
     }
