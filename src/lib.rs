@@ -215,7 +215,10 @@ use self::{
 /**
 Stream the structure of a [`Value`] with a concrete lifetime.
 */
-pub fn stream<'v>(mut stream: impl Stream<'v>, value: &'v (impl Value + ?Sized)) -> Result<(), Error> {
+pub fn stream<'v>(
+    mut stream: impl Stream<'v>,
+    value: &'v (impl Value + ?Sized),
+) -> Result<(), Error> {
     value.stream(value::Stream::new(&mut stream))?;
 
     Ok(())

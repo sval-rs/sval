@@ -78,8 +78,6 @@ enum ErrorInner {
         default: bool,
     },
     Static(&'static str),
-    #[cfg(not(feature = "alloc"))]
-    Custom(&'static dyn fmt::Display),
     #[cfg(feature = "alloc")]
     Owned(String),
     #[cfg(feature = "std")]
@@ -96,8 +94,6 @@ impl fmt::Debug for ErrorInner {
                 write!(f, "unsupported stream operation: {}", op)
             }
             ErrorInner::Static(msg) => msg.fmt(f),
-            #[cfg(not(feature = "alloc"))]
-            ErrorInner::Custom(ref err) => err.fmt(f),
             #[cfg(feature = "alloc")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
             #[cfg(feature = "std")]
@@ -120,8 +116,6 @@ impl fmt::Display for ErrorInner {
                 write!(f, "unsupported stream operation: {}", op)
             }
             ErrorInner::Static(msg) => msg.fmt(f),
-            #[cfg(not(feature = "alloc"))]
-            ErrorInner::Custom(ref err) => err.fmt(f),
             #[cfg(feature = "alloc")]
             ErrorInner::Owned(ref msg) => msg.fmt(f),
             #[cfg(feature = "std")]
@@ -136,24 +130,6 @@ impl fmt::Display for ErrorInner {
 impl From<fmt::Error> for Error {
     fn from(_: fmt::Error) -> Self {
         Error::msg("formatting failed")
-    }
-}
-
-#[cfg(not(feature = "alloc"))]
-mod no_alloc_support {
-    use super::*;
-
-    use crate::std::fmt;
-
-    impl Error {
-        // NOTE: This method is not public because we already
-        // have a method called `custom` when `alloc` is available.
-        // It's strictly more general than this one, but could
-        // be confusing to users to have bounds change depending
-        // on cargo features
-        pub(crate) fn custom(err: &'static dyn fmt::Display) -> Self {
-            Error(ErrorInner::Custom(err))
-        }
     }
 }
 

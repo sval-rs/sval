@@ -78,7 +78,7 @@ mod alloc_support {
     /**
     Collect a value into a sequence of tokens.
     */
-    pub fn tokens(v: &(impl Value + ?Sized)) -> Vec<Token> {
+    pub fn tokens(v: impl Value) -> Vec<Token> {
         OwnedValue::collect(v)
             .tokens()
             .unwrap()

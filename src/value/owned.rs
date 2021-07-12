@@ -17,8 +17,6 @@ use crate::{
     },
     stream::{
         self,
-        stack,
-        Stack,
         Stream,
     },
     value::{
@@ -62,7 +60,7 @@ impl OwnedValue {
 
     [`Value`]: struct.Value.html
     */
-    pub fn collect(v: &(impl Value + ?Sized)) -> Self {
+    pub fn collect(v: impl Value) -> Self {
         // Try get a primitive first
         // If the value is a simple primitive that can
         // be represented in a single token then we can avoid
@@ -378,7 +376,7 @@ impl fmt::Display for OwnedSource {
 #[derive(Clone)]
 pub(crate) struct Token {
     #[allow(dead_code)]
-    pub(crate) depth: stack::Depth,
+    pub(crate) depth: usize,
     pub(crate) kind: TokenKind,
 }
 
@@ -439,14 +437,14 @@ impl Token {
 }
 
 pub(crate) struct TokenBuf {
-    stack: Stack,
+    depth: usize,
     tokens: Vec<Token>,
 }
 
 impl TokenBuf {
     pub(crate) fn new() -> TokenBuf {
         TokenBuf {
-            stack: Stack::new(),
+            depth: 0,
             tokens: Vec::new(),
         }
     }
@@ -458,8 +456,11 @@ impl TokenBuf {
         Ok(buf.tokens)
     }
 
-    fn push(&mut self, kind: TokenKind, depth: stack::Depth) {
-        self.tokens.push(Token { depth, kind });
+    fn push(&mut self, kind: TokenKind) {
+        self.tokens.push(Token {
+            depth: self.depth,
+            kind,
+        });
     }
 }
 
@@ -467,7 +468,7 @@ impl TokenBuf {
 impl TokenBuf {
     pub(crate) fn clear(&mut self) {
         self.tokens.clear();
-        self.stack.clear();
+        self.depth = 0;
     }
 
     pub(crate) fn tokens(&self) -> &[Token] {
@@ -475,15 +476,13 @@ impl TokenBuf {
     }
 
     pub(crate) fn is_streamable(&self) -> bool {
-        self.stack.can_end()
+        self.depth == 0
     }
 }
 
 impl<'v> Stream<'v> for TokenBuf {
     fn fmt(&mut self, f: stream::Arguments) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::Str(StringContainer::from(f.to_string())), depth);
+        self.push(TokenKind::Str(StringContainer::from(f.to_string())));
 
         Ok(())
     }
@@ -493,12 +492,7 @@ impl<'v> Stream<'v> for TokenBuf {
     }
 
     fn error(&mut self, v: stream::Source) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(
-            TokenKind::Error(OwnedContainer::from(OwnedSource::from(v))),
-            depth,
-        );
+        self.push(TokenKind::Error(OwnedContainer::from(OwnedSource::from(v))));
 
         Ok(())
     }
@@ -508,65 +502,49 @@ impl<'v> Stream<'v> for TokenBuf {
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::Signed(v), depth);
+        self.push(TokenKind::Signed(v));
 
         Ok(())
     }
 
     fn u64(&mut self, v: u64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::Unsigned(v), depth);
+        self.push(TokenKind::Unsigned(v));
 
         Ok(())
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::BigSigned(v), depth);
+        self.push(TokenKind::BigSigned(v));
 
         Ok(())
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::BigUnsigned(v), depth);
+        self.push(TokenKind::BigUnsigned(v));
 
         Ok(())
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::Float(v), depth);
+        self.push(TokenKind::Float(v));
 
         Ok(())
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::Bool(v), depth);
+        self.push(TokenKind::Bool(v));
 
         Ok(())
     }
 
     fn char(&mut self, v: char) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::Char(v), depth);
+        self.push(TokenKind::Char(v));
 
         Ok(())
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::Str(StringContainer::from(v)), depth);
+        self.push(TokenKind::Str(StringContainer::from(v)));
 
         Ok(())
     }
@@ -576,25 +554,21 @@ impl<'v> Stream<'v> for TokenBuf {
     }
 
     fn none(&mut self) -> stream::Result {
-        let depth = self.stack.primitive()?.depth();
-
-        self.push(TokenKind::None, depth);
+        self.push(TokenKind::None);
 
         Ok(())
     }
 
     fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-        let depth = self.stack.map_begin()?.depth();
+        self.depth += 1;
 
-        self.push(TokenKind::MapBegin(len), depth);
+        self.push(TokenKind::MapBegin(len));
 
         Ok(())
     }
 
     fn map_key(&mut self) -> stream::Result {
-        let depth = self.stack.map_key()?.depth();
-
-        self.push(TokenKind::MapKey, depth);
+        self.push(TokenKind::MapKey);
 
         Ok(())
     }
@@ -609,9 +583,7 @@ impl<'v> Stream<'v> for TokenBuf {
     }
 
     fn map_value(&mut self) -> stream::Result {
-        let depth = self.stack.map_value()?.depth();
-
-        self.push(TokenKind::MapValue, depth);
+        self.push(TokenKind::MapValue);
 
         Ok(())
     }
@@ -626,25 +598,23 @@ impl<'v> Stream<'v> for TokenBuf {
     }
 
     fn map_end(&mut self) -> stream::Result {
-        let depth = self.stack.map_end()?.depth();
+        self.push(TokenKind::MapEnd);
 
-        self.push(TokenKind::MapEnd, depth);
+        self.depth -= 1;
 
         Ok(())
     }
 
     fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-        let depth = self.stack.seq_begin()?.depth();
+        self.depth += 1;
 
-        self.push(TokenKind::SeqBegin(len), depth);
+        self.push(TokenKind::SeqBegin(len));
 
         Ok(())
     }
 
     fn seq_elem(&mut self) -> stream::Result {
-        let depth = self.stack.seq_elem()?.depth();
-
-        self.push(TokenKind::SeqElem, depth);
+        self.push(TokenKind::SeqElem);
 
         Ok(())
     }
@@ -659,9 +629,9 @@ impl<'v> Stream<'v> for TokenBuf {
     }
 
     fn seq_end(&mut self) -> stream::Result {
-        let depth = self.stack.seq_end()?.depth();
+        self.push(TokenKind::SeqEnd);
 
-        self.push(TokenKind::SeqEnd, depth);
+        self.depth -= 1;
 
         Ok(())
     }
@@ -686,7 +656,7 @@ impl Primitive {
     #[cfg(any(test, feature = "test"))]
     fn to_token(&self) -> Token {
         Token {
-            depth: stack::Depth::root(),
+            depth: 0,
             kind: match *self {
                 Primitive::Signed(v) => TokenKind::Signed(v),
                 Primitive::Unsigned(v) => TokenKind::Unsigned(v),
@@ -957,7 +927,7 @@ mod tests {
     struct Seq;
 
     impl Value for Seq {
-        fn stream<'s, 'v>(&self, stream: &mut value::Stream<'s, 'v>) -> value::Result {
+        fn stream<'s, 'v>(&self, mut stream: value::Stream<'s, 'v>) -> value::Result {
             let mut stream = stream.owned();
 
             stream.seq_begin(Some(2))?;

@@ -59,17 +59,17 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         Ok(())
     }
 
-    fn serialize_i8(mut self, v: i8) -> Result<Self::Ok, Self::Error> {
+    fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
         self.serialize_i64(i64::from(v))?;
         Ok(())
     }
 
-    fn serialize_i16(mut self, v: i16) -> Result<Self::Ok, Self::Error> {
+    fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
         self.serialize_i64(i64::from(v))?;
         Ok(())
     }
 
-    fn serialize_i32(mut self, v: i32) -> Result<Self::Ok, Self::Error> {
+    fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
         self.serialize_i64(i64::from(v))?;
         Ok(())
     }
@@ -79,17 +79,17 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         Ok(())
     }
 
-    fn serialize_u8(mut self, v: u8) -> Result<Self::Ok, Self::Error> {
+    fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
         self.serialize_u64(u64::from(v))?;
         Ok(())
     }
 
-    fn serialize_u16(mut self, v: u16) -> Result<Self::Ok, Self::Error> {
+    fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
         self.serialize_u64(u64::from(v))?;
         Ok(())
     }
 
-    fn serialize_u32(mut self, v: u32) -> Result<Self::Ok, Self::Error> {
+    fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
         self.serialize_u64(u64::from(v))?;
         Ok(())
     }
@@ -109,7 +109,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         Ok(())
     }
 
-    fn serialize_f32(mut self, v: f32) -> Result<Self::Ok, Self::Error> {
+    fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
         self.serialize_f64(f64::from(v))?;
         Ok(())
     }
@@ -133,7 +133,9 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + fmt::Display,
     {
-        self.0.owned().any(&stream::Arguments::from(format_args!("{}", v)))?;
+        self.0
+            .owned()
+            .any(&stream::Arguments::from(format_args!("{}", v)))?;
         Ok(())
     }
 
@@ -152,7 +154,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         self.serialize_unit()
     }
 
-    fn serialize_some<T>(mut self, value: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
@@ -165,12 +167,12 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         Ok(())
     }
 
-    fn serialize_unit_struct(mut self, _: &'static str) -> Result<Self::Ok, Self::Error> {
+    fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
         self.serialize_unit()
     }
 
     fn serialize_unit_variant(
-        mut self,
+        self,
         _: &'static str,
         _: u32,
         variant: &'static str,
@@ -179,7 +181,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     }
 
     fn serialize_newtype_struct<T>(
-        mut self,
+        self,
         _: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>

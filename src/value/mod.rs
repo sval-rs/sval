@@ -70,11 +70,11 @@ impl<'a, T: ?Sized> Value for &'a T
 where
     T: Value,
 {
-    fn stream<'s, 'v>(&'v self, mut stream: Stream<'s, 'v>) -> Result {
+    fn stream<'s, 'v>(&'v self, stream: Stream<'s, 'v>) -> Result {
         (**self).stream(stream)
     }
 
-    fn stream_owned(&self, mut stream: Stream) -> Result {
+    fn stream_owned(&self, stream: Stream) -> Result {
         (**self).stream_owned(stream)
     }
 }

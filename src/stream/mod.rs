@@ -5,35 +5,16 @@ A stream for datastructures.
 
 A [`Stream`] is a type that receives and works with abstract data-structures.
 
-## Streams without state
-
-A `Stream` might only care about a single kind of value.
-
-## Streams with state
-
-There are more methods on `Stream` that can be overriden for more complex
-datastructures like sequences and maps. The following example uses a
-[`stream::Stack`] to track the state of any sequences and maps and ensure
-they're valid.
-
-By default, the `Stack` type has a fixed depth. That means deeply nested
-structures aren't supported. See the [`stream::Stack`] type for more details.
-
 [`Value`]: ../value/trait.Value.html
-[`stream::Stack`]: stack/struct.Stack.html
 */
 
 mod error;
 mod fmt;
-pub mod stack;
 mod value;
-
-pub mod stack2;
 
 pub use self::{
     error::Source,
     fmt::Arguments,
-    stack::Stack,
     value::Value,
 };
 

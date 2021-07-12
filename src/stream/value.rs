@@ -48,11 +48,11 @@ impl<'v> Value<'v> {
 }
 
 impl<'a> value::Value for Value<'a> {
-    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
+    fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
         self.0.stream(stream)
     }
 
-    fn stream_owned(&self, mut stream: value::Stream) -> value::Result {
+    fn stream_owned(&self, stream: value::Stream) -> value::Result {
         self.0.stream_owned(stream)
     }
 }

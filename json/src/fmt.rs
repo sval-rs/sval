@@ -1,21 +1,14 @@
 use sval::{
     stream::{
         self,
-        stack2::{self as stack, Stack},
         Stream,
     },
     value::Value,
 };
 
-use crate::{
-    std::{
-        fmt::{
-            self,
-            Write,
-        },
-        mem,
-    },
-    End,
+use crate::std::fmt::{
+    self,
+    Write,
 };
 
 /**

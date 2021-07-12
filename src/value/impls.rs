@@ -187,8 +187,7 @@ mod alloc_support {
     where
         T: Value,
     {
-
-        fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
+        fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
             (**self).stream(stream)
         }
     }
@@ -197,14 +196,12 @@ mod alloc_support {
     where
         T: Value,
     {
-
-        fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
+        fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
             (**self).stream(stream)
         }
     }
 
     impl Value for String {
-
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
             stream.str(&*self)
         }
@@ -214,8 +211,7 @@ mod alloc_support {
     where
         T: Value,
     {
-
-        fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
+        fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
             self.as_slice().stream(stream)
         }
     }
@@ -225,7 +221,6 @@ mod alloc_support {
         K: Eq + Value,
         V: Value,
     {
-
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
             stream.map_begin(Some(self.len()))?;
 
@@ -254,7 +249,6 @@ mod std_support {
     };
 
     impl Value for dyn error::Error + 'static {
-
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
             stream.error(self)
         }
@@ -264,8 +258,7 @@ mod std_support {
     where
         T: Value,
     {
-
-        fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
+        fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
             (**self).stream(stream)
         }
     }
@@ -276,7 +269,6 @@ mod std_support {
         V: Value,
         H: BuildHasher,
     {
-
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
             stream.map_begin(Some(self.len()))?;
 

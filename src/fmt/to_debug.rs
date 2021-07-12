@@ -1,20 +1,11 @@
 use crate::{
-    std::{
-        fmt::{
-            self,
-            Debug,
-            Formatter,
-            Write,
-        },
-        mem,
-    },
-    stream::{
+    std::fmt::{
         self,
-        stack::{
-            self,
-            Stack,
-        },
+        Debug,
+        Formatter,
+        Write,
     },
+    stream,
     value,
 };
 
@@ -41,32 +32,18 @@ This stream is an alternative implementation of `std::fmt::DebugMap` and `std::f
 It should be kept up to date with changes made upstream.
 */
 struct Stream<'a, 'b: 'a> {
-    stack: Stack,
     depth: usize,
-    delim: Option<&'static str>,
+    is_current_depth_empty: bool,
     fmt: &'a mut Formatter<'b>,
 }
 
 impl<'a, 'b: 'a> Stream<'a, 'b> {
     fn new(fmt: &'a mut Formatter<'b>) -> Self {
         Stream {
-            stack: Stack::new(),
             depth: 0,
-            delim: None,
+            is_current_depth_empty: false,
             fmt,
         }
-    }
-
-    fn next_delim(&self, pos: stack::Pos) -> Option<&'static str> {
-        if pos.is_value() || pos.is_elem() {
-            return Some(if self.is_pretty() { "," } else { ", " });
-        }
-
-        if pos.is_key() {
-            return Some(": ");
-        }
-
-        return None;
     }
 
     fn is_pretty(&self) -> bool {
@@ -74,13 +51,6 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
     }
 
     fn fmt(&mut self, v: impl fmt::Debug) -> stream::Result {
-        let pos = self.stack.primitive()?;
-
-        let next_delim = self.next_delim(pos);
-        if let Some(delim) = mem::replace(&mut self.delim, next_delim) {
-            self.fmt.write_str(delim)?;
-        }
-
         v.fmt(&mut self.fmt)?;
 
         Ok(())
@@ -88,19 +58,19 @@ impl<'a, 'b: 'a> Stream<'a, 'b> {
 }
 
 impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
-    fn fmt(&mut self, v: &stream::Arguments) -> stream::Result {
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
         self.fmt(v)
     }
 
-    fn fmt_borrowed(&mut self, v: &stream::Arguments<'v>) -> stream::Result {
+    fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
         self.fmt(v)
     }
 
-    fn error(&mut self, v: &stream::Source) -> stream::Result {
+    fn error(&mut self, v: stream::Source) -> stream::Result {
         self.fmt(v)
     }
 
-    fn error_borrowed(&mut self, v: &stream::Source<'v>) -> stream::Result {
+    fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
         self.fmt(v)
     }
 
@@ -145,14 +115,9 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
+        self.is_current_depth_empty = true;
         if self.is_pretty() {
             self.depth += 1;
-        }
-
-        self.stack.map_begin()?;
-
-        if let Some(delim) = self.delim.take() {
-            self.fmt.write_str(delim)?;
         }
 
         self.fmt.write_char('{')?;
@@ -162,42 +127,42 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
 
     fn map_key(&mut self) -> stream::Result {
         if self.is_pretty() {
-            if !self.stack.current().is_empty_map() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
-                }
+            if !self.is_current_depth_empty {
+                self.fmt.write_char(',')?;
             }
 
             self.fmt.write_char('\n')?;
             pad(&mut self.fmt, self.depth)?;
+        } else if !self.is_current_depth_empty {
+            self.fmt.write_str(", ")?;
         }
 
-        self.stack.map_key()?;
+        self.is_current_depth_empty = false;
 
         Ok(())
     }
 
-    fn map_key_collect(&mut self, k: &stream::Value) -> stream::Result {
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
         self.map_key()?;
         k.stream(self).map(|_| ())
     }
 
-    fn map_key_collect_borrowed(&mut self, k: &stream::Value<'v>) -> stream::Result {
+    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
         self.map_key_collect(k)
     }
 
     fn map_value(&mut self) -> stream::Result {
-        self.stack.map_value()?;
+        self.fmt.write_str(": ")?;
 
         Ok(())
     }
 
-    fn map_value_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
         self.map_value()?;
         v.stream(self).map(|_| ())
     }
 
-    fn map_value_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.map_value_collect(v)
     }
 
@@ -205,34 +170,24 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         if self.is_pretty() {
             self.depth -= 1;
 
-            if !self.stack.current().is_empty_map() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
-                }
-
-                self.fmt.write_char('\n')?;
+            if !self.is_current_depth_empty {
+                self.fmt.write_str(",\n")?;
                 pad(&mut self.fmt, self.depth)?;
             }
         }
 
-        let pos = self.stack.map_end()?;
-
-        self.delim = self.next_delim(pos);
-
         self.fmt.write_char('}')?;
+
+        self.is_current_depth_empty = false;
 
         Ok(())
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+        self.is_current_depth_empty = true;
+
         if self.is_pretty() {
             self.depth += 1;
-        }
-
-        self.stack.seq_begin()?;
-
-        if let Some(delim) = self.delim.take() {
-            self.fmt.write_str(delim)?;
         }
 
         self.fmt.write_char('[')?;
@@ -242,27 +197,27 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
 
     fn seq_elem(&mut self) -> stream::Result {
         if self.is_pretty() {
-            if !self.stack.current().is_empty_seq() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
-                }
+            if !self.is_current_depth_empty {
+                self.fmt.write_char(',')?;
             }
 
             self.fmt.write_char('\n')?;
             pad(&mut self.fmt, self.depth)?;
+        } else if !self.is_current_depth_empty {
+            self.fmt.write_str(", ")?;
         }
 
-        self.stack.seq_elem()?;
+        self.is_current_depth_empty = false;
 
         Ok(())
     }
 
-    fn seq_elem_collect(&mut self, v: &stream::Value) -> stream::Result {
+    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
         self.seq_elem()?;
         v.stream(self).map(|_| ())
     }
 
-    fn seq_elem_collect_borrowed(&mut self, v: &stream::Value<'v>) -> stream::Result {
+    fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.seq_elem_collect(v)
     }
 
@@ -270,21 +225,15 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         if self.is_pretty() {
             self.depth -= 1;
 
-            if !self.stack.current().is_empty_seq() {
-                if let Some(delim) = self.delim.take() {
-                    self.fmt.write_str(delim)?;
-                }
-
-                self.fmt.write_char('\n')?;
+            if !self.is_current_depth_empty {
+                self.fmt.write_str(",\n")?;
                 pad(&mut self.fmt, self.depth)?;
             }
         }
 
-        let pos = self.stack.seq_end()?;
-
-        self.delim = self.next_delim(pos);
-
         self.fmt.write_char(']')?;
+
+        self.is_current_depth_empty = false;
 
         Ok(())
     }

@@ -1,3 +1,19 @@
+/*!
+A fixed-size, stateful stack for streams.
+*/
+
+/*
+/!\ CAREFUL /!\
+
+This module contains unsafe code with some tricky
+invariants based on the state of the current slot.
+
+We use a combination of property-based testing
+and a reasonable test suite to try ensure safety
+is maintained, but any changes here should be
+reviewed carefully.
+*/
+
 use crate::{
     std::fmt,
     stream::{
@@ -149,7 +165,7 @@ impl Stack {
     Any state it currently contains will be lost.
     */
     pub fn clear(&mut self) {
-        unimplemented!()
+        *self = Stack::new();
     }
 
     /**

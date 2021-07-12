@@ -72,7 +72,7 @@ impl<'v> Stream<'v> for EmptyStream {
 
 struct Map;
 impl value::Value for Map {
-    fn stream(&self, stream: &mut value::Stream) -> value::Result {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
         stream.map_begin(None)?;
 
         stream.map_key(&"a")?;

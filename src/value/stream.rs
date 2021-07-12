@@ -166,7 +166,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn map_value(&mut self, v: &'v impl Value) -> stream::Result {
         // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
         // This would let us continue to forward to `collect_borrowed` for sized values
-        self.inner().map_value_collect_borrowed(stream::Value::new(v))
+        self.inner()
+            .map_value_collect_borrowed(stream::Value::new(v))
     }
 
     /**
@@ -189,7 +190,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn seq_elem(&mut self, v: &'v impl Value) -> stream::Result {
         // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
         // This would let us continue to forward to `collect_borrowed` for sized values
-        self.inner().seq_elem_collect_borrowed(stream::Value::new(v))
+        self.inner()
+            .seq_elem_collect_borrowed(stream::Value::new(v))
     }
 
     /**
@@ -455,35 +457,5 @@ where
 
     fn seq_end(&mut self) -> stream::Result {
         self.0.seq_end()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use crate::stream::Stack;
-
-    #[test]
-    fn stream_method_resolution() {
-        fn takes_value_stream(mut stream: Stream) -> stream::Result {
-            stream.map_begin(None)?;
-            stream.map_key(&"key")?;
-            stream.map_value(&42)?;
-            stream.map_end()
-        }
-
-        fn takes_stream<'s>(mut stream: impl stream::Stream<'s>) -> stream::Result {
-            stream.map_begin(None)?;
-            stream.map_key()?;
-            stream.str("key")?;
-            stream.map_value()?;
-            stream.i64(42)?;
-            stream.map_end()
-        }
-
-        takes_value_stream(Stream::new(&mut Stack::default()))
-            .expect("failed to use ref mut stream");
-        takes_stream(Stream::new(&mut Stack::default())).expect("failed to use stream");
     }
 }

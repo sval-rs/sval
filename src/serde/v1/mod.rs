@@ -17,7 +17,7 @@ a type that implements `serde::Serialize`:
 # use sval::value::{self, Value};
 # struct MyValue;
 # impl Value for MyValue {
-#     fn stream(&self, stream: &mut value::Stream) -> value::Result {
+#     fn stream<'s, 'v>(&'v self, stream: value::Stream<'s, 'v>) -> value::Result {
 #         unimplemented!()
 #     }
 # }
