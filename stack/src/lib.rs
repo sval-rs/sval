@@ -1,3 +1,5 @@
+#![no_std]
+
 #[macro_use]
 #[allow(unused_imports)]
 #[cfg(feature = "alloc")]
