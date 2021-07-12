@@ -30,11 +30,7 @@ impl Error {
 
     /** Whether or not an error is because some operation was unsupported. */
     pub fn is_unsupported(&self) -> bool {
-        if let ErrorInner::Unsupported { .. } = self.0 {
-            true
-        } else {
-            false
-        }
+        matches!(self.0, ErrorInner::Unsupported { .. })
     }
 
     #[allow(dead_code)]
@@ -47,11 +43,7 @@ impl Error {
 
     #[allow(dead_code)]
     pub(crate) fn is_default_unsupported(&self) -> bool {
-        if let ErrorInner::Unsupported { default: true, .. } = self.0 {
-            true
-        } else {
-            false
-        }
+        matches!(self.0, ErrorInner::Unsupported { default: true, .. })
     }
 
     /** Convert into a `fmt::Error` */

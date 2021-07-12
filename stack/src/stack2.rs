@@ -264,7 +264,7 @@ impl Stack {
         const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
 
         if self.inner as u8 & MASK == VALID {
-            self.inner = self.inner >> Slot::BITS;
+            self.inner >>= Slot::BITS;
             self.depth -= 1;
 
             Ok(Pos(self.inner, self.depth))
@@ -327,7 +327,7 @@ impl Stack {
         const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
 
         if self.inner as u8 & MASK == VALID {
-            self.inner = self.inner >> Slot::BITS;
+            self.inner >>= Slot::BITS;
             self.depth -= 1;
 
             Ok(Pos(self.inner, self.depth))

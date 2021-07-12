@@ -134,6 +134,7 @@ mod alloc_support {
             }
         };
 
+        #[allow(clippy::excessive_precision)]
         let values: Vec<Box<dyn Value>> = vec![
             Box::new(u8::max_value()),
             Box::new(u16::max_value()),
