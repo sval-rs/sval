@@ -14,13 +14,7 @@ is maintained, but any changes here should be
 reviewed carefully.
 */
 
-use crate::{
-    std::fmt,
-    stream::{
-        self,
-        Stream,
-    },
-};
+use crate::std::fmt;
 
 /**
 The expected position in the stream.
@@ -40,9 +34,8 @@ to have the same depth or greater.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Depth(usize);
 
-#[cfg(all(feature = "alloc", any(test, feature = "test")))]
 impl Depth {
-    pub(crate) fn root() -> Self {
+    pub fn root() -> Self {
         Depth(0)
     }
 }
@@ -243,13 +236,6 @@ impl Stack {
     */
     pub fn clear(&mut self) {
         self.inner.clear();
-    }
-
-    /**
-    Get the current position in the stack.
-    */
-    pub fn current(&self) -> Pos {
-        self.inner.current().pos(self.inner.depth())
     }
 
     /**
@@ -482,121 +468,8 @@ impl Stack {
 
             Ok(())
         } else {
-            Err(crate::Error::msg("stack is not empty"))
+            Err(crate::Error::custom(&"stack is not empty"))
         }
-    }
-}
-
-impl<'v> Stream<'v> for Stack {
-    fn fmt(&mut self, _: stream::Arguments) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn fmt_borrowed(&mut self, _: stream::Arguments<'v>) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn error(&mut self, _: stream::Source) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn error_borrowed(&mut self, _: stream::Source<'v>) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn i64(&mut self, _: i64) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn u64(&mut self, _: u64) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn i128(&mut self, _: i128) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn u128(&mut self, _: u128) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn f64(&mut self, _: f64) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn bool(&mut self, _: bool) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn char(&mut self, _: char) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn str(&mut self, _: &str) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn str_borrowed(&mut self, _: &'v str) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn none(&mut self) -> stream::Result {
-        self.primitive().map(|_| ())
-    }
-
-    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
-        self.map_begin().map(|_| ())
-    }
-
-    fn map_key(&mut self) -> stream::Result {
-        self.map_key().map(|_| ())
-    }
-
-    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
-        self.map_key()?;
-        k.stream(self).map(|_| ())
-    }
-
-    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
-        self.map_key_collect(k)
-    }
-
-    fn map_value(&mut self) -> stream::Result {
-        self.map_value().map(|_| ())
-    }
-
-    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
-        self.map_value()?;
-        v.stream(self).map(|_| ())
-    }
-
-    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
-        self.map_value_collect(v)
-    }
-
-    fn map_end(&mut self) -> stream::Result {
-        self.map_end().map(|_| ())
-    }
-
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
-        self.seq_begin().map(|_| ())
-    }
-
-    fn seq_elem(&mut self) -> stream::Result {
-        self.seq_elem().map(|_| ())
-    }
-
-    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
-        self.seq_elem()?;
-        v.stream(self).map(|_| ())
-    }
-
-    fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
-        self.seq_elem_collect(v)
-    }
-
-    fn seq_end(&mut self) -> stream::Result {
-        self.seq_end().map(|_| ())
     }
 }
 
@@ -638,7 +511,7 @@ mod inner {
 
         pub(super) fn push_depth(&mut self) -> Result<(), crate::Error> {
             if self.depth >= Self::MAX_DEPTH {
-                return Err(crate::Error::msg("nesting limit reached"));
+                return Err(crate::Error::custom(&"nesting limit reached"));
             }
 
             self.depth += 1;
@@ -892,16 +765,13 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.map_begin().unwrap();
-        assert!(stack.current().is_empty_map());
 
         stack.map_key().unwrap();
-        assert!(!stack.current().is_empty_map());
         stack.primitive().unwrap();
 
         stack.map_value().unwrap();
         stack.primitive().unwrap();
 
-        assert!(!stack.current().is_empty_map());
         stack.map_end().unwrap();
 
         stack.end().unwrap();
@@ -912,7 +782,6 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.map_begin().unwrap();
-        assert!(stack.current().is_empty_map());
         stack.map_end().unwrap();
 
         stack.end().unwrap();
@@ -1009,13 +878,10 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.seq_begin().unwrap();
-        assert!(stack.current().is_empty_seq());
 
         stack.seq_elem().unwrap();
-        assert!(!stack.current().is_empty_seq());
         stack.primitive().unwrap();
 
-        assert!(!stack.current().is_empty_seq());
         stack.seq_end().unwrap();
 
         stack.end().unwrap();
@@ -1026,7 +892,6 @@ mod tests {
         let mut stack = Stack::new();
 
         stack.seq_begin().unwrap();
-        assert!(stack.current().is_empty_seq());
         stack.seq_end().unwrap();
 
         stack.end().unwrap();

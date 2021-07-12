@@ -36,7 +36,7 @@ use sval_json::Formatter;
 
 let mut stream = Formatter::new(String::new());
 sval::stream(&mut stream, &42)?;
-let json = stream.end()?;
+let json = stream.into_inner();
 
 assert_eq!("42", json);
 # Ok(())

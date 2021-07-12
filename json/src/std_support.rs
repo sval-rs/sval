@@ -61,7 +61,7 @@ use sval_json::Writer;
 
 let mut stream = Writer::new(Vec::<u8>::new());
 sval::stream(&mut stream, &42)?;
-let json = stream.end()?;
+let json = stream.into_inner();
 
 assert_eq!(Some("42"), str::from_utf8(&json).ok());
 # Ok(())

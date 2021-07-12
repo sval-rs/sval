@@ -14,13 +14,7 @@ is maintained, but any changes here should be
 reviewed carefully.
 */
 
-use crate::{
-    std::fmt,
-    stream::{
-        self,
-        Stream,
-    },
-};
+use crate::std::fmt;
 
 struct Expecting {
     expecting: &'static str,
@@ -49,7 +43,7 @@ pub struct Depth(usize);
 
 #[cfg(all(feature = "alloc", any(test, feature = "test")))]
 impl Depth {
-    pub(crate) fn root() -> Self {
+    pub fn root() -> Self {
         Depth(0)
     }
 }
@@ -112,6 +106,8 @@ impl Slot {
     const IS_MAP_KEY: u8 =      0b0000_0010;
     const IS_MAP_VALUE: u8 =    0b0000_0110;
     const IS_SEQ_ELEM: u8 =     0b0000_1000;
+
+    #[allow(dead_code)]
     const RESERVED: u8 =        0b0001_0000;
 
     const MASK_VALUE_ELEM: u8 = 0b0000_1100;
@@ -169,13 +165,6 @@ impl Stack {
     }
 
     /**
-    Get the current position in the stack.
-    */
-    pub fn current(&self) -> Pos {
-        unimplemented!()
-    }
-
-    /**
     Push a primitive.
 
     A primitive is a simple value that isn't a map or sequence.
@@ -198,7 +187,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("a primitive")
+            Err(crate::Error::custom(&"a primitive"))
         }
     }
 
@@ -213,7 +202,7 @@ impl Stack {
         const EXPECT: RawStack = (Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE) as RawStack;
 
         if self.depth == Self::MAX_DEPTH {
-            return err_invalid("more depth at the start of a map");
+            return Err(crate::Error::custom(&"more depth at the start of a map"));
         }
 
         if self.inner as u8 & MASK == VALID {
@@ -222,7 +211,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("the start of a map")
+            Err(crate::Error::custom(&"the start of a map"))
         }
     }
 
@@ -242,7 +231,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("a map key")
+            Err(crate::Error::custom(&"a map key"))
         }
     }
 
@@ -262,7 +251,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("a map value")
+            Err(crate::Error::custom(&"a map value"))
         }
     }
 
@@ -279,7 +268,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("the end of a map")
+            Err(crate::Error::custom(&"the end of a map"))
         }
     }
 
@@ -294,7 +283,7 @@ impl Stack {
         const EXPECT: RawStack = (Slot::NEEDS_SEQ_ELEM) as RawStack;
 
         if self.depth == Self::MAX_DEPTH {
-            return err_invalid("more depth at the start of a sequence");
+            return Err(crate::Error::custom(&"more depth at the start of a sequence"));
         }
 
         if self.inner as u8 & MASK == VALID {
@@ -303,7 +292,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("the start of a sequence")
+            Err(crate::Error::custom(&"the start of a sequence"))
         }
     }
 
@@ -323,7 +312,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("a sequence element")
+            Err(crate::Error::custom(&"a sequence element"))
         }
     }
 
@@ -340,7 +329,7 @@ impl Stack {
 
             Ok(Pos(self.inner, self.depth))
         } else {
-            err_invalid("the end of a sequence")
+            Err(crate::Error::custom(&"the end of a sequence"))
         }
     }
 
@@ -365,14 +354,7 @@ impl Stack {
         if self.can_end() {
             Ok(())
         } else {
-            err_invalid("the end of the stream")
+            Err(crate::Error::custom(&"the end of the stream"))
         }
     }
-}
-
-#[cold]
-fn err_invalid<T>(expecting: &'static str) -> Result<T, crate::Error> {
-    Err(crate::Error::custom(&Expecting {
-        expecting,
-    }))
 }

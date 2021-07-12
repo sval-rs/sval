@@ -17,14 +17,12 @@ use miniserde::Serialize as MiniSerialize;
 fn sval_json_writer_is_valid() {
     sval::test::stream_exhaustive(
         || sval_json::Writer::new(Vec::new()),
-        |writer| match writer {
-            // If the result is ok then the writer should be valid
-            Ok(writer) => {
-                writer.end().unwrap();
-            }
+        |writer| {
             // If the result is not ok then the error should be unsupported
             // This will happen with non-string keys
-            Err(e) => assert!(e.is_unsupported()),
+            if let Err(e) = writer {
+                assert!(e.is_unsupported());
+            }
         },
     );
 }
