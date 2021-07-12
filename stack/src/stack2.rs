@@ -102,20 +102,20 @@ impl Pos {
 enum Slot {}
 
 impl Slot {
-    const IS_EMPTY: u8 =        0b0000_0000;
-    const IS_MAP_KEY: u8 =      0b0000_0010;
-    const IS_MAP_VALUE: u8 =    0b0000_0110;
-    const IS_SEQ_ELEM: u8 =     0b0000_1000;
+    const IS_EMPTY: u8 = 0b0000_0000;
+    const IS_MAP_KEY: u8 = 0b0000_0010;
+    const IS_MAP_VALUE: u8 = 0b0000_0110;
+    const IS_SEQ_ELEM: u8 = 0b0000_1000;
 
     #[allow(dead_code)]
-    const RESERVED: u8 =        0b0001_0000;
+    const RESERVED: u8 = 0b0001_0000;
 
     const MASK_VALUE_ELEM: u8 = 0b0000_1100;
 
-    const NEEDS_ITEM: u8 =      0b0000_0001;
-    const NEEDS_MAP_KEY: u8 =   0b0000_0100;
+    const NEEDS_ITEM: u8 = 0b0000_0001;
+    const NEEDS_MAP_KEY: u8 = 0b0000_0100;
     const NEEDS_MAP_VALUE: u8 = 0b0000_0010;
-    const NEEDS_SEQ_ELEM: u8 =  0b0000_1000;
+    const NEEDS_SEQ_ELEM: u8 = 0b0000_1000;
 
     const MASK_SLOT: u8 = u8::MAX >> (u8::BITS as u8 - Slot::BITS);
 
@@ -143,7 +143,8 @@ impl Stack {
 
     const BITS: u8 = RawStack::BITS as u8;
 
-    const MASK_SLOT_BEGIN: RawStack = (RawStack::MAX << Slot::BITS) ^ (Slot::NEEDS_ITEM as RawStack) << Slot::BITS;
+    const MASK_SLOT_BEGIN: RawStack =
+        (RawStack::MAX << Slot::BITS) ^ (Slot::NEEDS_ITEM as RawStack) << Slot::BITS;
 
     /**
     Create a new stack.
@@ -283,7 +284,9 @@ impl Stack {
         const EXPECT: RawStack = (Slot::NEEDS_SEQ_ELEM) as RawStack;
 
         if self.depth == Self::MAX_DEPTH {
-            return Err(crate::Error::custom(&"more depth at the start of a sequence"));
+            return Err(crate::Error::custom(
+                &"more depth at the start of a sequence",
+            ));
         }
 
         if self.inner as u8 & MASK == VALID {

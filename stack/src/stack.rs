@@ -487,14 +487,12 @@ mod inner {
         const SLOTS: usize = 16;
         const MAX_DEPTH: usize = Self::SLOTS - 1;
 
-
         pub(super) fn new() -> Self {
             Stack {
                 slots: [Slot::root(); Self::SLOTS],
                 depth: 0,
             }
         }
-
 
         pub(super) fn clear(&mut self) {
             *self = Stack {
@@ -503,11 +501,9 @@ mod inner {
             }
         }
 
-
         pub(super) fn depth(&self) -> usize {
             self.depth
         }
-
 
         pub(super) fn push_depth(&mut self) -> Result<(), crate::Error> {
             if self.depth >= Self::MAX_DEPTH {
@@ -525,7 +521,6 @@ mod inner {
             self.depth -= 1;
         }
 
-
         pub(super) fn current_mut(&mut self) -> &mut Slot {
             #[cfg(debug_assertions)]
             {
@@ -538,7 +533,6 @@ mod inner {
                 unsafe { self.slots.get_unchecked_mut(self.depth) }
             }
         }
-
 
         pub(super) fn current(&self) -> Slot {
             #[cfg(debug_assertions)]
@@ -565,7 +559,6 @@ mod inner {
     pub(super) struct Stack(SmallVec<[Slot; 16]>);
 
     impl Stack {
-
         pub(super) fn new() -> Self {
             let mut slots = SmallVec::new();
             slots.push(Slot::root());
@@ -573,17 +566,14 @@ mod inner {
             Stack(slots)
         }
 
-
         pub(super) fn clear(&mut self) {
             self.0.clear();
             self.0.push(Slot::root());
         }
 
-
         pub(super) fn depth(&self) -> usize {
             self.0.len() - 1
         }
-
 
         pub(super) fn push_depth(&mut self) -> Result<(), crate::Error> {
             self.0.push(Slot::root());
@@ -591,16 +581,13 @@ mod inner {
             Ok(())
         }
 
-
         pub(super) unsafe fn pop_depth(&mut self) {
             self.0.pop();
         }
 
-
         pub(super) fn current_mut(&mut self) -> &mut Slot {
             self.0.last_mut().expect("missing stack slot")
         }
-
 
         pub(super) fn current(&self) -> Slot {
             *self.0.last().expect("missing stack slot")
