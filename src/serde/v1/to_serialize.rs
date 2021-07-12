@@ -822,12 +822,12 @@ mod alloc_support {
                         while let Some(next) = reader.next() {
                             match next.kind {
                                 TokenKind::MapKey => {
-                                    let key = reader.next_serializable(next.depth.clone());
+                                    let key = reader.next_serializable(next.depth);
 
                                     map.serialize_key(&key)?;
                                 }
                                 TokenKind::MapValue => {
-                                    let value = reader.next_serializable(next.depth.clone());
+                                    let value = reader.next_serializable(next.depth);
 
                                     map.serialize_value(&value)?;
                                 }
@@ -849,7 +849,7 @@ mod alloc_support {
                         while let Some(next) = reader.next() {
                             match next.kind {
                                 TokenKind::SeqElem => {
-                                    let elem = reader.next_serializable(next.depth.clone());
+                                    let elem = reader.next_serializable(next.depth);
 
                                     seq.serialize_element(&elem)?;
                                 }
