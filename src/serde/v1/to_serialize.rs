@@ -436,7 +436,7 @@ mod alloc_support {
         fn buffer(&mut self) -> Option<&mut TokenBuf> {
             match self.buffered {
                 None => None,
-                Some(ref mut buffered) if buffered.tokens().is_empty() => Some(buffered),
+                Some(ref mut buffered) if !buffered.tokens().is_empty() => Some(buffered),
                 _ => None,
             }
         }
