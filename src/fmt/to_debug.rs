@@ -144,7 +144,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
 
     fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
         self.map_key()?;
-        k.stream(self).map(|_| ())
+        k.stream(self)
     }
 
     fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
@@ -159,7 +159,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
 
     fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
         self.map_value()?;
-        v.stream(self).map(|_| ())
+        v.stream(self)
     }
 
     fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
@@ -214,7 +214,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
 
     fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
         self.seq_elem()?;
-        v.stream(self).map(|_| ())
+        v.stream(self)
     }
 
     fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
