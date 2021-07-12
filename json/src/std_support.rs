@@ -6,24 +6,14 @@ use sval::{
     value::Value,
 };
 
-use crate::std::{
-    error::Error,
-    string::String,
-};
+use crate::std::string::String;
 use crate::{
     fmt::Formatter,
     std::{
         fmt,
         io::Write,
     },
-    End,
 };
-
-impl<T> Error for End<T> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.err.source()
-    }
-}
 
 /**
 Write a [`Value`] to a string.
