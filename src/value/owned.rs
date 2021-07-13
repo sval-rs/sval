@@ -383,11 +383,11 @@ pub(crate) struct Token {
 // Embedded within a `Token`, which will be shared
 #[derive(Clone)]
 pub(crate) enum TokenKind {
-    MapBegin(Option<usize>),
+    MapBegin(stream::MapMeta),
     MapKey,
     MapValue,
     MapEnd,
-    SeqBegin(Option<usize>),
+    SeqBegin(stream::SeqMeta),
     SeqElem,
     SeqEnd,
     Signed(i64),
@@ -417,7 +417,7 @@ impl Token {
             Char(v) => stream.char(v)?,
             Error(ref v) => stream::Source::from(&**v).stream(stream.owned())?,
             None => stream.none()?,
-            MapBegin(len) => stream.map_begin(len)?,
+            MapBegin(ref meta) => stream.map_begin(meta.clone())?,
             MapKey => {
                 stream.map_key_begin()?;
             }
@@ -425,7 +425,7 @@ impl Token {
                 stream.map_value_begin()?;
             }
             MapEnd => stream.map_end()?,
-            SeqBegin(len) => stream.seq_begin(len)?,
+            SeqBegin(ref meta) => stream.seq_begin(meta.clone())?,
             SeqElem => {
                 stream.seq_elem_begin()?;
             }
@@ -559,10 +559,10 @@ impl<'v> Stream<'v> for TokenBuf {
         Ok(())
     }
 
-    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+    fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
         self.depth += 1;
 
-        self.push(TokenKind::MapBegin(len));
+        self.push(TokenKind::MapBegin(meta));
 
         Ok(())
     }
@@ -605,10 +605,10 @@ impl<'v> Stream<'v> for TokenBuf {
         Ok(())
     }
 
-    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+    fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
         self.depth += 1;
 
-        self.push(TokenKind::SeqBegin(len));
+        self.push(TokenKind::SeqBegin(meta));
 
         Ok(())
     }
@@ -796,7 +796,7 @@ impl<'v> Stream<'v> for PrimitiveBuf {
         Ok(())
     }
 
-    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
+    fn map_begin(&mut self, _: stream::MapMeta) -> stream::Result {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 
@@ -828,7 +828,7 @@ impl<'v> Stream<'v> for PrimitiveBuf {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+    fn seq_begin(&mut self, _: stream::SeqMeta) -> stream::Result {
         Err(crate::Error::unsupported("unsupported primitive"))
     }
 

@@ -171,8 +171,8 @@ fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
         }
 
         #[inline(never)]
-        fn map_begin(&mut self, len: Option<usize>) -> sval::stream::Result {
-            let _ = len;
+        fn map_begin(&mut self, meta: sval::stream::MapMeta) -> sval::stream::Result {
+            let _ = meta;
             Ok(())
         }
 
@@ -192,8 +192,8 @@ fn sval_noop(v: impl sval::value::Value) -> Result<(), sval::Error> {
         }
 
         #[inline(never)]
-        fn seq_begin(&mut self, len: Option<usize>) -> sval::stream::Result {
-            let _ = len;
+        fn seq_begin(&mut self, meta: sval::stream::SeqMeta) -> sval::stream::Result {
+            let _ = meta;
             Ok(())
         }
 

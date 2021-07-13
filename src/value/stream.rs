@@ -10,6 +10,13 @@ use crate::{
 #[cfg(feature = "std")]
 use crate::std::error;
 
+#[doc(inline)]
+pub use self::stream::{
+    map_meta,
+    seq_meta,
+    tag,
+};
+
 /**
 A stream that can receive the structure of a value.
 */
@@ -145,10 +152,17 @@ impl<'s, 'v> Stream<'s, 'v> {
     }
 
     /**
+    Stream a tag.
+    */
+    pub fn tag(&mut self, tag: stream::Tag<'v>) -> stream::Result {
+        self.inner().tag(tag)
+    }
+
+    /**
     Begin a map.
     */
-    pub fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.inner().map_begin(len)
+    pub fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
+        self.inner().map_begin(meta)
     }
 
     /**
@@ -178,10 +192,28 @@ impl<'s, 'v> Stream<'s, 'v> {
     }
 
     /**
+    Begin a tagged map.
+    */
+    pub fn tagged_map_begin(
+        &mut self,
+        tag: stream::Tag<'v>,
+        meta: stream::MapMeta,
+    ) -> stream::Result {
+        self.inner().tagged_map_begin_borrowed(tag, meta)
+    }
+
+    /**
+    End a tagged map.
+    */
+    pub fn tagged_map_end(&mut self) -> stream::Result {
+        self.inner().tagged_map_end()
+    }
+
+    /**
     Begin a sequence.
     */
-    pub fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.inner().seq_begin(len)
+    pub fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
+        self.inner().seq_begin(meta)
     }
 
     /**
@@ -199,6 +231,24 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     pub fn seq_end(&mut self) -> stream::Result {
         self.inner().seq_end()
+    }
+
+    /**
+    Begin a tagged seq.
+    */
+    pub fn tagged_seq_begin(
+        &mut self,
+        tag: stream::Tag<'v>,
+        meta: stream::SeqMeta,
+    ) -> stream::Result {
+        self.inner().tagged_seq_begin_borrowed(tag, meta)
+    }
+
+    /**
+    End a tagged seq.
+    */
+    pub fn tagged_seq_end(&mut self) -> stream::Result {
+        self.inner().tagged_seq_end()
     }
 }
 
@@ -294,8 +344,8 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().none()
     }
 
-    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.inner().map_begin(len)
+    fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
+        self.inner().map_begin(meta)
     }
 
     fn map_key(&mut self) -> stream::Result {
@@ -326,8 +376,8 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().map_end()
     }
 
-    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.inner().seq_begin(len)
+    fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
+        self.inner().seq_begin(meta)
     }
 
     fn seq_elem(&mut self) -> stream::Result {
@@ -407,8 +457,16 @@ where
         self.0.none()
     }
 
-    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.0.map_begin(len)
+    fn tag(&mut self, tag: stream::Tag) -> stream::Result {
+        self.0.tag(tag)
+    }
+
+    fn tag_borrowed(&mut self, tag: stream::Tag<'v>) -> stream::Result {
+        self.0.tag(tag)
+    }
+
+    fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
+        self.0.map_begin(meta)
     }
 
     fn map_key(&mut self) -> stream::Result {
@@ -439,8 +497,8 @@ where
         self.0.map_end()
     }
 
-    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.0.seq_begin(len)
+    fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
+        self.0.seq_begin(meta)
     }
 
     fn seq_elem(&mut self) -> stream::Result {

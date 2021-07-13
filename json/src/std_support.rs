@@ -137,8 +137,8 @@ where
         self.0.none()
     }
 
-    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.0.map_begin(len)
+    fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
+        self.0.map_begin(meta)
     }
 
     fn map_key(&mut self) -> stream::Result {
@@ -161,8 +161,8 @@ where
         self.0.map_end()
     }
 
-    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
-        self.0.seq_begin(len)
+    fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
+        self.0.seq_begin(meta)
     }
 
     fn seq_elem(&mut self) -> stream::Result {

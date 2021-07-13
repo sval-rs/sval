@@ -84,9 +84,9 @@ mod alloc_support {
             .unwrap()
             .iter()
             .filter_map(|token| match token.kind {
-                TokenKind::MapBegin(len) => Some(Token::MapBegin(len)),
+                TokenKind::MapBegin(ref meta) => Some(Token::MapBegin(meta.size_hint())),
                 TokenKind::MapEnd => Some(Token::MapEnd),
-                TokenKind::SeqBegin(len) => Some(Token::SeqBegin(len)),
+                TokenKind::SeqBegin(ref meta) => Some(Token::SeqBegin(meta.size_hint())),
                 TokenKind::SeqEnd => Some(Token::SeqEnd),
                 TokenKind::Signed(v) => Some(Token::Signed(v)),
                 TokenKind::Unsigned(v) => Some(Token::Unsigned(v)),

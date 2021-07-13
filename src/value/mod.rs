@@ -37,7 +37,12 @@ mod stream;
 #[cfg(feature = "alloc")]
 pub(crate) mod owned;
 
-pub use self::stream::Stream;
+pub use self::stream::{
+    map_meta,
+    seq_meta,
+    tag,
+    Stream,
+};
 
 #[cfg(feature = "alloc")]
 pub use self::owned::OwnedValue;

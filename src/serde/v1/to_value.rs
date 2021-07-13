@@ -140,7 +140,8 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     }
 
     fn serialize_bytes(mut self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.0.seq_begin(Some(v.len()))?;
+        self.0
+            .seq_begin(stream::seq_meta().with_size_hint(v.len()))?;
 
         for b in v {
             self.0.owned().seq_elem(&b)?;
@@ -167,112 +168,120 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         Ok(())
     }
 
-    fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
+    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
         self.serialize_unit()
     }
 
     fn serialize_unit_variant(
-        self,
-        _: &'static str,
-        _: u32,
+        mut self,
+        name: &'static str,
+        index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.serialize_str(variant)
+        self.0.tagged_seq_begin(
+            stream::tag(variant, index),
+            stream::seq_meta().name(name).with_size_hint(0),
+        )?;
+        self.0.tagged_seq_end()?;
+        Ok(())
     }
 
     fn serialize_newtype_struct<T>(
         self,
-        _: &'static str,
+        name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        value.serialize(self)
+        self.0
+            .seq_begin(stream::seq_meta().name(name).with_size_hint(1))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
+        self.0.seq_end()?;
+
+        Ok(())
     }
 
     fn serialize_newtype_variant<T>(
         mut self,
-        _: &'static str,
-        _: u32,
+        name: &'static str,
+        index: u32,
         variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        self.0.map_begin(Some(1))?;
-        self.0.owned().map_key(&variant)?;
-
-        self.0.map_value_begin()?.seq_begin(Some(1))?;
+        self.0.tagged_seq_begin(
+            stream::tag(variant, index),
+            stream::seq_meta().with_name(name).with_size_hint(1),
+        )?;
         self.0.owned().seq_elem(&ToValue(value))?;
-        self.0.seq_end()?;
-
-        self.0.map_end()?;
+        self.0.tagged_seq_end()?;
 
         Ok(())
     }
 
     fn serialize_seq(mut self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        self.0.seq_begin(len)?;
+        self.0.seq_begin(stream::seq_meta().with_size_hint(len))?;
         Ok(self)
     }
 
     fn serialize_tuple(mut self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        self.0.seq_begin(Some(len))?;
+        self.0.seq_begin(stream::seq_meta().with_size_hint(len))?;
         Ok(self)
     }
 
     fn serialize_tuple_struct(
         mut self,
-        _: &'static str,
+        name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        self.0.seq_begin(Some(len))?;
+        self.0
+            .seq_begin(stream::seq_meta().with_name(name).with_size_hint(len))?;
         Ok(self)
     }
 
     fn serialize_tuple_variant(
         mut self,
-        _: &'static str,
-        _: u32,
+        name: &'static str,
+        index: u32,
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        self.0.map_begin(Some(1))?;
-        self.0.owned().map_key(&variant)?;
-
-        self.0.map_value_begin()?.seq_begin(Some(len))?;
-
+        self.0.tagged_seq_begin(
+            stream::tag(variant, index),
+            stream::seq_meta().with_name(name).with_size_hint(len),
+        )?;
         Ok(self)
     }
 
     fn serialize_map(mut self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.0.map_begin(len)?;
+        self.0.map_begin(stream::map_meta().with_size_hint(len))?;
         Ok(self)
     }
 
     fn serialize_struct(
         mut self,
-        _: &'static str,
+        name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        self.0.map_begin(Some(len))?;
+        self.0
+            .map_begin(stream::map_meta().with_name(name).with_size_hint(len))?;
         Ok(self)
     }
 
     fn serialize_struct_variant(
         mut self,
-        _: &'static str,
-        _: u32,
+        name: &'static str,
+        index: u32,
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.0.map_begin(Some(1))?;
-        self.0.owned().map_key(&variant)?;
-
-        self.0.map_value_begin()?.map_begin(Some(len))?;
-
+        self.0.tagged_map_begin(
+            stream::tag(variant, index),
+            stream::map_meta().with_name(name).with_size_hint(len),
+        )?;
         Ok(self)
     }
 }
@@ -344,8 +353,7 @@ impl<'a, 'v> SerializeTupleVariant for Serializer<value::Stream<'a, 'v>> {
     }
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
-        self.0.seq_end()?;
-        self.0.map_end()?;
+        self.0.tagged_seq_end()?;
 
         Ok(())
     }
@@ -410,8 +418,7 @@ impl<'a, 'v> SerializeStructVariant for Serializer<value::Stream<'a, 'v>> {
     }
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
-        self.0.map_end()?;
-        self.0.map_end()?;
+        self.0.tagged_map_end()?;
 
         Ok(())
     }

@@ -295,11 +295,11 @@ mod no_alloc_support {
             self.serialize_any(Option::None::<()>)
         }
 
-        fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
                     let map = ser
-                        .serialize_map(len)
+                        .serialize_map(meta.size_hint())
                         .map(Current::SerializeMap)
                         .map_err(err("error beginning map"))?;
                     self.current = Some(map);
@@ -347,11 +347,11 @@ mod no_alloc_support {
             Ok(())
         }
 
-        fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
                     let seq = ser
-                        .serialize_seq(len)
+                        .serialize_seq(meta.size_hint())
                         .map(Current::SerializeSeq)
                         .map_err(err("error beginning sequence"))?;
                     self.current = Some(seq);
@@ -446,19 +446,19 @@ mod alloc_support {
     where
         S: Serializer,
     {
-        fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
             match self.buffer() {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
                             let seq = ser
-                                .serialize_seq(len)
+                                .serialize_seq(meta.size_hint())
                                 .map(Current::SerializeSeq)
                                 .map_err(err("error serializing sequence"))?;
                             self.current = Some(seq);
                         }
                         current => {
-                            self.buffer_begin().seq_begin(len)?;
+                            self.buffer_begin().seq_begin(meta)?;
 
                             self.current = Some(current);
                         }
@@ -466,7 +466,7 @@ mod alloc_support {
 
                     Ok(())
                 }
-                Some(buffered) => buffered.seq_begin(len),
+                Some(buffered) => buffered.seq_begin(meta),
             }
         }
 
@@ -515,26 +515,26 @@ mod alloc_support {
             }
         }
 
-        fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
             match self.buffer() {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
                             let map = ser
-                                .serialize_map(len)
+                                .serialize_map(meta.size_hint())
                                 .map(Current::SerializeMap)
                                 .map_err(err("error serializing map"))?;
                             self.current = Some(map);
                         }
                         current => {
-                            self.buffer_begin().map_begin(len)?;
+                            self.buffer_begin().map_begin(meta)?;
                             self.current = Some(current);
                         }
                     }
 
                     Ok(())
                 }
-                Some(buffered) => buffered.map_begin(len),
+                Some(buffered) => buffered.map_begin(meta),
             }
         }
 
@@ -816,8 +816,8 @@ mod alloc_support {
 
                         serializer.serialize_none()
                     }
-                    TokenKind::MapBegin(len) => {
-                        let mut map = serializer.serialize_map(len)?;
+                    TokenKind::MapBegin(ref meta) => {
+                        let mut map = serializer.serialize_map(meta.size_hint())?;
 
                         while let Some(next) = reader.next() {
                             match next.kind {
@@ -843,8 +843,8 @@ mod alloc_support {
 
                         map.end()
                     }
-                    TokenKind::SeqBegin(len) => {
-                        let mut seq = serializer.serialize_seq(len)?;
+                    TokenKind::SeqBegin(ref meta) => {
+                        let mut seq = serializer.serialize_seq(meta.size_hint())?;
 
                         while let Some(next) = reader.next() {
                             match next.kind {

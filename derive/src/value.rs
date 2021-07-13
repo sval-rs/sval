@@ -86,7 +86,7 @@ pub(crate) fn derive_from_sval(input: DeriveInput) -> TokenStream {
 
             impl #impl_generics sval::value::Value for #ident #ty_generics #bounded_where_clause {
                 fn stream<'s, 'v>(&'v self, mut stream: sval::value::Stream<'s, 'v>) -> sval::value::Result {
-                    stream.map_begin(Some(#num_fields))?;
+                    stream.map_begin(sval::value::map_meta().with_size_hint(#num_fields))?;
 
                     #(
                         stream.map_key(&#fieldstr)?;

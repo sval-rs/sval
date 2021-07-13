@@ -114,7 +114,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         self.fmt(format_args!("None"))
     }
 
-    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
+    fn map_begin(&mut self, _: stream::MapMeta) -> stream::Result {
         self.is_current_depth_empty = true;
         if self.is_pretty() {
             self.depth += 1;
@@ -183,7 +183,7 @@ impl<'a, 'b: 'a, 'v> stream::Stream<'v> for Stream<'a, 'b> {
         Ok(())
     }
 
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+    fn seq_begin(&mut self, _: stream::SeqMeta) -> stream::Result {
         self.is_current_depth_empty = true;
 
         if self.is_pretty() {

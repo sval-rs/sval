@@ -30,7 +30,7 @@ where
     T: Value,
 {
     fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-        stream.seq_begin(Some(self.len()))?;
+        stream.seq_begin(value::seq_meta().with_size_hint(self.len()))?;
 
         for v in self {
             stream.seq_elem(v)?;
@@ -46,7 +46,7 @@ where
     U: Value,
 {
     fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-        stream.seq_begin(Some(2))?;
+        stream.seq_begin(value::seq_meta().with_size_hint(2))?;
 
         stream.seq_elem(&self.0)?;
         stream.seq_elem(&self.1)?;
@@ -171,6 +171,13 @@ impl<'a> Value for stream::Source<'a> {
     }
 }
 
+impl<'a> Value for stream::Tag<'a> {
+    fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
+        // TODO: Is this an infinite recursion footgun? Any more than `stream::Arguments`?
+        stream.tag(*self)
+    }
+}
+
 #[cfg(feature = "alloc")]
 mod alloc_support {
     use super::*;
@@ -222,7 +229,7 @@ mod alloc_support {
         V: Value,
     {
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-            stream.map_begin(Some(self.len()))?;
+            stream.map_begin(value::map_meta().with_size_hint(self.len()))?;
 
             for (k, v) in self {
                 stream.map_key(k)?;
@@ -270,7 +277,7 @@ mod std_support {
         H: BuildHasher,
     {
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-            stream.map_begin(Some(self.len()))?;
+            stream.map_begin(value::map_meta().with_size_hint(self.len()))?;
 
             for (k, v) in self {
                 stream.map_key(k)?;

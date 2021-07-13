@@ -192,7 +192,7 @@ where
         Ok(())
     }
 
-    fn map_begin(&mut self, _: Option<usize>) -> stream::Result {
+    fn map_begin(&mut self, _: stream::MapMeta) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
@@ -247,7 +247,7 @@ where
         Ok(())
     }
 
-    fn seq_begin(&mut self, _: Option<usize>) -> stream::Result {
+    fn seq_begin(&mut self, _: stream::SeqMeta) -> stream::Result {
         if self.is_key {
             return Err(sval::Error::unsupported(
                 "only strings are supported as json keys",
