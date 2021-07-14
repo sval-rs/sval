@@ -205,7 +205,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     Stream a tag.
     */
     pub fn tag(&mut self, tag: stream::Tag<'v>) -> stream::Result {
-        self.inner().tag(tag)
+        self.inner().tag_borrowed(tag)
     }
 
     /**

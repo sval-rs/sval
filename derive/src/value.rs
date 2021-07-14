@@ -89,7 +89,7 @@ pub(crate) fn derive_from_sval(input: DeriveInput) -> TokenStream {
                     stream.map_begin(Some(#num_fields))?;
 
                     #(
-                        stream.for_static().map_key(&#fieldstr)?;
+                        stream.for_static().map_key_field(#fieldstr)?;
                         stream.map_value(&self.#fieldname)?;
                     )*
 

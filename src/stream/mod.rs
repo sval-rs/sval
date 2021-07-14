@@ -37,6 +37,8 @@ implementing methods on the trait. Other methods default to returning
 [`Error::unsupported`]: struct.Error.html#method.unsupported
 */
 pub trait Stream<'v> {
+    // Owned types: These don't carry any special lifetimes
+
     /**
     Stream a formattable type. Implementors should override this method if they
     expect to accept formattable types.
@@ -170,10 +172,9 @@ pub trait Stream<'v> {
     */
     #[cfg(not(test))]
     fn tag(&mut self, tag: Tag) -> Result {
-        if let Some(value) = tag.value() {
-            self.str(value)
-        } else {
-            self.none()
+        match tag {
+            Tag::Named { name, .. } | Tag::Full { name, .. } => self.str(name),
+            Tag::Indexed { index, .. } => self.u64(index as u64),
         }
     }
     #[cfg(test)]
@@ -229,39 +230,6 @@ pub trait Stream<'v> {
     fn map_end(&mut self) -> Result;
 
     /**
-    Begin a tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
-    #[cfg(not(test))]
-    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
-        self.map_begin(Some(1))?;
-
-        self.map_key()?;
-        self.tag(tag)?;
-
-        self.map_value()?;
-        self.map_begin(len)?;
-
-        Ok(())
-    }
-    #[cfg(test)]
-    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result;
-
-    /**
-    End a tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
-    #[cfg(not(test))]
-    fn tagged_map_end(&mut self) -> Result {
-        self.map_end()?;
-        self.map_end()?;
-
-        Ok(())
-    }
-    #[cfg(test)]
-    fn tagged_map_end(&mut self) -> Result;
-
-    /**
     Begin a sequence. Implementors should override this method if they
     expect to accept sequences.
     */
@@ -298,17 +266,65 @@ pub trait Stream<'v> {
     fn seq_end(&mut self) -> Result;
 
     /**
+    Begin a tagged value.
+    */
+    #[cfg(not(test))]
+    fn tagged_begin(&mut self, tag: Tag) -> Result {
+        self.map_begin(Some(1))?;
+        self.map_key_collect(Value::new(&tag))?;
+        self.map_value()?;
+
+        Ok(())
+    }
+    #[cfg(test)]
+    fn tagged_begin(&mut self) -> Result;
+
+    /**
+    End a tagged value.
+    */
+    #[cfg(not(test))]
+    fn tagged_end(&mut self) -> Result {
+        self.map_end()?;
+        Ok(())
+    }
+    #[cfg(test)]
+    fn tagged_end(&mut self) -> Result;
+
+    /**
+    Begin a tagged map. Implementors should override this method if they
+    expect to accept maps.
+    */
+    #[cfg(not(test))]
+    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
+        self.tagged_begin(tag)?;
+        self.map_begin(len)?;
+
+        Ok(())
+    }
+    #[cfg(test)]
+    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result;
+
+    /**
+    End a tagged map. Implementors should override this method if they
+    expect to accept maps.
+    */
+    #[cfg(not(test))]
+    fn tagged_map_end(&mut self) -> Result {
+        self.map_end()?;
+        self.tagged_end()?;
+
+        Ok(())
+    }
+    #[cfg(test)]
+    fn tagged_map_end(&mut self) -> Result;
+
+    /**
     Begin a tagged sequence. Implementors should override this method if they
     expect to accept sequences.
     */
     #[cfg(not(test))]
     fn tagged_seq_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
-        self.map_begin(Some(1))?;
-
-        self.map_key()?;
-        self.tag(tag)?;
-
-        self.map_value()?;
+        self.tagged_begin(tag)?;
         self.seq_begin(len)?;
 
         Ok(())
@@ -323,7 +339,7 @@ pub trait Stream<'v> {
     #[cfg(not(test))]
     fn tagged_seq_end(&mut self) -> Result {
         self.seq_end()?;
-        self.map_end()?;
+        self.tagged_end()?;
 
         Ok(())
     }
@@ -373,6 +389,8 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: Value) -> Result;
 
+    // Borrowed values: These carry the `'v` lifetime
+
     #[cfg(not(test))]
     fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
         self.fmt(v)
@@ -407,17 +425,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn tag_borrowed(&mut self, tag: Tag<'v>) -> Result;
 
-    /**
-    Begin a borrowed tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
-    #[cfg(not(test))]
-    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
-        self.tagged_map_begin(tag, len)
-    }
-    #[cfg(test)]
-    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result;
-
     #[cfg(not(test))]
     fn map_key_field_borrowed(&mut self, k: &'v str) -> Result {
         self.map_key_field(k)
@@ -440,6 +447,27 @@ pub trait Stream<'v> {
     fn map_value_collect_borrowed(&mut self, v: Value<'v>) -> Result;
 
     /**
+    Begin a borrowed tagged value.
+    */
+    #[cfg(not(test))]
+    fn tagged_begin_borrowed(&mut self, tag: Tag<'v>) -> Result {
+        self.tagged_begin(tag)
+    }
+    #[cfg(test)]
+    fn tagged_begin_borrowed(&mut self) -> Result;
+
+    /**
+    Begin a borrowed tagged map. Implementors should override this method if they
+    expect to accept maps.
+    */
+    #[cfg(not(test))]
+    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
+        self.tagged_map_begin(tag, len)
+    }
+    #[cfg(test)]
+    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result;
+
+    /**
     Begin a tagged sequence. Implementors should override this method if they
     expect to accept sequences.
     */
@@ -457,6 +485,35 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result;
 
+    // Static values: These carry a `'static` lifetime
+
+    #[cfg(not(test))]
+    fn map_key_field_static(&mut self, k: &'static str) -> Result {
+        self.map_key_field_borrowed(k)
+    }
+    #[cfg(test)]
+    fn map_key_field_static(&mut self, k: &'static str) -> Result;
+
+    /**
+    Stream a static tag.
+    */
+    #[cfg(not(test))]
+    fn tag_static(&mut self, tag: Tag<'static>) -> Result {
+        self.tag_borrowed(tag)
+    }
+    #[cfg(test)]
+    fn tag_static(&mut self, tag: Tag<'static>) -> Result;
+
+    /**
+    Begin a static tagged value.
+    */
+    #[cfg(not(test))]
+    fn tagged_begin_static(&mut self, tag: Tag<'static>) -> Result {
+        self.tagged_begin_borrowed(tag)
+    }
+    #[cfg(test)]
+    fn tagged_begin_static(&mut self) -> Result;
+
     /**
     Begin a borrowed tagged map. Implementors should override this method if they
     expect to accept maps.
@@ -467,13 +524,6 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn tagged_map_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result;
-
-    #[cfg(not(test))]
-    fn map_key_field_static(&mut self, k: &'static str) -> Result {
-        self.map_key_field_borrowed(k)
-    }
-    #[cfg(test)]
-    fn map_key_field_static(&mut self, k: &'static str) -> Result;
 
     /**
     Begin a tagged sequence. Implementors should override this method if they

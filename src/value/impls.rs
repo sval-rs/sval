@@ -171,9 +171,10 @@ impl<'a> Value for stream::Source<'a> {
     }
 }
 
+// TODO: If we avoid implementing `Value` for `stream::Tag` then we could reasonably expect
+// to pass it to `stream.tag_static`, which this can't make the correct decision to do
 impl<'a> Value for stream::Tag<'a> {
     fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-        // TODO: Is this an infinite recursion footgun? Any more than `stream::Arguments`?
         stream.tag(*self)
     }
 }

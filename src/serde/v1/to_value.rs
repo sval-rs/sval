@@ -178,7 +178,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.0.for_static().tag(stream::Tag::named_variant(name, variant, index))?;
+        self.0.for_static().tag(stream::Tag::new(name, variant, index))?;
         Ok(())
     }
 
@@ -205,7 +205,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         T: ?Sized + Serialize,
     {
         self.0.for_static().tagged_seq_begin(
-            stream::Tag::named_variant(name, variant, index),
+            stream::Tag::new(name, variant, index),
             Some(1),
         )?;
         self.0.for_owned().seq_elem(&ToValue(value))?;
@@ -242,7 +242,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         self.0.for_static().tagged_seq_begin(
-            stream::Tag::named_variant(name, variant, index),
+            stream::Tag::new(name, variant, index),
             Some(len),
         )?;
         Ok(self)
@@ -271,7 +271,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         self.0.for_static().tagged_map_begin(
-            stream::Tag::named_variant(name, variant, index),
+            stream::Tag::new(name, variant, index),
             Some(len),
         )?;
         Ok(self)

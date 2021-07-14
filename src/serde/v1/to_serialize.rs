@@ -359,7 +359,7 @@ mod no_alloc_support {
         fn tagged_map_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
-                    if let (Some(name), Some(variant), Some(index), Some(len)) = (tag.name(), tag.value(), tag.index(), len) {
+                    if let (stream::Tag::Full { ty: Some(name), name: variant, index }, Some(len)) = (tag, len) {
                         let map = ser
                             .serialize_struct_variant(name, index, variant, len)
                             .map(|map| Current::SerializeStructVariant(map, None))
@@ -423,7 +423,7 @@ mod no_alloc_support {
         fn tagged_seq_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
-                    if let (Some(name), Some(variant), Some(index), Some(len)) = (tag.name(), tag.value(), tag.index(), len) {
+                    if let (stream::Tag::Full { ty: Some(name), name: variant, index }, Some(len)) = (tag, len) {
                         let seq = ser
                             .serialize_tuple_variant(name, index, variant, len)
                             .map(Current::SerializeTupleVariant)
