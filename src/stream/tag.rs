@@ -89,28 +89,6 @@ pub enum Tag<'a> {
 }
 
 impl<'a> Tag<'a> {
-    pub fn new(ty: Option<Ident<'a>>, name: Ident<'a>, index: u32) -> Self {
-        Tag::Full {
-            ty: ty.into(),
-            name,
-            index,
-        }
-    }
-
-    pub fn named(ty: Option<Ident<'a>>, name: Ident<'a>) -> Self {
-        Tag::Named {
-            ty: ty.into(),
-            name,
-        }
-    }
-
-    pub fn indexed(ty: Option<Ident<'a>>, index: u32) -> Self {
-        Tag::Indexed {
-            ty: ty.into(),
-            index,
-        }
-    }
-
     pub fn ty(&self) -> Option<Ident<'a>> {
         match self {
             Tag::Named { ty, .. } => *ty,

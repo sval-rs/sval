@@ -1,10 +1,7 @@
 use crate::std::fmt;
 
 #[derive(Clone, Copy)]
-pub struct Ident<'a>(Inner<'a>);
-
-#[derive(Clone, Copy)]
-enum Inner<'a> {
+pub enum Ident<'a> {
     Borrowed(&'a str),
     Static(&'static str),
 }
@@ -22,25 +19,17 @@ impl<'a> fmt::Display for Ident<'a> {
 }
 
 impl<'a> Ident<'a> {
-    pub fn from_borrowed(value: &'a str) -> Self {
-        Ident(Inner::Borrowed(value))
-    }
-
-    pub fn from_static(value: &'static str) -> Self {
-        Ident(Inner::Static(value))
-    }
-
     pub fn as_str(&self) -> &'a str {
-        match self.0 {
-            Inner::Borrowed(value) => value,
-            Inner::Static(value) => value,
+        match self {
+            Ident::Borrowed(value) => value,
+            Ident::Static(value) => value,
         }
     }
 
     pub fn to_static(&self) -> Option<Ident<'static>> {
-        match self.0 {
-            Inner::Borrowed(_) => None,
-            Inner::Static(value) => Some(Ident::from_static(value)),
+        match self {
+            Ident::Borrowed(_) => None,
+            Ident::Static(value) => Some(Ident::Static(value)),
         }
     }
 }

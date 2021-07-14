@@ -187,10 +187,9 @@ pub trait Stream<'v> {
     */
     #[cfg(not(test))]
     fn ident(&mut self, v: Ident) -> Result {
-        if let Some(v) = v.to_static() {
-            self.str_borrowed(v.as_str())
-        } else {
-            self.str(v.as_str())
+        match v {
+            Ident::Borrowed(v) => self.str(v),
+            Ident::Static(v) => self.str_borrowed(v),
         }
     }
     #[cfg(test)]

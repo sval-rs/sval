@@ -577,20 +577,14 @@ mod no_alloc_support {
         fn tagged_map_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
-                    if let (stream::Tag::Full { ty: Some(name), name: variant, index }, Some(len)) = (tag, len) {
-                        if let (Some(name), Some(variant)) = (name.to_static(), variant.to_static()) {
-                            let seq = ser
-                                .serialize_struct_variant(name.as_str(), index, variant.as_str(), len)
-                                .map(|map| Current::SerializeStructVariant(map, None))
-                                .map_err(err("error beginning tagged map"))?;
-                            self.current = Some(seq);
+                    if let (stream::Tag::Full { ty: Some(stream::Ident::Static(name)), name: stream::Ident::Static(variant), index }, Some(len)) = (tag, len) {
+                        let seq = ser
+                            .serialize_struct_variant(name, index, variant, len)
+                            .map(|map| Current::SerializeStructVariant(map, None))
+                            .map_err(err("error beginning tagged map"))?;
+                        self.current = Some(seq);
 
-                            return Ok(())
-                        } else {
-                            Err(crate::Error::msg(
-                                "serializing tagged maps with serde requires tags be static",
-                            ))
-                        }
+                        return Ok(())
                     } else {
                         Err(crate::Error::msg(
                             "serializing tagged maps with serde requires tags have a name, value, and index",
@@ -647,20 +641,14 @@ mod no_alloc_support {
         fn tagged_seq_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
-                    if let (stream::Tag::Full { ty: Some(name), name: variant, index }, Some(len)) = (tag, len) {
-                        if let (Some(name), Some(variant)) = (name.to_static(), variant.to_static()) {
-                            let seq = ser
-                                .serialize_tuple_variant(name.as_str(), index, variant.as_str(), len)
-                                .map(Current::SerializeTupleVariant)
-                                .map_err(err("error beginning tagged seq"))?;
-                            self.current = Some(seq);
+                    if let (stream::Tag::Full { ty: Some(stream::Ident::Static(name)), name: stream::Ident::Static(variant), index }, Some(len)) = (tag, len) {
+                        let seq = ser
+                            .serialize_tuple_variant(name, index, variant, len)
+                            .map(Current::SerializeTupleVariant)
+                            .map_err(err("error beginning tagged seq"))?;
+                        self.current = Some(seq);
 
-                            return Ok(())
-                        } else {
-                            Err(crate::Error::msg(
-                                "serializing tagged sequences with serde requires tags be static",
-                            ))
-                        }
+                        return Ok(())
                     } else {
                         Err(crate::Error::msg(
                             "serializing tagged sequences with serde requires tags have a name, value, and index",
