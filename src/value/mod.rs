@@ -64,7 +64,7 @@ pub trait Value {
     value is free to produce any short-lived values it needs.
     */
     fn stream_owned(&self, mut stream: Stream) -> Result {
-        self.stream(stream.for_owned())
+        self.stream(stream.owned())
     }
 }
 

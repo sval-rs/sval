@@ -125,7 +125,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     }
 
     fn serialize_str(mut self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.0.for_owned().str(v)?;
+        self.0.owned().str(v)?;
         Ok(())
     }
 
@@ -134,7 +134,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         T: ?Sized + fmt::Display,
     {
         self.0
-            .for_owned()
+            .owned()
             .any(&stream::Arguments::from(format_args!("{}", v)))?;
         Ok(())
     }
@@ -144,7 +144,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
             .seq_begin(Some(v.len()))?;
 
         for b in v {
-            self.0.for_owned().seq_elem(&b)?;
+            self.0.owned().seq_elem(&b)?;
         }
 
         self.0.seq_end()?;
@@ -194,7 +194,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().any(&ToValue(value))?;
+        self.0.owned().any(&ToValue(value))?;
         Ok(())
     }
 
@@ -216,7 +216,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
             },
             Some(1),
         )?;
-        self.0.for_owned().seq_elem(&ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         self.0.tagged_seq_end()?;
 
         Ok(())
@@ -302,7 +302,7 @@ impl<'a, 'v> SerializeSeq for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().seq_elem(&ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -320,7 +320,7 @@ impl<'a, 'v> SerializeTuple for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().seq_elem(&ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -338,7 +338,7 @@ impl<'a, 'v> SerializeTupleStruct for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().seq_elem(&ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -356,7 +356,7 @@ impl<'a, 'v> SerializeTupleVariant for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().seq_elem(&ToValue(value))?;
+        self.0.owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -375,7 +375,7 @@ impl<'a, 'v> SerializeMap for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().map_key(&ToValue(key))?;
+        self.0.owned().map_key(&ToValue(key))?;
         Ok(())
     }
 
@@ -383,7 +383,7 @@ impl<'a, 'v> SerializeMap for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().map_value(&ToValue(value))?;
+        self.0.owned().map_value(&ToValue(value))?;
         Ok(())
     }
 
@@ -401,8 +401,8 @@ impl<'a, 'v> SerializeStruct for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().map_key(&stream::Ident::Static(key))?;
-        self.0.for_owned().map_value(&ToValue(value))?;
+        self.0.owned().map_key(&stream::Ident::Static(key))?;
+        self.0.owned().map_value(&ToValue(value))?;
         Ok(())
     }
 
@@ -420,8 +420,8 @@ impl<'a, 'v> SerializeStructVariant for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_owned().map_key(&stream::Ident::Static(key))?;
-        self.0.for_owned().map_value(&ToValue(value))?;
+        self.0.owned().map_key(&stream::Ident::Static(key))?;
+        self.0.owned().map_value(&ToValue(value))?;
         Ok(())
     }
 

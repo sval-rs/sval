@@ -413,9 +413,9 @@ impl Token {
             BigSigned(v) => stream.i128(v)?,
             BigUnsigned(v) => stream.u128(v)?,
             Bool(v) => stream.bool(v)?,
-            Str(ref v) => stream.for_owned().str(&*v)?,
+            Str(ref v) => stream.owned().str(&*v)?,
             Char(v) => stream.char(v)?,
-            Error(ref v) => stream::Source::from(&**v).stream(stream.for_owned())?,
+            Error(ref v) => stream::Source::from(&**v).stream(stream.owned())?,
             None => stream.none()?,
             MapBegin(len) => stream.map_begin(len)?,
             MapKey => {
@@ -684,9 +684,9 @@ impl Value for Primitive {
             BigSigned(v) => stream.i128(v)?,
             BigUnsigned(v) => stream.u128(v)?,
             Bool(v) => stream.bool(v)?,
-            Str(ref v) => stream.for_owned().str(&*v)?,
+            Str(ref v) => stream.owned().str(&*v)?,
             Char(v) => stream.char(v)?,
-            Error(ref v) => stream::Source::from(&**v).stream(stream.for_owned())?,
+            Error(ref v) => stream::Source::from(&**v).stream(stream.owned())?,
             None => stream.none()?,
         }
 
@@ -910,7 +910,7 @@ mod tests {
 
     impl Value for Map {
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-            let mut stream = stream.for_owned();
+            let mut stream = stream.owned();
 
             stream.map_begin(Some(2))?;
 
@@ -928,7 +928,7 @@ mod tests {
 
     impl Value for Seq {
         fn stream<'s, 'v>(&self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-            let mut stream = stream.for_owned();
+            let mut stream = stream.owned();
 
             stream.seq_begin(Some(2))?;
 

@@ -14,7 +14,7 @@ use crate::std::error;
 A stream that can receive the structure of a value.
 */
 pub struct Stream<'s, 'v> {
-    for_owned: Owned<&'s mut dyn stream::Stream<'v>>,
+    owned: Owned<&'s mut dyn stream::Stream<'v>>,
 }
 
 struct Owned<S> {
@@ -30,7 +30,7 @@ impl<S> Owned<S> {
 impl<'s, 'v> From<&'s mut dyn stream::Stream<'v>> for Stream<'s, 'v> {
     fn from(stream: &'s mut dyn stream::Stream<'v>) -> Self {
         Stream {
-            for_owned: Owned {
+            owned: Owned {
                 stream,
             },
         }
@@ -45,31 +45,31 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     pub fn new(stream: &'s mut impl stream::Stream<'v>) -> Self {
         Stream {
-            for_owned: Owned {
+            owned: Owned {
                 stream,
             },
         }
     }
 
     fn inner(&mut self) -> &mut dyn stream::Stream<'v> {
-        self.for_owned.stream
+        self.owned.stream
     }
 
     /**
     Wrap this stream so it can accept borrowed data of any lifetime.
     */
-    pub fn for_owned<'a, 'b>(&'a mut self) -> Stream<'a, 'b> {
+    pub fn owned<'a, 'b>(&'a mut self) -> Stream<'a, 'b> {
         Stream {
-            for_owned: Owned {
-                stream: &mut self.for_owned
+            owned: Owned {
+                stream: &mut self.owned
             }
         }
     }
 
     pub fn by_ref<'a>(&'a mut self) -> Stream<'a, 'v> {
         Stream {
-            for_owned: Owned {
-                stream: &mut self.for_owned.stream
+            owned: Owned {
+                stream: &mut self.owned.stream
             }
         }
     }

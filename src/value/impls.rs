@@ -498,7 +498,7 @@ mod tests {
 
             impl Value for MyError {
                 fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-                    stream.for_owned().error(&io::Error::from(io::ErrorKind::Other))
+                    stream.owned().error(&io::Error::from(io::ErrorKind::Other))
                 }
             }
 
