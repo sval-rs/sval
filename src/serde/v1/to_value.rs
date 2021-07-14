@@ -125,7 +125,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     }
 
     fn serialize_str(mut self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.0.owned().str(v)?;
+        self.0.for_owned().str(v)?;
         Ok(())
     }
 
@@ -134,17 +134,17 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         T: ?Sized + fmt::Display,
     {
         self.0
-            .owned()
+            .for_owned()
             .any(&stream::Arguments::from(format_args!("{}", v)))?;
         Ok(())
     }
 
     fn serialize_bytes(mut self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
         self.0
-            .seq_begin(stream::seq_meta().with_size_hint(v.len()))?;
+            .seq_begin(Some(v.len()))?;
 
         for b in v {
-            self.0.owned().seq_elem(&b)?;
+            self.0.for_owned().seq_elem(&b)?;
         }
 
         self.0.seq_end()?;
@@ -178,27 +178,19 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.0.tagged_seq_begin(
-            stream::tag(variant, index),
-            stream::seq_meta().name(name).with_size_hint(0),
-        )?;
-        self.0.tagged_seq_end()?;
+        self.0.for_static().tag(stream::Tag::named_variant(name, variant, index))?;
         Ok(())
     }
 
     fn serialize_newtype_struct<T>(
-        self,
+        mut self,
         name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        self.0
-            .seq_begin(stream::seq_meta().name(name).with_size_hint(1))?;
-        self.0.owned().seq_elem(&ToValue(value))?;
-        self.0.seq_end()?;
-
+        self.0.for_owned().any(&ToValue(value))?;
         Ok(())
     }
 
@@ -212,23 +204,23 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.tagged_seq_begin(
-            stream::tag(variant, index),
-            stream::seq_meta().with_name(name).with_size_hint(1),
+        self.0.for_static().tagged_seq_begin(
+            stream::Tag::named_variant(name, variant, index),
+            Some(1),
         )?;
-        self.0.owned().seq_elem(&ToValue(value))?;
+        self.0.for_owned().seq_elem(&ToValue(value))?;
         self.0.tagged_seq_end()?;
 
         Ok(())
     }
 
     fn serialize_seq(mut self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        self.0.seq_begin(stream::seq_meta().with_size_hint(len))?;
+        self.0.seq_begin(len)?;
         Ok(self)
     }
 
     fn serialize_tuple(mut self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        self.0.seq_begin(stream::seq_meta().with_size_hint(len))?;
+        self.0.seq_begin(Some(len))?;
         Ok(self)
     }
 
@@ -238,7 +230,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
         self.0
-            .seq_begin(stream::seq_meta().with_name(name).with_size_hint(len))?;
+            .seq_begin(Some(len))?;
         Ok(self)
     }
 
@@ -249,15 +241,15 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        self.0.tagged_seq_begin(
-            stream::tag(variant, index),
-            stream::seq_meta().with_name(name).with_size_hint(len),
+        self.0.for_static().tagged_seq_begin(
+            stream::Tag::named_variant(name, variant, index),
+            Some(len),
         )?;
         Ok(self)
     }
 
     fn serialize_map(mut self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.0.map_begin(stream::map_meta().with_size_hint(len))?;
+        self.0.map_begin(len)?;
         Ok(self)
     }
 
@@ -267,7 +259,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
         self.0
-            .map_begin(stream::map_meta().with_name(name).with_size_hint(len))?;
+            .map_begin(Some(len))?;
         Ok(self)
     }
 
@@ -278,9 +270,9 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.0.tagged_map_begin(
-            stream::tag(variant, index),
-            stream::map_meta().with_name(name).with_size_hint(len),
+        self.0.for_static().tagged_map_begin(
+            stream::Tag::named_variant(name, variant, index),
+            Some(len),
         )?;
         Ok(self)
     }
@@ -294,7 +286,7 @@ impl<'a, 'v> SerializeSeq for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().seq_elem(&ToValue(value))?;
+        self.0.for_owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -312,7 +304,7 @@ impl<'a, 'v> SerializeTuple for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().seq_elem(&ToValue(value))?;
+        self.0.for_owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -330,7 +322,7 @@ impl<'a, 'v> SerializeTupleStruct for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().seq_elem(&ToValue(value))?;
+        self.0.for_owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -348,7 +340,7 @@ impl<'a, 'v> SerializeTupleVariant for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().seq_elem(&ToValue(value))?;
+        self.0.for_owned().seq_elem(&ToValue(value))?;
         Ok(())
     }
 
@@ -367,7 +359,7 @@ impl<'a, 'v> SerializeMap for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().map_key(&ToValue(key))?;
+        self.0.for_owned().map_key(&ToValue(key))?;
         Ok(())
     }
 
@@ -375,7 +367,7 @@ impl<'a, 'v> SerializeMap for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().map_value(&ToValue(value))?;
+        self.0.for_owned().map_value(&ToValue(value))?;
         Ok(())
     }
 
@@ -393,8 +385,8 @@ impl<'a, 'v> SerializeStruct for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().map_key(&key)?;
-        self.0.owned().map_value(&ToValue(value))?;
+        self.0.for_static().map_key_field(key)?;
+        self.0.for_owned().map_value(&ToValue(value))?;
         Ok(())
     }
 
@@ -412,8 +404,8 @@ impl<'a, 'v> SerializeStructVariant for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.owned().map_key(&key)?;
-        self.0.owned().map_value(&ToValue(value))?;
+        self.0.for_static().map_key_field(key)?;
+        self.0.for_owned().map_value(&ToValue(value))?;
         Ok(())
     }
 

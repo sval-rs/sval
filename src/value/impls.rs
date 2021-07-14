@@ -30,7 +30,7 @@ where
     T: Value,
 {
     fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-        stream.seq_begin(value::seq_meta().with_size_hint(self.len()))?;
+        stream.seq_begin(Some(self.len()))?;
 
         for v in self {
             stream.seq_elem(v)?;
@@ -46,7 +46,7 @@ where
     U: Value,
 {
     fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-        stream.seq_begin(value::seq_meta().with_size_hint(2))?;
+        stream.seq_begin(Some(2))?;
 
         stream.seq_elem(&self.0)?;
         stream.seq_elem(&self.1)?;
@@ -229,7 +229,7 @@ mod alloc_support {
         V: Value,
     {
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-            stream.map_begin(value::map_meta().with_size_hint(self.len()))?;
+            stream.map_begin(Some(self.len()))?;
 
             for (k, v) in self {
                 stream.map_key(k)?;
@@ -493,7 +493,7 @@ mod tests {
 
             impl Value for MyError {
                 fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-                    stream.owned().error(&io::Error::from(io::ErrorKind::Other))
+                    stream.for_owned().error(&io::Error::from(io::ErrorKind::Other))
                 }
             }
 

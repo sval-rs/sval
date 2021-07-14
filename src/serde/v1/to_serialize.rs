@@ -10,6 +10,8 @@ use serde1_lib::ser::{
     Serialize,
     SerializeMap,
     SerializeSeq,
+    SerializeStructVariant,
+    SerializeTupleVariant,
     Serializer,
 };
 
@@ -31,6 +33,27 @@ where
         crate::stream_owned(&mut stream, &self.0).map_err(S::Error::custom)?;
 
         Ok(stream.take_ok())
+    }
+}
+
+struct Arguments<'a>(stream::Arguments<'a>);
+struct Source<'a>(stream::Source<'a>);
+
+impl<'a> Serialize for ToSerialize<Arguments<'a>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(&(self.0).0)
+    }
+}
+
+impl<'a> Serialize for ToSerialize<Source<'a>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(&(self.0).0)
     }
 }
 
@@ -66,6 +89,8 @@ where
     Serializer(S),
     SerializeSeq(S::SerializeSeq),
     SerializeMap(S::SerializeMap),
+    SerializeTupleVariant(S::SerializeTupleVariant),
+    SerializeStructVariant(S::SerializeStructVariant, Option<&'static str>),
 }
 
 impl<S> Stream<S>
@@ -125,6 +150,34 @@ where
             _ => panic!("invalid serializer value (expected a map)"),
         }
     }
+
+    fn serialize_struct_variant(&mut self) -> &mut S::SerializeStructVariant {
+        match self {
+            Current::SerializeStructVariant(map, _) => map,
+            _ => panic!("invalid serializer value (expected a tagged map)"),
+        }
+    }
+
+    fn take_serialize_struct_variant(self) -> S::SerializeStructVariant {
+        match self {
+            Current::SerializeStructVariant(map, _) => map,
+            _ => panic!("invalid serializer value (expected a tagged map)"),
+        }
+    }
+
+    fn serialize_tuple_variant(&mut self) -> &mut S::SerializeTupleVariant {
+        match self {
+            Current::SerializeTupleVariant(seq) => seq,
+            _ => panic!("invalid serializer value (expected a sequence)"),
+        }
+    }
+
+    fn take_serialize_tuple_variant(self) -> S::SerializeTupleVariant {
+        match self {
+            Current::SerializeTupleVariant(seq) => seq,
+            _ => panic!("invalid serializer value (expected a sequence)"),
+        }
+    }
 }
 
 impl<S> Stream<S>
@@ -153,24 +206,40 @@ where
     }
 
     fn serialize_elem(&mut self, v: impl Serialize) -> stream::Result {
-        self.current()
-            .serialize_seq()
-            .serialize_element(&v)
-            .map_err(err("error serializing sequence element"))
+        match self.current() {
+            Current::SerializeSeq(seq) => seq.serialize_element(&v).map_err(err("error serializing sequence element")),
+            Current::SerializeTupleVariant(seq) => seq.serialize_field(&v).map_err(err("error serializing tagged sequence element")),
+            _ => panic!("invalid serializer value (expected a map or tagged map)"),
+        }
+    }
+
+    fn serialize_field(&mut self, k: &'static str) -> stream::Result {
+        match self.current() {
+            Current::SerializeMap(map) => map.serialize_key(&k).map_err(err("error serializing map key")),
+            Current::SerializeStructVariant(map, field) => {
+                *field = Some(k);
+                Ok(())
+            },
+            _ => panic!("invalid serializer value (expected a map or tagged map)"),
+        }
     }
 
     fn serialize_key(&mut self, k: impl Serialize) -> stream::Result {
-        self.current()
-            .serialize_map()
-            .serialize_key(&k)
-            .map_err(err("error map serializing key"))
+        match self.current() {
+            Current::SerializeMap(map) => map.serialize_key(&k).map_err(err("error serializing map key")),
+            _ => panic!("invalid serializer value (expected a map or tagged map)"),
+        }
     }
 
     fn serialize_value(&mut self, v: impl Serialize) -> stream::Result {
-        self.current()
-            .serialize_map()
-            .serialize_value(&v)
-            .map_err(err("error map serializing value"))
+        match self.current() {
+            Current::SerializeMap(map) => map.serialize_value(&v).map_err(err("error serializing map key")),
+            Current::SerializeStructVariant(map, field) => {
+                let field = field.take().expect("invalid serializer value (missing field)");
+                map.serialize_field(field, &v).map_err(err("error serializing tagged map key"))
+            },
+            _ => panic!("invalid serializer value (expected a map or tagged map)"),
+        }
     }
 
     fn serialize_primitive(&mut self, v: impl Serialize) -> stream::Result {
@@ -182,46 +251,6 @@ where
         );
 
         Ok(())
-    }
-}
-
-impl<'a> stream::Arguments<'a> {
-    fn into_serialize(self) -> impl Serialize + 'a {
-        struct SerializeArguments<'a>(stream::Arguments<'a>);
-
-        impl<'a> Serialize for SerializeArguments<'a> {
-            fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
-            where
-                S: Serializer,
-            {
-                s.collect_str(&self.0)
-            }
-        }
-
-        SerializeArguments(self)
-    }
-}
-
-impl<'a> stream::Source<'a> {
-    fn into_serialize(self) -> impl Serialize + 'a {
-        struct SerializeSource<'a>(stream::Source<'a>);
-
-        impl<'a> Serialize for SerializeSource<'a> {
-            fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
-            where
-                S: Serializer,
-            {
-                s.collect_str(&self.0)
-            }
-        }
-
-        SerializeSource(self)
-    }
-}
-
-impl<'a> stream::Value<'a> {
-    fn into_serialize(self) -> impl Serialize + 'a {
-        ToSerialize(self)
     }
 }
 
@@ -240,19 +269,11 @@ mod no_alloc_support {
         S: Serializer,
     {
         fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-            self.serialize_any(v.into_serialize())
-        }
-
-        fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
-            self.serialize_any(v.into_serialize())
+            self.serialize_any(ToSerialize(Arguments(v)))
         }
 
         fn error(&mut self, v: stream::Source) -> stream::Result {
-            self.serialize_any(v.into_serialize())
-        }
-
-        fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
-            self.serialize_any(v.into_serialize())
+            self.serialize_any(ToSerialize(Source(v)))
         }
 
         fn i64(&mut self, v: i64) -> stream::Result {
@@ -287,19 +308,15 @@ mod no_alloc_support {
             self.serialize_any(v)
         }
 
-        fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
-            self.serialize_any(v)
-        }
-
         fn none(&mut self) -> stream::Result {
             self.serialize_any(Option::None::<()>)
         }
 
-        fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
+        fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
                     let map = ser
-                        .serialize_map(meta.size_hint())
+                        .serialize_map(len)
                         .map(Current::SerializeMap)
                         .map_err(err("error beginning map"))?;
                     self.current = Some(map);
@@ -319,11 +336,7 @@ mod no_alloc_support {
         }
 
         fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
-            self.serialize_key(k.into_serialize())
-        }
-
-        fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
-            self.serialize_key(k.into_serialize())
+            self.serialize_key(ToSerialize(k))
         }
 
         fn map_value(&mut self) -> stream::Result {
@@ -333,11 +346,7 @@ mod no_alloc_support {
         }
 
         fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
-            self.serialize_value(v.into_serialize())
-        }
-
-        fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
-            self.serialize_value(v.into_serialize())
+            self.serialize_value(ToSerialize(v))
         }
 
         fn map_end(&mut self) -> stream::Result {
@@ -347,11 +356,41 @@ mod no_alloc_support {
             Ok(())
         }
 
-        fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
+        fn tagged_map_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+            match self.take_current() {
+                Current::Serializer(ser) => {
+                    if let (Some(name), Some(variant), Some(index), Some(len)) = (tag.name(), tag.value(), tag.index(), len) {
+                        let map = ser
+                            .serialize_struct_variant(name, index, variant, len)
+                            .map(|map| Current::SerializeStructVariant(map, None))
+                            .map_err(err("error beginning tagged map"))?;
+                        self.current = Some(map);
+
+                        Ok(())
+                    } else {
+                        Err(crate::Error::msg(
+                            "serializing tagged maps with serde requires tags have a name, value, and index",
+                        ))
+                    }
+                }
+                _ => Err(crate::Error::msg(
+                    "unsupported value type requires buffering",
+                )),
+            }
+        }
+
+        fn tagged_map_end(&mut self) -> stream::Result {
+            let map = self.take_current().take_serialize_struct_variant();
+            self.ok = Some(map.end().map_err(err("error completing tagged map"))?);
+
+            Ok(())
+        }
+
+        fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
                     let seq = ser
-                        .serialize_seq(meta.size_hint())
+                        .serialize_seq(len)
                         .map(Current::SerializeSeq)
                         .map_err(err("error beginning sequence"))?;
                     self.current = Some(seq);
@@ -371,11 +410,7 @@ mod no_alloc_support {
         }
 
         fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
-            self.serialize_elem(v.into_serialize())
-        }
-
-        fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
-            self.serialize_elem(v.into_serialize())
+            self.serialize_elem(ToSerialize(v))
         }
 
         fn seq_end(&mut self) -> stream::Result {
@@ -383,6 +418,40 @@ mod no_alloc_support {
             self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
 
             Ok(())
+        }
+
+        fn tagged_seq_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+            match self.take_current() {
+                Current::Serializer(ser) => {
+                    if let (Some(name), Some(variant), Some(index), Some(len)) = (tag.name(), tag.value(), tag.index(), len) {
+                        let seq = ser
+                            .serialize_tuple_variant(name, index, variant, len)
+                            .map(Current::SerializeTupleVariant)
+                            .map_err(err("error beginning tagged seq"))?;
+                        self.current = Some(seq);
+
+                        Ok(())
+                    } else {
+                        Err(crate::Error::msg(
+                            "serializing tagged sequences with serde requires tags have a name, value, and index",
+                        ))
+                    }
+                }
+                _ => Err(crate::Error::msg(
+                    "unsupported value type requires buffering",
+                )),
+            }
+        }
+
+        fn tagged_seq_end(&mut self) -> stream::Result {
+            let seq = self.take_current().take_serialize_tuple_variant();
+            self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
+
+            Ok(())
+        }
+
+        fn map_key_field_static(&mut self, k: &'static str) -> stream::Result {
+            self.serialize_field(k)
         }
     }
 }
@@ -446,13 +515,13 @@ mod alloc_support {
     where
         S: Serializer,
     {
-        fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
+        fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.buffer() {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
                             let seq = ser
-                                .serialize_seq(meta.size_hint())
+                                .serialize_seq(len)
                                 .map(Current::SerializeSeq)
                                 .map_err(err("error serializing sequence"))?;
                             self.current = Some(seq);
@@ -483,7 +552,7 @@ mod alloc_support {
 
         fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_elem(v.into_serialize()),
+                None => self.serialize_elem(v),
                 Some(buffered) => {
                     buffered.seq_elem()?;
                     v.stream(buffered).map(|_| ())
@@ -515,13 +584,13 @@ mod alloc_support {
             }
         }
 
-        fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
+        fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
             match self.buffer() {
                 None => {
                     match self.take_current() {
                         Current::Serializer(ser) => {
                             let map = ser
-                                .serialize_map(meta.size_hint())
+                                .serialize_map(len)
                                 .map(Current::SerializeMap)
                                 .map_err(err("error serializing map"))?;
                             self.current = Some(map);
@@ -551,7 +620,7 @@ mod alloc_support {
 
         fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_key(k.into_serialize()),
+                None => self.serialize_key(k),
                 Some(buffered) => {
                     buffered.map_key()?;
                     k.stream(buffered).map(|_| ())
@@ -576,7 +645,7 @@ mod alloc_support {
 
         fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_value(v.into_serialize()),
+                None => self.serialize_value(v),
                 Some(buffered) => {
                     buffered.map_value()?;
                     v.stream(buffered).map(|_| ())
@@ -677,7 +746,7 @@ mod alloc_support {
 
         fn error(&mut self, v: stream::Source) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_any(v.into_serialize()),
+                None => self.serialize_any(v),
                 Some(buffered) => buffered.error(v),
             }
         }
@@ -688,7 +757,7 @@ mod alloc_support {
 
         fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
             match self.buffer() {
-                None => self.serialize_any(v.into_serialize()),
+                None => self.serialize_any(v),
                 Some(buffered) => buffered.fmt(v),
             }
         }
@@ -817,7 +886,7 @@ mod alloc_support {
                         serializer.serialize_none()
                     }
                     TokenKind::MapBegin(ref meta) => {
-                        let mut map = serializer.serialize_map(meta.size_hint())?;
+                        let mut map = serializer.serialize_map(len)?;
 
                         while let Some(next) = reader.next() {
                             match next.kind {
@@ -844,7 +913,7 @@ mod alloc_support {
                         map.end()
                     }
                     TokenKind::SeqBegin(ref meta) => {
-                        let mut seq = serializer.serialize_seq(meta.size_hint())?;
+                        let mut seq = serializer.serialize_seq(len)?;
 
                         while let Some(next) = reader.next() {
                             match next.kind {

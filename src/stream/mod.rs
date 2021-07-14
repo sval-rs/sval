@@ -10,23 +10,13 @@ A [`Stream`] is a type that receives and works with abstract data-structures.
 
 mod error;
 mod fmt;
-mod meta;
 mod tag;
 mod value;
 
 pub use self::{
     error::Source,
     fmt::Arguments,
-    meta::{
-        map_meta,
-        seq_meta,
-        MapMeta,
-        SeqMeta,
-    },
-    tag::{
-        tag,
-        Tag,
-    },
+    tag::Tag,
     value::Value,
 };
 
@@ -180,8 +170,11 @@ pub trait Stream<'v> {
     */
     #[cfg(not(test))]
     fn tag(&mut self, tag: Tag) -> Result {
-        let _ = tag;
-        Err(crate::Error::default_unsupported("Stream::tag"))
+        if let Some(value) = tag.value() {
+            self.str(value)
+        } else {
+            self.none()
+        }
     }
     #[cfg(test)]
     fn tag(&mut self, tag: Tag) -> Result;
@@ -191,27 +184,12 @@ pub trait Stream<'v> {
     expect to accept maps.
     */
     #[cfg(not(test))]
-    fn map_begin(&mut self, meta: MapMeta) -> Result {
-        let _ = meta;
+    fn map_begin(&mut self, len: Option<usize>) -> Result {
+        let _ = len;
         Err(crate::Error::default_unsupported("Stream::map_begin"))
     }
     #[cfg(test)]
-    fn map_begin(&mut self, meta: MapMeta) -> Result;
-
-    /**
-    Begin a tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
-    #[cfg(not(test))]
-    fn tagged_map_begin(&mut self, tag: Tag, meta: MapMeta) -> Result {
-        let _ = tag;
-        let _ = meta;
-        Err(crate::Error::default_unsupported(
-            "Stream::tagged_map_begin",
-        ))
-    }
-    #[cfg(test)]
-    fn tagged_map_begin(&mut self, tag: Tag, meta: MapMeta) -> Result;
+    fn map_begin(&mut self, len: Option<usize>) -> Result;
 
     /**
     Begin a map key. Implementors should override this method if they
@@ -251,12 +229,34 @@ pub trait Stream<'v> {
     fn map_end(&mut self) -> Result;
 
     /**
+    Begin a tagged map. Implementors should override this method if they
+    expect to accept maps.
+    */
+    #[cfg(not(test))]
+    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
+        self.map_begin(Some(1))?;
+
+        self.map_key()?;
+        self.tag(tag)?;
+
+        self.map_value()?;
+        self.map_begin(len)?;
+
+        Ok(())
+    }
+    #[cfg(test)]
+    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result;
+
+    /**
     End a tagged map. Implementors should override this method if they
     expect to accept maps.
     */
     #[cfg(not(test))]
     fn tagged_map_end(&mut self) -> Result {
-        Err(crate::Error::default_unsupported("Stream::tagged_map_end"))
+        self.map_end()?;
+        self.map_end()?;
+
+        Ok(())
     }
     #[cfg(test)]
     fn tagged_map_end(&mut self) -> Result;
@@ -266,27 +266,12 @@ pub trait Stream<'v> {
     expect to accept sequences.
     */
     #[cfg(not(test))]
-    fn seq_begin(&mut self, meta: SeqMeta) -> Result {
-        let _ = meta;
+    fn seq_begin(&mut self, len: Option<usize>) -> Result {
+        let _ = len;
         Err(crate::Error::default_unsupported("Stream::seq_begin"))
     }
     #[cfg(test)]
-    fn seq_begin(&mut self, meta: SeqMeta) -> Result;
-
-    /**
-    Begin a tagged sequence. Implementors should override this method if they
-    expect to accept sequences.
-    */
-    #[cfg(not(test))]
-    fn tagged_seq_begin(&mut self, tag: Tag, meta: SeqMeta) -> Result {
-        let _ = tag;
-        let _ = meta;
-        Err(crate::Error::default_unsupported(
-            "Stream::tagged_seq_begin",
-        ))
-    }
-    #[cfg(test)]
-    fn tagged_seq_begin(&mut self, tag: Tag, meta: SeqMeta) -> Result;
+    fn seq_begin(&mut self, len: Option<usize>) -> Result;
 
     /**
     Begin a sequence element. Implementors should override this method if they
@@ -313,12 +298,34 @@ pub trait Stream<'v> {
     fn seq_end(&mut self) -> Result;
 
     /**
+    Begin a tagged sequence. Implementors should override this method if they
+    expect to accept sequences.
+    */
+    #[cfg(not(test))]
+    fn tagged_seq_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
+        self.map_begin(Some(1))?;
+
+        self.map_key()?;
+        self.tag(tag)?;
+
+        self.map_value()?;
+        self.seq_begin(len)?;
+
+        Ok(())
+    }
+    #[cfg(test)]
+    fn tagged_seq_begin(&mut self, tag: Tag, len: Option<usize>) -> Result;
+
+    /**
     End a tagged sequence. Implementors should override this method if they
     expect to accept sequences.
     */
     #[cfg(not(test))]
     fn tagged_seq_end(&mut self) -> Result {
-        Err(crate::Error::default_unsupported("Stream::tagged_seq_end"))
+        self.seq_end()?;
+        self.map_end()?;
+
+        Ok(())
     }
     #[cfg(test)]
     fn tagged_seq_end(&mut self) -> Result;
@@ -333,6 +340,16 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn map_key_collect(&mut self, k: Value) -> Result;
+
+    /**
+    Collect a string map key.
+    */
+    #[cfg(not(test))]
+    fn map_key_field(&mut self, k: &str) -> Result {
+        self.map_key_collect(Value::new(&k))
+    }
+    #[cfg(test)]
+    fn map_key_field(&mut self, k: &str) -> Result;
 
     /**
     Collect a map value.
@@ -395,11 +412,18 @@ pub trait Stream<'v> {
     expect to accept maps.
     */
     #[cfg(not(test))]
-    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, meta: MapMeta) -> Result {
-        self.tagged_map_begin(tag, meta)
+    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
+        self.tagged_map_begin(tag, len)
     }
     #[cfg(test)]
-    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, meta: MapMeta) -> Result;
+    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result;
+
+    #[cfg(not(test))]
+    fn map_key_field_borrowed(&mut self, k: &'v str) -> Result {
+        self.map_key_field(k)
+    }
+    #[cfg(test)]
+    fn map_key_field_borrowed(&mut self, k: &'v str) -> Result;
 
     #[cfg(not(test))]
     fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result {
@@ -420,11 +444,11 @@ pub trait Stream<'v> {
     expect to accept sequences.
     */
     #[cfg(not(test))]
-    fn tagged_seq_begin_borrowed(&mut self, tag: Tag<'v>, meta: SeqMeta) -> Result {
-        self.tagged_seq_begin(tag, meta)
+    fn tagged_seq_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
+        self.tagged_seq_begin(tag, len)
     }
     #[cfg(test)]
-    fn tagged_seq_begin_borrowed(&mut self, tag: Tag<'v>, meta: SeqMeta) -> Result;
+    fn tagged_seq_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result;
 
     #[cfg(not(test))]
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result {
@@ -432,6 +456,35 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result;
+
+    /**
+    Begin a borrowed tagged map. Implementors should override this method if they
+    expect to accept maps.
+    */
+    #[cfg(not(test))]
+    fn tagged_map_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
+        self.tagged_map_begin_borrowed(tag, len)
+    }
+    #[cfg(test)]
+    fn tagged_map_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result;
+
+    #[cfg(not(test))]
+    fn map_key_field_static(&mut self, k: &'static str) -> Result {
+        self.map_key_field_borrowed(k)
+    }
+    #[cfg(test)]
+    fn map_key_field_static(&mut self, k: &'static str) -> Result;
+
+    /**
+    Begin a tagged sequence. Implementors should override this method if they
+    expect to accept sequences.
+    */
+    #[cfg(not(test))]
+    fn tagged_seq_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
+        self.tagged_seq_begin_borrowed(tag, len)
+    }
+    #[cfg(test)]
+    fn tagged_seq_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result;
 }
 
 impl<'s, 'v, T: ?Sized> Stream<'v> for &'s mut T
@@ -442,16 +495,8 @@ where
         (**self).fmt(v)
     }
 
-    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
-        (**self).fmt_borrowed(v)
-    }
-
     fn error(&mut self, v: Source) -> Result {
         (**self).error(v)
-    }
-
-    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
-        (**self).error_borrowed(v)
     }
 
     fn i64(&mut self, v: i64) -> Result {
@@ -486,28 +531,28 @@ where
         (**self).str(v)
     }
 
-    fn str_borrowed(&mut self, v: &'v str) -> Result {
-        (**self).str_borrowed(v)
+    fn tag(&mut self, tag: Tag) -> Result {
+        (**self).tag(tag)
     }
 
     fn none(&mut self) -> Result {
         (**self).none()
     }
 
-    fn map_begin(&mut self, meta: MapMeta) -> Result {
-        (**self).map_begin(meta)
+    fn map_begin(&mut self, len: Option<usize>) -> Result {
+        (**self).map_begin(len)
     }
 
     fn map_key(&mut self) -> Result {
         (**self).map_key()
     }
 
-    fn map_key_collect(&mut self, k: Value) -> Result {
-        (**self).map_key_collect(k)
+    fn map_key_field(&mut self, k: &str) -> Result {
+        (**self).map_key_field(k)
     }
 
-    fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result {
-        (**self).map_key_collect_borrowed(k)
+    fn map_key_collect(&mut self, k: Value) -> Result {
+        (**self).map_key_collect(k)
     }
 
     fn map_value(&mut self) -> Result {
@@ -518,16 +563,20 @@ where
         (**self).map_value_collect(v)
     }
 
-    fn map_value_collect_borrowed(&mut self, v: Value<'v>) -> Result {
-        (**self).map_value_collect_borrowed(v)
-    }
-
     fn map_end(&mut self) -> Result {
         (**self).map_end()
     }
 
-    fn seq_begin(&mut self, meta: SeqMeta) -> Result {
-        (**self).seq_begin(meta)
+    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
+        (**self).tagged_map_begin(tag, len)
+    }
+
+    fn tagged_map_end(&mut self) -> Result {
+        (**self).tagged_map_end()
+    }
+
+    fn seq_begin(&mut self, len: Option<usize>) -> Result {
+        (**self).seq_begin(len)
     }
 
     fn seq_elem(&mut self) -> Result {
@@ -538,12 +587,68 @@ where
         (**self).seq_elem_collect(v)
     }
 
+    fn seq_end(&mut self) -> Result {
+        (**self).seq_end()
+    }
+
+    fn tagged_seq_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
+        (**self).tagged_seq_begin(tag, len)
+    }
+
+    fn tagged_seq_end(&mut self) -> Result {
+        (**self).tagged_seq_end()
+    }
+
+    fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
+        (**self).fmt_borrowed(v)
+    }
+
+    fn error_borrowed(&mut self, v: Source<'v>) -> Result {
+        (**self).error_borrowed(v)
+    }
+
+    fn str_borrowed(&mut self, v: &'v str) -> Result {
+        (**self).str_borrowed(v)
+    }
+
+    fn tag_borrowed(&mut self, tag: Tag<'v>) -> Result {
+        (**self).tag_borrowed(tag)
+    }
+
+    fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
+        (**self).tagged_map_begin_borrowed(tag, len)
+    }
+
+    fn map_key_field_borrowed(&mut self, k: &'v str) -> Result {
+        (**self).map_key_field_borrowed(k)
+    }
+
+    fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result {
+        (**self).map_key_collect_borrowed(k)
+    }
+
+    fn map_value_collect_borrowed(&mut self, v: Value<'v>) -> Result {
+        (**self).map_value_collect_borrowed(v)
+    }
+
+    fn tagged_seq_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
+        (**self).tagged_seq_begin_borrowed(tag, len)
+    }
+
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result {
         (**self).seq_elem_collect_borrowed(v)
     }
 
-    fn seq_end(&mut self) -> Result {
-        (**self).seq_end()
+    fn tagged_map_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
+        (**self).tagged_map_begin_static(tag, len)
+    }
+
+    fn map_key_field_static(&mut self, k: &'static str) -> Result {
+        (**self).map_key_field_static(k)
+    }
+
+    fn tagged_seq_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
+        (**self).tagged_seq_begin_static(tag, len)
     }
 }
 

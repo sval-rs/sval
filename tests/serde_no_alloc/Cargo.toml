@@ -18,3 +18,7 @@ path = "../../json"
 [dependencies.serde]
 version = "1"
 default-features = false
+
+[dependencies.serde_derive]
+version = "1"
+default-features = false

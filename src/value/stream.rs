@@ -10,25 +10,44 @@ use crate::{
 #[cfg(feature = "std")]
 use crate::std::error;
 
-#[doc(inline)]
-pub use self::stream::{
-    map_meta,
-    seq_meta,
-    tag,
-};
-
 /**
 A stream that can receive the structure of a value.
 */
-pub struct Stream<'s, 'v>(Owned<&'s mut dyn stream::Stream<'v>>);
+pub struct Stream<'s, 'v> {
+    for_static: Static<Owned<&'s mut dyn stream::Stream<'v>>>,
+}
 
-impl<'s, 'v> From<&'s mut dyn stream::Stream<'v>> for Stream<'s, 'v> {
-    fn from(stream: &'s mut dyn stream::Stream<'v>) -> Self {
-        Stream(Owned(stream))
+struct Static<S> {
+    for_owned: S,
+}
+
+struct Owned<S> {
+    stream: S,
+}
+
+impl<S> Static<S> {
+    fn inner(&mut self) -> &mut S {
+        &mut self.for_owned
     }
 }
 
-struct Owned<S>(S);
+impl<S> Owned<S> {
+    fn inner(&mut self) -> &mut S {
+        &mut self.stream
+    }
+}
+
+impl<'s, 'v> From<&'s mut dyn stream::Stream<'v>> for Stream<'s, 'v> {
+    fn from(stream: &'s mut dyn stream::Stream<'v>) -> Self {
+        Stream {
+            for_static: Static {
+                for_owned: Owned {
+                    stream,
+                },
+            },
+        }
+    }
+}
 
 impl<'s, 'v> Stream<'s, 'v> {
     /**
@@ -37,22 +56,53 @@ impl<'s, 'v> Stream<'s, 'v> {
     [`Stream`]: ../stream/trait.Stream.html
     */
     pub fn new(stream: &'s mut impl stream::Stream<'v>) -> Self {
-        Stream(Owned(stream))
+        Stream {
+            for_static: Static {
+                for_owned: Owned {
+                    stream,
+                },
+            },
+        }
+    }
+
+    fn inner(&mut self) -> &mut dyn stream::Stream<'v> {
+        self.for_static.for_owned.stream
     }
 
     /**
     Wrap this stream so it can accept borrowed data of any lifetime.
     */
-    pub fn owned<'a, 'b>(&'a mut self) -> Stream<'a, 'b> {
-        Stream(Owned(&mut self.0))
+    pub fn for_owned<'a, 'b>(&'a mut self) -> Stream<'a, 'b> {
+        Stream {
+            for_static: Static {
+                for_owned: Owned {
+                    stream: &mut self.for_static.for_owned
+                }
+            }
+        }
     }
 
-    pub fn borrowed<'a>(&'a mut self) -> Stream<'a, 'v> {
-        Stream(Owned((self.0).0))
+    /**
+    Wrap this stream so it can accept borrowed data for the static lifetime.
+    */
+    pub fn for_static<'a>(&'a mut self) -> Stream<'a, 'static> {
+        Stream {
+            for_static: Static {
+                for_owned: Owned {
+                    stream: &mut self.for_static
+                }
+            }
+        }
     }
 
-    fn inner(&mut self) -> &mut dyn stream::Stream<'v> {
-        (self.0).0
+    pub fn by_ref<'a>(&'a mut self) -> Stream<'a, 'v> {
+        Stream {
+            for_static: Static {
+                for_owned: Owned {
+                    stream: &mut self.for_static.for_owned.stream
+                }
+            }
+        }
     }
 
     /**
@@ -61,7 +111,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     [`Value`]: ./trait.Value.html
     */
     pub fn any(&mut self, v: &'v (impl Value + ?Sized)) -> stream::Result {
-        v.stream(self.borrowed())
+        v.stream(self.by_ref())
     }
 
     /**
@@ -161,8 +211,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     /**
     Begin a map.
     */
-    pub fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
-        self.inner().map_begin(meta)
+    pub fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().map_begin(len)
     }
 
     /**
@@ -172,6 +222,13 @@ impl<'s, 'v> Stream<'s, 'v> {
         // NOTE: With specialization we could add a `?Sized` bound to `impl Value`
         // This would let us continue to forward to `collect_borrowed` for sized values
         self.inner().map_key_collect_borrowed(stream::Value::new(k))
+    }
+
+    /**
+    Stream a string map key.
+    */
+    pub fn map_key_field(&mut self, k: &'v str) -> stream::Result {
+        self.inner().map_key_field_borrowed(k)
     }
 
     /**
@@ -197,9 +254,9 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn tagged_map_begin(
         &mut self,
         tag: stream::Tag<'v>,
-        meta: stream::MapMeta,
+        len: Option<usize>,
     ) -> stream::Result {
-        self.inner().tagged_map_begin_borrowed(tag, meta)
+        self.inner().tagged_map_begin_borrowed(tag, len)
     }
 
     /**
@@ -212,8 +269,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     /**
     Begin a sequence.
     */
-    pub fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
-        self.inner().seq_begin(meta)
+    pub fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().seq_begin(len)
     }
 
     /**
@@ -239,9 +296,9 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn tagged_seq_begin(
         &mut self,
         tag: stream::Tag<'v>,
-        meta: stream::SeqMeta,
+        len: Option<usize>,
     ) -> stream::Result {
-        self.inner().tagged_seq_begin_borrowed(tag, meta)
+        self.inner().tagged_seq_begin_borrowed(tag, len)
     }
 
     /**
@@ -292,16 +349,8 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().fmt(v)
     }
 
-    fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
-        self.inner().fmt_borrowed(v)
-    }
-
     fn error(&mut self, v: stream::Source) -> stream::Result {
         self.inner().error(v)
-    }
-
-    fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
-        self.inner().error_borrowed(v)
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
@@ -336,28 +385,24 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().str(v)
     }
 
-    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
-        self.inner().str_borrowed(v)
-    }
-
     fn none(&mut self) -> stream::Result {
         self.inner().none()
     }
 
-    fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
-        self.inner().map_begin(meta)
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().map_begin(len)
     }
 
     fn map_key(&mut self) -> stream::Result {
         self.inner().map_key()
     }
 
-    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
-        self.inner().map_key_collect(k)
+    fn map_key_field(&mut self, k: &str) -> stream::Result {
+        self.inner().map_key_field(k)
     }
 
-    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
-        self.inner().map_key_collect_borrowed(k)
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
+        self.inner().map_key_collect(k)
     }
 
     fn map_value(&mut self) -> stream::Result {
@@ -368,16 +413,20 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().map_value_collect(v)
     }
 
-    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
-        self.inner().map_value_collect_borrowed(v)
-    }
-
     fn map_end(&mut self) -> stream::Result {
         self.inner().map_end()
     }
 
-    fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
-        self.inner().seq_begin(meta)
+    fn tagged_map_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin(tag, len)
+    }
+
+    fn tagged_map_end(&mut self) -> stream::Result {
+        self.inner().tagged_map_end()
+    }
+
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().seq_begin(len)
     }
 
     fn seq_elem(&mut self) -> stream::Result {
@@ -388,12 +437,60 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().seq_elem_collect(v)
     }
 
+    fn seq_end(&mut self) -> stream::Result {
+        self.inner().seq_end()
+    }
+
+    fn tagged_seq_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin(tag, len)
+    }
+
+    fn tagged_seq_end(&mut self) -> stream::Result {
+        self.inner().tagged_seq_end()
+    }
+
+    fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
+        self.inner().fmt_borrowed(v)
+    }
+
+    fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
+        self.inner().error_borrowed(v)
+    }
+
+    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
+        self.inner().str_borrowed(v)
+    }
+
+    fn tagged_map_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin_borrowed(tag, len)
+    }
+
+    fn map_key_field_borrowed(&mut self, k: &'v str) -> stream::Result {
+        self.inner().map_key_field_borrowed(k)
+    }
+
+    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
+        self.inner().map_key_collect_borrowed(k)
+    }
+
+    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
+        self.inner().map_value_collect_borrowed(v)
+    }
+
+    fn tagged_seq_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin_borrowed(tag, len)
+    }
+
     fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.inner().seq_elem_collect_borrowed(v)
     }
 
-    fn seq_end(&mut self) -> stream::Result {
-        self.inner().seq_end()
+    fn tagged_map_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin_static(tag, len)
+    }
+
+    fn map_key_field_static(&mut self, k: &'static str) -> stream::Result {
+        self.inner().map_key_field_static(k)
     }
 }
 
@@ -402,118 +499,319 @@ where
     S: stream::Stream<'a>,
 {
     fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-        self.0.fmt(v)
-    }
-
-    fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
-        self.0.fmt(v)
+        self.inner().fmt(v)
     }
 
     fn error(&mut self, v: stream::Source) -> stream::Result {
-        self.0.error(v)
-    }
-
-    fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
-        self.0.error(v)
+        self.inner().error(v)
     }
 
     fn i64(&mut self, v: i64) -> stream::Result {
-        self.0.i64(v)
+        self.inner().i64(v)
     }
 
     fn u64(&mut self, v: u64) -> stream::Result {
-        self.0.u64(v)
+        self.inner().u64(v)
     }
 
     fn i128(&mut self, v: i128) -> stream::Result {
-        self.0.i128(v)
+        self.inner().i128(v)
     }
 
     fn u128(&mut self, v: u128) -> stream::Result {
-        self.0.u128(v)
+        self.inner().u128(v)
     }
 
     fn f64(&mut self, v: f64) -> stream::Result {
-        self.0.f64(v)
+        self.inner().f64(v)
     }
 
     fn bool(&mut self, v: bool) -> stream::Result {
-        self.0.bool(v)
+        self.inner().bool(v)
     }
 
     fn char(&mut self, v: char) -> stream::Result {
-        self.0.char(v)
+        self.inner().char(v)
     }
 
     fn str(&mut self, v: &str) -> stream::Result {
-        self.0.str(v)
-    }
-
-    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
-        self.0.str(v)
+        self.inner().str(v)
     }
 
     fn none(&mut self) -> stream::Result {
-        self.0.none()
+        self.inner().none()
     }
 
     fn tag(&mut self, tag: stream::Tag) -> stream::Result {
-        self.0.tag(tag)
+        self.inner().tag(tag)
     }
 
-    fn tag_borrowed(&mut self, tag: stream::Tag<'v>) -> stream::Result {
-        self.0.tag(tag)
-    }
-
-    fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
-        self.0.map_begin(meta)
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().map_begin(len)
     }
 
     fn map_key(&mut self) -> stream::Result {
-        self.0.map_key()
+        self.inner().map_key()
+    }
+
+    fn map_key_field(&mut self, k: &str) -> stream::Result {
+        self.inner().map_key_field(k)
     }
 
     fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
-        self.0.map_key_collect(k)
-    }
-
-    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
-        self.0.map_key_collect(k)
+        self.inner().map_key_collect(k)
     }
 
     fn map_value(&mut self) -> stream::Result {
-        self.0.map_value()
+        self.inner().map_value()
     }
 
     fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
-        self.0.map_value_collect(v)
-    }
-
-    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
-        self.0.map_value_collect(v)
+        self.inner().map_value_collect(v)
     }
 
     fn map_end(&mut self) -> stream::Result {
-        self.0.map_end()
+        self.inner().map_end()
     }
 
-    fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
-        self.0.seq_begin(meta)
+    fn tagged_map_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin(tag, len)
+    }
+
+    fn tagged_map_end(&mut self) -> stream::Result {
+        self.inner().tagged_map_end()
+    }
+
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().seq_begin(len)
     }
 
     fn seq_elem(&mut self) -> stream::Result {
-        self.0.seq_elem()
+        self.inner().seq_elem()
     }
 
     fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
-        self.0.seq_elem_collect(v)
-    }
-
-    fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
-        self.0.seq_elem_collect(v)
+        self.inner().seq_elem_collect(v)
     }
 
     fn seq_end(&mut self) -> stream::Result {
-        self.0.seq_end()
+        self.inner().seq_end()
+    }
+
+    fn tagged_seq_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin(tag, len)
+    }
+
+    fn tagged_seq_end(&mut self) -> stream::Result {
+        self.inner().tagged_seq_end()
+    }
+
+    fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
+        self.inner().fmt(v)
+    }
+
+    fn error_borrowed(&mut self, v: stream::Source<'v>) -> stream::Result {
+        self.inner().error(v)
+    }
+
+    fn str_borrowed(&mut self, v: &'v str) -> stream::Result {
+        self.inner().str(v)
+    }
+
+    fn tag_borrowed(&mut self, tag: stream::Tag<'v>) -> stream::Result {
+        self.inner().tag(tag)
+    }
+
+    fn tagged_map_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin(tag, len)
+    }
+
+    fn map_key_field_borrowed(&mut self, k: &'v str) -> stream::Result {
+        self.inner().map_key_field(k)
+    }
+
+    fn map_key_collect_borrowed(&mut self, k: stream::Value<'v>) -> stream::Result {
+        self.inner().map_key_collect(k)
+    }
+
+    fn map_value_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
+        self.inner().map_value_collect(v)
+    }
+
+    fn tagged_seq_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin(tag, len)
+    }
+
+    fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
+        self.inner().seq_elem_collect(v)
+    }
+
+    fn tagged_map_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin_static(tag, len)
+    }
+
+    fn map_key_field_static(&mut self, k: &'static str) -> stream::Result {
+        self.inner().map_key_field_static(k)
+    }
+}
+
+impl<'a, 'v, S> stream::Stream<'static> for Static<S>
+where
+    S: stream::Stream<'a>,
+{
+    fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
+        self.inner().fmt(v)
+    }
+
+    fn error(&mut self, v: stream::Source) -> stream::Result {
+        self.inner().error(v)
+    }
+
+    fn i64(&mut self, v: i64) -> stream::Result {
+        self.inner().i64(v)
+    }
+
+    fn u64(&mut self, v: u64) -> stream::Result {
+        self.inner().u64(v)
+    }
+
+    fn i128(&mut self, v: i128) -> stream::Result {
+        self.inner().i128(v)
+    }
+
+    fn u128(&mut self, v: u128) -> stream::Result {
+        self.inner().u128(v)
+    }
+
+    fn f64(&mut self, v: f64) -> stream::Result {
+        self.inner().f64(v)
+    }
+
+    fn bool(&mut self, v: bool) -> stream::Result {
+        self.inner().bool(v)
+    }
+
+    fn char(&mut self, v: char) -> stream::Result {
+        self.inner().char(v)
+    }
+
+    fn str(&mut self, v: &str) -> stream::Result {
+        self.inner().str(v)
+    }
+
+    fn none(&mut self) -> stream::Result {
+        self.inner().none()
+    }
+
+    fn tag(&mut self, tag: stream::Tag) -> stream::Result {
+        self.inner().tag(tag)
+    }
+
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().map_begin(len)
+    }
+
+    fn map_key(&mut self) -> stream::Result {
+        self.inner().map_key()
+    }
+
+    fn map_key_field(&mut self, k: &str) -> stream::Result {
+        self.inner().map_key_field(k)
+    }
+
+    fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
+        self.inner().map_key_collect(k)
+    }
+
+    fn map_value(&mut self) -> stream::Result {
+        self.inner().map_value()
+    }
+
+    fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
+        self.inner().map_value_collect(v)
+    }
+
+    fn map_end(&mut self) -> stream::Result {
+        self.inner().map_end()
+    }
+
+    fn tagged_map_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin(tag, len)
+    }
+
+    fn tagged_map_end(&mut self) -> stream::Result {
+        self.inner().tagged_map_end()
+    }
+
+    fn seq_begin(&mut self, len: Option<usize>) -> stream::Result {
+        self.inner().seq_begin(len)
+    }
+
+    fn seq_elem(&mut self) -> stream::Result {
+        self.inner().seq_elem()
+    }
+
+    fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
+        self.inner().seq_elem_collect(v)
+    }
+
+    fn seq_end(&mut self) -> stream::Result {
+        self.inner().seq_end()
+    }
+
+    fn tagged_seq_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin(tag, len)
+    }
+
+    fn tagged_seq_end(&mut self) -> stream::Result {
+        self.inner().tagged_seq_end()
+    }
+
+    fn fmt_borrowed(&mut self, v: stream::Arguments<'static>) -> stream::Result {
+        self.inner().fmt_borrowed(v)
+    }
+
+    fn error_borrowed(&mut self, v: stream::Source<'static>) -> stream::Result {
+        self.inner().error_borrowed(v)
+    }
+
+    fn str_borrowed(&mut self, v: &'static str) -> stream::Result {
+        self.inner().str_borrowed(v)
+    }
+
+    fn tag_borrowed(&mut self, tag: stream::Tag<'static>) -> stream::Result {
+        self.inner().tag(tag)
+    }
+
+    fn map_key_field_borrowed(&mut self, k: &'static str) -> stream::Result {
+        self.inner().map_key_field_static(k)
+    }
+
+    fn map_key_collect_borrowed(&mut self, k: stream::Value<'static>) -> stream::Result {
+        self.inner().map_key_collect_borrowed(k)
+    }
+
+    fn map_value_collect_borrowed(&mut self, v: stream::Value<'static>) -> stream::Result {
+        self.inner().map_value_collect_borrowed(v)
+    }
+
+    fn tagged_map_begin_borrowed(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin_static(tag, len)
+    }
+
+    fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'static>) -> stream::Result {
+        self.inner().seq_elem_collect_borrowed(v)
+    }
+
+    fn tagged_seq_begin_borrowed(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin_static(tag, len)
+    }
+
+    fn map_key_field_static(&mut self, k: &'static str) -> stream::Result {
+        self.inner().map_key_field_static(k)
+    }
+
+    fn tagged_seq_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin_static(tag, len)
     }
 }

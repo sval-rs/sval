@@ -3,6 +3,9 @@
 #[macro_use]
 extern crate sval;
 
+#[macro_use]
+extern crate serde_derive;
+
 sval_if_alloc! {
     if #[cfg(feature = "alloc")]
     {
@@ -31,19 +34,30 @@ sval_if_alloc! {
             b: &'a str,
         }
 
+        // TODO: We need to derive this without going through `serde`
+        // We need to be able to set meta
+        #[derive(Serialize, Value)]
+        #[sval(derive_from = "serde")]
+        enum Tagged {
+            Unit,
+            NewType(i32),
+            Tuple(i32, i32),
+            Struct { a: i32, b: i32 },
+        }
+
         struct Anonymous;
 
         impl Value for Anonymous {
             fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-                stream.map_begin(None)?;
+                stream.map_begin(Default::default())?;
 
                 stream.map_key_begin()?.i64(1)?;
 
-                stream.map_value_begin()?.map_begin(None)?;
+                stream.map_value_begin()?.map_begin(Default::default())?;
 
                 stream.map_key(&2)?;
 
-                stream.map_value_begin()?.seq_begin(None)?;
+                stream.map_value_begin()?.seq_begin(Default::default())?;
 
                 stream.seq_elem_begin()?.i64(3)?;
 
@@ -83,6 +97,21 @@ sval_if_alloc! {
             // The anonymous map isn't supported in no-std
             let mut buf = String::new();
             sval_json::to_fmt(&mut buf, &sval::serde::v1::to_value(ser)).unwrap();
+        }
+
+        #[test]
+        fn serde_to_sval_tagged() {
+            let ser = sval::serde::v1::to_serialize(Tagged::Struct {
+                a: 1,
+                b: 2,
+            });
+
+            let mut buf = String::new();
+            sval_json::to_fmt(&mut buf, &sval::serde::v1::to_value(ser)).unwrap();
+
+            let expected = "{\"Struct\":{\"a\":1,\"b\":2}}";
+
+            assert_eq!(expected, buf);
         }
     }
 }

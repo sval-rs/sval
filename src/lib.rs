@@ -72,7 +72,7 @@ fn with_value(value: impl Value) {
 */
 
 #![doc(html_root_url = "https://docs.rs/sval/1.0.0-alpha.5")]
-#![no_std]
+//#![no_std]
 
 #[doc(hidden)]
 #[macro_export]

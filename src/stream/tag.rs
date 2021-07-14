@@ -1,23 +1,44 @@
 #[derive(Clone, Copy)]
 pub struct Tag<'a> {
-    ident: &'a str,
-    index: u32,
-}
-
-pub fn tag<'a>(ident: &'a str, index: u32) -> Tag<'a> {
-    Tag::new(ident, index)
+    name: Option<&'a str>,
+    value: Option<&'a str>,
+    index: Option<u32>,
 }
 
 impl<'a> Tag<'a> {
-    pub fn new(ident: &'a str, index: u32) -> Self {
-        Tag { ident, index }
+    pub fn named(name: &'a str) -> Self {
+        Tag {
+            name: Some(name),
+            value: None,
+            index: None,
+        }
     }
 
-    pub fn ident(&self) -> &str {
-        self.ident
+    pub fn variant(value: &'a str, index: u32) -> Self {
+        Tag {
+            name: None,
+            value: Some(value),
+            index: Some(index),
+        }
     }
 
-    pub fn index(&self) -> u32 {
+    pub fn named_variant(name: &'a str, value: &'a str, index: u32) -> Self {
+        Tag {
+            name: Some(name),
+            value: Some(value),
+            index: Some(index),
+        }
+    }
+
+    pub fn name(&self) -> Option<&'a str> {
+        self.name
+    }
+
+    pub fn value(&self) -> Option<&'a str> {
+        self.value
+    }
+
+    pub fn index(&self) -> Option<u32> {
         self.index
     }
 }

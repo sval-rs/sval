@@ -413,11 +413,11 @@ impl Token {
             BigSigned(v) => stream.i128(v)?,
             BigUnsigned(v) => stream.u128(v)?,
             Bool(v) => stream.bool(v)?,
-            Str(ref v) => stream.owned().str(&*v)?,
+            Str(ref v) => stream.for_owned().str(&*v)?,
             Char(v) => stream.char(v)?,
-            Error(ref v) => stream::Source::from(&**v).stream(stream.owned())?,
+            Error(ref v) => stream::Source::from(&**v).stream(stream.for_owned())?,
             None => stream.none()?,
-            MapBegin(ref meta) => stream.map_begin(meta.clone())?,
+            MapBegin(len) => stream.map_begin(len)?,
             MapKey => {
                 stream.map_key_begin()?;
             }
@@ -425,7 +425,7 @@ impl Token {
                 stream.map_value_begin()?;
             }
             MapEnd => stream.map_end()?,
-            SeqBegin(ref meta) => stream.seq_begin(meta.clone())?,
+            SeqBegin(len) => stream.seq_begin(len)?,
             SeqElem => {
                 stream.seq_elem_begin()?;
             }
@@ -559,10 +559,10 @@ impl<'v> Stream<'v> for TokenBuf {
         Ok(())
     }
 
-    fn map_begin(&mut self, meta: stream::MapMeta) -> stream::Result {
+    fn map_begin(&mut self, len: Option<usize>) -> stream::Result {
         self.depth += 1;
 
-        self.push(TokenKind::MapBegin(meta));
+        self.push(TokenKind::MapBegin(len));
 
         Ok(())
     }
@@ -605,10 +605,10 @@ impl<'v> Stream<'v> for TokenBuf {
         Ok(())
     }
 
-    fn seq_begin(&mut self, meta: stream::SeqMeta) -> stream::Result {
+    fn seq_begin(&mut self, len: Option(usize)) -> stream::Result {
         self.depth += 1;
 
-        self.push(TokenKind::SeqBegin(meta));
+        self.push(TokenKind::SeqBegin(len));
 
         Ok(())
     }
@@ -684,9 +684,9 @@ impl Value for Primitive {
             BigSigned(v) => stream.i128(v)?,
             BigUnsigned(v) => stream.u128(v)?,
             Bool(v) => stream.bool(v)?,
-            Str(ref v) => stream.owned().str(&*v)?,
+            Str(ref v) => stream.for_owned().str(&*v)?,
             Char(v) => stream.char(v)?,
-            Error(ref v) => stream::Source::from(&**v).stream(stream.owned())?,
+            Error(ref v) => stream::Source::from(&**v).stream(stream.for_owned())?,
             None => stream.none()?,
         }
 
@@ -910,7 +910,7 @@ mod tests {
 
     impl Value for Map {
         fn stream<'s, 'v>(&'v self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-            let mut stream = stream.owned();
+            let mut stream = stream.for_owned();
 
             stream.map_begin(Some(2))?;
 
@@ -928,7 +928,7 @@ mod tests {
 
     impl Value for Seq {
         fn stream<'s, 'v>(&self, mut stream: value::Stream<'s, 'v>) -> value::Result {
-            let mut stream = stream.owned();
+            let mut stream = stream.for_owned();
 
             stream.seq_begin(Some(2))?;
 

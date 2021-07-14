@@ -38,9 +38,6 @@ mod stream;
 pub(crate) mod owned;
 
 pub use self::stream::{
-    map_meta,
-    seq_meta,
-    tag,
     Stream,
 };
 
@@ -67,7 +64,7 @@ pub trait Value {
     value is free to produce any short-lived values it needs.
     */
     fn stream_owned(&self, mut stream: Stream) -> Result {
-        self.stream(stream.owned())
+        self.stream(stream.for_owned())
     }
 }
 
