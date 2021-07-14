@@ -4,12 +4,13 @@ We have a few new kinds of values we can represent with tags:
 let w = W { a: 0, b: 0 }
 
 map_begin()
-map_key_field("a")
+map_key_field_static("a")
 map_value(0)
-map_key_field("b")
+map_key_field_static("b")
 map_value(0)
 map_end()
 
+-----
 
 let x = X(0, 0)
 
@@ -18,46 +19,54 @@ seq_elem(0)
 seq_elem(0)
 seq_end
 
+-----
 
 let y = Y(0)
 
 i64(0)
 
+-----
 
 let z = Z
 
 none()
 
+-----
 
 let w = E::W { a: 0, b: 0 }
 
-tagged_map_begin(Tag::new("E", "W", 0))
-map_key_field("a")
+tagged_map_begin_static(Tag::new("E", "W", 0))
+map_key_field_static("a")
 map_value(0)
-map_key_field("b")
+map_key_field_static("b")
 map_value(0)
 tagged_map_end()
 
+-----
 
 E::X(0, 0)
 
-tagged_seq_begin(Tag::new("E", "X", 1))
+tagged_seq_begin_static(Tag::new("E", "X", 1))
 seq_elem(0)
 seq_elem(0)
 tagged_seq_end()
 
+-----
 
 E::Y(0)
 
-tagged_begin(Tag::new("E", "Y", 2))
+tagged_begin_static(Tag::new("E", "Y", 2))
 i64(0)
 tagged_end()
 
+-----
 
 E::Z
 
-tag(Tag::new("E", "Z", 3))
+tag_static(Tag::new("E", "Z", 3))
 */
+
+use crate::stream::Ident;
 
 /**
 A tag is an identifier for an enum variant.
@@ -65,22 +74,22 @@ A tag is an identifier for an enum variant.
 #[derive(Clone, Copy)]
 pub enum Tag<'a> {
     Named {
-        ty: Option<&'a str>,
-        name: &'a str,
+        ty: Option<Ident<'a>>,
+        name: Ident<'a>,
     },
     Indexed {
-        ty: Option<&'a str>,
+        ty: Option<Ident<'a>>,
         index: u32,
     },
     Full {
-        ty: Option<&'a str>,
-        name: &'a str,
+        ty: Option<Ident<'a>>,
+        name: Ident<'a>,
         index: u32,
     }
 }
 
 impl<'a> Tag<'a> {
-    pub fn new(ty: impl Into<Option<&'a str>>, name: &'a str, index: u32) -> Self {
+    pub fn new(ty: Option<Ident<'a>>, name: Ident<'a>, index: u32) -> Self {
         Tag::Full {
             ty: ty.into(),
             name,
@@ -88,21 +97,21 @@ impl<'a> Tag<'a> {
         }
     }
 
-    pub fn named(ty: impl Into<Option<&'a str>>, name: &'a str) -> Self {
+    pub fn named(ty: Option<Ident<'a>>, name: Ident<'a>) -> Self {
         Tag::Named {
             ty: ty.into(),
             name,
         }
     }
 
-    pub fn indexed(ty: impl Into<Option<&'a str>>, index: u32) -> Self {
+    pub fn indexed(ty: Option<Ident<'a>>, index: u32) -> Self {
         Tag::Indexed {
             ty: ty.into(),
             index,
         }
     }
 
-    pub fn ty(&self) -> Option<&'a str> {
+    pub fn ty(&self) -> Option<Ident<'a>> {
         match self {
             Tag::Named { ty, .. } => *ty,
             Tag::Indexed { ty, .. } => *ty,
@@ -110,7 +119,7 @@ impl<'a> Tag<'a> {
         }
     }
 
-    pub fn name(&self) -> Option<&'a str> {
+    pub fn name(&self) -> Option<Ident<'a>> {
         match self {
             Tag::Named { name, .. } => Some(*name),
             Tag::Indexed { .. } => None,

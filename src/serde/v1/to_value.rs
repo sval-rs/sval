@@ -178,7 +178,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.0.for_static().tag(stream::Tag::new(name, variant, index))?;
+        self.0.tag(stream::Tag::new(Some(stream::Ident::from_static(name)), stream::Ident::from_static(variant), index))?;
         Ok(())
     }
 
@@ -204,8 +204,8 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_static().tagged_seq_begin(
-            stream::Tag::new(name, variant, index),
+        self.0.tagged_seq_begin(
+            stream::Tag::new(Some(stream::Ident::from_static(name)), stream::Ident::from_static(variant), index),
             Some(1),
         )?;
         self.0.for_owned().seq_elem(&ToValue(value))?;
@@ -241,8 +241,8 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        self.0.for_static().tagged_seq_begin(
-            stream::Tag::new(name, variant, index),
+        self.0.tagged_seq_begin(
+            stream::Tag::new(Some(stream::Ident::from_static(name)), stream::Ident::from_static(variant), index),
             Some(len),
         )?;
         Ok(self)
@@ -270,8 +270,8 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.0.for_static().tagged_map_begin(
-            stream::Tag::new(name, variant, index),
+        self.0.tagged_map_begin(
+            stream::Tag::new(Some(stream::Ident::from_static(name)), stream::Ident::from_static(variant), index),
             Some(len),
         )?;
         Ok(self)
@@ -385,7 +385,7 @@ impl<'a, 'v> SerializeStruct for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_static().map_key_field(key)?;
+        self.0.for_owned().map_key(&stream::Ident::from_static(key))?;
         self.0.for_owned().map_value(&ToValue(value))?;
         Ok(())
     }
@@ -404,7 +404,7 @@ impl<'a, 'v> SerializeStructVariant for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.for_static().map_key_field(key)?;
+        self.0.for_owned().map_key(&stream::Ident::from_static(key))?;
         self.0.for_owned().map_value(&ToValue(value))?;
         Ok(())
     }

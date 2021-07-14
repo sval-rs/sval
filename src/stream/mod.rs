@@ -10,12 +10,14 @@ A [`Stream`] is a type that receives and works with abstract data-structures.
 
 mod error;
 mod fmt;
+mod ident;
 mod tag;
 mod value;
 
 pub use self::{
     error::Source,
     fmt::Arguments,
+    ident::Ident,
     tag::Tag,
     value::Value,
 };
@@ -171,14 +173,28 @@ pub trait Stream<'v> {
     Stream a tag.
     */
     #[cfg(not(test))]
-    fn tag(&mut self, tag: Tag) -> Result {
-        match tag {
-            Tag::Named { name, .. } | Tag::Full { name, .. } => self.str(name),
+    fn tag(&mut self, t: Tag) -> Result {
+        match t {
+            Tag::Named { name, .. } | Tag::Full { name, .. } => self.ident(name),
             Tag::Indexed { index, .. } => self.u64(index as u64),
         }
     }
     #[cfg(test)]
-    fn tag(&mut self, tag: Tag) -> Result;
+    fn tag(&mut self, t: Tag) -> Result;
+
+    /**
+    Stream an identifier.
+    */
+    #[cfg(not(test))]
+    fn ident(&mut self, v: Ident) -> Result {
+        if let Some(v) = v.to_static() {
+            self.str_borrowed(v.as_str())
+        } else {
+            self.str(v.as_str())
+        }
+    }
+    #[cfg(test)]
+    fn ident(&mut self, v: Ident) -> Result;
 
     /**
     Begin a map. Implementors should override this method if they
@@ -358,16 +374,6 @@ pub trait Stream<'v> {
     fn map_key_collect(&mut self, k: Value) -> Result;
 
     /**
-    Collect a string map key.
-    */
-    #[cfg(not(test))]
-    fn map_key_field(&mut self, k: &str) -> Result {
-        self.map_key_collect(Value::new(&k))
-    }
-    #[cfg(test)]
-    fn map_key_field(&mut self, k: &str) -> Result;
-
-    /**
     Collect a map value.
     */
     #[cfg(not(test))]
@@ -425,12 +431,15 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn tag_borrowed(&mut self, tag: Tag<'v>) -> Result;
 
+    /**
+    Stream an identifier.
+    */
     #[cfg(not(test))]
-    fn map_key_field_borrowed(&mut self, k: &'v str) -> Result {
-        self.map_key_field(k)
+    fn ident_borrowed(&mut self, v: Ident<'v>) -> Result {
+        self.ident(v)
     }
     #[cfg(test)]
-    fn map_key_field_borrowed(&mut self, k: &'v str) -> Result;
+    fn ident_borrowed(&mut self, v: Ident) -> Result;
 
     #[cfg(not(test))]
     fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result {
@@ -484,57 +493,6 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result;
-
-    // Static values: These carry a `'static` lifetime
-
-    #[cfg(not(test))]
-    fn map_key_field_static(&mut self, k: &'static str) -> Result {
-        self.map_key_field_borrowed(k)
-    }
-    #[cfg(test)]
-    fn map_key_field_static(&mut self, k: &'static str) -> Result;
-
-    /**
-    Stream a static tag.
-    */
-    #[cfg(not(test))]
-    fn tag_static(&mut self, tag: Tag<'static>) -> Result {
-        self.tag_borrowed(tag)
-    }
-    #[cfg(test)]
-    fn tag_static(&mut self, tag: Tag<'static>) -> Result;
-
-    /**
-    Begin a static tagged value.
-    */
-    #[cfg(not(test))]
-    fn tagged_begin_static(&mut self, tag: Tag<'static>) -> Result {
-        self.tagged_begin_borrowed(tag)
-    }
-    #[cfg(test)]
-    fn tagged_begin_static(&mut self) -> Result;
-
-    /**
-    Begin a borrowed tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
-    #[cfg(not(test))]
-    fn tagged_map_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
-        self.tagged_map_begin_borrowed(tag, len)
-    }
-    #[cfg(test)]
-    fn tagged_map_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result;
-
-    /**
-    Begin a tagged sequence. Implementors should override this method if they
-    expect to accept sequences.
-    */
-    #[cfg(not(test))]
-    fn tagged_seq_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
-        self.tagged_seq_begin_borrowed(tag, len)
-    }
-    #[cfg(test)]
-    fn tagged_seq_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result;
 }
 
 impl<'s, 'v, T: ?Sized> Stream<'v> for &'s mut T
@@ -581,8 +539,12 @@ where
         (**self).str(v)
     }
 
-    fn tag(&mut self, tag: Tag) -> Result {
-        (**self).tag(tag)
+    fn tag(&mut self, t: Tag) -> Result {
+        (**self).tag(t)
+    }
+
+    fn ident(&mut self, v: Ident) -> Result {
+        (**self).ident(v)
     }
 
     fn none(&mut self) -> Result {
@@ -595,10 +557,6 @@ where
 
     fn map_key(&mut self) -> Result {
         (**self).map_key()
-    }
-
-    fn map_key_field(&mut self, k: &str) -> Result {
-        (**self).map_key_field(k)
     }
 
     fn map_key_collect(&mut self, k: Value) -> Result {
@@ -661,16 +619,16 @@ where
         (**self).str_borrowed(v)
     }
 
-    fn tag_borrowed(&mut self, tag: Tag<'v>) -> Result {
-        (**self).tag_borrowed(tag)
+    fn tag_borrowed(&mut self, t: Tag<'v>) -> Result {
+        (**self).tag_borrowed(t)
+    }
+
+    fn ident_borrowed(&mut self, v: Ident<'v>) -> Result {
+        (**self).ident_borrowed(v)
     }
 
     fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
         (**self).tagged_map_begin_borrowed(tag, len)
-    }
-
-    fn map_key_field_borrowed(&mut self, k: &'v str) -> Result {
-        (**self).map_key_field_borrowed(k)
     }
 
     fn map_key_collect_borrowed(&mut self, k: Value<'v>) -> Result {
@@ -687,18 +645,6 @@ where
 
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result {
         (**self).seq_elem_collect_borrowed(v)
-    }
-
-    fn tagged_map_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
-        (**self).tagged_map_begin_static(tag, len)
-    }
-
-    fn map_key_field_static(&mut self, k: &'static str) -> Result {
-        (**self).map_key_field_static(k)
-    }
-
-    fn tagged_seq_begin_static(&mut self, tag: Tag<'static>, len: Option<usize>) -> Result {
-        (**self).tagged_seq_begin_static(tag, len)
     }
 }
 

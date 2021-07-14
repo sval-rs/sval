@@ -38,6 +38,8 @@ where
 
 struct Arguments<'a>(stream::Arguments<'a>);
 struct Source<'a>(stream::Source<'a>);
+struct Tag<'a>(stream::Tag<'a>);
+struct Ident<'a>(stream::Ident<'a>);
 
 impl<'a> Serialize for ToSerialize<Arguments<'a>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -54,6 +56,217 @@ impl<'a> Serialize for ToSerialize<Source<'a>> {
         S: Serializer,
     {
         serializer.collect_str(&(self.0).0)
+    }
+}
+
+impl<'a> Serialize for ToSerialize<Tag<'a>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match (self.0).0 {
+            stream::Tag::Named { name, .. } | stream::Tag::Full { name, .. } => serializer.serialize_str(name.as_str()),
+            stream::Tag::Indexed { index, .. } => serializer.serialize_u32(index),
+        }
+    }
+}
+
+impl<'a> Serialize for ToSerialize<Ident<'a>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str((self.0).0.as_str())
+    }
+}
+
+trait SerializeBridge {
+    type Value: value::Value;
+    type Serialize: Serialize;
+
+    fn into_value(self) -> Self::Value;
+    fn into_serialize(self) -> Self::Serialize;
+}
+
+impl<'a> SerializeBridge for stream::Value<'a> {
+    type Value = Self;
+    type Serialize = ToSerialize<Self>;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        ToSerialize(self)
+    }
+}
+
+impl<'a> SerializeBridge for stream::Arguments<'a> {
+    type Value = Self;
+    type Serialize = ToSerialize<Arguments<'a>>;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        ToSerialize(Arguments(self))
+    }
+}
+
+impl<'a> SerializeBridge for stream::Source<'a> {
+    type Value = Self;
+    type Serialize = ToSerialize<Source<'a>>;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        ToSerialize(Source(self))
+    }
+}
+
+impl<'a> SerializeBridge for stream::Tag<'a> {
+    type Value = Self;
+    type Serialize = ToSerialize<Tag<'a>>;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        ToSerialize(Tag(self))
+    }
+}
+
+impl<'a> SerializeBridge for stream::Ident<'a> {
+    type Value = Self;
+    type Serialize = ToSerialize<Ident<'a>>;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        ToSerialize(Ident(self))
+    }
+}
+
+impl<'a> SerializeBridge for &'a str {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for bool {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for char {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for i64 {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for u64 {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for i128 {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for u128 {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for f64 {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
+    }
+}
+
+impl SerializeBridge for Option<()> {
+    type Value = Self;
+    type Serialize = Self;
+
+    fn into_value(self) -> Self::Value {
+        self
+    }
+
+    fn into_serialize(self) -> Self::Serialize {
+        self
     }
 }
 
@@ -196,7 +409,7 @@ where
             .expect("attempt to use an invalid serializer")
     }
 
-    fn serialize_any(&mut self, v: impl Serialize) -> stream::Result {
+    fn serialize_any(&mut self, v: impl SerializeBridge) -> stream::Result {
         match self.pos.take() {
             Some(Pos::Key) => self.serialize_key(v),
             Some(Pos::Value) => self.serialize_value(v),
@@ -205,48 +418,53 @@ where
         }
     }
 
-    fn serialize_elem(&mut self, v: impl Serialize) -> stream::Result {
+    fn serialize_elem(&mut self, v: impl SerializeBridge) -> stream::Result {
         match self.current() {
-            Current::SerializeSeq(seq) => seq.serialize_element(&v).map_err(err("error serializing sequence element")),
-            Current::SerializeTupleVariant(seq) => seq.serialize_field(&v).map_err(err("error serializing tagged sequence element")),
+            Current::SerializeSeq(seq) => seq.serialize_element(&v.into_serialize()).map_err(err("error serializing sequence element")),
+            Current::SerializeTupleVariant(seq) => seq.serialize_field(&v.into_serialize()).map_err(err("error serializing tagged sequence element")),
             _ => panic!("invalid serializer value (expected a map or tagged map)"),
         }
     }
 
-    fn serialize_field(&mut self, k: &'static str) -> stream::Result {
+    fn serialize_key(&mut self, k: impl SerializeBridge) -> stream::Result {
         match self.current() {
-            Current::SerializeMap(map) => map.serialize_key(&k).map_err(err("error serializing map key")),
+            Current::SerializeMap(map) => map.serialize_key(&k.into_serialize()).map_err(err("error serializing map key")),
             Current::SerializeStructVariant(map, field) => {
-                *field = Some(k);
-                Ok(())
+                struct ExtractField<'a>(&'a mut Option<&'static str>);
+
+                impl<'a, 'v> stream::Stream<'v> for ExtractField<'a> {
+                    fn ident(&mut self, ident: stream::Ident) -> stream::Result {
+                        if let Some(ident) = ident.to_static() {
+                            *self.0 = Some(ident.as_str());
+                            Ok(())
+                        } else {
+                            Err(crate::Error::msg("serializing struct variants requires static field names"))
+                        }
+                    }
+                }
+
+                crate::stream_owned(ExtractField(field), k.into_value())
             },
             _ => panic!("invalid serializer value (expected a map or tagged map)"),
         }
     }
 
-    fn serialize_key(&mut self, k: impl Serialize) -> stream::Result {
+    fn serialize_value(&mut self, v: impl SerializeBridge) -> stream::Result {
         match self.current() {
-            Current::SerializeMap(map) => map.serialize_key(&k).map_err(err("error serializing map key")),
-            _ => panic!("invalid serializer value (expected a map or tagged map)"),
-        }
-    }
-
-    fn serialize_value(&mut self, v: impl Serialize) -> stream::Result {
-        match self.current() {
-            Current::SerializeMap(map) => map.serialize_value(&v).map_err(err("error serializing map key")),
+            Current::SerializeMap(map) => map.serialize_value(&v.into_serialize()).map_err(err("error serializing map key")),
             Current::SerializeStructVariant(map, field) => {
                 let field = field.take().expect("invalid serializer value (missing field)");
-                map.serialize_field(field, &v).map_err(err("error serializing tagged map key"))
+                map.serialize_field(field, &v.into_serialize()).map_err(err("error serializing tagged map key"))
             },
             _ => panic!("invalid serializer value (expected a map or tagged map)"),
         }
     }
 
-    fn serialize_primitive(&mut self, v: impl Serialize) -> stream::Result {
+    fn serialize_primitive(&mut self, v: impl SerializeBridge) -> stream::Result {
         let ser = self.take_current().take_serializer();
 
         self.ok = Some(
-            v.serialize(ser)
+            v.into_serialize().serialize(ser)
                 .map_err(err("error serializing primitive value"))?,
         );
 
@@ -269,11 +487,11 @@ mod no_alloc_support {
         S: Serializer,
     {
         fn fmt(&mut self, v: stream::Arguments) -> stream::Result {
-            self.serialize_any(ToSerialize(Arguments(v)))
+            self.serialize_any(v)
         }
 
         fn error(&mut self, v: stream::Source) -> stream::Result {
-            self.serialize_any(ToSerialize(Source(v)))
+            self.serialize_any(v)
         }
 
         fn i64(&mut self, v: i64) -> stream::Result {
@@ -336,7 +554,7 @@ mod no_alloc_support {
         }
 
         fn map_key_collect(&mut self, k: stream::Value) -> stream::Result {
-            self.serialize_key(ToSerialize(k))
+            self.serialize_key(k)
         }
 
         fn map_value(&mut self) -> stream::Result {
@@ -346,7 +564,7 @@ mod no_alloc_support {
         }
 
         fn map_value_collect(&mut self, v: stream::Value) -> stream::Result {
-            self.serialize_value(ToSerialize(v))
+            self.serialize_value(v)
         }
 
         fn map_end(&mut self) -> stream::Result {
@@ -356,17 +574,23 @@ mod no_alloc_support {
             Ok(())
         }
 
-        fn tagged_map_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+        fn tagged_map_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
                     if let (stream::Tag::Full { ty: Some(name), name: variant, index }, Some(len)) = (tag, len) {
-                        let map = ser
-                            .serialize_struct_variant(name, index, variant, len)
-                            .map(|map| Current::SerializeStructVariant(map, None))
-                            .map_err(err("error beginning tagged map"))?;
-                        self.current = Some(map);
+                        if let (Some(name), Some(variant)) = (name.to_static(), variant.to_static()) {
+                            let seq = ser
+                                .serialize_struct_variant(name.as_str(), index, variant.as_str(), len)
+                                .map(|map| Current::SerializeStructVariant(map, None))
+                                .map_err(err("error beginning tagged map"))?;
+                            self.current = Some(seq);
 
-                        Ok(())
+                            return Ok(())
+                        } else {
+                            Err(crate::Error::msg(
+                                "serializing tagged maps with serde requires tags be static",
+                            ))
+                        }
                     } else {
                         Err(crate::Error::msg(
                             "serializing tagged maps with serde requires tags have a name, value, and index",
@@ -410,7 +634,7 @@ mod no_alloc_support {
         }
 
         fn seq_elem_collect(&mut self, v: stream::Value) -> stream::Result {
-            self.serialize_elem(ToSerialize(v))
+            self.serialize_elem(v)
         }
 
         fn seq_end(&mut self) -> stream::Result {
@@ -420,17 +644,23 @@ mod no_alloc_support {
             Ok(())
         }
 
-        fn tagged_seq_begin_static(&mut self, tag: stream::Tag<'static>, len: Option<usize>) -> stream::Result {
+        fn tagged_seq_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
                     if let (stream::Tag::Full { ty: Some(name), name: variant, index }, Some(len)) = (tag, len) {
-                        let seq = ser
-                            .serialize_tuple_variant(name, index, variant, len)
-                            .map(Current::SerializeTupleVariant)
-                            .map_err(err("error beginning tagged seq"))?;
-                        self.current = Some(seq);
+                        if let (Some(name), Some(variant)) = (name.to_static(), variant.to_static()) {
+                            let seq = ser
+                                .serialize_tuple_variant(name.as_str(), index, variant.as_str(), len)
+                                .map(Current::SerializeTupleVariant)
+                                .map_err(err("error beginning tagged seq"))?;
+                            self.current = Some(seq);
 
-                        Ok(())
+                            return Ok(())
+                        } else {
+                            Err(crate::Error::msg(
+                                "serializing tagged sequences with serde requires tags be static",
+                            ))
+                        }
                     } else {
                         Err(crate::Error::msg(
                             "serializing tagged sequences with serde requires tags have a name, value, and index",
@@ -448,10 +678,6 @@ mod no_alloc_support {
             self.ok = Some(seq.end().map_err(err("error completing sequence"))?);
 
             Ok(())
-        }
-
-        fn map_key_field_static(&mut self, k: &'static str) -> stream::Result {
-            self.serialize_field(k)
         }
     }
 }
