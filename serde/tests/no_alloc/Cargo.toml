@@ -9,11 +9,11 @@ publish = false
 path = "lib.rs"
 
 [dependencies.sval]
-path = "../../"
+path = "../../../"
 features = ["derive", "serde"]
 
 [dependencies.sval_json]
-path = "../../json"
+path = "../../../json"
 
 [dependencies.serde]
 version = "1"

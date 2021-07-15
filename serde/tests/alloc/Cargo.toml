@@ -9,7 +9,7 @@ publish = false
 path = "lib.rs"
 
 [dependencies.sval]
-path = "../../"
+path = "../../../"
 features = ["derive", "test", "serde", "alloc"]
 
 [dependencies.serde]

@@ -73,10 +73,6 @@ macro_rules! sval_if_std {
     };
 }
 
-#[doc(hidden)]
-#[cfg(feature = "derive")]
-pub mod derive;
-
 #[doc(inline)]
 #[cfg(feature = "derive")]
 #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
@@ -130,6 +126,9 @@ pub mod serde;
 
 pub mod stream;
 pub mod value;
+
+#[cfg(feature = "std")]
+pub mod owned;
 
 #[doc(inline)]
 pub use self::error::Error;

@@ -1,11 +1,11 @@
-mod error;
+mod source;
 mod fmt;
 mod ident;
 mod tag;
 mod value;
 
 pub use self::{
-    error::Source,
+    source::Source,
     fmt::Arguments,
     ident::Ident,
     tag::Tag,

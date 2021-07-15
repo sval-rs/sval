@@ -1,15 +1,18 @@
 [workspace]
 members = [
     "derive",
-    "tests/serde_alloc",
-    "tests/serde_no_alloc",
-    "tests/fmt",
+
+    "serde",
+    "serde/tests/alloc",
+    "serde/tests/no_alloc",
+
+    "fmt",
+
+    "stack",
 
     "json",
     "json/benches/twitter",
     "json/tests/twitter",
-
-    "stack",
 ]
 
 [package]

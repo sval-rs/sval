@@ -1,0 +1,12 @@
+[package]
+name = "sval_fmt"
+version = "0.1.0"
+authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
+edition = "2018"
+documentation = "https://docs.rs/sval_fmt"
+description = "std::fmt integration with sval"
+repository = "https://github.com/sval-rs/sval"
+license = "Apache-2.0 OR MIT"
+keywords = ["serialization", "no_std"]
+categories = ["encoding", "no-std"]
+publish = false
