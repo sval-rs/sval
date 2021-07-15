@@ -126,8 +126,8 @@ pub trait Stream<'v> {
     #[cfg(not(test))]
     fn tag(&mut self, t: Tag) -> Result {
         match t {
-            Tag::Named { name, .. } | Tag::Full { name, .. } => self.ident(name),
-            Tag::Indexed { index, .. } => self.u64(index as u64),
+            Tag::Ident { ident, .. } | Tag::Full { ident, .. } => self.ident(ident),
+            Tag::Id { id, .. } => self.u64(id),
         }
     }
     #[cfg(test)]

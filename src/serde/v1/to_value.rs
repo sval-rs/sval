@@ -178,9 +178,9 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         self.0.tag(stream::Tag::Full {
-            ty: Some(stream::Ident::Static(name)),
-            name: stream::Ident::Static(variant),
-            index,
+            kind: Some(stream::Ident::Static(name)),
+            ident: stream::Ident::Static(variant),
+            id: index as u64,
         })?;
         Ok(())
     }
@@ -209,9 +209,9 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     {
         self.0.owned().tagged(
             stream::Tag::Full {
-                ty: Some(stream::Ident::Static(name)),
-                name: stream::Ident::Static(variant),
-                index,
+                kind: Some(stream::Ident::Static(name)),
+                ident: stream::Ident::Static(variant),
+                id: index as u64,
             },
             &ToValue(value),
         )?;
@@ -247,9 +247,9 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         self.0.tagged_seq_begin(
             stream::Tag::Full {
-                ty: Some(stream::Ident::Static(name)),
-                name: stream::Ident::Static(variant),
-                index,
+                kind: Some(stream::Ident::Static(name)),
+                ident: stream::Ident::Static(variant),
+                id: index as u64,
             },
             Some(len),
         )?;
@@ -279,9 +279,9 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         self.0.tagged_map_begin(
             stream::Tag::Full {
-                ty: Some(stream::Ident::Static(name)),
-                name: stream::Ident::Static(variant),
-                index,
+                kind: Some(stream::Ident::Static(name)),
+                ident: stream::Ident::Static(variant),
+                id: index as u64,
             },
             Some(len),
         )?;

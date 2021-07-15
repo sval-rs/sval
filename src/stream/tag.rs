@@ -1,47 +1,44 @@
 use crate::stream::Ident;
 
-/**
-A tag is an identifier for an enum variant.
-*/
 #[derive(Clone, Copy)]
 pub enum Tag<'a> {
-    Named {
-        ty: Option<Ident<'a>>,
-        name: Ident<'a>,
+    Ident {
+        kind: Option<Ident<'a>>,
+        ident: Ident<'a>,
     },
-    Indexed {
-        ty: Option<Ident<'a>>,
-        index: u32,
+    Id {
+        kind: Option<Ident<'a>>,
+        id: u64,
     },
     Full {
-        ty: Option<Ident<'a>>,
-        name: Ident<'a>,
-        index: u32,
+        kind: Option<Ident<'a>>,
+        ident: Ident<'a>,
+        id: u64,
     },
 }
 
 impl<'a> Tag<'a> {
-    pub fn ty(&self) -> Option<Ident<'a>> {
+    pub fn kind(&self) -> Option<Ident<'a>> {
         match self {
-            Tag::Named { ty, .. } => *ty,
-            Tag::Indexed { ty, .. } => *ty,
-            Tag::Full { ty, .. } => *ty,
+            Tag::Ident { kind, .. } => *kind,
+            Tag::Id { kind, .. } => *kind,
+            Tag::Full { kind, .. } => *kind,
         }
     }
 
-    pub fn name(&self) -> Option<Ident<'a>> {
+    pub fn ident(&self) -> Option<Ident<'a>> {
         match self {
-            Tag::Named { name, .. } => Some(*name),
-            Tag::Indexed { .. } => None,
-            Tag::Full { name, .. } => Some(*name),
+            Tag::Ident { ident, .. } => Some(*ident),
+            Tag::Id { .. } => None,
+            Tag::Full { ident, .. } => Some(*ident),
         }
     }
 
-    pub fn index(&self) -> Option<u32> {
+    pub fn id(&self) -> Option<u64> {
         match self {
-            Tag::Named { .. } => None,
-            Tag::Indexed { index, .. } => Some(*index),
-            Tag::Full { index, .. } => Some(*index),
+            Tag::Ident { .. } => None,
+            Tag::Id { id, .. } => Some(*id),
+            Tag::Full { id, .. } => Some(*id),
         }
     }
 }

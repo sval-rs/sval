@@ -1,6 +1,7 @@
 use crate::{
     stream,
     value,
+    std::convert::TryInto,
 };
 
 use super::error::err;
@@ -65,10 +66,10 @@ impl<'a> Serialize for ToSerialize<Tag<'a>> {
         S: Serializer,
     {
         match (self.0).0 {
-            stream::Tag::Named { name, .. } | stream::Tag::Full { name, .. } => {
-                serializer.serialize_str(name.as_str())
+            stream::Tag::Ident { ident, .. } | stream::Tag::Full { ident, .. } => {
+                serializer.serialize_str(ident.as_str())
             }
-            stream::Tag::Indexed { index, .. } => serializer.serialize_u32(index),
+            stream::Tag::Id { id, .. } => serializer.serialize_u64(id),
         }
     }
 }
@@ -595,13 +596,14 @@ mod no_alloc_support {
                 Current::Serializer(ser) => {
                     if let (
                         stream::Tag::Full {
-                            ty: Some(stream::Ident::Static(name)),
-                            name: stream::Ident::Static(variant),
-                            index,
+                            kind: Some(stream::Ident::Static(name)),
+                            ident: stream::Ident::Static(variant),
+                            id,
                         },
                         Some(len),
                     ) = (tag, len)
                     {
+                        let index = id.try_into().map_err(|_| crate::Error::msg("variant indexes must fit in a u32"))?;
                         let seq = ser
                             .serialize_struct_variant(name, index, variant, len)
                             .map(|map| Current::SerializeStructVariant(map, None))
@@ -667,13 +669,14 @@ mod no_alloc_support {
                 Current::Serializer(ser) => {
                     if let (
                         stream::Tag::Full {
-                            ty: Some(stream::Ident::Static(name)),
-                            name: stream::Ident::Static(variant),
-                            index,
+                            kind: Some(stream::Ident::Static(name)),
+                            ident: stream::Ident::Static(variant),
+                            id,
                         },
                         Some(len),
                     ) = (tag, len)
                     {
+                        let index = id.try_into().map_err(|_| crate::Error::msg("variant indexes must fit in a u32"))?;
                         let seq = ser
                             .serialize_tuple_variant(name, index, variant, len)
                             .map(Current::SerializeTupleVariant)
