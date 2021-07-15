@@ -1,7 +1,3 @@
-/*!
-A fixed-size, stateful stack for streams.
-*/
-
 /*
 /!\ CAREFUL /!\
 
@@ -16,21 +12,12 @@ reviewed carefully.
 
 use crate::std::fmt;
 
-/**
-The expected position in the stream.
-*/
 #[derive(Clone)]
 pub struct Pos {
     slot: u8,
     depth: usize,
 }
 
-/**
-The depth of a position.
-
-All positions within a map or sequence are guaranteed
-to have the same depth or greater.
-*/
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Depth(usize);
 
@@ -41,52 +28,31 @@ impl Depth {
 }
 
 impl Pos {
-    /**
-    Whether the current position is a map key.
-    */
     pub fn is_key(&self) -> bool {
         self.slot & Slot::MASK_POS == Slot::KEY
     }
 
-    /**
-    Whether the current position is a map value.
-    */
     pub fn is_value(&self) -> bool {
         self.slot & Slot::MASK_POS == Slot::VAL
     }
 
-    /**
-    Whether the current position is a sequence element.
-    */
     pub fn is_elem(&self) -> bool {
         self.slot & Slot::MASK_POS == Slot::ELEM
     }
 
-    /**
-    Whether the current position is an empty map.
-    */
     pub fn is_empty_map(&self) -> bool {
         self.slot == Slot::MAP_DONE
     }
 
-    /**
-    Whether the current position is an empty sequence.
-    */
     pub fn is_empty_seq(&self) -> bool {
         self.slot == Slot::SEQ_DONE
     }
 
-    /**
-    The depth of this position.
-    */
     pub fn depth(&self) -> Depth {
         Depth(self.depth)
     }
 }
 
-/**
-A container for an unmatched expectation.
-*/
 struct Expecting {
     got: &'static str,
     expecting: &'static str,
@@ -130,41 +96,6 @@ macro_rules! expecting {
     }};
 }
 
-/**
-A container for the stream state.
-
-Implementations of the [`Stream`](../trait.Stream.html) trait are encouraged to use a
-stack for validating their input.
-
-The stack is stateful, and keeps track of open maps and sequences.
-
-# Validation
-
-A stack uses its state to validate the structure given to a stream and
-as a way for a flat, stateless stream to know what it's currently
-looking at. The stack enforces:
-
-- Only a single root primitive, map or sequence is received.
-- Map keys and values are only received within a map.
-- Map keys are always received before map values, and every key has a corresponding value.
-- Sequence elements are only received within a sequence.
-- Every map and sequence is ended, and in the right order.
-- Every map key, map value, and sequence element is followed by valid data.
-
-# Depth
-
-By default, stacks have a fixed depth (currently ~16, but this may change) so they can
-work in no-std environments. Each call to `map_begin` or `seq_begin` will increase the
-current depth. If this depth is exceeded then calls to `map_begin` or `seq_begin` will fail.
-
-The fixed-depth limit can be removed by adding the `arbitrary-depth` feature to your `Cargo.toml`
-(this also requires the standard library):
-
-```toml,no_run
-[dependencies.sval]
-features = ["arbitrary-depth"]
-```
-*/
 #[derive(Clone)]
 pub struct Stack {
     inner: inner::Stack,
@@ -220,37 +151,16 @@ impl Default for Stack {
 }
 
 impl Stack {
-    /**
-    Create a new stack.
-    */
     pub fn new() -> Self {
         Stack {
             inner: inner::Stack::new(),
         }
     }
 
-    /**
-    Clear the stack so that it can be re-used.
-
-    Any state it currently contains will be lost.
-    */
     pub fn clear(&mut self) {
         self.inner.clear();
     }
 
-    /**
-    Push a primitive.
-
-    A primitive is a simple value that isn't a map or sequence.
-    That includes:
-
-    - [`Arguments`](struct.Arguments.html)
-    - `u64`, `i64`, `u128`, `i128`
-    - `f64`
-    - `bool`
-    - `char`, `&str`
-    - `Option<T>`.
-    */
     pub fn primitive(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -267,11 +177,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a new map.
-
-    The map must be completed by calling `map_end`.
-    */
     pub fn map_begin(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -293,12 +198,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a map key.
-
-    The key will be implicitly completed by the value
-    that follows it.
-    */
     pub fn map_key(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -316,12 +215,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a map value.
-
-    The value will be implicitly completed by the value
-    that follows it.
-    */
     pub fn map_value(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -338,9 +231,6 @@ impl Stack {
         }
     }
 
-    /**
-    Complete the current map.
-    */
     pub fn map_end(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -366,11 +256,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a new sequence.
-
-    the sequence must be completed by calling `seq_end`.
-    */
     pub fn seq_begin(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -392,12 +277,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a sequence element.
-
-    The element will be implicitly completed by the value
-    that follows it.
-    */
     pub fn seq_elem(&mut self) -> Result<Pos, crate::Error> {
         let mut curr = self.inner.current_mut();
 
@@ -415,9 +294,6 @@ impl Stack {
         }
     }
 
-    /**
-    Complete the current sequence.
-    */
     pub fn seq_end(&mut self) -> Result<Pos, crate::Error> {
         let curr = self.inner.current();
 
@@ -443,19 +319,10 @@ impl Stack {
         }
     }
 
-    /**
-    Whether or not the stack has seen a complete and valid stream.
-    */
     pub fn can_end(&self) -> bool {
         self.inner.depth() == 0
     }
 
-    /**
-    Complete the stack.
-
-    This stack may be re-used after being completed
-    by calling `begin`.
-    */
     pub fn end(&mut self) -> Result<(), crate::Error> {
         // The stack must be on the root slot
         // It doesn't matter if the slot is

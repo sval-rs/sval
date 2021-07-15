@@ -11,38 +11,10 @@ use crate::std::fmt::{
     Write,
 };
 
-/**
-Write a [`Value`] to a formatter.
-*/
 pub fn to_fmt(fmt: impl Write, v: impl Value) -> Result<(), sval::Error> {
     sval::stream_owned(Formatter::new(fmt), v)
 }
 
-/**
-A stream for writing structured data as json.
-
-The stream internally wraps a [`std::fmt::Write`].
-
-# Examples
-
-Create an owned json stream:
-
-```
-# #[cfg(not(feature = "std"))]
-# fn main() {}
-# #[cfg(feature = "std")]
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-use sval_json::Formatter;
-
-let mut stream = Formatter::new(String::new());
-sval::stream(&mut stream, &42)?;
-let json = stream.into_inner();
-
-assert_eq!("42", json);
-# Ok(())
-# }
-```
-*/
 pub struct Formatter<W> {
     is_key: bool,
     is_current_depth_empty: bool,
@@ -53,9 +25,6 @@ impl<W> Formatter<W>
 where
     W: Write,
 {
-    /**
-    Create a new json stream.
-    */
     pub fn new(out: W) -> Self {
         Formatter {
             is_key: false,
@@ -64,9 +33,6 @@ where
         }
     }
 
-    /**
-    Get the inner writer back out of the stream without ensuring it's valid.
-    */
     pub fn into_inner(self) -> W {
         self.out
     }

@@ -2,9 +2,6 @@ use crate::std::fmt;
 
 use serde1_lib::ser;
 
-/**
-An error encountered during serialization.
-*/
 pub(super) struct Error(crate::Error);
 
 impl From<fmt::Error> for Error {

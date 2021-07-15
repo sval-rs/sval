@@ -1,13 +1,3 @@
-/*!
-A stream for datastructures.
-
-# The `Stream` trait
-
-A [`Stream`] is a type that receives and works with abstract data-structures.
-
-[`Value`]: ../value/trait.Value.html
-*/
-
 mod error;
 mod fmt;
 mod ident;
@@ -22,21 +12,6 @@ pub use self::{
     value::Value,
 };
 
-/**
-A receiver for the structure of a value.
-
-The `Stream` trait has a flat, stateless structure.
-
-# Implementing `Stream`
-
-A stream may choose what kinds of structures it supports by selectively
-implementing methods on the trait. Other methods default to returning
-[`Error::unsupported`]. Implementations may also choose to return
-`Error::unsupported` for other reasons.
-
-[`Value`]: ../trait.Value.html
-[`Error::unsupported`]: struct.Error.html#method.unsupported
-*/
 pub trait Stream<'v> {
     #[cfg(not(test))]
     fn fmt(&mut self, v: Arguments) -> Result {
@@ -512,9 +487,6 @@ where
     }
 }
 
-/**
-The type returned by streaming methods.
-*/
 pub type Result<T = ()> = crate::std::result::Result<T, crate::Error>;
 
 #[cfg(test)]

@@ -15,9 +15,6 @@ use crate::{
     },
 };
 
-/**
-Write a [`Value`] to a string.
-*/
 pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
     let mut out = String::new();
     crate::to_fmt(&mut out, v)?;
@@ -25,9 +22,6 @@ pub fn to_string(v: impl Value) -> Result<String, sval::Error> {
     Ok(out)
 }
 
-/**
-Write a [`Value`] to a writer.
-*/
 pub fn to_writer(writer: impl Write, v: impl Value) -> Result<(), sval::Error> {
     crate::to_fmt(FmtToIo(writer), v)
 }
@@ -45,45 +39,16 @@ where
     }
 }
 
-/**
-A stream for writing structured data as json.
-
-The stream internally wraps a [`std::io::Write`].
-
-# Examples
-
-Create an owned json stream:
-
-```
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-# use std::str;
-use sval_json::Writer;
-
-let mut stream = Writer::new(Vec::<u8>::new());
-sval::stream(&mut stream, &42)?;
-let json = stream.into_inner();
-
-assert_eq!(Some("42"), str::from_utf8(&json).ok());
-# Ok(())
-# }
-```
-*/
 pub struct Writer<W>(Formatter<FmtToIo<W>>);
 
 impl<W> Writer<W>
 where
     W: Write,
 {
-    /**
-    Create a new json stream.
-    */
     pub fn new(out: W) -> Self {
         Writer(Formatter::new(FmtToIo(out)))
     }
 
-    /**
-    Get the inner writer back out of the stream without ensuring it's valid.
-    */
     pub fn into_inner(self) -> W {
         self.0.into_inner().0
     }

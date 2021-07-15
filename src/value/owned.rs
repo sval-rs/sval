@@ -1,7 +1,3 @@
-/*!
-Owned values.
-*/
-
 use crate::{
     std::{
         boxed::Box,
@@ -28,38 +24,10 @@ use crate::{
 #[cfg(feature = "std")]
 use crate::std::sync::Arc;
 
-/**
-An owned, immutable value.
-
-Owned values are safe to share and are cheap to clone.
-
-Add the `std` feature to your `Cargo.toml` to enable this type:
-
-```toml,no_run
-[dependencies.sval]
-features = ["std"]
-```
-*/
 #[derive(Clone)]
 pub struct OwnedValue(ValueInner);
 
 impl OwnedValue {
-    /**
-    Get an owned value from an arbitrary [`Value`].
-
-    The given value doesn't need to be `Send + Sync + 'static`.
-
-    Some primitive types can be converted into an `OwnedValue`
-    for free. These types have a corresponding `From` implementation.
-
-    The structure of the given value will be streamed into
-    a sharable representation. That means this method is more
-    expensive for more complex values.
-
-    Prefer the `From` impls and `from_shared` method where possible.
-
-    [`Value`]: struct.Value.html
-    */
     pub fn collect(v: impl Value) -> Self {
         // Try get a primitive first
         // If the value is a simple primitive that can
@@ -74,13 +42,6 @@ impl OwnedValue {
             .unwrap_or_else(|err| OwnedValue(ValueInner::Error(err.to_string().into())))
     }
 
-    /**
-    Get an owned value from an already shared [`Value`].
-
-    The given value must be `Send + Sync + 'static`.
-
-    [`Value`]: struct.Value.html
-    */
     #[cfg(feature = "std")]
     pub fn from_shared(v: impl Into<Arc<dyn Value + Send + Sync>>) -> Self {
         OwnedValue(ValueInner::Shared(v.into()))

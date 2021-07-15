@@ -1,5 +1,8 @@
 use crate::std::fmt;
 
+/**
+An identifier is a fragment of text that may have a static value.
+*/
 #[derive(Clone, Copy)]
 pub enum Ident<'a> {
     Borrowed(&'a str),

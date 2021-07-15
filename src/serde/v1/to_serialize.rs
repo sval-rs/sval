@@ -16,9 +16,6 @@ use serde1_lib::ser::{
     Serializer,
 };
 
-/**
-The result of calling [`sval::serde::v1::to_serialize`](fn.to_serialize.html).
-*/
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ToSerialize<V>(pub(super) V);
 
@@ -273,20 +270,6 @@ impl SerializeBridge for Option<()> {
     }
 }
 
-/**
-The serialization stream.
-
-Streaming between `sval` and `serde` uses the following process:
-
-- Data that's passed in directly is immediately forwarded
-to the serializer. That includes primitives and map and sequence
-elements that are passed directly using `Collect` methods.
-This is the common case and happy path.
-- Data that's streamed without an underlying value is buffered
-first before being forwarded to the underlying serializer. An
-effort is made to buffer as little as possible, and to return to
-the happy path when buffering a single element is done.
-*/
 struct Stream<S>
 where
     S: Serializer,

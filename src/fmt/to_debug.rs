@@ -9,9 +9,6 @@ use crate::{
     value,
 };
 
-/**
-The result of calling [`sval::fmt::to_debug`](fn.to_debug.html).
-*/
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ToDebug<V>(pub(super) V);
 
@@ -26,11 +23,6 @@ where
     }
 }
 
-/**
-The format stream.
-This stream is an alternative implementation of `std::fmt::DebugMap` and `std::fmt::DebugList`.
-It should be kept up to date with changes made upstream.
-*/
 struct Stream<'a, 'b: 'a> {
     depth: usize,
     is_current_depth_empty: bool,

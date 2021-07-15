@@ -1,18 +1,3 @@
-/*!
-Helpers for testing value implementations.
-
-Add the `test` feature to your `Cargo.toml` to enable this module:
-
-```toml,no_run
-[dependencies.sval]
-features = ["test"]
-```
-
-**NOTE:** The [`Token`](enum.Token.html) enum is expected to be non-exhaustively
-used in tests, so additional members aren't considered
-a breaking `semver` change.
-*/
-
 #[cfg(feature = "alloc")]
 mod alloc_support {
     use crate::{
@@ -35,9 +20,6 @@ mod alloc_support {
         },
     };
 
-    /**
-    The kind of token being produced.
-    */
     #[non_exhaustive]
     #[derive(Debug, Clone, PartialEq)]
     pub enum Token {
@@ -57,9 +39,6 @@ mod alloc_support {
         None,
     }
 
-    /**
-    An error source.
-    */
     #[derive(Clone, PartialEq)]
     pub struct Source(OwnedSource);
 
@@ -75,9 +54,6 @@ mod alloc_support {
         }
     }
 
-    /**
-    Collect a value into a sequence of tokens.
-    */
     pub fn tokens(v: impl Value) -> Vec<Token> {
         OwnedValue::collect(v)
             .tokens()
@@ -103,14 +79,6 @@ mod alloc_support {
             .collect()
     }
 
-    /**
-    Ensure a stream is valid for various inputs.
-
-    This is useful for smoke-testing stream implementations to make sure they explicitly
-    implement all methods on `Stream`. The stream will only be given technically valid inputs.
-
-    Any new methods added to `Stream` may cause this method to panic until the given `Stream` is updated.
-    */
     pub fn stream_exhaustive<'v, S>(build: impl Fn() -> S, check: impl Fn(Result<S, crate::Error>))
     where
         S: Stream<'v>,
@@ -228,9 +196,6 @@ mod alloc_support {
         use crate::std::error::Error;
 
         impl Source {
-            /**
-            Create a new test source.
-            */
             pub fn new(err: &dyn Error) -> Self {
                 Source(OwnedSource::collect(err))
             }

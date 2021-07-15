@@ -1,78 +1,5 @@
-/*!
-A small, no-std, object-safe, serialization-only framework.
-
-The `sval` API is built around two key traits:
-
-- [`Value`] is a trait for data with a streamable structure. It's like `serde::Serialize`.
-- [`Stream`] is a trait for receiving the structure of a value. It's like `serde::Serializer`.
-
-# Getting started
-
-Add `sval` to your `Cargo.toml`:
-
-```toml,ignore
-[dependencies.sval]
-version = "1.0.0-alpha.5"
-```
-
-# Supported formats
-
-- [JSON](https://crates.io/crates/sval_json), the ubiquitous JavaScript Object Notation used by many HTTP APIs.
-
-# Streaming values
-
-The structure of a [`Value`] can be streamed to a [`Stream`].
-
-# `serde` integration
-
-Use the `serde` Cargo feature to enable integration with `serde`:
-
-```toml,ignore
-[dependencies.sval]
-features = ["serde"]
-```
-
-When `serde` is available, the `Value` trait can also be derived
-based on an existing `Serialize` implementation:
-
-```ignore
-#[macro_use]
-extern crate sval;
-
-#[derive(Serialize, Value)]
-#[sval(derive_from = "serde")]
-pub enum Data {
-    Variant(i32, String),
-}
-```
-
-# `std::fmt` integration
-
-Use the `fmt` Cargo feature to enable extended integration with `std::fmt`:
-
-```toml,ignore
-[dependencies.sval]
-features = ["fmt"]
-```
-
-When `fmt` is available, arbitrary `Value`s can be treated like `std::fmt::Debug`:
-
-```
-# fn main() {}
-# #[cfg(feature = "fmt")]
-# mod test {
-# use sval::value::Value;
-fn with_value(value: impl Value) {
-    dbg!(sval::fmt::to_debug(&value));
-
-    // Do something with the value
-}
-# }
-```
-*/
-
 #![doc(html_root_url = "https://docs.rs/sval/1.0.0-alpha.5")]
-//#![no_std]
+#![no_std]
 
 #[doc(hidden)]
 #[macro_export]
@@ -212,9 +139,6 @@ use self::{
     value::Value,
 };
 
-/**
-Stream the structure of a [`Value`] with a concrete lifetime.
-*/
 pub fn stream<'v>(
     mut stream: impl Stream<'v>,
     value: &'v (impl Value + ?Sized),
@@ -224,9 +148,6 @@ pub fn stream<'v>(
     Ok(())
 }
 
-/**
-Stream the structure of a [`Value`] using the given [`Stream`].
-*/
 pub fn stream_owned<'a>(mut stream: impl Stream<'a>, value: impl Value) -> Result<(), Error> {
     value.stream_owned(value::Stream::new(&mut stream))?;
 

@@ -1,5 +1,8 @@
 use crate::stream::Ident;
 
+/**
+A tag is a carrier for metadata that may be required to interpret a value.
+*/
 #[derive(Clone, Copy)]
 pub enum Tag<'a> {
     Ident {

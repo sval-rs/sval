@@ -9,18 +9,13 @@ use crate::std::{
     error,
 };
 
-/**
-An error encountered while visiting a value.
-*/
 pub struct Error(ErrorInner);
 
 impl Error {
-    /** Capture a static message as an error. */
     pub fn msg(msg: &'static str) -> Self {
         Error(ErrorInner::Static(msg))
     }
 
-    /** Declare some structure as unsupported. */
     pub fn unsupported(operation: &'static str) -> Self {
         Error(ErrorInner::Unsupported {
             msg: operation,
@@ -28,7 +23,6 @@ impl Error {
         })
     }
 
-    /** Whether or not an error is because some operation was unsupported. */
     pub fn is_unsupported(&self) -> bool {
         matches!(self.0, ErrorInner::Unsupported { .. })
     }
@@ -46,7 +40,6 @@ impl Error {
         matches!(self.0, ErrorInner::Unsupported { default: true, .. })
     }
 
-    /** Convert into a `fmt::Error` */
     pub fn into_fmt_error(self) -> fmt::Error {
         fmt::Error
     }
@@ -132,7 +125,6 @@ mod alloc_support {
     use crate::std::string::ToString;
 
     impl Error {
-        /** Get an error from a format. */
         pub fn custom(err: impl fmt::Display) -> Self {
             Error(ErrorInner::Owned(err.to_string()))
         }
@@ -150,8 +142,6 @@ mod std_support {
     };
 
     impl Error {
-        /** Convert into an io error. */
-
         pub fn into_io_error(self) -> io::Error {
             io::Error::new(io::ErrorKind::Other, self)
         }

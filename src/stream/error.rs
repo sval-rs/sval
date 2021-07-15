@@ -1,17 +1,5 @@
 use crate::std::fmt;
 
-/**
-A streamable error.
-
-This type shouldn't be confused with [`sval::Error`](../../struct.Error.html), which is
-used to communicate errors back to callers.
-The purpose of the `Source` type is to let streams serialize
-error types, that may have backtraces and other metadata.
-
-`Source`s can only be created when the `std` feature is available,
-but streams can still work with them by formatting them or passing
-them along even in no-std environments where the `Error` trait isn't available.
-*/
 pub struct Source<'v> {
     #[cfg(feature = "std")]
     inner: self::std_support::SourceError<'v>,
@@ -80,18 +68,10 @@ mod std_support {
     }
 
     impl<'v> Source<'v> {
-        /**
-        Capture an error source from a standard error.
-
-        This method is only available when the `std` feature is enabled.
-        */
         pub fn new(err: &'v (dyn Error + 'static)) -> Self {
             Source::from(err)
         }
 
-        /**
-        Get the inner error.
-        */
         pub fn get(&self) -> &'v (dyn Error + 'static) {
             self.inner.0
         }

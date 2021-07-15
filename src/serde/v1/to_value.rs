@@ -21,9 +21,6 @@ use serde1_lib::ser::{
     SerializeTupleVariant,
 };
 
-/**
-The result of calling [`sval::serde::v1::to_value`](fn.to_value.html).
-*/
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ToValue<T>(pub(super) T);
 

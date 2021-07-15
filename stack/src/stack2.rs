@@ -1,7 +1,3 @@
-/*!
-A fixed-size, stateful stack for streams.
-*/
-
 /*
 /!\ CAREFUL /!\
 
@@ -26,18 +22,9 @@ impl fmt::Display for Expecting {
     }
 }
 
-/**
-The expected position in the stream.
-*/
 #[derive(Clone)]
 pub struct Pos(RawStack, u8);
 
-/**
-The depth of a position.
-
-All positions within a map or sequence are guaranteed
-to have the same depth or greater.
-*/
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Depth(usize);
 
@@ -49,51 +36,30 @@ impl Depth {
 }
 
 impl Pos {
-    /**
-    Whether the current position is a map key.
-    */
     pub fn is_key(&self) -> bool {
         (self.0 as u8) & Slot::MASK_SLOT == Slot::IS_MAP_KEY
     }
 
-    /**
-    Whether the current position is a map value.
-    */
     pub fn is_value(&self) -> bool {
         (self.0 as u8) & Slot::MASK_SLOT == Slot::IS_MAP_VALUE
     }
 
-    /**
-    Whether the current position is a sequence element.
-    */
     pub fn is_elem(&self) -> bool {
         (self.0 as u8) & Slot::MASK_SLOT == Slot::IS_SEQ_ELEM
     }
 
-    /**
-    Whether the current position is a map value or sequence element.
-    */
     pub fn is_value_elem(&self) -> bool {
         (self.0 as u8) & Slot::MASK_VALUE_ELEM != 0
     }
 
-    /**
-    Whether the current position is an empty map.
-    */
     pub fn is_empty_map(&self) -> bool {
         unimplemented!()
     }
 
-    /**
-    Whether the current position is an empty sequence.
-    */
     pub fn is_empty_seq(&self) -> bool {
         unimplemented!()
     }
 
-    /**
-    The depth of this position.
-    */
     pub fn depth(&self) -> Depth {
         Depth(self.1 as usize)
     }
@@ -146,9 +112,6 @@ impl Stack {
     const MASK_SLOT_BEGIN: RawStack =
         (RawStack::MAX << Slot::BITS) ^ (Slot::NEEDS_ITEM as RawStack) << Slot::BITS;
 
-    /**
-    Create a new stack.
-    */
     pub fn new() -> Self {
         Stack {
             inner: Slot::NEEDS_ITEM as RawStack,
@@ -156,28 +119,10 @@ impl Stack {
         }
     }
 
-    /**
-    Clear the stack so that it can be re-used.
-
-    Any state it currently contains will be lost.
-    */
     pub fn clear(&mut self) {
         *self = Stack::new();
     }
 
-    /**
-    Push a primitive.
-
-    A primitive is a simple value that isn't a map or sequence.
-    That includes:
-
-    - [`Arguments`](struct.Arguments.html)
-    - `u64`, `i64`, `u128`, `i128`
-    - `f64`
-    - `bool`
-    - `char`, `&str`
-    - `Option<T>`.
-    */
     pub fn primitive(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
@@ -192,11 +137,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a new map.
-
-    The map must be completed by calling `map_end`.
-    */
     pub fn map_begin(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
@@ -216,12 +156,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a map key.
-
-    The key will be implicitly completed by the value
-    that follows it.
-    */
     pub fn map_key(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
@@ -236,12 +170,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a map value.
-
-    The value will be implicitly completed by the value
-    that follows it.
-    */
     pub fn map_value(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_MAP_VALUE;
@@ -256,9 +184,6 @@ impl Stack {
         }
     }
 
-    /**
-    Complete the current map.
-    */
     pub fn map_end(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_MAP_KEY | Slot::NEEDS_MAP_VALUE;
@@ -273,11 +198,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a new sequence.
-
-    the sequence must be completed by calling `seq_end`.
-    */
     pub fn seq_begin(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT & Slot::NEEDS_ITEM;
         const VALID: u8 = Slot::NEEDS_ITEM;
@@ -299,12 +219,6 @@ impl Stack {
         }
     }
 
-    /**
-    Begin a sequence element.
-
-    The element will be implicitly completed by the value
-    that follows it.
-    */
     pub fn seq_elem(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
@@ -319,9 +233,6 @@ impl Stack {
         }
     }
 
-    /**
-    Complete the current sequence.
-    */
     pub fn seq_end(&mut self) -> Result<Pos, crate::Error> {
         const MASK: u8 = Slot::MASK_SLOT;
         const VALID: u8 = Slot::NEEDS_SEQ_ELEM;
@@ -336,9 +247,6 @@ impl Stack {
         }
     }
 
-    /**
-    Whether or not the stack has seen a complete and valid stream.
-    */
     pub fn can_end(&self) -> bool {
         // In order to end the stream, the stack must be completed
         const MASK: u8 = !Slot::NEEDS_ITEM;
@@ -347,12 +255,6 @@ impl Stack {
         self.depth == 0 && self.inner as u8 & MASK == VALID
     }
 
-    /**
-    Complete the stack.
-
-    This stack may be re-used after being completed
-    by calling `begin`.
-    */
     pub fn end(&mut self) -> Result<(), crate::Error> {
         if self.can_end() {
             Ok(())
