@@ -45,10 +45,7 @@ where
 
     #[cfg(not(feature = "alloc"))]
     {
-        
-        move |_| {
-            crate::Error::msg(msg)
-        }
+        move |_| crate::Error::msg(msg)
     }
 }
 

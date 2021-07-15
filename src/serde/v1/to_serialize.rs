@@ -65,7 +65,9 @@ impl<'a> Serialize for ToSerialize<Tag<'a>> {
         S: Serializer,
     {
         match (self.0).0 {
-            stream::Tag::Named { name, .. } | stream::Tag::Full { name, .. } => serializer.serialize_str(name.as_str()),
+            stream::Tag::Named { name, .. } | stream::Tag::Full { name, .. } => {
+                serializer.serialize_str(name.as_str())
+            }
             stream::Tag::Indexed { index, .. } => serializer.serialize_u32(index),
         }
     }
@@ -420,15 +422,21 @@ where
 
     fn serialize_elem(&mut self, v: impl SerializeBridge) -> stream::Result {
         match self.current() {
-            Current::SerializeSeq(seq) => seq.serialize_element(&v.into_serialize()).map_err(err("error serializing sequence element")),
-            Current::SerializeTupleVariant(seq) => seq.serialize_field(&v.into_serialize()).map_err(err("error serializing tagged sequence element")),
+            Current::SerializeSeq(seq) => seq
+                .serialize_element(&v.into_serialize())
+                .map_err(err("error serializing sequence element")),
+            Current::SerializeTupleVariant(seq) => seq
+                .serialize_field(&v.into_serialize())
+                .map_err(err("error serializing tagged sequence element")),
             _ => panic!("invalid serializer value (expected a map or tagged map)"),
         }
     }
 
     fn serialize_key(&mut self, k: impl SerializeBridge) -> stream::Result {
         match self.current() {
-            Current::SerializeMap(map) => map.serialize_key(&k.into_serialize()).map_err(err("error serializing map key")),
+            Current::SerializeMap(map) => map
+                .serialize_key(&k.into_serialize())
+                .map_err(err("error serializing map key")),
             Current::SerializeStructVariant(map, field) => {
                 struct ExtractField<'a>(&'a mut Option<&'static str>);
 
@@ -438,24 +446,31 @@ where
                             *self.0 = Some(ident.as_str());
                             Ok(())
                         } else {
-                            Err(crate::Error::msg("serializing struct variants requires static field names"))
+                            Err(crate::Error::msg(
+                                "serializing struct variants requires static field names",
+                            ))
                         }
                     }
                 }
 
                 crate::stream_owned(ExtractField(field), k.into_value())
-            },
+            }
             _ => panic!("invalid serializer value (expected a map or tagged map)"),
         }
     }
 
     fn serialize_value(&mut self, v: impl SerializeBridge) -> stream::Result {
         match self.current() {
-            Current::SerializeMap(map) => map.serialize_value(&v.into_serialize()).map_err(err("error serializing map key")),
+            Current::SerializeMap(map) => map
+                .serialize_value(&v.into_serialize())
+                .map_err(err("error serializing map key")),
             Current::SerializeStructVariant(map, field) => {
-                let field = field.take().expect("invalid serializer value (missing field)");
-                map.serialize_field(field, &v.into_serialize()).map_err(err("error serializing tagged map key"))
-            },
+                let field = field
+                    .take()
+                    .expect("invalid serializer value (missing field)");
+                map.serialize_field(field, &v.into_serialize())
+                    .map_err(err("error serializing tagged map key"))
+            }
             _ => panic!("invalid serializer value (expected a map or tagged map)"),
         }
     }
@@ -464,7 +479,8 @@ where
         let ser = self.take_current().take_serializer();
 
         self.ok = Some(
-            v.into_serialize().serialize(ser)
+            v.into_serialize()
+                .serialize(ser)
                 .map_err(err("error serializing primitive value"))?,
         );
 
@@ -577,14 +593,22 @@ mod no_alloc_support {
         fn tagged_map_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
-                    if let (stream::Tag::Full { ty: Some(stream::Ident::Static(name)), name: stream::Ident::Static(variant), index }, Some(len)) = (tag, len) {
+                    if let (
+                        stream::Tag::Full {
+                            ty: Some(stream::Ident::Static(name)),
+                            name: stream::Ident::Static(variant),
+                            index,
+                        },
+                        Some(len),
+                    ) = (tag, len)
+                    {
                         let seq = ser
                             .serialize_struct_variant(name, index, variant, len)
                             .map(|map| Current::SerializeStructVariant(map, None))
                             .map_err(err("error beginning tagged map"))?;
                         self.current = Some(seq);
 
-                        return Ok(())
+                        return Ok(());
                     } else {
                         Err(crate::Error::msg(
                             "serializing tagged maps with serde requires tags have a name, value, and index",
@@ -641,14 +665,22 @@ mod no_alloc_support {
         fn tagged_seq_begin(&mut self, tag: stream::Tag, len: Option<usize>) -> stream::Result {
             match self.take_current() {
                 Current::Serializer(ser) => {
-                    if let (stream::Tag::Full { ty: Some(stream::Ident::Static(name)), name: stream::Ident::Static(variant), index }, Some(len)) = (tag, len) {
+                    if let (
+                        stream::Tag::Full {
+                            ty: Some(stream::Ident::Static(name)),
+                            name: stream::Ident::Static(variant),
+                            index,
+                        },
+                        Some(len),
+                    ) = (tag, len)
+                    {
                         let seq = ser
                             .serialize_tuple_variant(name, index, variant, len)
                             .map(Current::SerializeTupleVariant)
                             .map_err(err("error beginning tagged seq"))?;
                         self.current = Some(seq);
 
-                        return Ok(())
+                        return Ok(());
                     } else {
                         Err(crate::Error::msg(
                             "serializing tagged sequences with serde requires tags have a name, value, and index",

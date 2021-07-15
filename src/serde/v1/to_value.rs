@@ -140,8 +140,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     }
 
     fn serialize_bytes(mut self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.0
-            .seq_begin(Some(v.len()))?;
+        self.0.seq_begin(Some(v.len()))?;
 
         for b in v {
             self.0.owned().seq_elem(&b)?;
@@ -179,10 +178,10 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         self.0.tag(stream::Tag::Full {
-                ty: Some(stream::Ident::Static(name)),
-                name: stream::Ident::Static(variant),
-                index,
-            })?;
+            ty: Some(stream::Ident::Static(name)),
+            name: stream::Ident::Static(variant),
+            index,
+        })?;
         Ok(())
     }
 
@@ -208,16 +207,14 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
     where
         T: ?Sized + Serialize,
     {
-        self.0.tagged_seq_begin(
+        self.0.owned().tagged(
             stream::Tag::Full {
                 ty: Some(stream::Ident::Static(name)),
                 name: stream::Ident::Static(variant),
                 index,
             },
-            Some(1),
+            &ToValue(value),
         )?;
-        self.0.owned().seq_elem(&ToValue(value))?;
-        self.0.tagged_seq_end()?;
 
         Ok(())
     }
@@ -237,8 +234,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        self.0
-            .seq_begin(Some(len))?;
+        self.0.seq_begin(Some(len))?;
         Ok(self)
     }
 
@@ -270,8 +266,7 @@ impl<'a, 'v> ser::Serializer for Serializer<value::Stream<'a, 'v>> {
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        self.0
-            .map_begin(Some(len))?;
+        self.0.map_begin(Some(len))?;
         Ok(self)
     }
 

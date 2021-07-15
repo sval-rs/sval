@@ -30,9 +30,7 @@ impl<S> Owned<S> {
 impl<'s, 'v> From<&'s mut dyn stream::Stream<'v>> for Stream<'s, 'v> {
     fn from(stream: &'s mut dyn stream::Stream<'v>) -> Self {
         Stream {
-            owned: Owned {
-                stream,
-            },
+            owned: Owned { stream },
         }
     }
 }
@@ -45,9 +43,7 @@ impl<'s, 'v> Stream<'s, 'v> {
     */
     pub fn new(stream: &'s mut impl stream::Stream<'v>) -> Self {
         Stream {
-            owned: Owned {
-                stream,
-            },
+            owned: Owned { stream },
         }
     }
 
@@ -61,16 +57,16 @@ impl<'s, 'v> Stream<'s, 'v> {
     pub fn owned<'a, 'b>(&'a mut self) -> Stream<'a, 'b> {
         Stream {
             owned: Owned {
-                stream: &mut self.owned
-            }
+                stream: &mut self.owned,
+            },
         }
     }
 
     pub fn by_ref<'a>(&'a mut self) -> Stream<'a, 'v> {
         Stream {
             owned: Owned {
-                stream: &mut self.owned.stream
-            }
+                stream: &mut self.owned.stream,
+            },
         }
     }
 
@@ -177,6 +173,11 @@ impl<'s, 'v> Stream<'s, 'v> {
         self.inner().tag_borrowed(t)
     }
 
+    pub fn tagged(&mut self, t: stream::Tag<'v>, v: &'v impl Value) -> stream::Result {
+        self.inner()
+            .tagged_collect_borrowed(t, stream::Value::new(v))
+    }
+
     /**
     Stream an identifier.
     */
@@ -220,12 +221,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     /**
     Begin a tagged map.
     */
-    pub fn tagged_map_begin(
-        &mut self,
-        tag: stream::Tag<'v>,
-        len: Option<usize>,
-    ) -> stream::Result {
-        self.inner().tagged_map_begin_borrowed(tag, len)
+    pub fn tagged_map_begin(&mut self, t: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_map_begin_borrowed(t, len)
     }
 
     /**
@@ -262,12 +259,8 @@ impl<'s, 'v> Stream<'s, 'v> {
     /**
     Begin a tagged seq.
     */
-    pub fn tagged_seq_begin(
-        &mut self,
-        tag: stream::Tag<'v>,
-        len: Option<usize>,
-    ) -> stream::Result {
-        self.inner().tagged_seq_begin_borrowed(tag, len)
+    pub fn tagged_seq_begin(&mut self, t: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+        self.inner().tagged_seq_begin_borrowed(t, len)
     }
 
     /**
@@ -422,6 +415,10 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().tagged_seq_end()
     }
 
+    fn tagged_collect(&mut self, t: stream::Tag, v: stream::Value) -> stream::Result {
+        self.inner().tagged_collect(t, v)
+    }
+
     fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
         self.inner().fmt_borrowed(v)
     }
@@ -442,7 +439,11 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().ident_borrowed(v)
     }
 
-    fn tagged_map_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+    fn tagged_map_begin_borrowed(
+        &mut self,
+        tag: stream::Tag<'v>,
+        len: Option<usize>,
+    ) -> stream::Result {
         self.inner().tagged_map_begin_borrowed(tag, len)
     }
 
@@ -454,12 +455,24 @@ impl<'s, 'v> stream::Stream<'v> for Stream<'s, 'v> {
         self.inner().map_value_collect_borrowed(v)
     }
 
-    fn tagged_seq_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+    fn tagged_seq_begin_borrowed(
+        &mut self,
+        tag: stream::Tag<'v>,
+        len: Option<usize>,
+    ) -> stream::Result {
         self.inner().tagged_seq_begin_borrowed(tag, len)
     }
 
     fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.inner().seq_elem_collect_borrowed(v)
+    }
+
+    fn tagged_collect_borrowed(
+        &mut self,
+        t: stream::Tag<'v>,
+        v: stream::Value<'v>,
+    ) -> stream::Result {
+        self.inner().tagged_collect_borrowed(t, v)
     }
 }
 
@@ -575,6 +588,10 @@ where
         self.inner().tagged_seq_end()
     }
 
+    fn tagged_collect(&mut self, t: stream::Tag, v: stream::Value) -> stream::Result {
+        self.inner().tagged_collect(t, v)
+    }
+
     fn fmt_borrowed(&mut self, v: stream::Arguments<'v>) -> stream::Result {
         self.inner().fmt(v)
     }
@@ -595,7 +612,11 @@ where
         self.inner().ident(v)
     }
 
-    fn tagged_map_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+    fn tagged_map_begin_borrowed(
+        &mut self,
+        tag: stream::Tag<'v>,
+        len: Option<usize>,
+    ) -> stream::Result {
         self.inner().tagged_map_begin(tag, len)
     }
 
@@ -607,11 +628,23 @@ where
         self.inner().map_value_collect(v)
     }
 
-    fn tagged_seq_begin_borrowed(&mut self, tag: stream::Tag<'v>, len: Option<usize>) -> stream::Result {
+    fn tagged_seq_begin_borrowed(
+        &mut self,
+        tag: stream::Tag<'v>,
+        len: Option<usize>,
+    ) -> stream::Result {
         self.inner().tagged_seq_begin(tag, len)
     }
 
     fn seq_elem_collect_borrowed(&mut self, v: stream::Value<'v>) -> stream::Result {
         self.inner().seq_elem_collect(v)
+    }
+
+    fn tagged_collect_borrowed(
+        &mut self,
+        t: stream::Tag<'v>,
+        v: stream::Value<'v>,
+    ) -> stream::Result {
+        self.inner().tagged_collect(t, v)
     }
 }

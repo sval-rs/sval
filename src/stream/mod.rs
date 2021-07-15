@@ -25,8 +25,7 @@ pub use self::{
 /**
 A receiver for the structure of a value.
 
-The `Stream` trait has a flat, stateless structure, but it may need to work with
-nested values.
+The `Stream` trait has a flat, stateless structure.
 
 # Implementing `Stream`
 
@@ -39,12 +38,6 @@ implementing methods on the trait. Other methods default to returning
 [`Error::unsupported`]: struct.Error.html#method.unsupported
 */
 pub trait Stream<'v> {
-    // Owned types: These don't carry any special lifetimes
-
-    /**
-    Stream a formattable type. Implementors should override this method if they
-    expect to accept formattable types.
-    */
     #[cfg(not(test))]
     fn fmt(&mut self, v: Arguments) -> Result {
         let _ = v;
@@ -53,10 +46,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn fmt(&mut self, v: Arguments) -> Result;
 
-    /**
-    Stream an error. Implementors should override this method if they
-    expect to accept errors.
-    */
     #[cfg(not(test))]
     fn error(&mut self, v: Source) -> Result {
         let _ = v;
@@ -65,10 +54,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn error(&mut self, v: Source) -> Result;
 
-    /**
-    Stream a signed integer. Implementors should override this method if they
-    expect to accept signed integers.
-    */
     #[cfg(not(test))]
     fn i64(&mut self, v: i64) -> Result {
         self.i128(v as i128)
@@ -76,10 +61,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn i64(&mut self, v: i64) -> Result;
 
-    /**
-    Stream an unsigned integer. Implementors should override this method if they
-    expect to accept unsigned integers.
-    */
     #[cfg(not(test))]
     fn u64(&mut self, v: u64) -> Result {
         self.u128(v as u128)
@@ -87,10 +68,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn u64(&mut self, v: u64) -> Result;
 
-    /**
-    Stream a 128bit signed integer. Implementors should override this method if they
-    expect to accept 128bit signed integers.
-    */
     #[cfg(not(test))]
     fn i128(&mut self, v: i128) -> Result {
         let _ = v;
@@ -99,10 +76,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn i128(&mut self, v: i128) -> Result;
 
-    /**
-    Stream a 128bit unsigned integer. Implementors should override this method if they
-    expect to accept 128bit unsigned integers.
-    */
     #[cfg(not(test))]
     fn u128(&mut self, v: u128) -> Result {
         let _ = v;
@@ -111,10 +84,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn u128(&mut self, v: u128) -> Result;
 
-    /**
-    Stream a floating point value. Implementors should override this method if they
-    expect to accept floating point numbers.
-    */
     #[cfg(not(test))]
     fn f64(&mut self, v: f64) -> Result {
         let _ = v;
@@ -123,10 +92,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn f64(&mut self, v: f64) -> Result;
 
-    /**
-    Stream a boolean. Implementors should override this method if they
-    expect to accept booleans.
-    */
     #[cfg(not(test))]
     fn bool(&mut self, v: bool) -> Result {
         let _ = v;
@@ -135,9 +100,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn bool(&mut self, v: bool) -> Result;
 
-    /**
-    Stream a unicode character.
-    */
     #[cfg(not(test))]
     fn char(&mut self, v: char) -> Result {
         let mut b = [0; 4];
@@ -146,10 +108,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn char(&mut self, v: char) -> Result;
 
-    /**
-    Stream a UTF-8 string slice. Implementors should override this method if they
-    expect to accept strings.
-    */
     #[cfg(not(test))]
     fn str(&mut self, v: &str) -> Result {
         let _ = v;
@@ -158,10 +116,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn str(&mut self, v: &str) -> Result;
 
-    /**
-    Stream an empty value. Implementors should override this method if they
-    expect to accept empty values.
-    */
     #[cfg(not(test))]
     fn none(&mut self) -> Result {
         Err(crate::Error::default_unsupported("Stream::none"))
@@ -169,9 +123,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn none(&mut self) -> Result;
 
-    /**
-    Stream a tag.
-    */
     #[cfg(not(test))]
     fn tag(&mut self, t: Tag) -> Result {
         match t {
@@ -182,9 +133,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn tag(&mut self, t: Tag) -> Result;
 
-    /**
-    Stream an identifier.
-    */
     #[cfg(not(test))]
     fn ident(&mut self, v: Ident) -> Result {
         match v {
@@ -195,10 +143,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn ident(&mut self, v: Ident) -> Result;
 
-    /**
-    Begin a map. Implementors should override this method if they
-    expect to accept maps.
-    */
     #[cfg(not(test))]
     fn map_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
@@ -207,12 +151,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_begin(&mut self, len: Option<usize>) -> Result;
 
-    /**
-    Begin a map key. Implementors should override this method if they
-    expect to accept maps.
-
-    The key will be implicitly ended by the stream methods that follow it.
-    */
     #[cfg(not(test))]
     fn map_key(&mut self) -> Result {
         Err(crate::Error::default_unsupported("Stream::map_key"))
@@ -220,12 +158,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_key(&mut self) -> Result;
 
-    /**
-    Begin a map value. Implementors should override this method if they
-    expect to accept maps.
-
-    The value will be implicitly ended by the stream methods that follow it.
-    */
     #[cfg(not(test))]
     fn map_value(&mut self) -> Result {
         Err(crate::Error::default_unsupported("Stream::map_value"))
@@ -233,10 +165,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_value(&mut self) -> Result;
 
-    /**
-    End a map. Implementors should override this method if they
-    expect to accept maps.
-    */
     #[cfg(not(test))]
     fn map_end(&mut self) -> Result {
         Err(crate::Error::default_unsupported("Stream::map_end"))
@@ -244,10 +172,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_end(&mut self) -> Result;
 
-    /**
-    Begin a sequence. Implementors should override this method if they
-    expect to accept sequences.
-    */
     #[cfg(not(test))]
     fn seq_begin(&mut self, len: Option<usize>) -> Result {
         let _ = len;
@@ -256,12 +180,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn seq_begin(&mut self, len: Option<usize>) -> Result;
 
-    /**
-    Begin a sequence element. Implementors should override this method if they
-    expect to accept sequences.
-
-    The element will be implicitly ended by the stream methods that follow it.
-    */
     #[cfg(not(test))]
     fn seq_elem(&mut self) -> Result {
         Err(crate::Error::default_unsupported("Stream::seq_elem"))
@@ -269,10 +187,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn seq_elem(&mut self) -> Result;
 
-    /**
-    End a sequence. Implementors should override this method if they
-    expect to accept sequences.
-    */
     #[cfg(not(test))]
     fn seq_end(&mut self) -> Result {
         Err(crate::Error::default_unsupported("Stream::seq_end"))
@@ -280,38 +194,11 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn seq_end(&mut self) -> Result;
 
-    /**
-    Begin a tagged value.
-    */
     #[cfg(not(test))]
-    fn tagged_begin(&mut self, tag: Tag) -> Result {
+    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
         self.map_begin(Some(1))?;
         self.map_key_collect(Value::new(&tag))?;
         self.map_value()?;
-
-        Ok(())
-    }
-    #[cfg(test)]
-    fn tagged_begin(&mut self) -> Result;
-
-    /**
-    End a tagged value.
-    */
-    #[cfg(not(test))]
-    fn tagged_end(&mut self) -> Result {
-        self.map_end()?;
-        Ok(())
-    }
-    #[cfg(test)]
-    fn tagged_end(&mut self) -> Result;
-
-    /**
-    Begin a tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
-    #[cfg(not(test))]
-    fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
-        self.tagged_begin(tag)?;
         self.map_begin(len)?;
 
         Ok(())
@@ -319,27 +206,21 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn tagged_map_begin(&mut self, tag: Tag, len: Option<usize>) -> Result;
 
-    /**
-    End a tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
     #[cfg(not(test))]
     fn tagged_map_end(&mut self) -> Result {
         self.map_end()?;
-        self.tagged_end()?;
+        self.map_end()?;
 
         Ok(())
     }
     #[cfg(test)]
     fn tagged_map_end(&mut self) -> Result;
 
-    /**
-    Begin a tagged sequence. Implementors should override this method if they
-    expect to accept sequences.
-    */
     #[cfg(not(test))]
     fn tagged_seq_begin(&mut self, tag: Tag, len: Option<usize>) -> Result {
-        self.tagged_begin(tag)?;
+        self.map_begin(Some(1))?;
+        self.map_key_collect(Value::new(&tag))?;
+        self.map_value()?;
         self.seq_begin(len)?;
 
         Ok(())
@@ -347,23 +228,16 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn tagged_seq_begin(&mut self, tag: Tag, len: Option<usize>) -> Result;
 
-    /**
-    End a tagged sequence. Implementors should override this method if they
-    expect to accept sequences.
-    */
     #[cfg(not(test))]
     fn tagged_seq_end(&mut self) -> Result {
         self.seq_end()?;
-        self.tagged_end()?;
+        self.map_end()?;
 
         Ok(())
     }
     #[cfg(test)]
     fn tagged_seq_end(&mut self) -> Result;
 
-    /**
-    Collect a map key.
-    */
     #[cfg(not(test))]
     fn map_key_collect(&mut self, k: Value) -> Result {
         self.map_key()?;
@@ -372,9 +246,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_key_collect(&mut self, k: Value) -> Result;
 
-    /**
-    Collect a map value.
-    */
     #[cfg(not(test))]
     fn map_value_collect(&mut self, v: Value) -> Result {
         self.map_value()?;
@@ -383,9 +254,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_value_collect(&mut self, v: Value) -> Result;
 
-    /**
-    Collect a sequence element.
-    */
     #[cfg(not(test))]
     fn seq_elem_collect(&mut self, v: Value) -> Result {
         self.seq_elem()?;
@@ -394,7 +262,16 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn seq_elem_collect(&mut self, v: Value) -> Result;
 
-    // Borrowed values: These carry the `'v` lifetime
+    #[cfg(not(test))]
+    fn tagged_collect(&mut self, tag: Tag, v: Value) -> Result {
+        self.map_begin(Some(1))?;
+        self.map_key_collect(Value::new(&tag))?;
+        self.map_value_collect(v)?;
+        self.map_end()?;
+        Ok(())
+    }
+    #[cfg(test)]
+    fn tagged_collect(&mut self, tag: Tag, v: Value) -> Result;
 
     #[cfg(not(test))]
     fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
@@ -410,9 +287,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn error_borrowed(&mut self, v: Source<'v>) -> Result;
 
-    /**
-    Stream a borrowed UTF-8 string slice.
-    */
     #[cfg(not(test))]
     fn str_borrowed(&mut self, v: &'v str) -> Result {
         self.str(v)
@@ -420,9 +294,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn str_borrowed(&mut self, v: &'v str) -> Result;
 
-    /**
-    Stream a tag.
-    */
     #[cfg(not(test))]
     fn tag_borrowed(&mut self, tag: Tag<'v>) -> Result {
         self.tag(tag)
@@ -430,9 +301,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn tag_borrowed(&mut self, tag: Tag<'v>) -> Result;
 
-    /**
-    Stream an identifier.
-    */
     #[cfg(not(test))]
     fn ident_borrowed(&mut self, v: Ident<'v>) -> Result {
         self.ident(v)
@@ -454,20 +322,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn map_value_collect_borrowed(&mut self, v: Value<'v>) -> Result;
 
-    /**
-    Begin a borrowed tagged value.
-    */
-    #[cfg(not(test))]
-    fn tagged_begin_borrowed(&mut self, tag: Tag<'v>) -> Result {
-        self.tagged_begin(tag)
-    }
-    #[cfg(test)]
-    fn tagged_begin_borrowed(&mut self) -> Result;
-
-    /**
-    Begin a borrowed tagged map. Implementors should override this method if they
-    expect to accept maps.
-    */
     #[cfg(not(test))]
     fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
         self.tagged_map_begin(tag, len)
@@ -475,10 +329,6 @@ pub trait Stream<'v> {
     #[cfg(test)]
     fn tagged_map_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result;
 
-    /**
-    Begin a tagged sequence. Implementors should override this method if they
-    expect to accept sequences.
-    */
     #[cfg(not(test))]
     fn tagged_seq_begin_borrowed(&mut self, tag: Tag<'v>, len: Option<usize>) -> Result {
         self.tagged_seq_begin(tag, len)
@@ -492,6 +342,13 @@ pub trait Stream<'v> {
     }
     #[cfg(test)]
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result;
+
+    #[cfg(not(test))]
+    fn tagged_collect_borrowed(&mut self, tag: Tag<'v>, v: Value<'v>) -> Result {
+        self.tagged_collect(tag, v)
+    }
+    #[cfg(test)]
+    fn tagged_collect_borrowed(&mut self, tag: Tag<'v>, v: Value<'v>) -> Result;
 }
 
 impl<'s, 'v, T: ?Sized> Stream<'v> for &'s mut T
@@ -606,6 +463,10 @@ where
         (**self).tagged_seq_end()
     }
 
+    fn tagged_collect(&mut self, tag: Tag, v: Value) -> Result {
+        (**self).tagged_collect(tag, v)
+    }
+
     fn fmt_borrowed(&mut self, v: Arguments<'v>) -> Result {
         (**self).fmt_borrowed(v)
     }
@@ -644,6 +505,10 @@ where
 
     fn seq_elem_collect_borrowed(&mut self, v: Value<'v>) -> Result {
         (**self).seq_elem_collect_borrowed(v)
+    }
+
+    fn tagged_collect_borrowed(&mut self, tag: Tag<'v>, v: Value<'v>) -> Result {
+        (**self).tagged_collect_borrowed(tag, v)
     }
 }
 
