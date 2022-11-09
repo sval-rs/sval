@@ -57,7 +57,7 @@ serde1 = ["serde1_lib"]
 test = ["std"]
 
 [dependencies.serde1_lib]
-version = "1.0.104"
+version = "1.0.147"
 optional = true
 default-features = false
 package = "serde"

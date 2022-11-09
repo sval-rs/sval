@@ -23,4 +23,4 @@ default-features = false
 optional = true
 
 [dev-dependencies.quickcheck]
-version = "0.9"
+version = "1"

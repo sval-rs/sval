@@ -26,6 +26,4 @@ path = "../"
 version = "1"
 
 [dependencies.itoa]
-version = "0.4"
-features = ["i128"]
-default-features = false
+version = "1"
