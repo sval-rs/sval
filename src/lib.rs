@@ -1,234 +1,134 @@
 /*!
-A small, no-std, object-safe, serialization-only framework.
+Structured, streaming values.
 
-The `sval` API is built around two key traits:
+`sval` is a serialization framework that treats data as a flat stream of tokens.
+The source of that data could be some Rust object or parsed from some encoding.
+It's well suited to self-describing, text-based formats like JSON.
 
-- [`Value`] is a trait for data with a streamable structure. It's like `serde::Serialize`.
-- [`Stream`] is a trait for receiving the structure of a value. It's like `serde::Serializer`.
+# A note on docs
+
+Even though this library's API is stable, these docs themselves are still a
+work-in-progress.
 
 # Getting started
 
 Add `sval` to your `Cargo.toml`:
 
-```toml,ignore
+```toml
 [dependencies.sval]
-version = "1.0.0-alpha.5"
+version = "0.0.0"
 ```
 
-# Supported formats
+By default, `sval` doesn't depend on Rust's standard library or integrate
+with its collection types. To include them, add the `alloc` or `std` features:
 
-- [JSON](https://crates.io/crates/sval_json), the ubiquitous JavaScript Object Notation used by many HTTP APIs.
-
-# Streaming values
-
-The structure of a [`Value`] can be streamed to a [`Stream`].
-
-# `serde` integration
-
-Use the `serde` Cargo feature to enable integration with `serde`:
-
-```toml,ignore
+```toml
 [dependencies.sval]
-features = ["serde"]
+version = "0.0.0"
+features = ["std"]
 ```
 
-When `serde` is available, the `Value` trait can also be derived
-based on an existing `Serialize` implementation:
+# The `Value` trait
 
-```ignore
-#[macro_use]
-extern crate sval;
+[`Value`] is a trait for data types to implement that surfaces their structure
+through visitors called _streams_. `Value` is like `serde`'s `Serialize`.
 
-#[derive(Serialize, Value)]
-#[sval(derive_from = "serde")]
-pub enum Data {
-    Variant(i32, String),
-}
-```
+Many standard types in Rust implement the `Value` trait.
 
-# `std::fmt` integration
+`Value` can be derived when the `derive` feature is enabled.
 
-Use the `fmt` Cargo feature to enable extended integration with `std::fmt`:
+# The `Stream` trait
 
-```toml,ignore
-[dependencies.sval]
-features = ["fmt"]
-```
+[`Stream`] is a trait for data formats and visitors to implement that observes
+the structure of _values_. `Stream` is like `serde`'s `Serializer`.
 
-When `fmt` is available, arbitrary `Value`s can be treated like `std::fmt::Debug`:
+# Data-model
 
-```
-# fn main() {}
-# #[cfg(feature = "fmt")]
-# mod test {
-# use sval::value::Value;
-fn with_value(value: impl Value) {
-    dbg!(sval::fmt::to_debug(&value));
+`sval`'s data-model is defined by the [`Stream`] trait. It includes:
 
-    // Do something with the value
-}
-# }
-```
+- Null
+- Booleans (`true`, `false`)
+- Text blobs
+- Binary blobs
+- Integers (`u8`-`u128`, `i8`-`i128`)
+- Binary floating points (`f32`-`f64`)
+- Maps
+- Sequences
+- Records
+- Tuples
+- Enums
+- Tags
+
+# Tags
+
+[`Tag`] is a type for extending `sval`'s data-model with new kinds of values.
+Rust's own `()` and `Option<T>` types are expressed as tags. Other examples of
+tags include text that encodes RFC3339 timestamps or RFC4122 UUIDs.
+
+The [`tags`] module contains built-in tags. Other libraries may define their own tags too.
+
+# Buffering
+
+Complex or arbitrarily-sized values like strings, maps, and sequences can all be
+streamed as chunks across multiple calls to avoid intermediate buffering when it's not necessary.
+
+# Object safety
+
+The [`Value`] and [`Stream`] traits aren't object-safe themselves, but object-safe
+wrappers are provided by the [`sval_dynamic`] crate. This wrapper works in no-std.
 */
 
-#![doc(html_root_url = "https://docs.rs/sval/1.0.0-alpha.5")]
-#![no_std]
-
-#[doc(hidden)]
-#[macro_export]
-#[cfg(feature = "alloc")]
-macro_rules! sval_if_alloc {
-    (
-        if #[cfg(feature = "alloc")]
-        {
-            $($with:tt)*
-        }
-        else
-        {
-            $($without:tt)*
-        }
-    ) => {
-        $($with)*
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-#[cfg(not(feature = "alloc"))]
-macro_rules! sval_if_alloc {
-    (
-        if #[cfg(feature = "alloc")]
-        {
-            $($with:tt)*
-        }
-        else
-        {
-            $($without:tt)*
-        }
-    ) => {
-        $($without)*
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-#[cfg(feature = "std")]
-macro_rules! sval_if_std {
-    (
-        if #[cfg(feature = "std")]
-        {
-            $($with:tt)*
-        }
-        else
-        {
-            $($without:tt)*
-        }
-    ) => {
-        $($with)*
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-#[cfg(not(feature = "std"))]
-macro_rules! sval_if_std {
-    (
-        if #[cfg(feature = "std")]
-        {
-            $($with:tt)*
-        }
-        else
-        {
-            $($without:tt)*
-        }
-    ) => {
-        $($without)*
-    };
-}
-
-#[doc(hidden)]
-#[cfg(feature = "derive")]
-pub mod derive;
-
-#[doc(inline)]
-#[cfg(feature = "derive")]
-#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
-pub use sval_derive::*;
+#![deny(missing_docs)]
+#![cfg_attr(not(test), no_std)]
 
 #[cfg(feature = "std")]
-#[macro_use]
-#[allow(unused_imports)]
 extern crate std;
 
-#[macro_use]
-#[allow(unused_imports)]
 #[cfg(all(feature = "alloc", not(feature = "std")))]
-extern crate alloc as alloc_lib;
-#[macro_use]
-#[allow(unused_imports)]
+extern crate alloc;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
-extern crate core as core_lib;
+extern crate core;
+
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 mod std {
-    pub use crate::alloc_lib::{
-        boxed,
-        collections,
-        rc,
-        string,
-        vec,
+    pub use crate::{
+        alloc::{borrow, boxed, collections, string, vec},
+        core::{convert, fmt, hash, marker, mem, ops, result, str},
     };
-
-    pub use crate::core_lib::*;
 }
 
-#[cfg(all(not(feature = "std"), not(feature = "alloc")))]
-#[macro_use]
-#[allow(unused_imports)]
+#[cfg(all(not(feature = "alloc"), not(feature = "std")))]
 extern crate core as std;
 
-#[macro_use]
-mod error;
-
-#[cfg(any(test, feature = "test"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "test")))]
-pub mod test;
-
-#[cfg(feature = "fmt")]
-#[cfg_attr(docsrs, doc(cfg(feature = "fmt")))]
-pub mod fmt;
-
-#[cfg(feature = "serde1_lib")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-pub mod serde;
-
-pub mod stream;
-pub mod value;
+mod data;
+mod result;
+mod stream;
+mod value;
 
 #[doc(inline)]
-pub use self::error::Error;
-
-use self::{
-    stream::Stream,
-    value::Value,
-};
+pub use self::{data::*, result::*, stream::*, value::*};
 
 /**
-Stream the structure of a [`Value`] with a concrete lifetime.
+A generic streaming result.
 */
-pub fn stream<'v>(
-    mut stream: impl Stream<'v>,
-    value: &'v (impl Value + ?Sized),
-) -> Result<(), Error> {
-    value.stream(value::Stream::new(&mut stream))?;
+pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 
-    Ok(())
+/**
+Stream a value through a stream.
+*/
+pub fn stream<'sval, S: Stream<'sval> + ?Sized, V: Value + ?Sized>(
+    stream: &mut S,
+    value: &'sval V,
+) -> Result {
+    stream.value(value)
 }
 
 /**
-Stream the structure of a [`Value`] using the given [`Stream`].
+Stream a value through a stream with an arbitrarily short lifetime.
 */
-pub fn stream_owned<'a>(mut stream: impl Stream<'a>, value: impl Value) -> Result<(), Error> {
-    value.stream_owned(value::Stream::new(&mut stream))?;
-
-    Ok(())
+pub fn stream_computed<'sval, S: Stream<'sval> + ?Sized, V: Value + ?Sized>(
+    stream: &mut S,
+    value: &V,
+) -> Result {
+    stream.value_computed(value)
 }

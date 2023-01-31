@@ -1,0 +1,18 @@
+[package]
+name = "sval_fmt_test"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.sval]
+path = "../../"
+
+[dependencies.sval_fmt]
+path = "../"
+features = ["std"]
+
+[dependencies.sval_derive]
+path = "../../derive"

@@ -1,0 +1,19 @@
+[package]
+name = "sval_experiments"
+version = "0.0.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+publish = false
+
+[dependencies.sval]
+path = "../"
+
+[dependencies.sval_json]
+path = "../json"
+
+[dev-dependencies.sval_json]
+path = "../json"
+features = ["std"]
+
+[dev-dependencies.sval_derive]
+path = "../derive"

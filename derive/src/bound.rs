@@ -1,9 +1,5 @@
 use proc_macro2::TokenStream;
-use syn::{
-    Generics,
-    WhereClause,
-    WherePredicate,
-};
+use syn::{Generics, WhereClause, WherePredicate};
 
 pub(crate) fn where_clause_with_bound(generics: &Generics, bound: TokenStream) -> WhereClause {
     let new_predicates = generics.type_params().map::<WherePredicate, _>(|param| {

@@ -1,19 +1,3 @@
-/*!
-Derive `sval::Value`.
-
-Use the `derive` feature of `sval` instead of depending on this library directly:
-
-```toml,no_run
-[dependencies.sval]
-features = ["derive"]
-```
-*/
-
-/*
-This `derive` implementation has been shamelessly lifted from dtolnay's `miniserde`:
-https://github.com/dtolnay/miniserde
-*/
-
 #![doc(html_root_url = "https://docs.rs/sval_derive/1.0.0-alpha.5")]
 #![recursion_limit = "128"]
 
@@ -22,9 +6,6 @@ extern crate quote;
 
 #[macro_use]
 extern crate syn;
-
-extern crate proc_macro;
-extern crate proc_macro2;
 
 mod attr;
 mod bound;
