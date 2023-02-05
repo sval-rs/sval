@@ -27,6 +27,9 @@ mod private {
     }
 }
 
+/**
+An object-safe version of [`sval::Value`].
+*/
 pub trait Value: private::EraseValue {}
 
 impl<T: sval::Value> Value for T {}

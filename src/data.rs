@@ -313,3 +313,72 @@ mod alloc_support {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn label_static() {
+        let label = Label::new("a");
+
+        assert_eq!("a", label.as_static_str().unwrap());
+        assert_eq!("a", label.as_str());
+    }
+
+    #[test]
+    fn label_computed() {
+        let label = Label::from_computed("a");
+
+        assert!(label.as_static_str().is_none());
+        assert_eq!("a", label.as_str());
+    }
+
+    #[test]
+    fn label_eq() {
+        let a = Label::new("a");
+        let b = Label::from_computed("a");
+        let c = Label::new("b");
+
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+    }
+
+    #[test]
+    fn tag_eq() {
+        let a = Tag::new("a");
+        let b = Tag::new("a");
+        let c = Tag::new("b");
+
+        assert_eq!(a.id, b.id);
+        assert_ne!(a.id, c.id);
+
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+    }
+
+    #[test]
+    fn tag_match() {
+        const A: Tag = Tag::new("a");
+
+        let a = Tag::new("a");
+
+        match a {
+            A => (),
+            _ => panic!("unexpected tag `{:?}`", a),
+        }
+    }
+
+    #[cfg(feature = "alloc")]
+    mod alloc_support {
+        use crate::data::*;
+
+        #[test]
+        fn label_owned() {
+            let label = Label::from_owned(String::from("a"));
+
+            assert!(label.as_static_str().is_none());
+            assert_eq!("a", label.as_str());
+        }
+    }
+}

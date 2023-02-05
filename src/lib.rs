@@ -75,7 +75,7 @@ streamed as chunks across multiple calls to avoid intermediate buffering when it
 # Object safety
 
 The [`Value`] and [`Stream`] traits aren't object-safe themselves, but object-safe
-wrappers are provided by the [`sval_dynamic`] crate. This wrapper works in no-std.
+wrappers are provided by the `sval_dynamic` crate. This wrapper works in no-std.
 */
 
 #![deny(missing_docs)]

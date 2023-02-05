@@ -162,6 +162,9 @@ mod private {
     }
 }
 
+/**
+An object-safe version of [`sval::Stream`].
+*/
 pub trait Stream<'sval>: private::EraseStream<'sval> {}
 
 impl<'sval, R: sval::Stream<'sval>> Stream<'sval> for R {}

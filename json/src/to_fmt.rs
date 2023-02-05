@@ -4,6 +4,9 @@ use sval::Stream as _;
 
 use crate::{tags, Error};
 
+/**
+Stream a value as JSON to an underlying formatter.
+*/
 pub fn stream_to_fmt(fmt: impl Write, v: impl sval::Value) -> Result<(), Error> {
     let mut stream = Formatter::new(fmt);
 

@@ -6,6 +6,12 @@ use crate::{std::vec::Vec, BinaryBuf, TextBuf};
 #[cfg(feature = "alloc")]
 pub use alloc_support::*;
 
+/**
+Buffer arbitrary values into a tree-like structure.
+
+This type requires the `alloc` or `std` features, otherwise most methods
+will fail.
+*/
 #[derive(Debug)]
 pub struct ValueBuf<'sval> {
     #[cfg(feature = "alloc")]
@@ -22,6 +28,9 @@ impl<'sval> Default for ValueBuf<'sval> {
 }
 
 impl<'sval> ValueBuf<'sval> {
+    /**
+    Create a new empty value buffer.
+    */
     pub fn new() -> Self {
         ValueBuf {
             #[cfg(feature = "alloc")]
@@ -32,6 +41,9 @@ impl<'sval> ValueBuf<'sval> {
         }
     }
 
+    /**
+    Buffer a value.
+    */
     pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> sval::Result<Self> {
         let mut buf = ValueBuf::new();
 
@@ -40,6 +52,9 @@ impl<'sval> ValueBuf<'sval> {
         Ok(buf)
     }
 
+    /**
+    Whether or not the contents of the value buffer are complete.
+    */
     pub fn is_complete(&self) -> bool {
         #[cfg(feature = "alloc")]
         {
@@ -56,6 +71,11 @@ impl<'a> sval::Value for ValueBuf<'a> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
+            // If the buffer is empty then stream null
+            if self.parts.len() == 0 {
+                return stream.null();
+            }
+
             self.slice().stream(stream)
         }
         #[cfg(not(feature = "alloc"))]
@@ -1118,6 +1138,13 @@ mod alloc_support {
 
         use sval::Stream as _;
         use sval_derive::*;
+
+        #[test]
+        fn value_buf_empty() {
+            use sval_test::{assert_tokens, Token::*};
+
+            assert_tokens(&ValueBuf::new(), &[Null]);
+        }
 
         #[test]
         fn buffer_primitive() {

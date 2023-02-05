@@ -8,6 +8,9 @@ use serde::ser::{
 
 use sval_buffer::{BinaryBuf, TextBuf, ValueBuf};
 
+/**
+Serialize an [`sval::Value`] into a [`serde::Serializer`].
+*/
 pub fn serialize<S: serde::Serializer, V: sval::Value>(
     serializer: S,
     value: V,
@@ -15,24 +18,26 @@ pub fn serialize<S: serde::Serializer, V: sval::Value>(
     to_serialize(value).serialize(serializer)
 }
 
+/**
+Adapt an [`sval::Value`] into a [`serde::Serialize`].
+*/
 pub fn to_serialize<V: sval::Value>(value: V) -> ToSerialize<V> {
     ToSerialize(value)
 }
 
+/**
+Adapt a reference to an [`sval::Value`] into a [`serde::Serialize`].
+*/
+pub fn to_serialize_ref<'a, V: sval::Value + ?Sized>(value: &'a V) -> &'a ToSerialize<V> {
+    // SAFETY: `&'a V` and `&'a ToSerialize<V>` have the same ABI
+    unsafe { &*(value as *const _ as *const ToSerialize<V>) }
+}
+
+/**
+Adapt an [`sval::Value`] into a [`serde::Serialize`].
+*/
 #[repr(transparent)]
 pub struct ToSerialize<V: ?Sized>(V);
-
-impl<V> ToSerialize<V> {
-    pub fn new(value: V) -> Self {
-        ToSerialize(value)
-    }
-}
-
-impl<V: ?Sized> ToSerialize<V> {
-    pub fn new_ref<'a>(value: &'a V) -> &'a ToSerialize<V> {
-        unsafe { &*(value as *const _ as *const ToSerialize<V>) }
-    }
-}
 
 impl<V: sval::Value> serde::Serialize for ToSerialize<V> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -150,7 +155,7 @@ impl<'sval, S: serde::Serializer> sval::Stream<'sval> for Serializer<'sval, S> {
             |serializer| {
                 let buf = serializer.take_text()?;
 
-                serializer.state.serialize_value(buf.get())
+                serializer.state.serialize_value(buf.as_str())
             },
         )
     }
@@ -182,7 +187,7 @@ impl<'sval, S: serde::Serializer> sval::Stream<'sval> for Serializer<'sval, S> {
             |serializer| {
                 let buf = serializer.take_binary()?;
 
-                serializer.state.serialize_value(Bytes(buf.get()))
+                serializer.state.serialize_value(Bytes(buf.as_slice()))
             },
         )
     }

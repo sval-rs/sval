@@ -2,6 +2,9 @@ use core::fmt;
 
 use serde::ser::Error as _;
 
+/**
+Stream a [`serde::Serialize`] into an [`sval::Stream`].
+*/
 pub fn stream<'sval, S: sval::Stream<'sval> + ?Sized, V: serde::Serialize + ?Sized>(
     stream: &mut S,
     value: &'_ V,
@@ -9,24 +12,26 @@ pub fn stream<'sval, S: sval::Stream<'sval> + ?Sized, V: serde::Serialize + ?Siz
     stream.value_computed(&ToValue(value))
 }
 
+/**
+Adapt a [`serde::Serialize`] into a [`sval::Value`].
+*/
 pub fn to_value<V: serde::Serialize>(value: V) -> ToValue<V> {
     ToValue(value)
 }
 
+/**
+Adapt a reference to a [`serde::Serialize`] into an [`sval::Value`].
+*/
+pub fn to_value_ref<'a, V: serde::Serialize + ?Sized>(value: &'a V) -> &'a ToValue<V> {
+    // SAFETY: `&'a V` and `&'a ToValue<V>` have the same ABI
+    unsafe { &*(value as *const _ as *const ToValue<V>) }
+}
+
+/**
+Adapt a [`serde::Serialize`] into a [`sval::Value`].
+*/
 #[repr(transparent)]
 pub struct ToValue<V: ?Sized>(V);
-
-impl<V> ToValue<V> {
-    pub fn new(value: V) -> Self {
-        ToValue(value)
-    }
-}
-
-impl<V: ?Sized> ToValue<V> {
-    pub fn new_ref<'a>(value: &'a V) -> &'a Self {
-        unsafe { &*(value as *const _ as *const ToValue<V>) }
-    }
-}
 
 impl<V: serde::Serialize> sval::Value for ToValue<V> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {

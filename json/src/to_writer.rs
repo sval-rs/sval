@@ -5,6 +5,9 @@ use std::{
     io::{self, Write},
 };
 
+/**
+Stream a value as JSON to an underlying writer.
+*/
 pub fn stream_to_writer(io: impl Write, v: impl sval::Value) -> Result<(), Error> {
     struct IoToFmt<W> {
         io: W,

@@ -3,28 +3,52 @@ use crate::std::{fmt, ops::Deref};
 #[cfg(feature = "alloc")]
 use crate::std::borrow::{Cow, ToOwned};
 
+/**
+Buffer text fragments into a single contiguous string.
+
+In no-std environments, this buffer only supports a single
+borrowed text fragment. Other methods will fail.
+*/
 #[derive(Debug, PartialEq, Eq)]
 pub struct TextBuf<'sval>(FragmentBuf<'sval, str>);
 
 impl<'sval> TextBuf<'sval> {
+    /**
+    Create a new empty text buffer.
+    */
     pub fn new() -> Self {
         TextBuf(FragmentBuf::new(""))
     }
 
+    /**
+    Push a borrowed text fragment onto the buffer.
+    */
     pub fn push_fragment(&mut self, fragment: &'sval str) -> sval::Result {
         self.0.push(fragment)
     }
 
+    /**
+    Push a computed text fragment onto the buffer.
+
+    If the `std` feature of this library is enabled, this method will
+    buffer the fragment. In no-std environments this method will fail.
+    */
     pub fn push_fragment_computed(&mut self, fragment: &str) -> sval::Result {
         self.0.push_computed(fragment)
     }
 
-    pub fn try_get(&self) -> Option<&'sval str> {
-        self.0.try_get()
+    /**
+    Try get the contents of the buffer as a string borrowed for the `'sval` lifetime.
+    */
+    pub fn as_borrowed_str(&self) -> Option<&'sval str> {
+        self.0.as_borrowed_inner()
     }
 
-    pub fn get(&self) -> &str {
-        self.0.get()
+    /**
+    Get the contents of the buffer as a string.
+    */
+    pub fn as_str(&self) -> &str {
+        self.0.as_inner()
     }
 }
 
@@ -42,7 +66,7 @@ impl<'sval> From<&'sval str> for TextBuf<'sval> {
 
 impl<'sval> AsRef<str> for TextBuf<'sval> {
     fn as_ref(&self) -> &str {
-        self.get()
+        self.as_str()
     }
 }
 
@@ -50,32 +74,56 @@ impl<'sval> Deref for TextBuf<'sval> {
     type Target = str;
 
     fn deref(&self) -> &str {
-        self.get()
+        self.as_str()
     }
 }
 
+/**
+Buffer binary fragments into a single contiguous slice.
+
+In no-std environments, this buffer only supports a single
+borrowed binary fragment. Other methods will fail.
+*/
 #[derive(Debug, PartialEq, Eq)]
 pub struct BinaryBuf<'sval>(FragmentBuf<'sval, [u8]>);
 
 impl<'sval> BinaryBuf<'sval> {
+    /**
+    Create a new empty binary buffer.
+    */
     pub fn new() -> Self {
         BinaryBuf(FragmentBuf::new(&[]))
     }
 
+    /**
+    Push a borrowed binary fragment onto the buffer.
+    */
     pub fn push_fragment(&mut self, fragment: &'sval [u8]) -> sval::Result {
         self.0.push(fragment)
     }
 
+    /**
+    Push a computed binary fragment onto the buffer.
+
+    If the `std` feature of this library is enabled, this method will
+    buffer the fragment. In no-std environments this method will fail.
+    */
     pub fn push_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
         self.0.push_computed(fragment)
     }
 
-    pub fn try_get(&self) -> Option<&'sval [u8]> {
-        self.0.try_get()
+    /**
+    Try get the contents of the buffer as a slice borrowed for the `'sval` lifetime.
+    */
+    pub fn as_borrowed_slice(&self) -> Option<&'sval [u8]> {
+        self.0.as_borrowed_inner()
     }
 
-    pub fn get(&self) -> &[u8] {
-        self.0.get()
+    /**
+    Get the contents of the buffer as a slice.
+    */
+    pub fn as_slice(&self) -> &[u8] {
+        self.0.as_inner()
     }
 }
 
@@ -93,7 +141,7 @@ impl<'sval> From<&'sval [u8]> for BinaryBuf<'sval> {
 
 impl<'sval> AsRef<[u8]> for BinaryBuf<'sval> {
     fn as_ref(&self) -> &[u8] {
-        self.get()
+        self.as_slice()
     }
 }
 
@@ -101,7 +149,7 @@ impl<'sval> Deref for BinaryBuf<'sval> {
     type Target = [u8];
 
     fn deref(&self) -> &[u8] {
-        self.get()
+        self.as_slice()
     }
 }
 
@@ -228,7 +276,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         }
     }
 
-    fn try_get(&self) -> Option<&'sval T> {
+    fn as_borrowed_inner(&self) -> Option<&'sval T> {
         #[cfg(feature = "alloc")]
         {
             match self.value {
@@ -243,7 +291,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         }
     }
 
-    fn get(&self) -> &T {
+    fn as_inner(&self) -> &T {
         #[cfg(feature = "alloc")]
         {
             &*self.value
@@ -261,29 +309,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn text_buf_empty() {
+        assert_eq!("", TextBuf::new().as_borrowed_str().unwrap());
+    }
+
+    #[test]
+    fn binary_buf_empty() {
+        assert_eq!(&[] as &[u8], BinaryBuf::new().as_borrowed_slice().unwrap());
+    }
+
+    #[test]
     fn text_fragment_replace() {
         let mut buf = TextBuf::new();
 
-        assert_eq!("", buf.get());
-        assert_eq!(Some(""), buf.try_get());
+        assert_eq!("", buf.as_str());
+        assert_eq!(Some(""), buf.as_borrowed_str());
 
         buf.push_fragment("abc").unwrap();
 
-        assert_eq!("abc", buf.get());
-        assert_eq!(Some("abc"), buf.try_get());
+        assert_eq!("abc", buf.as_str());
+        assert_eq!(Some("abc"), buf.as_borrowed_str());
     }
 
     #[test]
     fn binary_fragment_replace() {
         let mut buf = BinaryBuf::new();
 
-        assert_eq!(b"" as &[u8], buf.get());
-        assert_eq!(Some(b"" as &[u8]), buf.try_get());
+        assert_eq!(b"" as &[u8], buf.as_slice());
+        assert_eq!(Some(b"" as &[u8]), buf.as_borrowed_slice());
 
         buf.push_fragment(b"abc").unwrap();
 
-        assert_eq!(b"abc", buf.get());
-        assert_eq!(Some(b"abc" as &[u8]), buf.try_get());
+        assert_eq!(b"abc", buf.as_slice());
+        assert_eq!(Some(b"abc" as &[u8]), buf.as_borrowed_slice());
     }
 
     #[test]
@@ -293,8 +351,8 @@ mod tests {
 
         buf.push_fragment_computed("abc").unwrap();
 
-        assert_eq!("abc", buf.get());
-        assert_eq!(None, buf.try_get());
+        assert_eq!("abc", buf.as_str());
+        assert_eq!(None, buf.as_borrowed_str());
     }
 
     #[test]
@@ -304,8 +362,8 @@ mod tests {
 
         buf.push_fragment_computed(b"abc").unwrap();
 
-        assert_eq!(b"abc" as &[u8], buf.get());
-        assert_eq!(None, buf.try_get());
+        assert_eq!(b"abc" as &[u8], buf.as_slice());
+        assert_eq!(None, buf.as_borrowed_slice());
     }
 
     #[test]
@@ -316,8 +374,8 @@ mod tests {
         buf.push_fragment("abc").unwrap();
         buf.push_fragment("def").unwrap();
 
-        assert_eq!("abcdef", buf.get());
-        assert_eq!(None, buf.try_get());
+        assert_eq!("abcdef", buf.as_str());
+        assert_eq!(None, buf.as_borrowed_str());
     }
 
     #[test]
@@ -328,7 +386,7 @@ mod tests {
         buf.push_fragment(b"abc").unwrap();
         buf.push_fragment(b"def").unwrap();
 
-        assert_eq!(b"abcdef" as &[u8], buf.get());
-        assert_eq!(None, buf.try_get());
+        assert_eq!(b"abcdef" as &[u8], buf.as_slice());
+        assert_eq!(None, buf.as_borrowed_slice());
     }
 }
