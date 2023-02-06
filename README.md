@@ -5,9 +5,10 @@
 `sval` is a lot like `serde::ser`, but with a few differences in design:
 
 1. It uses a single `Stream` trait instead of `serde::Serializer` with its associated types.
-2. All state is internal to the implementation of `Stream`, so providing an object-safe API doesn't
+2. It carries an optional `'sval` lifetime for borrowing text and binary data.
+3. All state is internal to the implementation of `Stream`, so providing an object-safe API doesn't
 require an allocator.
-3. The basic data-model is smaller than `serde`'s, but tags allow natural customization for things like
+4. The basic data-model is smaller than `serde`'s, but tags allow natural customization for things like
 arbitrary-precision numbers and fixed-size arrays.
 
 `sval` isn't intended as a successor project to `serde`. It fills a particular niche in the

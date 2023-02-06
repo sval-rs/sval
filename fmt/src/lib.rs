@@ -1,9 +1,9 @@
 /*!
 Treat any `sval::Value` as a `std::fmt::Debug`.
 
-This crate provides `ToDebug`, a wrapper around any `sval::Value`
+This crate provides [`ToDebug`], a wrapper around any [`sval::Value`]
 that formats it using the same output that you'd get if you
-derived `std::fmt::Debug`.
+derived [`core::fmt::Debug`].
 */
 
 #![no_std]

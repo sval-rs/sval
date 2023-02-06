@@ -13,7 +13,11 @@ pub fn assert_tokens<'sval>(value: &'sval (impl sval::Value + ?Sized), tokens: &
     assert_eq!(tokens, &stream.0);
 }
 
+/**
+A token representing a specific call to an [`sval::Stream`] method.
+*/
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Token<'a> {
     U8(u8),
     U16(u16),

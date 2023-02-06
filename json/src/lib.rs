@@ -1,8 +1,9 @@
 /*!
 JSON support for `sval`.
 
-This crate provides the [`Formatter`] type, an `sval::Stream` that produces JSON.
-Data is serialized in a `serde`-compatible way.
+This crate provides [`stream_to_fmt`], a function that serializes an [`sval::Value`]
+as JSON into a formatter.
+Values are serialized in a `serde`-compatible way.
 */
 
 #![no_std]

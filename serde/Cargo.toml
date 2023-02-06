@@ -24,6 +24,7 @@ path = "../"
 [dependencies.sval_buffer]
 version = "2.0.0"
 path = "../buffer"
+default-features = false
 
 [dependencies.serde]
 version = "1"

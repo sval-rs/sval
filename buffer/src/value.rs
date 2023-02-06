@@ -43,6 +43,8 @@ impl<'sval> ValueBuf<'sval> {
 
     /**
     Buffer a value.
+
+    This method will fail if the `alloc` feature is not enabled.
     */
     pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> sval::Result<Self> {
         let mut buf = ValueBuf::new();
@@ -797,6 +799,9 @@ mod alloc_support {
         BinaryBuf, TextBuf,
     };
 
+    /**
+    Buffer a value.
+    */
     pub fn stream_to_value<'sval>(v: &'sval (impl sval::Value + ?Sized)) -> sval::Result<ValueBuf> {
         ValueBuf::collect(v)
     }
@@ -889,6 +894,7 @@ mod alloc_support {
 
     impl<'sval> ValueBuf<'sval> {
         pub(super) fn slice<'a>(&'a self) -> &'a ValueSlice<'sval> {
+            // SAFETY: `&[ValuePart]` and `&ValueSlice` have the same ABI
             unsafe { mem::transmute::<&'a [ValuePart<'sval>], &'a ValueSlice<'sval>>(&self.parts) }
         }
 
@@ -952,6 +958,7 @@ mod alloc_support {
                 }
             }
 
+            // SAFETY: `&[ValuePart]` and `&ValueSlice` have the same ABI
             unsafe {
                 mem::transmute::<&'a [ValuePart<'sval>], &'a ValueSlice<'sval>>(&self.0[range])
             }
