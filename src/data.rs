@@ -345,6 +345,28 @@ mod tests {
     }
 
     #[test]
+    fn index() {
+        let small = Index::new(1);
+        let large = Index::new(usize::MAX);
+
+        if usize::MAX > (u32::MAX as usize) {
+            assert!(large.to_u32().is_none());
+        }
+
+        assert_eq!(1, small.to_u32().unwrap());
+    }
+
+    #[test]
+    fn index_eq() {
+        let a = Index::new(1);
+        let b = Index::new_u32(1);
+        let c = Index::new(2);
+
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+    }
+
+    #[test]
     fn tag_eq() {
         let a = Tag::new("a");
         let b = Tag::new("a");
