@@ -8,6 +8,11 @@ extern crate serde_derive;
 
 fn assert_json(v: impl sval::Value + serde::Serialize) {
     let expected = serde_json::to_string(&v).unwrap();
+
+    assert_stream(&expected, v);
+}
+
+fn assert_stream(expected: &str, v: impl sval::Value) {
     let actual_string = sval_json::stream_to_string(&v).unwrap();
     let actual_bytes = String::from_utf8(sval_json::stream_to_vec(&v).unwrap()).unwrap();
 
@@ -40,15 +45,67 @@ enum Enum {
     SeqStruct(i32, bool, &'static str),
 }
 
+#[derive(Value)]
+#[sval(tag = "sval::tags::NUMBER")]
+struct Number(&'static str);
+
+#[derive(Value)]
+#[sval(tag = "sval_json::tags::JSON_NATIVE")]
+struct JsonNative<T>(T);
+
 #[test]
 fn stream_primitive() {
     assert_json(42i32);
+    assert_json(true);
+    assert_json(false);
+    assert_json("abc");
+    assert_json("a\nb");
+}
+
+#[test]
+fn stream_number() {
+    for (num, expected) in [
+        ("0", "0"),
+        ("000", "0"),
+        ("001", "1"),
+        ("-1", "-1"),
+        ("+1", "1"),
+        ("1.234", "1.234"),
+        ("1.200", "1.200"),
+        ("123.456e789", "123.456e789"),
+        ("-123.456e789", "-123.456e789"),
+        ("-123.456e-789", "-123.456e-789"),
+        ("+123.456e789", "123.456e789"),
+        ("+123.456e+789", "123.456e+789"),
+        ("+00123.456e+789", "123.456e+789"),
+        (
+            "84621599231797873982892348534.48343235787975583989258932",
+            "84621599231797873982892348534.48343235787975583989258932",
+        ),
+    ] {
+        assert_stream(expected, Number(num));
+        assert_stream(num, JsonNative(Number(num)));
+    }
+}
+
+#[test]
+fn stream_native() {
+    for str in ["abc", "a\nb"] {
+        let expected = format!("\"{}\"", str);
+
+        assert_stream(&expected, JsonNative(str));
+    }
 }
 
 #[test]
 fn stream_option() {
     assert_json(Some(42i32));
     assert_json(None::<i32>);
+}
+
+#[test]
+fn stream_unit() {
+    assert_json(());
 }
 
 #[test]
@@ -84,11 +141,6 @@ fn stream_enum() {
     assert_json(Enum::SeqStruct(42, true, "Hello"));
 
     assert_json(Enum::Tagged(42));
-}
-
-#[test]
-fn stream_unit() {
-    assert_json(());
 }
 
 #[test]
