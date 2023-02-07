@@ -1,8 +1,6 @@
 /*!
 JSON support for `sval`.
 
-This crate provides [`stream_to_fmt`], a function that serializes an [`sval::Value`]
-as JSON into a formatter.
 Values are serialized in a `serde`-compatible way.
 */
 
@@ -36,7 +34,13 @@ mod to_string;
 pub use self::to_string::*;
 
 #[cfg(feature = "std")]
-mod to_writer;
+mod to_io;
 
 #[cfg(feature = "std")]
-pub use self::to_writer::*;
+pub use self::to_io::*;
+
+#[cfg(feature = "std")]
+mod to_vec;
+
+#[cfg(feature = "std")]
+pub use self::to_vec::*;

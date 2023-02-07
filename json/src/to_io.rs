@@ -8,7 +8,7 @@ use std::{
 /**
 Stream a value as JSON to an underlying writer.
 */
-pub fn stream_to_writer(io: impl Write, v: impl sval::Value) -> Result<(), Error> {
+pub fn stream_to_io_write(io: impl Write, v: impl sval::Value) -> Result<(), Error> {
     struct IoToFmt<W> {
         io: W,
         err: Option<io::Error>,
@@ -38,7 +38,7 @@ pub fn stream_to_writer(io: impl Write, v: impl sval::Value) -> Result<(), Error
 
     let mut io = IoToFmt { io, err: None };
 
-    match crate::stream_to_fmt(&mut io, v) {
+    match crate::stream_to_fmt_write(&mut io, v) {
         Ok(()) => Ok(()),
         Err(mut e) => {
             if let Some(io) = io.err {

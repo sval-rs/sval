@@ -7,10 +7,12 @@ extern crate sval_derive;
 extern crate serde_derive;
 
 fn assert_json(v: impl sval::Value + serde::Serialize) {
-    let expected = format!("{}", serde_json::to_string(&v).unwrap());
-    let actual = format!("{}", sval_json::stream_to_string(&v).unwrap());
+    let expected = serde_json::to_string(&v).unwrap();
+    let actual_string = sval_json::stream_to_string(&v).unwrap();
+    let actual_bytes = String::from_utf8(sval_json::stream_to_vec(&v).unwrap()).unwrap();
 
-    assert_eq!(expected, actual);
+    assert_eq!(expected, actual_string);
+    assert_eq!(expected, actual_bytes);
 }
 
 #[derive(Value, Serialize)]
@@ -220,7 +222,7 @@ fn stream_exotic_unnamed_enum() {
 fn stream_to_io() {
     let mut buf = Vec::new();
 
-    sval_json::stream_to_writer(
+    sval_json::stream_to_io_write(
         &mut buf,
         MapStruct {
             field_0: 42,
