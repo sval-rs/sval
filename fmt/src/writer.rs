@@ -6,6 +6,12 @@ pub(crate) struct Writer<W> {
     out: W,
 }
 
+/**
+A trait that abstracts over a generic implementation of `fmt::Write`
+and `fmt::Formatter`.
+
+It makes sure that formatting flags will be preserved.
+*/
 pub(crate) trait Fmt: Write {
     fn write_u8(&mut self, value: u8) -> fmt::Result;
     fn write_u16(&mut self, value: u16) -> fmt::Result;

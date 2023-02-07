@@ -62,7 +62,7 @@ impl<'computed> Label<'computed> {
     /**
     Create a new label from a string value borrowed for the `'computed` lifetime.
     */
-    pub const fn from_computed(label: &'computed str) -> Self {
+    pub const fn new_computed(label: &'computed str) -> Self {
         Label {
             value_computed: label as *const str,
             value_static: None,
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn label_computed() {
-        let label = Label::from_computed("a");
+        let label = Label::new_computed("a");
 
         assert!(label.as_static_str().is_none());
         assert_eq!("a", label.as_str());
@@ -337,7 +337,7 @@ mod tests {
     #[test]
     fn label_eq() {
         let a = Label::new("a");
-        let b = Label::from_computed("a");
+        let b = Label::new_computed("a");
         let c = Label::new("b");
 
         assert_eq!(a, b);

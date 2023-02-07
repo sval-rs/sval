@@ -15,23 +15,27 @@ pub fn stream<'sval, S: sval::Stream<'sval> + ?Sized, V: serde::Serialize + ?Siz
 /**
 Adapt a [`serde::Serialize`] into a [`sval::Value`].
 */
-pub fn to_value<V: serde::Serialize>(value: V) -> ToValue<V> {
-    ToValue(value)
-}
-
-/**
-Adapt a reference to a [`serde::Serialize`] into an [`sval::Value`].
-*/
-pub fn to_value_ref<'a, V: serde::Serialize + ?Sized>(value: &'a V) -> &'a ToValue<V> {
-    // SAFETY: `&'a V` and `&'a ToValue<V>` have the same ABI
-    unsafe { &*(value as *const _ as *const ToValue<V>) }
-}
-
-/**
-Adapt a [`serde::Serialize`] into a [`sval::Value`].
-*/
 #[repr(transparent)]
 pub struct ToValue<V: ?Sized>(V);
+
+impl<V: serde::Serialize> ToValue<V> {
+    /**
+    Adapt a [`serde::Serialize`] into a [`sval::Value`].
+    */
+    pub fn new(value: V) -> ToValue<V> {
+        ToValue(value)
+    }
+}
+
+impl<V: serde::Serialize + ?Sized> ToValue<V> {
+    /**
+    Adapt a reference to a [`serde::Serialize`] into an [`sval::Value`].
+    */
+    pub fn new_borrowed<'a>(value: &'a V) -> &'a ToValue<V> {
+        // SAFETY: `&'a V` and `&'a ToValue<V>` have the same ABI
+        unsafe { &*(value as *const _ as *const ToValue<V>) }
+    }
+}
 
 impl<V: serde::Serialize> sval::Value for ToValue<V> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
@@ -184,7 +188,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
     }
 
     fn serialize_bytes(mut self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.stream_value(Bytes(v))
+        self.stream_value(sval::Binary::new(v))
     }
 
     fn serialize_none(mut self) -> Result<Self::Ok, Self::Error> {
@@ -618,15 +622,5 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeStructVariant for Strea
         self.stream
             .enum_end(None, Some(&self.enum_label), None)
             .map_err(|_| Error::custom("failed to stream a record variant"))
-    }
-}
-
-struct Bytes<'a>(&'a [u8]);
-
-impl<'a> sval::Value for Bytes<'a> {
-    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-        stream.binary_begin(Some(self.0.len()))?;
-        stream.binary_fragment(self.0)?;
-        stream.binary_end()
     }
 }

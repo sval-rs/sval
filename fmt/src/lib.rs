@@ -1,7 +1,7 @@
 /*!
-Treat any `sval::Value` as a `std::fmt::Debug`.
+Treat any [`sval::Value`] as a [`core::fmt::Debug`].
 
-This crate provides [`ToDebug`], a wrapper around any [`sval::Value`]
+This crate provides [`ToFmt`], a wrapper around any [`sval::Value`]
 that formats it using the same output that you'd get if you
 derived [`core::fmt::Debug`].
 */
@@ -13,10 +13,10 @@ extern crate alloc;
 
 mod writer;
 
-mod to_debug;
 mod to_fmt;
+mod to_write;
 
-pub use self::{to_debug::*, to_fmt::*};
+pub use self::{to_fmt::*, to_write::*};
 
 #[cfg(feature = "alloc")]
 mod to_string;

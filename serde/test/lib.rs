@@ -45,21 +45,27 @@ fn test_case(
     serde: &[serde_test::Token],
     sval: &[sval_test::Token],
 ) {
-    assert_ser_tokens(&sval_serde::to_serialize(&v), serde);
+    assert_ser_tokens(&sval_serde::ToSerialize::new(&v), serde);
     assert_ser_tokens(
-        &sval_serde::to_serialize(sval_buffer::stream_to_value(&v).unwrap()),
+        &sval_serde::ToSerialize::new(sval_buffer::stream_to_value(&v).unwrap()),
         serde,
     );
     assert_ser_tokens(
-        &sval_serde::to_serialize(&v as &dyn sval_dynamic::Value),
+        &sval_serde::ToSerialize::new(&v as &dyn sval_dynamic::Value),
         serde,
     );
     assert_ser_tokens(&v, serde);
 
-    assert_tokens(&sval_serde::to_value(&v), sval);
+    assert_tokens(&sval_serde::ToValue::new(&v), sval);
 
-    assert_ser_tokens(&sval_serde::to_serialize(sval_serde::to_value(&v)), serde);
-    assert_tokens(&sval_serde::to_value(sval_serde::to_serialize(&v)), sval);
+    assert_ser_tokens(
+        &sval_serde::ToSerialize::new(sval_serde::ToValue::new(&v)),
+        serde,
+    );
+    assert_tokens(
+        &sval_serde::ToValue::new(sval_serde::ToSerialize::new(&v)),
+        sval,
+    );
 }
 
 #[test]

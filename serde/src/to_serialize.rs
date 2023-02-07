@@ -15,22 +15,7 @@ pub fn serialize<S: serde::Serializer, V: sval::Value>(
     serializer: S,
     value: V,
 ) -> Result<S::Ok, S::Error> {
-    to_serialize(value).serialize(serializer)
-}
-
-/**
-Adapt an [`sval::Value`] into a [`serde::Serialize`].
-*/
-pub fn to_serialize<V: sval::Value>(value: V) -> ToSerialize<V> {
-    ToSerialize(value)
-}
-
-/**
-Adapt a reference to an [`sval::Value`] into a [`serde::Serialize`].
-*/
-pub fn to_serialize_ref<'a, V: sval::Value + ?Sized>(value: &'a V) -> &'a ToSerialize<V> {
-    // SAFETY: `&'a V` and `&'a ToSerialize<V>` have the same ABI
-    unsafe { &*(value as *const _ as *const ToSerialize<V>) }
+    ToSerialize(value).serialize(serializer)
 }
 
 /**
@@ -38,6 +23,25 @@ Adapt an [`sval::Value`] into a [`serde::Serialize`].
 */
 #[repr(transparent)]
 pub struct ToSerialize<V: ?Sized>(V);
+
+impl<V: sval::Value> ToSerialize<V> {
+    /**
+    Adapt an [`sval::Value`] into a [`serde::Serialize`].
+    */
+    pub fn new(value: V) -> ToSerialize<V> {
+        ToSerialize(value)
+    }
+}
+
+impl<V: sval::Value + ?Sized> ToSerialize<V> {
+    /**
+    Adapt a reference to an [`sval::Value`] into a [`serde::Serialize`].
+    */
+    pub fn new_borrowed<'a>(value: &'a V) -> &'a ToSerialize<V> {
+        // SAFETY: `&'a V` and `&'a ToSerialize<V>` have the same ABI
+        unsafe { &*(value as *const _ as *const ToSerialize<V>) }
+    }
+}
 
 impl<V: sval::Value> serde::Serialize for ToSerialize<V> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {

@@ -5,11 +5,13 @@ extern crate sval_derive;
 
 use std::fmt;
 
-fn assert_debug(v: impl sval::Value + fmt::Debug) {
+fn assert_fmt(v: impl sval::Value + fmt::Debug) {
     let expected = format!("{:?}", v);
-    let actual = format!("{:?}", sval_fmt::to_debug(v));
+    let actual_debug = format!("{:?}", sval_fmt::ToFmt::new(&v));
+    let actual_display = format!("{}", sval_fmt::ToFmt::new(&v));
 
-    assert_eq!(expected, actual);
+    assert_eq!(expected, actual_debug);
+    assert_eq!(expected, actual_display);
 }
 
 #[derive(Value, Debug)]
@@ -39,23 +41,23 @@ enum Enum {
 
 #[test]
 fn debug_retains_flags() {
-    assert_eq!("0042", format!("{:>04?}", sval_fmt::to_debug(42i64)));
+    assert_eq!("0042", format!("{:>04?}", sval_fmt::ToFmt::new(42i64)));
 }
 
 #[test]
 fn debug_primitive() {
-    assert_debug(42i32);
+    assert_fmt(42i32);
 }
 
 #[test]
 fn debug_option() {
-    assert_debug(Some(42i32));
-    assert_debug(None::<i32>);
+    assert_fmt(Some(42i32));
+    assert_fmt(None::<i32>);
 }
 
 #[test]
 fn debug_map_struct() {
-    assert_debug(MapStruct {
+    assert_fmt(MapStruct {
         field_0: 42,
         field_1: true,
         field_2: "Hello",
@@ -64,33 +66,33 @@ fn debug_map_struct() {
 
 #[test]
 fn debug_seq_struct() {
-    assert_debug(SeqStruct(42, true, "Hello"));
-    assert_debug((42, true, "Hello"));
+    assert_fmt(SeqStruct(42, true, "Hello"));
+    assert_fmt((42, true, "Hello"));
 }
 
 #[test]
 fn debug_tagged() {
-    assert_debug(Tagged(42));
+    assert_fmt(Tagged(42));
 }
 
 #[test]
 fn debug_enum() {
-    assert_debug(Enum::Constant);
+    assert_fmt(Enum::Constant);
 
-    assert_debug(Enum::MapStruct {
+    assert_fmt(Enum::MapStruct {
         field_0: 42,
         field_1: true,
         field_2: "Hello",
     });
 
-    assert_debug(Enum::SeqStruct(42, true, "Hello"));
+    assert_fmt(Enum::SeqStruct(42, true, "Hello"));
 
-    assert_debug(Enum::Tagged(42));
+    assert_fmt(Enum::Tagged(42));
 }
 
 #[test]
 fn debug_unit() {
-    assert_debug(());
+    assert_fmt(());
 }
 
 #[test]
@@ -128,7 +130,7 @@ fn debug_exotic_record() {
         "{ field_0: 42, field_1: true, field_2: \"Hello\" }",
         format!(
             "{:?}",
-            sval_fmt::to_debug(&UnnamedRecord {
+            sval_fmt::ToFmt::new(&UnnamedRecord {
                 field_0: 42,
                 field_1: true,
                 field_2: "Hello",
@@ -171,7 +173,7 @@ fn debug_exotic_nested_enum() {
         }
     }
 
-    assert_eq!("Variant", format!("{:?}", sval_fmt::to_debug(NestedEnum)));
+    assert_eq!("Variant", format!("{:?}", sval_fmt::ToFmt::new(NestedEnum)));
 }
 
 #[test]
@@ -209,6 +211,6 @@ fn debug_exotic_unnamed_enum() {
 
     assert_eq!(
         "42",
-        format!("{:?}", sval_fmt::to_debug(UntaggedEnum::I32(42)))
+        format!("{:?}", sval_fmt::ToFmt::new(UntaggedEnum::I32(42)))
     );
 }

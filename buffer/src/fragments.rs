@@ -1,4 +1,4 @@
-use crate::std::{fmt, ops::Deref};
+use crate::std::fmt;
 
 #[cfg(feature = "alloc")]
 use crate::std::borrow::{Cow, ToOwned};
@@ -70,11 +70,9 @@ impl<'sval> AsRef<str> for TextBuf<'sval> {
     }
 }
 
-impl<'sval> Deref for TextBuf<'sval> {
-    type Target = str;
-
-    fn deref(&self) -> &str {
-        self.as_str()
+impl<'a> sval::Value for TextBuf<'a> {
+    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+        self.as_str().stream(stream)
     }
 }
 
@@ -139,17 +137,21 @@ impl<'sval> From<&'sval [u8]> for BinaryBuf<'sval> {
     }
 }
 
+impl<'sval, const N: usize> From<&'sval [u8; N]> for BinaryBuf<'sval> {
+    fn from(fragment: &'sval [u8; N]) -> Self {
+        BinaryBuf(FragmentBuf::new(fragment))
+    }
+}
+
 impl<'sval> AsRef<[u8]> for BinaryBuf<'sval> {
     fn as_ref(&self) -> &[u8] {
         self.as_slice()
     }
 }
 
-impl<'sval> Deref for BinaryBuf<'sval> {
-    type Target = [u8];
-
-    fn deref(&self) -> &[u8] {
-        self.as_slice()
+impl<'a> sval::Value for BinaryBuf<'a> {
+    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+        self.as_slice().stream(stream)
     }
 }
 

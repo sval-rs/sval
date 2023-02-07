@@ -1234,6 +1234,18 @@ mod alloc_support {
                         kind: ValueKind::F64(3.1415),
                     }],
                 ),
+                (
+                    ValueBuf::collect("abc").unwrap(),
+                    vec![ValuePart {
+                        kind: ValueKind::Text(TextBuf::from("abc")),
+                    }],
+                ),
+                (
+                    ValueBuf::collect(sval::Binary::new(b"abc")).unwrap(),
+                    vec![ValuePart {
+                        kind: ValueKind::Binary(BinaryBuf::from(b"abc")),
+                    }],
+                ),
             ] {
                 assert_eq!(expected, value.parts, "{:?}", value);
             }
