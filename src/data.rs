@@ -46,7 +46,7 @@ impl<'computed> Label<'computed> {
     /**
     Create a new label from a static string value.
 
-    For labels that can't satisfy the `'static` lifetime, use [`Label::from_computed`].
+    For labels that can't satisfy the `'static` lifetime, use [`Label::new_computed`].
     For labels that need owned values, use [`Label::from_owned`].
     */
     pub const fn new(label: &'static str) -> Self {
