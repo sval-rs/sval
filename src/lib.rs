@@ -16,7 +16,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml
 [dependencies.sval]
-version = "0.0.0"
+version = "2.0.0"
 ```
 
 By default, `sval` doesn't depend on Rust's standard library or integrate
@@ -24,7 +24,7 @@ with its collection types. To include them, add the `alloc` or `std` features:
 
 ```toml
 [dependencies.sval]
-version = "0.0.0"
+version = "2.0.0"
 features = ["std"]
 ```
 
@@ -93,7 +93,7 @@ extern crate core;
 mod std {
     pub use crate::{
         alloc::{borrow, boxed, collections, string, vec},
-        core::{convert, fmt, hash, marker, mem, ops, result, str},
+        core::{convert, fmt, hash, marker, mem, ops, result, str, write},
     };
 }
 
