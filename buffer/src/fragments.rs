@@ -21,6 +21,69 @@ impl<'sval> TextBuf<'sval> {
     }
 
     /**
+    Buffer a text value into a contiguous string.
+    */
+    pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> sval::Result<Self> {
+        struct Collector<'a>(TextBuf<'a>);
+
+        impl<'a> sval::Stream<'a> for Collector<'a> {
+            fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+                Ok(())
+            }
+
+            fn text_fragment(&mut self, fragment: &'a str) -> sval::Result {
+                self.0.push_fragment(fragment)
+            }
+
+            fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+                self.0.push_fragment_computed(fragment)
+            }
+
+            fn text_end(&mut self) -> sval::Result {
+                Ok(())
+            }
+
+            fn null(&mut self) -> sval::Result {
+                sval::error()
+            }
+
+            fn bool(&mut self, _: bool) -> sval::Result {
+                sval::error()
+            }
+
+            fn i64(&mut self, _: i64) -> sval::Result {
+                sval::error()
+            }
+
+            fn f64(&mut self, _: f64) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_value_begin(&mut self) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_value_end(&mut self) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_end(&mut self) -> sval::Result {
+                sval::error()
+            }
+        }
+
+        let mut collector = Collector(TextBuf::new());
+
+        value.stream(&mut collector)?;
+
+        Ok(collector.0)
+    }
+
+    /**
     Push a borrowed text fragment onto the buffer.
     */
     pub fn push_fragment(&mut self, fragment: &'sval str) -> sval::Result {
@@ -91,6 +154,81 @@ impl<'sval> BinaryBuf<'sval> {
     */
     pub fn new() -> Self {
         BinaryBuf(FragmentBuf::new(&[]))
+    }
+
+    /**
+    Buffer a binary value into a contiguous slice.
+    */
+    pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> sval::Result<Self> {
+        struct Collector<'a>(BinaryBuf<'a>);
+
+        impl<'a> sval::Stream<'a> for Collector<'a> {
+            fn binary_begin(&mut self, _: Option<usize>) -> sval::Result {
+                Ok(())
+            }
+
+            fn binary_fragment(&mut self, fragment: &'a [u8]) -> sval::Result {
+                self.0.push_fragment(fragment)
+            }
+
+            fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
+                self.0.push_fragment_computed(fragment)
+            }
+
+            fn binary_end(&mut self) -> sval::Result {
+                Ok(())
+            }
+
+            fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+                sval::error()
+            }
+
+            fn text_fragment_computed(&mut self, _: &str) -> sval::Result {
+                sval::error()
+            }
+
+            fn text_end(&mut self) -> sval::Result {
+                sval::error()
+            }
+
+            fn null(&mut self) -> sval::Result {
+                sval::error()
+            }
+
+            fn bool(&mut self, _: bool) -> sval::Result {
+                sval::error()
+            }
+
+            fn i64(&mut self, _: i64) -> sval::Result {
+                sval::error()
+            }
+
+            fn f64(&mut self, _: f64) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_value_begin(&mut self) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_value_end(&mut self) -> sval::Result {
+                sval::error()
+            }
+
+            fn seq_end(&mut self) -> sval::Result {
+                sval::error()
+            }
+        }
+
+        let mut collector = Collector(BinaryBuf::new());
+
+        value.stream(&mut collector)?;
+
+        Ok(collector.0)
     }
 
     /**

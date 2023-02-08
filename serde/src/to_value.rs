@@ -183,7 +183,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
     where
         T: fmt::Display,
     {
-        sval::stream_display(&mut self.stream, value)
+        sval_fmt::stream_display(&mut self.stream, value)
             .map_err(|_| Error::custom("failed to stream a string"))
     }
 

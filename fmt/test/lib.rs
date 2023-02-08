@@ -12,6 +12,11 @@ fn assert_fmt(v: impl sval::Value + fmt::Debug) {
 
     assert_eq!(expected, actual_debug);
     assert_eq!(expected, actual_display);
+
+    let to_debug = sval_fmt::DebugToValue::new(&v);
+    let buffered = sval_buffer::TextBuf::collect(&to_debug).unwrap();
+
+    assert_eq!(expected, buffered.as_str());
 }
 
 #[derive(Value, Debug)]

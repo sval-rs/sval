@@ -1,22 +1,20 @@
-use crate::{tags, Stream, Value};
+use crate::{
+    std::{
+        fmt::{self, Write as _},
+        write,
+    },
+    tags, Result, Stream, Value,
+};
 
 macro_rules! int {
     ($($fi:ident => $i:ty, $fu:ident => $u:ty,)*) => {
         $(
             pub(crate) fn $fi<'sval>(v: $i, stream: &mut (impl Stream<'sval> + ?Sized)) -> crate::Result {
-                stream.tagged_begin(Some(&tags::NUMBER), None, None)?;
-
-                crate::stream_display(stream, v).map_err(|_| crate::Error::new())?;
-
-                stream.tagged_end(Some(&tags::NUMBER), None, None)
+                stream_number(stream, v)
             }
 
             pub(crate) fn $fu<'sval>(v: $u, stream: &mut (impl Stream<'sval> + ?Sized)) -> crate::Result {
-                stream.tagged_begin(Some(&tags::NUMBER), None, None)?;
-
-                crate::stream_display(stream, v).map_err(|_| crate::Error::new())?;
-
-                stream.tagged_end(Some(&tags::NUMBER), None, None)
+                stream_number(stream, v)
             }
         )*
     };
@@ -59,6 +57,29 @@ convert!(
     to_f32 => f32,
     to_f64 => f64,
 );
+
+fn stream_number<'sval, T: fmt::Display>(
+    mut stream: &mut (impl Stream<'sval> + ?Sized),
+    text: T,
+) -> Result {
+    struct Writer<S>(S);
+
+    impl<'a, S: Stream<'a>> fmt::Write for Writer<S> {
+        fn write_str(&mut self, s: &str) -> fmt::Result {
+            self.0.text_fragment_computed(s).map_err(|_| fmt::Error)?;
+
+            Ok(())
+        }
+    }
+
+    stream.tagged_begin(Some(&tags::NUMBER), None, None)?;
+    stream.text_begin(None)?;
+
+    write!(Writer(&mut stream), "{}", text).map_err(|_| crate::Error::new())?;
+
+    stream.text_end()?;
+    stream.tagged_end(Some(&tags::NUMBER), None, None)
+}
 
 #[cfg(test)]
 mod tests {

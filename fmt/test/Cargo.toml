@@ -16,3 +16,6 @@ features = ["std"]
 
 [dependencies.sval_derive]
 path = "../../derive"
+
+[dependencies.sval_buffer]
+path = "../../buffer"

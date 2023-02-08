@@ -26,6 +26,10 @@ version = "2.0.0"
 path = "../buffer"
 default-features = false
 
+[dependencies.sval_fmt]
+version = "2.0.0"
+path = "../fmt"
+
 [dependencies.serde]
 version = "1"
 default-features = false
