@@ -414,9 +414,9 @@ impl<'sval> sval::Stream<'sval> for Stream<'sval> {
         tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
-        ) -> sval::Result {
+    ) -> sval::Result {
         self.push(Token::TupleEnd(
-                tag.cloned(),
+            tag.cloned(),
             label.map(|label| label.to_owned()),
             index.cloned(),
         ));
@@ -451,14 +451,95 @@ mod tests {
     }
 
     #[test]
+    fn stream_option() {
+        assert_tokens(
+            &Some(1),
+            &[
+                Token::TaggedBegin(
+                    Some(sval::tags::RUST_OPTION_SOME),
+                    Some(sval::Label::new("Some")),
+                    Some(sval::Index::new(1)),
+                ),
+                Token::I32(1),
+                Token::TaggedEnd(
+                    Some(sval::tags::RUST_OPTION_SOME),
+                    Some(sval::Label::new("Some")),
+                    Some(sval::Index::new(1)),
+                ),
+            ],
+        );
+
+        assert_tokens(
+            &None::<i32>,
+            &[Token::Tag(
+                Some(sval::tags::RUST_OPTION_NONE),
+                Some(sval::Label::new("None")),
+                Some(sval::Index::new(0)),
+            )],
+        );
+    }
+
+    #[test]
     fn stream_map_empty() {
-        assert_tokens(&BTreeMap::<u8, u8>::new(), &[Token::MapBegin(Some(0)), Token::MapEnd]);
-        assert_tokens(&HashMap::<u8, u8>::new(), &[Token::MapBegin(Some(0)), Token::MapEnd]);
+        assert_tokens(
+            &BTreeMap::<u8, u8>::new(),
+            &[Token::MapBegin(Some(0)), Token::MapEnd],
+        );
+        assert_tokens(
+            &HashMap::<u8, u8>::new(),
+            &[Token::MapBegin(Some(0)), Token::MapEnd],
+        );
+    }
+
+    #[test]
+    fn stream_map() {
+        let map = {
+            let mut map = BTreeMap::new();
+
+            map.insert(1, 2);
+
+            map
+        };
+        assert_tokens(
+            &map,
+            &[
+                Token::MapBegin(Some(1)),
+                Token::MapKeyBegin,
+                Token::I32(1),
+                Token::MapKeyEnd,
+                Token::MapValueBegin,
+                Token::I32(2),
+                Token::MapValueEnd,
+                Token::MapEnd,
+            ],
+        );
+
+        let map = {
+            let mut map = HashMap::new();
+
+            map.insert(1, 2);
+
+            map
+        };
+        assert_tokens(
+            &map,
+            &[
+                Token::MapBegin(Some(1)),
+                Token::MapKeyBegin,
+                Token::I32(1),
+                Token::MapKeyEnd,
+                Token::MapValueBegin,
+                Token::I32(2),
+                Token::MapValueEnd,
+                Token::MapEnd,
+            ],
+        );
     }
 
     #[test]
     fn stream_seq_empty() {
         assert_tokens(&[] as &[u8], &[Token::SeqBegin(Some(0)), Token::SeqEnd]);
+
         assert_tokens(
             &[] as &[u8; 0],
             &[
@@ -468,9 +549,48 @@ mod tests {
                 Token::TaggedEnd(Some(sval::tags::CONSTANT_SIZE), None, None),
             ],
         );
+
         assert_tokens(
             &Vec::<u8>::new(),
             &[Token::SeqBegin(Some(0)), Token::SeqEnd],
+        );
+    }
+
+    #[test]
+    fn stream_seq() {
+        assert_tokens(
+            &[1] as &[i32],
+            &[
+                Token::SeqBegin(Some(1)),
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
+            ],
+        );
+
+        assert_tokens(
+            &[1],
+            &[
+                Token::TaggedBegin(Some(sval::tags::CONSTANT_SIZE), None, None),
+                Token::SeqBegin(Some(1)),
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
+                Token::TaggedEnd(Some(sval::tags::CONSTANT_SIZE), None, None),
+            ],
+        );
+
+        assert_tokens(
+            &vec![1],
+            &[
+                Token::SeqBegin(Some(1)),
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
+            ],
         );
     }
 }
