@@ -414,12 +414,63 @@ impl<'sval> sval::Stream<'sval> for Stream<'sval> {
         tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
-    ) -> sval::Result {
+        ) -> sval::Result {
         self.push(Token::TupleEnd(
-            tag.cloned(),
+                tag.cloned(),
             label.map(|label| label.to_owned()),
             index.cloned(),
         ));
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::collections::{BTreeMap, HashMap};
+
+    #[test]
+    fn stream_primitive() {
+        assert_tokens(&1u8, &[Token::U8(1)]);
+        assert_tokens(&2u16, &[Token::U16(2)]);
+        assert_tokens(&3u32, &[Token::U32(3)]);
+        assert_tokens(&4u64, &[Token::U64(4)]);
+        assert_tokens(&5u128, &[Token::U128(5)]);
+
+        assert_tokens(&-1i8, &[Token::I8(-1)]);
+        assert_tokens(&-2i16, &[Token::I16(-2)]);
+        assert_tokens(&-3i32, &[Token::I32(-3)]);
+        assert_tokens(&-4i64, &[Token::I64(-4)]);
+        assert_tokens(&-5i128, &[Token::I128(-5)]);
+
+        assert_tokens(&3.14f32, &[Token::F32(3.14)]);
+        assert_tokens(&3.14159f64, &[Token::F64(3.14159)]);
+
+        assert_tokens(&true, &[Token::Bool(true)]);
+    }
+
+    #[test]
+    fn stream_map_empty() {
+        assert_tokens(&BTreeMap::<u8, u8>::new(), &[Token::MapBegin(Some(0)), Token::MapEnd]);
+        assert_tokens(&HashMap::<u8, u8>::new(), &[Token::MapBegin(Some(0)), Token::MapEnd]);
+    }
+
+    #[test]
+    fn stream_seq_empty() {
+        assert_tokens(&[] as &[u8], &[Token::SeqBegin(Some(0)), Token::SeqEnd]);
+        assert_tokens(
+            &[] as &[u8; 0],
+            &[
+                Token::TaggedBegin(Some(sval::tags::CONSTANT_SIZE), None, None),
+                Token::SeqBegin(Some(0)),
+                Token::SeqEnd,
+                Token::TaggedEnd(Some(sval::tags::CONSTANT_SIZE), None, None),
+            ],
+        );
+        assert_tokens(
+            &Vec::<u8>::new(),
+            &[Token::SeqBegin(Some(0)), Token::SeqEnd],
+        );
     }
 }
