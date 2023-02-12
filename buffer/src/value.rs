@@ -1241,7 +1241,7 @@ mod alloc_support {
                     }],
                 ),
                 (
-                    ValueBuf::collect(sval::Binary::new(b"abc")).unwrap(),
+                    ValueBuf::collect(sval::BinarySlice::new(b"abc")).unwrap(),
                     vec![ValuePart {
                         kind: ValueKind::Binary(BinaryBuf::from(b"abc")),
                     }],

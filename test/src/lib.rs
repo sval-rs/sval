@@ -19,84 +19,219 @@ A token representing a specific call to an [`sval::Stream`] method.
 #[derive(Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Token<'a> {
+    /**
+    [`sval::Stream::u8`].
+    */
     U8(u8),
+    /**
+    [`sval::Stream::u16`].
+    */
     U16(u16),
+    /**
+    [`sval::Stream::u32`].
+    */
     U32(u32),
+    /**
+    [`sval::Stream::u64`].
+    */
     U64(u64),
+    /**
+    [`sval::Stream::u128`].
+    */
     U128(u128),
+    /**
+    [`sval::Stream::i8`].
+    */
     I8(i8),
+    /**
+    [`sval::Stream::i16`].
+    */
     I16(i16),
+    /**
+    [`sval::Stream::i32`].
+    */
     I32(i32),
+    /**
+    [`sval::Stream::i64`].
+    */
     I64(i64),
+    /**
+    [`sval::Stream::i128`].
+    */
     I128(i128),
+    /**
+    [`sval::Stream::f32`].
+    */
     F32(f32),
+    /**
+    [`sval::Stream::f64`].
+    */
     F64(f64),
+    /**
+    [`sval::Stream::bool`].
+    */
     Bool(bool),
+    /**
+    [`sval::Stream::null`].
+    */
     Null,
+    /**
+    [`sval::Stream::tag`].
+    */
     Tag(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
     ),
+    /**
+    [`sval::Stream::text_begin`].
+    */
     TextBegin(Option<usize>),
+    /**
+    [`sval::Stream::text_fragment`].
+    */
     TextFragment(&'a str),
+    /**
+    [`sval::Stream::text_fragment_computed`].
+    */
     TextFragmentComputed(String),
+    /**
+    [`sval::Stream::text_end`].
+    */
     TextEnd,
+    /**
+    [`sval::Stream::binary_begin`].
+    */
     BinaryBegin(Option<usize>),
+    /**
+    [`sval::Stream::binary_fragment`].
+    */
     BinaryFragment(&'a [u8]),
+    /**
+    [`sval::Stream::binary_fragment_computed`].
+    */
     BinaryFragmentComputed(Vec<u8>),
+    /**
+    [`sval::Stream::binary_end`].
+    */
     BinaryEnd,
+    /**
+    [`sval::Stream::map_begin`].
+    */
     MapBegin(Option<usize>),
+    /**
+    [`sval::Stream::map_key_begin`].
+    */
     MapKeyBegin,
+    /**
+    [`sval::Stream::map_key_end`].
+    */
     MapKeyEnd,
+    /**
+    [`sval::Stream::map_value_begin`].
+    */
     MapValueBegin,
+    /**
+    [`sval::Stream::map_value_end`].
+    */
     MapValueEnd,
+    /**
+    [`sval::Stream::map_end`].
+    */
     MapEnd,
+    /**
+    [`sval::Stream::seq_begin`].
+    */
     SeqBegin(Option<usize>),
+    /**
+    [`sval::Stream::seq_value_begin`].
+    */
     SeqValueBegin,
+    /**
+    [`sval::Stream::seq_value_end`].
+    */
     SeqValueEnd,
+    /**
+    [`sval::Stream::seq_end`].
+    */
     SeqEnd,
+    /**
+    [`sval::Stream::enum_begin`].
+    */
     EnumBegin(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
     ),
+    /**
+    [`sval::Stream::enum_end`].
+    */
     EnumEnd(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
     ),
+    /**
+    [`sval::Stream::tagged_begin`].
+    */
     TaggedBegin(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
     ),
+    /**
+    [`sval::Stream::tagged_end`].
+    */
     TaggedEnd(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
     ),
+    /**
+    [`sval::Stream::record_begin`].
+    */
     RecordBegin(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
         Option<usize>,
     ),
+    /**
+    [`sval::Stream::record_value_begin`].
+    */
     RecordValueBegin(Option<sval::Tag>, sval::Label<'static>),
+    /**
+    [`sval::Stream::record_value_end`].
+    */
     RecordValueEnd(Option<sval::Tag>, sval::Label<'static>),
+    /**
+    [`sval::Stream::record_end`],
+    */
     RecordEnd(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
     ),
+    /**
+    [`sval::Stream::tuple_begin`].
+    */
     TupleBegin(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
         Option<sval::Index>,
         Option<usize>,
     ),
+    /**
+    [`sval::Stream::tuple_value_begin`].
+    */
     TupleValueBegin(Option<sval::Tag>, sval::Index),
+    /**
+    [`sval::Stream::tuple_value_end`].
+    */
     TupleValueEnd(Option<sval::Tag>, sval::Index),
+    /**
+    [`sval::Stream::tuple_end`].
+    */
     TupleEnd(
         Option<sval::Tag>,
         Option<sval::Label<'static>>,
@@ -476,6 +611,34 @@ mod tests {
                 Some(sval::Label::new("None")),
                 Some(sval::Index::new(0)),
             )],
+        );
+    }
+
+    #[test]
+    fn stream_unit() {
+        assert_tokens(&(), &[Token::Tag(Some(sval::tags::RUST_UNIT), None, None)]);
+    }
+
+    #[test]
+    fn stream_binary() {
+        assert_tokens(
+            sval::BinarySlice::new(&[1, 2, 3]),
+            &[
+                Token::BinaryBegin(Some(3)),
+                Token::BinaryFragment(&[1, 2, 3]),
+                Token::BinaryEnd,
+            ],
+        );
+
+        assert_tokens(
+            sval::BinaryArray::new(&[1, 2, 3]),
+            &[
+                Token::TaggedBegin(Some(sval::tags::CONSTANT_SIZE), None, None),
+                Token::BinaryBegin(Some(3)),
+                Token::BinaryFragment(&[1, 2, 3]),
+                Token::BinaryEnd,
+                Token::TaggedEnd(Some(sval::tags::CONSTANT_SIZE), None, None),
+            ],
         );
     }
 

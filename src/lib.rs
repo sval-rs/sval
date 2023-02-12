@@ -126,9 +126,9 @@ pub fn stream<'sval, S: Stream<'sval> + ?Sized, V: Value + ?Sized>(
 /**
 Stream a value through a stream with an arbitrarily short lifetime.
 */
-pub fn stream_computed<'sval, S: Stream<'sval> + ?Sized, V: Value + ?Sized>(
+pub fn stream_computed<'sval, S: Stream<'sval> + ?Sized, V: Value>(
     stream: &mut S,
-    value: &V,
+    value: V,
 ) -> Result {
-    stream.value_computed(value)
+    stream.value_computed(&value)
 }

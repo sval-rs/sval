@@ -5,9 +5,9 @@ use serde::ser::Error as _;
 /**
 Stream a [`serde::Serialize`] into an [`sval::Stream`].
 */
-pub fn stream<'sval, S: sval::Stream<'sval> + ?Sized, V: serde::Serialize + ?Sized>(
+pub fn stream<'sval, S: sval::Stream<'sval> + ?Sized, V: serde::Serialize>(
     stream: &mut S,
-    value: &'_ V,
+    value: V,
 ) -> sval::Result {
     stream.value_computed(&ToValue(value))
 }
@@ -188,7 +188,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
     }
 
     fn serialize_bytes(mut self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.stream_value(sval::Binary::new(v))
+        self.stream_value(sval::BinarySlice::new(v))
     }
 
     fn serialize_none(mut self) -> Result<Self::Ok, Self::Error> {
