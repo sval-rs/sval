@@ -9,9 +9,10 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
     let tag = attr::tag(&input.attrs);
 
     match &input.data {
-        Data::Struct(DataStruct { ref fields, .. }) if fields.len() == 0 => {
-            derive_unit_struct(tag.as_ref(), &input.ident, &input.generics)
-        }
+        Data::Struct(DataStruct {
+            fields: Fields::Unit,
+            ..
+        }) => derive_unit_struct(tag.as_ref(), &input.ident, &input.generics),
         Data::Struct(DataStruct {
             fields: Fields::Named(ref fields),
             ..
@@ -69,7 +70,7 @@ fn derive_unit_struct<'a>(tag: Option<&Path>, ident: &Ident, generics: &Generics
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    let match_arm = stream_tag(quote!(#ident), tag, &ident, None);
+    let match_arm = stream_tag(quote!(_), tag, &ident, None);
 
     TokenStream::from(quote! {
         const _: () = {

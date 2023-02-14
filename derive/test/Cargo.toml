@@ -1,0 +1,17 @@
+[package]
+name = "sval_derive_test"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.sval_derive]
+path = "../../derive"
+
+[dependencies.sval]
+path = "../../"
+
+[dependencies.sval_test]
+path = "../../test"

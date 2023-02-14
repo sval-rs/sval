@@ -23,7 +23,13 @@ struct MapStruct {
 }
 
 #[derive(Value, Serialize)]
+struct EmptyMapStruct {}
+
+#[derive(Value, Serialize)]
 struct SeqStruct(i32, bool, &'static str);
+
+#[derive(Value, Serialize)]
+struct EmptySeqStruct();
 
 #[derive(Value, Serialize)]
 struct Tagged(i32);
@@ -275,6 +281,37 @@ fn map_struct_to_serialize() {
 }
 
 #[test]
+fn empty_map_struct_to_serialize() {
+    test_case(
+        EmptyMapStruct {},
+        {
+            use serde_test::Token::*;
+
+            &[
+                Struct {
+                    name: "EmptyMapStruct",
+                    len: 0,
+                },
+                StructEnd,
+            ]
+        },
+        {
+            use sval_test::Token::*;
+
+            &[
+                RecordBegin(
+                    None,
+                    Some(sval::Label::new("EmptyMapStruct")),
+                    None,
+                    Some(0),
+                ),
+                RecordEnd(None, Some(sval::Label::new("EmptyMapStruct")), None),
+            ]
+        },
+    );
+}
+
+#[test]
 fn seq_struct_named_to_serialize() {
     test_case(
         SeqStruct(1, true, "a"),
@@ -309,6 +346,37 @@ fn seq_struct_named_to_serialize() {
                 TextEnd,
                 TupleValueEnd(None, sval::Index::new(2)),
                 TupleEnd(None, Some(sval::Label::new("SeqStruct")), None),
+            ]
+        },
+    );
+}
+
+#[test]
+fn empty_seq_struct_named_to_serialize() {
+    test_case(
+        EmptySeqStruct(),
+        {
+            use serde_test::Token::*;
+
+            &[
+                TupleStruct {
+                    name: "EmptySeqStruct",
+                    len: 0,
+                },
+                TupleStructEnd,
+            ]
+        },
+        {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(
+                    None,
+                    Some(sval::Label::new("EmptySeqStruct")),
+                    None,
+                    Some(0),
+                ),
+                TupleEnd(None, Some(sval::Label::new("EmptySeqStruct")), None),
             ]
         },
     );
