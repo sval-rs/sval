@@ -6,7 +6,7 @@ use syn::{
 };
 
 pub(crate) fn derive(input: DeriveInput) -> TokenStream {
-    let tag = attr::container_tag(&input);
+    let tag = attr::tag(&input.attrs);
 
     match &input.data {
         Data::Struct(DataStruct { ref fields, .. }) if fields.len() == 0 => {
@@ -159,32 +159,34 @@ fn derive_enum<'a>(
     let mut variant_match_arms = Vec::new();
 
     for variant in variants {
+        let tag = attr::tag(&variant.attrs);
+
         let variant_ident = &variant.ident;
 
         variant_match_arms.push(match variant.fields {
             Fields::Named(ref fields) => stream_record(
                 quote!(#ident :: #variant_ident),
-                tag,
+                tag.as_ref(),
                 &variant.ident,
                 Some(variant_match_arms.len()),
                 fields,
             ),
             Fields::Unnamed(ref fields) if fields.unnamed.len() == 1 => stream_newtype(
                 quote!(#ident :: #variant_ident),
-                tag,
+                tag.as_ref(),
                 &variant.ident,
                 Some(variant_match_arms.len()),
             ),
             Fields::Unnamed(ref fields) => stream_tuple(
                 quote!(#ident :: #variant_ident),
-                tag,
+                tag.as_ref(),
                 &variant.ident,
                 Some(variant_match_arms.len()),
                 fields,
             ),
             Fields::Unit => stream_tag(
                 quote!(#ident :: #variant_ident),
-                tag,
+                tag.as_ref(),
                 &variant.ident,
                 Some(variant_match_arms.len()),
             ),
@@ -229,23 +231,13 @@ fn stream_record(
 
         let ident = &field.ident;
 
-        let field_tag = quote_tag(attr::field_tag(field).as_ref());
+        let field_tag = quote_tag(attr::tag(&field.attrs).as_ref());
 
-        stream_field.push(if let Some(tag) = attr::field_data_tag(field) {
-            quote!({
-                stream.record_value_begin(#field_tag, #label)?;
-                stream.tagged_begin(Some(&#tag), None, None)?;
-                stream.value(#ident)?;
-                stream.tagged_end(Some(&#tag), None, None)?;
-                stream.record_value_end(#field_tag, #label)?;
-            })
-        } else {
-            quote!({
+        stream_field.push(quote!({
                 stream.record_value_begin(#field_tag, #label)?;
                 stream.value(#ident)?;
                 stream.record_value_end(#field_tag, #label)?;
-            })
-        });
+        }));
 
         field_ident.push(ident.clone());
         field_count += 1;
@@ -295,23 +287,13 @@ fn stream_tuple(
 
         let ident = Ident::new(&format!("field{}", field_count), field.span());
 
-        let field_tag = quote_tag(attr::field_tag(field).as_ref());
+        let field_tag = quote_tag(attr::tag(&field.attrs).as_ref());
 
-        stream_field.push(if let Some(tag) = attr::field_data_tag(field) {
-            quote!({
-                stream.tuple_value_begin(#field_tag, &sval::Index::new(#index))?;
-                stream.tagged_begin(Some(&#tag), None, None)?;
-                stream.value(#ident)?;
-                stream.tagged_end(Some(&#tag), None, None)?;
-                stream.tuple_value_end(#field_tag, &sval::Index::new(#index))?;
-            })
-        } else {
-            quote!({
+        stream_field.push(quote!({
                 stream.tuple_value_begin(#field_tag, &sval::Index::new(#index))?;
                 stream.value(#ident)?;
                 stream.tuple_value_end(#field_tag, &sval::Index::new(#index))?;
-            })
-        });
+        }));
 
         field_ident.push(ident);
         field_count += 1;

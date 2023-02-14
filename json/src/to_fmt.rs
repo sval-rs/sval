@@ -338,6 +338,10 @@ where
         match tag {
             Some(&tags::JSON_NATIVE) => {
                 self.is_json_native = true;
+
+                // If the value is guaranteed to be valid JSON then it doesn't need
+                // any text handler
+                self.text_handler = None;
             }
             Some(&sval::tags::NUMBER) => {
                 self.is_text_quoted = false;

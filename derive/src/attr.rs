@@ -1,4 +1,4 @@
-use syn::{Attribute, DeriveInput, Field, Lit, Meta, MetaList, NestedMeta};
+use syn::{Attribute, Field, Lit, Meta, MetaList, NestedMeta};
 
 pub(crate) fn field_name(field: &Field) -> String {
     let mut rename = None;
@@ -19,32 +19,8 @@ pub(crate) fn field_name(field: &Field) -> String {
     rename.unwrap_or_else(|| field.ident.as_ref().unwrap().to_string())
 }
 
-pub(crate) fn container_tag(container: &DeriveInput) -> Option<syn::Path> {
-    for list in container.attrs.iter().filter_map(sval_attr) {
-        for meta in list.nested {
-            if let Some(path) = name_value("tag", &meta) {
-                return Some(syn::parse_str(&path).unwrap());
-            }
-        }
-    }
-
-    None
-}
-
-pub(crate) fn field_tag(field: &Field) -> Option<syn::Path> {
-    for list in field.attrs.iter().filter_map(sval_attr) {
-        for meta in list.nested {
-            if let Some(path) = name_value("field_tag", &meta) {
-                return Some(syn::parse_str(&path).unwrap());
-            }
-        }
-    }
-
-    None
-}
-
-pub(crate) fn field_data_tag(field: &Field) -> Option<syn::Path> {
-    for list in field.attrs.iter().filter_map(sval_attr) {
+pub(crate) fn tag(attrs: &[Attribute]) -> Option<syn::Path> {
+    for list in attrs.iter().filter_map(sval_attr) {
         for meta in list.nested {
             if let Some(path) = name_value("tag", &meta) {
                 return Some(syn::parse_str(&path).unwrap());

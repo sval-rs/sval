@@ -47,7 +47,7 @@ enum Enum {
 
 #[derive(Value)]
 #[sval(tag = "sval::tags::NUMBER")]
-struct Number(&'static str);
+struct Number<T>(T);
 
 #[derive(Value)]
 #[sval(tag = "sval_json::tags::JSON_NATIVE")]
@@ -85,6 +85,7 @@ fn stream_number() {
     ] {
         assert_stream(expected, Number(num));
         assert_stream(num, JsonNative(Number(num)));
+        assert_stream(num, Number(JsonNative(num)));
     }
 }
 
