@@ -57,6 +57,28 @@ mod derive_record {
     }
 
     #[test]
+    fn labelled() {
+        #[derive(Value)]
+        #[sval(label = "container")]
+        struct Record {
+            #[sval(label = "field")]
+            a: i32,
+        }
+
+        assert_tokens(&Record { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordBegin(None, Some(sval::Label::new("container")), None, Some(1)),
+                RecordValueBegin(None, sval::Label::new("field")),
+                I32(42),
+                RecordValueEnd(None, sval::Label::new("field")),
+                RecordEnd(None, Some(sval::Label::new("container")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn empty() {
         #[derive(Value)]
         struct Record {}
@@ -127,6 +149,28 @@ mod derive_tuple {
     }
 
     #[test]
+    fn labelled() {
+        #[derive(Value)]
+        #[sval(label = "container")]
+        struct Tuple(i32, i32);
+
+        assert_tokens(&Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(sval::Label::new("container")), None, Some(2)),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleEnd(None, Some(sval::Label::new("container")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn empty() {
         #[derive(Value)]
         struct Tuple();
@@ -176,6 +220,23 @@ mod derive_newtype {
                 TaggedBegin(Some(CONTAINER), Some(sval::Label::new("Tagged")), None),
                 I32(42),
                 TaggedEnd(Some(CONTAINER), Some(sval::Label::new("Tagged")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn labelled() {
+        #[derive(Value)]
+        #[sval(label = "container")]
+        struct Tagged(i32);
+
+        assert_tokens(&Tagged(42), {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("container")), None),
+                I32(42),
+                TaggedEnd(None, Some(sval::Label::new("container")), None),
             ]
         })
     }
@@ -274,6 +335,108 @@ mod derive_enum {
                     Some(sval::Index::new(3)),
                 ),
                 EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+    }
+
+    #[test]
+    fn labelled() {
+        #[derive(Value)]
+        #[sval(label = "container")]
+        enum Enum {
+            #[sval(label = "variant0")]
+            Tag,
+            #[sval(label = "variant1")]
+            Tagged(i32),
+            #[sval(label = "variant2")]
+            Record {
+                #[sval(label = "field")]
+                a: i32,
+            },
+            #[sval(label = "variant3")]
+            Tuple(i32, i32),
+        }
+
+        assert_tokens(&Enum::Tag, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("container")), None),
+                Tag(
+                    None,
+                    Some(sval::Label::new("variant0")),
+                    Some(sval::Index::new(0)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("container")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::Tagged(42), {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("container")), None),
+                TaggedBegin(
+                    None,
+                    Some(sval::Label::new("variant1")),
+                    Some(sval::Index::new(1)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    None,
+                    Some(sval::Label::new("variant1")),
+                    Some(sval::Index::new(1)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("container")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::Record { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("container")), None),
+                RecordBegin(
+                    None,
+                    Some(sval::Label::new("variant2")),
+                    Some(sval::Index::new(2)),
+                    Some(1),
+                ),
+                RecordValueBegin(None, sval::Label::new("field")),
+                I32(42),
+                RecordValueEnd(None, sval::Label::new("field")),
+                RecordEnd(
+                    None,
+                    Some(sval::Label::new("variant2")),
+                    Some(sval::Index::new(2)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("container")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("container")), None),
+                TupleBegin(
+                    None,
+                    Some(sval::Label::new("variant3")),
+                    Some(sval::Index::new(3)),
+                    Some(2),
+                ),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleEnd(
+                    None,
+                    Some(sval::Label::new("variant3")),
+                    Some(sval::Index::new(3)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("container")), None),
             ]
         });
     }

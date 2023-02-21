@@ -1,11 +1,11 @@
 use syn::{Attribute, Lit, Meta, MetaList, MetaNameValue, NestedMeta};
 
-pub(crate) struct Rename;
+pub(crate) struct Label;
 pub(crate) struct Tag;
 
 const ATTRIBUTES: &[&dyn RawAttribute] = &[
     {
-        impl SvalAttribute for Rename {
+        impl SvalAttribute for Label {
             type Result = String;
 
             fn parse(&self, attr: &MetaNameValue) -> Self::Result {
@@ -17,13 +17,13 @@ const ATTRIBUTES: &[&dyn RawAttribute] = &[
             }
         }
 
-        impl RawAttribute for Rename {
+        impl RawAttribute for Label {
             fn key(&self) -> &str {
-                "rename"
+                "label"
             }
         }
 
-        &Rename
+        &Label
     },
     {
         impl SvalAttribute for Tag {
