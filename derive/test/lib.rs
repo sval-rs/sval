@@ -74,6 +74,29 @@ mod derive_record {
             ]
         })
     }
+
+    #[test]
+    fn skip() {
+        #[derive(Value)]
+        struct Record {
+            #[sval(skip)]
+            #[allow(dead_code)]
+            skipped: i32,
+            a: i32,
+        }
+
+        assert_tokens(&Record { skipped: 1, a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordValueBegin(None, sval::Label::new("a")),
+                I32(42),
+                RecordValueEnd(None, sval::Label::new("a")),
+                RecordEnd(None, Some(sval::Label::new("Record")), None),
+            ]
+        })
+    }
 }
 
 mod derive_tuple {
@@ -133,6 +156,24 @@ mod derive_tuple {
                     Some(sval::Label::new("tuple")),
                     Some(sval::Index::new(0)),
                 ),
+            ]
+        })
+    }
+
+    #[test]
+    fn skip() {
+        #[derive(Value)]
+        struct Tuple(#[sval(skip)] i32, i32);
+
+        assert_tokens(&Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(1)),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
             ]
         })
     }
@@ -439,6 +480,66 @@ mod derive_enum {
     }
 
     #[test]
+    fn skip() {
+        #[derive(Value)]
+        enum Enum {
+            Record {
+                #[sval(skip)]
+                #[allow(dead_code)]
+                skipped: i32,
+                a: i32,
+            },
+            Tuple(#[sval(skip)] i32, i32),
+        }
+
+        assert_tokens(&Enum::Record { skipped: 1, a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                RecordBegin(
+                    None,
+                    Some(sval::Label::new("Record")),
+                    Some(sval::Index::new(0)),
+                    Some(1),
+                ),
+                RecordValueBegin(None, sval::Label::new("a")),
+                I32(42),
+                RecordValueEnd(None, sval::Label::new("a")),
+                RecordEnd(
+                    None,
+                    Some(sval::Label::new("Record")),
+                    Some(sval::Index::new(0)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                TupleBegin(
+                    None,
+                    Some(sval::Label::new("Tuple")),
+                    Some(sval::Index::new(1)),
+                    Some(1),
+                ),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleEnd(
+                    None,
+                    Some(sval::Label::new("Tuple")),
+                    Some(sval::Index::new(1)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+    }
+
+    #[test]
     fn empty() {
         #![allow(dead_code)]
 
@@ -446,4 +547,10 @@ mod derive_enum {
         #[derive(Value)]
         enum Enum {}
     }
+}
+
+#[test]
+fn compile_fail() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("compile_fail/*.rs");
 }

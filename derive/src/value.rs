@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use crate::{attr, bound};
 use proc_macro::TokenStream;
 use syn::{
-    spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed,
-    Generics, Ident, Path, Variant,
+    spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Field, Fields, FieldsNamed,
+    FieldsUnnamed, Generics, Ident, Path, Variant,
 };
 
 pub(crate) fn derive(input: DeriveInput) -> TokenStream {
@@ -43,6 +43,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
             index,
             &input.ident,
             &input.generics,
+            &fields.unnamed[0],
         ),
         Data::Struct(DataStruct {
             fields: Fields::Unnamed(ref fields),
@@ -143,11 +144,14 @@ fn derive_newtype<'a>(
     index: Option<usize>,
     ident: &Ident,
     generics: &Generics,
+    field: &Field,
 ) -> TokenStream {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
+
+    attr::ensure_newtype_field_empty(&field.attrs);
 
     let label = label_or_ident(label, ident);
 
@@ -310,16 +314,21 @@ fn stream_record(
     let (tag, label, index) = quote_tag_label_index(tag, label, index);
 
     let mut field_count = 0usize;
-    let mut field_ident = Vec::new();
+    let mut field_binding = Vec::new();
     let mut stream_field = Vec::new();
 
     for field in &fields.named {
+        let ident = &field.ident;
+
+        if attr::named_field(attr::Skip, &field.attrs).unwrap_or(false) {
+            field_binding.push(quote!(#ident: _));
+            continue;
+        }
+
         let tag = quote_tag(attr::named_field(attr::Tag, &field.attrs).as_ref());
         let label = attr::named_field(attr::Label, &field.attrs)
             .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string());
         let label = quote!(&sval::Label::new(#label));
-
-        let ident = &field.ident;
 
         stream_field.push(quote!({
                 stream.record_value_begin(#tag, #label)?;
@@ -327,11 +336,11 @@ fn stream_record(
                 stream.record_value_end(#tag, #label)?;
         }));
 
-        field_ident.push(ident.clone());
+        field_binding.push(quote!(ref #ident));
         field_count += 1;
     }
 
-    quote!(#path { #(ref #field_ident,)* } => {
+    quote!(#path { #(#field_binding,)* } => {
         stream.record_begin(#tag, #label, #index, Some(#field_count))?;
 
         #(
@@ -366,11 +375,16 @@ fn stream_tuple(
 ) -> proc_macro2::TokenStream {
     let (tag, label, index) = quote_tag_label_index(tag, label, index);
 
-    let mut field_ident = Vec::new();
+    let mut field_binding = Vec::new();
     let mut stream_field = Vec::new();
     let mut field_count = 0usize;
 
     for field in &fields.unnamed {
+        if attr::unnamed_field(attr::Skip, &field.attrs).unwrap_or(false) {
+            field_binding.push(quote!(_));
+            continue;
+        }
+
         let tag = quote_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
         let index = attr::unnamed_field(attr::Index, &field.attrs).unwrap_or(field_count);
 
@@ -382,11 +396,11 @@ fn stream_tuple(
                 stream.tuple_value_end(#tag, &sval::Index::new(#index))?;
         }));
 
-        field_ident.push(ident);
+        field_binding.push(quote!(ref #ident));
         field_count += 1;
     }
 
-    quote!(#path(#(ref #field_ident,)*) => {
+    quote!(#path(#(#field_binding,)*) => {
         stream.tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
         #(

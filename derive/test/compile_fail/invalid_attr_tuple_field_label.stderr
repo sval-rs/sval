@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> compile_fail/invalid_attr_tuple_field_label.rs:4:10
+  |
+4 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: unsupported attribute `label` on unnamed field

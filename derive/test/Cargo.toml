@@ -15,3 +15,6 @@ path = "../../"
 
 [dependencies.sval_test]
 path = "../../test"
+
+[dependencies.trybuild]
+version = "1"
