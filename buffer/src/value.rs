@@ -1255,7 +1255,7 @@ mod alloc_support {
         fn buffer_option() {
             let expected = vec![ValuePart {
                 kind: ValueKind::Tag {
-                    tag: Some(sval::Tag::new("rnone")),
+                    tag: Some(sval::tags::RUST_OPTION_NONE),
                     label: Some(sval::Label::new("None")),
                     index: Some(sval::Index::new(0)),
                 },
@@ -1267,7 +1267,7 @@ mod alloc_support {
                 ValuePart {
                     kind: ValueKind::Tagged {
                         len: 1,
-                        tag: Some(sval::Tag::new("rsome")),
+                        tag: Some(sval::tags::RUST_OPTION_SOME),
                         label: Some(sval::Label::new("Some")),
                         index: Some(sval::Index::new(1)),
                     },
