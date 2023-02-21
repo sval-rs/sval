@@ -8,8 +8,9 @@ use syn::{
 };
 
 pub(crate) fn derive(input: DeriveInput) -> TokenStream {
-    let tag = attr::get(attr::Tag, &input.attrs);
-    let label = attr::get(attr::Label, &input.attrs);
+    let tag = attr::container(attr::Tag, &input.attrs);
+    let label = attr::container(attr::Label, &input.attrs);
+    let index = attr::container(attr::Index, &input.attrs);
 
     match &input.data {
         Data::Struct(DataStruct {
@@ -18,6 +19,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
         }) => derive_unit_struct(
             tag.as_ref(),
             label.as_deref(),
+            index,
             &input.ident,
             &input.generics,
         ),
@@ -27,6 +29,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
         }) => derive_struct(
             tag.as_ref(),
             label.as_deref(),
+            index,
             &input.ident,
             &input.generics,
             fields,
@@ -37,6 +40,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
         }) if fields.unnamed.len() == 1 => derive_newtype(
             tag.as_ref(),
             label.as_deref(),
+            index,
             &input.ident,
             &input.generics,
         ),
@@ -46,6 +50,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
         }) => derive_tuple(
             tag.as_ref(),
             label.as_deref(),
+            index,
             &input.ident,
             &input.generics,
             fields,
@@ -56,6 +61,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
         Data::Enum(DataEnum { variants, .. }) => derive_enum(
             tag.as_ref(),
             label.as_deref(),
+            index,
             &input.ident,
             &input.generics,
             variants.iter(),
@@ -67,6 +73,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
 fn derive_struct<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
+    index: Option<usize>,
     ident: &Ident,
     generics: &Generics,
     fields: &FieldsNamed,
@@ -76,11 +83,9 @@ fn derive_struct<'a>(
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    let label = label
-        .map(Cow::Borrowed)
-        .unwrap_or_else(|| Cow::Owned(ident.to_string()));
+    let label = label_or_ident(label, ident);
 
-    let match_arm = stream_record(quote!(#ident), tag, &label, None, fields);
+    let match_arm = stream_record(quote!(#ident), tag, &label, index, fields);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -102,6 +107,7 @@ fn derive_struct<'a>(
 fn derive_unit_struct<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
+    index: Option<usize>,
     ident: &Ident,
     generics: &Generics,
 ) -> TokenStream {
@@ -110,11 +116,9 @@ fn derive_unit_struct<'a>(
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    let label = label
-        .map(Cow::Borrowed)
-        .unwrap_or_else(|| Cow::Owned(ident.to_string()));
+    let label = label_or_ident(label, ident);
 
-    let match_arm = stream_tag(quote!(_), tag, &label, None);
+    let match_arm = stream_tag(quote!(_), tag, &label, index);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -136,6 +140,7 @@ fn derive_unit_struct<'a>(
 fn derive_newtype<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
+    index: Option<usize>,
     ident: &Ident,
     generics: &Generics,
 ) -> TokenStream {
@@ -144,11 +149,9 @@ fn derive_newtype<'a>(
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    let label = label
-        .map(Cow::Borrowed)
-        .unwrap_or_else(|| Cow::Owned(ident.to_string()));
+    let label = label_or_ident(label, ident);
 
-    let match_arm = stream_newtype(quote!(#ident), tag, &label, None);
+    let match_arm = stream_newtype(quote!(#ident), tag, &label, index);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -170,6 +173,7 @@ fn derive_newtype<'a>(
 fn derive_tuple<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
+    index: Option<usize>,
     ident: &Ident,
     generics: &Generics,
     fields: &FieldsUnnamed,
@@ -179,11 +183,9 @@ fn derive_tuple<'a>(
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    let label = label
-        .map(Cow::Borrowed)
-        .unwrap_or_else(|| Cow::Owned(ident.to_string()));
+    let label = label_or_ident(label, ident);
 
-    let match_arm = stream_tuple(quote!(#ident), tag, &label, None, fields);
+    let match_arm = stream_tuple(quote!(#ident), tag, &label, index, fields);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -205,27 +207,28 @@ fn derive_tuple<'a>(
 fn derive_enum<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
+    index: Option<usize>,
     ident: &Ident,
     generics: &Generics,
     variants: impl Iterator<Item = &'a Variant> + 'a,
 ) -> TokenStream {
-    let label = label
-        .map(Cow::Borrowed)
-        .unwrap_or_else(|| Cow::Owned(ident.to_string()));
-
-    let (enum_tag, enum_label, enum_index) = quote_tag_label_index(tag, &label, None);
-
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
+    let label = label_or_ident(label, ident);
+
+    let (enum_tag, enum_label, enum_index) = quote_tag_label_index(tag, &label, index);
+
     let mut variant_match_arms = Vec::new();
 
     for variant in variants {
-        let tag = attr::get(attr::Tag, &variant.attrs);
-        let label =
-            attr::get(attr::Label, &variant.attrs).unwrap_or_else(|| variant.ident.to_string());
+        let tag = attr::container(attr::Tag, &variant.attrs);
+        let label = attr::container(attr::Label, &variant.attrs)
+            .unwrap_or_else(|| variant.ident.to_string());
+        let index = attr::container(attr::Index, &variant.attrs)
+            .unwrap_or_else(|| variant_match_arms.len());
 
         let variant_ident = &variant.ident;
 
@@ -234,27 +237,27 @@ fn derive_enum<'a>(
                 quote!(#ident :: #variant_ident),
                 tag.as_ref(),
                 &label,
-                Some(variant_match_arms.len()),
+                Some(index),
                 fields,
             ),
             Fields::Unnamed(ref fields) if fields.unnamed.len() == 1 => stream_newtype(
                 quote!(#ident :: #variant_ident),
                 tag.as_ref(),
                 &label,
-                Some(variant_match_arms.len()),
+                Some(index),
             ),
             Fields::Unnamed(ref fields) => stream_tuple(
                 quote!(#ident :: #variant_ident),
                 tag.as_ref(),
                 &label,
-                Some(variant_match_arms.len()),
+                Some(index),
                 fields,
             ),
             Fields::Unit => stream_tag(
                 quote!(#ident :: #variant_ident),
                 tag.as_ref(),
                 &label,
-                Some(variant_match_arms.len()),
+                Some(index),
             ),
         });
     }
@@ -311,13 +314,12 @@ fn stream_record(
     let mut stream_field = Vec::new();
 
     for field in &fields.named {
-        let label = attr::get(attr::Label, &field.attrs)
+        let tag = quote_tag(attr::named_field(attr::Tag, &field.attrs).as_ref());
+        let label = attr::named_field(attr::Label, &field.attrs)
             .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string());
         let label = quote!(&sval::Label::new(#label));
 
         let ident = &field.ident;
-
-        let tag = quote_tag(attr::get(attr::Tag, &field.attrs).as_ref());
 
         stream_field.push(quote!({
                 stream.record_value_begin(#tag, #label)?;
@@ -369,11 +371,10 @@ fn stream_tuple(
     let mut field_count = 0usize;
 
     for field in &fields.unnamed {
-        let index = field_count;
+        let tag = quote_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
+        let index = attr::unnamed_field(attr::Index, &field.attrs).unwrap_or(field_count);
 
         let ident = Ident::new(&format!("field{}", field_count), field.span());
-
-        let tag = quote_tag(attr::get(attr::Tag, &field.attrs).as_ref());
 
         stream_field.push(quote!({
                 stream.tuple_value_begin(#tag, &sval::Index::new(#index))?;
@@ -435,4 +436,10 @@ fn quote_tag(tag: Option<&Path>) -> proc_macro2::TokenStream {
         Some(tag) => quote!(Some(&#tag)),
         None => quote!(None),
     }
+}
+
+fn label_or_ident<'a>(label: Option<&'a str>, ident: &'_ Ident) -> Cow<'a, str> {
+    label
+        .map(Cow::Borrowed)
+        .unwrap_or_else(|| Cow::Owned(ident.to_string()))
 }

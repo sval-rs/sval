@@ -1,52 +1,64 @@
 use syn::{Attribute, Lit, Meta, MetaList, MetaNameValue, NestedMeta};
 
-pub(crate) struct Label;
 pub(crate) struct Tag;
 
-const ATTRIBUTES: &[&dyn RawAttribute] = &[
-    {
-        impl SvalAttribute for Label {
-            type Result = String;
+impl SvalAttribute for Tag {
+    type Result = syn::Path;
 
-            fn parse(&self, attr: &MetaNameValue) -> Self::Result {
-                if let Lit::Str(ref s) = attr.lit {
-                    s.value()
-                } else {
-                    panic!("unexpected value")
-                }
-            }
+    fn parse(&self, attr: &MetaNameValue) -> Self::Result {
+        if let Lit::Str(ref s) = attr.lit {
+            s.parse().expect("invalid value")
+        } else {
+            panic!("unexpected value")
         }
+    }
+}
 
-        impl RawAttribute for Label {
-            fn key(&self) -> &str {
-                "label"
-            }
+impl RawAttribute for Tag {
+    fn key(&self) -> &str {
+        "tag"
+    }
+}
+
+pub(crate) struct Label;
+
+impl SvalAttribute for Label {
+    type Result = String;
+
+    fn parse(&self, attr: &MetaNameValue) -> Self::Result {
+        if let Lit::Str(ref s) = attr.lit {
+            s.value()
+        } else {
+            panic!("unexpected value")
         }
+    }
+}
 
-        &Label
-    },
-    {
-        impl SvalAttribute for Tag {
-            type Result = syn::Path;
+impl RawAttribute for Label {
+    fn key(&self) -> &str {
+        "label"
+    }
+}
 
-            fn parse(&self, attr: &MetaNameValue) -> Self::Result {
-                if let Lit::Str(ref s) = attr.lit {
-                    s.parse().expect("invalid value")
-                } else {
-                    panic!("unexpected value")
-                }
-            }
+pub(crate) struct Index;
+
+impl SvalAttribute for Index {
+    type Result = usize;
+
+    fn parse(&self, attr: &MetaNameValue) -> Self::Result {
+        if let Lit::Int(ref n) = attr.lit {
+            n.base10_parse().expect("invalid value")
+        } else {
+            panic!("unexpected value")
         }
+    }
+}
 
-        impl RawAttribute for Tag {
-            fn key(&self) -> &str {
-                "tag"
-            }
-        }
-
-        &Tag
-    },
-];
+impl RawAttribute for Index {
+    fn key(&self) -> &str {
+        "index"
+    }
+}
 
 pub(crate) trait RawAttribute {
     fn key(&self) -> &str;
@@ -58,8 +70,27 @@ pub(crate) trait SvalAttribute: RawAttribute {
     fn parse(&self, attr: &MetaNameValue) -> Self::Result;
 }
 
-pub(crate) fn get<T: SvalAttribute>(get: T, attrs: &[Attribute]) -> Option<T::Result> {
-    let get_key = get.key();
+pub(crate) fn container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
+    get(&[&Tag, &Label, &Index], request, attrs)
+}
+
+pub(crate) fn named_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
+    get(&[&Tag, &Label], request, attrs)
+}
+
+pub(crate) fn unnamed_field<T: SvalAttribute>(
+    request: T,
+    attrs: &[Attribute],
+) -> Option<T::Result> {
+    get(&[&Tag, &Index], request, attrs)
+}
+
+fn get<T: SvalAttribute>(
+    allowed: &[&dyn RawAttribute],
+    request: T,
+    attrs: &[Attribute],
+) -> Option<T::Result> {
+    let request_key = request.key();
 
     let mut result = None;
 
@@ -70,7 +101,7 @@ pub(crate) fn get<T: SvalAttribute>(get: T, attrs: &[Attribute]) -> Option<T::Re
 
                 let mut is_valid_attr = false;
 
-                for attr in ATTRIBUTES {
+                for attr in allowed {
                     let attr_key = attr.key();
 
                     if value_key.is_ident(attr_key) {
@@ -82,9 +113,9 @@ pub(crate) fn get<T: SvalAttribute>(get: T, attrs: &[Attribute]) -> Option<T::Re
                     panic!("unrecognized attribute `{}`", quote!(#value_key));
                 }
 
-                if value_key.is_ident(get_key) {
+                if value_key.is_ident(request_key) {
                     if result.is_none() {
-                        result = Some(get.parse(&value));
+                        result = Some(request.parse(&value));
 
                         // We don't short-circuit here to check other attributes are valid
                     } else {
