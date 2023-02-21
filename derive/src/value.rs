@@ -6,7 +6,7 @@ use syn::{
 };
 
 pub(crate) fn derive(input: DeriveInput) -> TokenStream {
-    let tag = attr::tag(&input.attrs);
+    let tag = attr::get(attr::Tag, &input.attrs);
 
     match &input.data {
         Data::Struct(DataStruct {
@@ -27,6 +27,9 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
             fields: Fields::Unnamed(ref fields),
             ..
         }) => derive_tuple(tag.as_ref(), &input.ident, &input.generics, fields),
+        Data::Enum(DataEnum { ref variants, .. }) if variants.len() == 0 => {
+            derive_void(&input.ident, &input.generics)
+        }
         Data::Enum(DataEnum { variants, .. }) => {
             derive_enum(tag.as_ref(), &input.ident, &input.generics, variants.iter())
         }
@@ -160,7 +163,7 @@ fn derive_enum<'a>(
     let mut variant_match_arms = Vec::new();
 
     for variant in variants {
-        let tag = attr::tag(&variant.attrs);
+        let tag = attr::get(attr::Tag, &variant.attrs);
 
         let variant_ident = &variant.ident;
 
@@ -213,6 +216,25 @@ fn derive_enum<'a>(
     })
 }
 
+fn derive_void<'a>(ident: &Ident, generics: &Generics) -> TokenStream {
+    let (impl_generics, ty_generics, _) = generics.split_for_impl();
+
+    let bound = parse_quote!(sval::Value);
+    let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
+
+    TokenStream::from(quote! {
+        const _: () = {
+            extern crate sval;
+
+            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
+                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+                    match *self {}
+                }
+            }
+        };
+    })
+}
+
 fn stream_record(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
@@ -227,17 +249,18 @@ fn stream_record(
     let mut stream_field = Vec::new();
 
     for field in &fields.named {
-        let label = attr::field_name(field);
+        let label = attr::get(attr::Rename, &field.attrs)
+            .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string());
         let label = quote!(&sval::Label::new(#label));
 
         let ident = &field.ident;
 
-        let field_tag = quote_tag(attr::tag(&field.attrs).as_ref());
+        let tag = quote_tag(attr::get(attr::Tag, &field.attrs).as_ref());
 
         stream_field.push(quote!({
-                stream.record_value_begin(#field_tag, #label)?;
+                stream.record_value_begin(#tag, #label)?;
                 stream.value(#ident)?;
-                stream.record_value_end(#field_tag, #label)?;
+                stream.record_value_end(#tag, #label)?;
         }));
 
         field_ident.push(ident.clone());
@@ -288,12 +311,12 @@ fn stream_tuple(
 
         let ident = Ident::new(&format!("field{}", field_count), field.span());
 
-        let field_tag = quote_tag(attr::tag(&field.attrs).as_ref());
+        let tag = quote_tag(attr::get(attr::Tag, &field.attrs).as_ref());
 
         stream_field.push(quote!({
-                stream.tuple_value_begin(#field_tag, &sval::Index::new(#index))?;
+                stream.tuple_value_begin(#tag, &sval::Index::new(#index))?;
                 stream.value(#ident)?;
-                stream.tuple_value_end(#field_tag, &sval::Index::new(#index))?;
+                stream.tuple_value_end(#tag, &sval::Index::new(#index))?;
         }));
 
         field_ident.push(ident);

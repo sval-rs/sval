@@ -180,3 +180,110 @@ mod derive_newtype {
         })
     }
 }
+
+mod derive_enum {
+    use super::*;
+
+    #[test]
+    fn basic() {
+        #[derive(Value)]
+        enum Enum {
+            Tag,
+            Tagged(i32),
+            Record { a: i32 },
+            Tuple(i32, i32),
+        }
+
+        assert_tokens(&Enum::Tag, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    None,
+                    Some(sval::Label::new("Tag")),
+                    Some(sval::Index::new(0)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::Tagged(42), {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                TaggedBegin(
+                    None,
+                    Some(sval::Label::new("Tagged")),
+                    Some(sval::Index::new(1)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    None,
+                    Some(sval::Label::new("Tagged")),
+                    Some(sval::Index::new(1)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::Record { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                RecordBegin(
+                    None,
+                    Some(sval::Label::new("Record")),
+                    Some(sval::Index::new(2)),
+                    Some(1),
+                ),
+                RecordValueBegin(None, sval::Label::new("a")),
+                I32(42),
+                RecordValueEnd(None, sval::Label::new("a")),
+                RecordEnd(
+                    None,
+                    Some(sval::Label::new("Record")),
+                    Some(sval::Index::new(2)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                TupleBegin(
+                    None,
+                    Some(sval::Label::new("Tuple")),
+                    Some(sval::Index::new(3)),
+                    Some(2),
+                ),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleEnd(
+                    None,
+                    Some(sval::Label::new("Tuple")),
+                    Some(sval::Index::new(3)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+    }
+
+    #[test]
+    fn empty() {
+        #![allow(dead_code)]
+
+        // Just ensure `derive` works on empty enums
+        #[derive(Value)]
+        enum Enum {}
+    }
+}

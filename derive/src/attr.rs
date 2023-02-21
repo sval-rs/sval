@@ -1,56 +1,112 @@
-use syn::{Attribute, Field, Lit, Meta, MetaList, NestedMeta};
+use syn::{Attribute, Lit, Meta, MetaList, MetaNameValue, NestedMeta};
 
-pub(crate) fn field_name(field: &Field) -> String {
-    let mut rename = None;
+pub(crate) struct Rename;
+pub(crate) struct Tag;
 
-    for list in field.attrs.iter().filter_map(sval_attr) {
-        for meta in list.nested {
-            if let NestedMeta::Meta(Meta::NameValue(value)) = meta {
-                if value.path.is_ident("rename") && rename.is_none() {
-                    if let Lit::Str(s) = value.lit {
-                        rename = Some(s.value());
-                        break;
-                    }
+const ATTRIBUTES: &[&dyn RawAttribute] = &[
+    {
+        impl SvalAttribute for Rename {
+            type Result = String;
+
+            fn parse(&self, attr: &MetaNameValue) -> Self::Result {
+                if let Lit::Str(ref s) = attr.lit {
+                    s.value()
+                } else {
+                    panic!("unexpected value")
                 }
             }
         }
-    }
 
-    rename.unwrap_or_else(|| field.ident.as_ref().unwrap().to_string())
+        impl RawAttribute for Rename {
+            fn key(&self) -> &str {
+                "rename"
+            }
+        }
+
+        &Rename
+    },
+    {
+        impl SvalAttribute for Tag {
+            type Result = syn::Path;
+
+            fn parse(&self, attr: &MetaNameValue) -> Self::Result {
+                if let Lit::Str(ref s) = attr.lit {
+                    s.parse().expect("invalid value")
+                } else {
+                    panic!("unexpected value")
+                }
+            }
+        }
+
+        impl RawAttribute for Tag {
+            fn key(&self) -> &str {
+                "tag"
+            }
+        }
+
+        &Tag
+    },
+];
+
+pub(crate) trait RawAttribute {
+    fn key(&self) -> &str;
 }
 
-pub(crate) fn tag(attrs: &[Attribute]) -> Option<syn::Path> {
+pub(crate) trait SvalAttribute: RawAttribute {
+    type Result: 'static;
+
+    fn parse(&self, attr: &MetaNameValue) -> Self::Result;
+}
+
+pub(crate) fn get<T: SvalAttribute>(get: T, attrs: &[Attribute]) -> Option<T::Result> {
+    let get_key = get.key();
+
+    let mut result = None;
+
     for list in attrs.iter().filter_map(sval_attr) {
         for meta in list.nested {
-            if let Some(path) = name_value("tag", &meta) {
-                return Some(syn::parse_str(&path).unwrap());
+            if let NestedMeta::Meta(Meta::NameValue(value)) = meta {
+                let value_key = &value.path;
+
+                let mut is_valid_attr = false;
+
+                for attr in ATTRIBUTES {
+                    let attr_key = attr.key();
+
+                    if value_key.is_ident(attr_key) {
+                        is_valid_attr = true;
+                    }
+                }
+
+                if !is_valid_attr {
+                    panic!("unrecognized attribute `{}`", quote!(#value_key));
+                }
+
+                if value_key.is_ident(get_key) {
+                    if result.is_none() {
+                        result = Some(get.parse(&value));
+
+                        // We don't short-circuit here to check other attributes are valid
+                    } else {
+                        panic!("duplicate attribute `{}`", quote!(#value_key));
+                    }
+                }
+            } else {
+                panic!("unexpected `sval` attribute")
             }
         }
     }
 
-    None
-}
-
-fn name_value(name: &str, meta: &NestedMeta) -> Option<String> {
-    if let NestedMeta::Meta(Meta::NameValue(value)) = meta {
-        if value.path.is_ident(name) {
-            if let Lit::Str(ref s) = value.lit {
-                return Some(s.value());
-            }
-        }
-    }
-
-    None
+    result
 }
 
 fn sval_attr(attr: &Attribute) -> Option<MetaList> {
-    let segments = &attr.path.segments;
-    if !(segments.len() == 1 && segments[0].ident == "sval") {
+    if !attr.path.is_ident("sval") {
         return None;
     }
 
     match attr.parse_meta().ok() {
         Some(Meta::List(list)) => Some(list),
-        _ => panic!("unsupported attribute"),
+        _ => panic!("unsupported attribute `{}`", quote!(#attr)),
     }
 }
