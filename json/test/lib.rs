@@ -146,6 +146,7 @@ fn stream_enum() {
 
 #[test]
 fn stream_exotic_record() {
+    // { field_0: 42, field_1: true, field_2: "Hello" }
     struct UnnamedRecord {
         field_0: i32,
         field_1: bool,
@@ -231,7 +232,7 @@ fn stream_exotic_nested_enum() {
 
 #[test]
 fn stream_exotic_unnamed_enum() {
-    // i32 | bool
+    // (i32 | bool)
     enum UntaggedEnum {
         I32(i32),
         #[allow(dead_code)]

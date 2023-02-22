@@ -565,6 +565,11 @@ mod tests {
 
     use std::collections::{BTreeMap, HashMap};
 
+    fn assert_tokens<'sval>(value: &'sval impl sval::Value, tokens: &[Token<'sval>]) {
+        super::assert_tokens(value, tokens);
+        super::assert_tokens(value as &'sval dyn sval_dynamic::Value, tokens);
+    }
+
     #[test]
     fn stream_primitive() {
         assert_tokens(&1u8, &[Token::U8(1)]);
@@ -622,7 +627,7 @@ mod tests {
     #[test]
     fn stream_binary() {
         assert_tokens(
-            sval::BinarySlice::new(&[1, 2, 3]),
+            &sval::BinarySlice::new(&[1, 2, 3]),
             &[
                 Token::BinaryBegin(Some(3)),
                 Token::BinaryFragment(&[1, 2, 3]),
@@ -701,7 +706,7 @@ mod tests {
 
     #[test]
     fn stream_seq_empty() {
-        assert_tokens(&[] as &[u8], &[Token::SeqBegin(Some(0)), Token::SeqEnd]);
+        assert_tokens(&(&[] as &[u8]), &[Token::SeqBegin(Some(0)), Token::SeqEnd]);
 
         assert_tokens(
             &[] as &[u8; 0],
@@ -722,7 +727,7 @@ mod tests {
     #[test]
     fn stream_seq() {
         assert_tokens(
-            &[1] as &[i32],
+            &(&[1] as &[i32]),
             &[
                 Token::SeqBegin(Some(1)),
                 Token::SeqValueBegin,
