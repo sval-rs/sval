@@ -18,6 +18,8 @@ pub struct ValueBuf<'sval> {
     parts: Vec<ValuePart<'sval>>,
     #[cfg(feature = "alloc")]
     stack: Vec<usize>,
+    #[cfg(feature = "alloc")]
+    is_in_text_or_binary: bool,
     _marker: PhantomData<&'sval ()>,
 }
 
@@ -37,6 +39,8 @@ impl<'sval> ValueBuf<'sval> {
             parts: Vec::new(),
             #[cfg(feature = "alloc")]
             stack: Vec::new(),
+            #[cfg(feature = "alloc")]
+            is_in_text_or_binary: false,
             _marker: PhantomData,
         }
     }
@@ -60,7 +64,7 @@ impl<'sval> ValueBuf<'sval> {
     pub fn is_complete(&self) -> bool {
         #[cfg(feature = "alloc")]
         {
-            self.stack.len() == 0
+            self.stack.len() == 0 && self.parts.len() > 0 && !self.is_in_text_or_binary
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -120,6 +124,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(feature = "alloc")]
         {
             self.push_kind(ValueKind::Text(TextBuf::new()));
+            self.is_in_text_or_binary = true;
 
             Ok(())
         }
@@ -162,6 +167,8 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn text_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
+            self.is_in_text_or_binary = false;
+
             Ok(())
         }
         #[cfg(not(feature = "alloc"))]
@@ -174,6 +181,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(feature = "alloc")]
         {
             self.push_kind(ValueKind::Binary(BinaryBuf::new()));
+            self.is_in_text_or_binary = true;
 
             Ok(())
         }
@@ -216,6 +224,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn binary_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
+            self.is_in_text_or_binary = false;
             Ok(())
         }
         #[cfg(not(feature = "alloc"))]
@@ -1147,7 +1156,69 @@ mod alloc_support {
         use sval_derive::*;
 
         #[test]
-        fn value_buf_empty() {
+        fn empty_is_complete() {
+            assert!(!ValueBuf::new().is_complete());
+        }
+
+        #[test]
+        fn primitive_is_complete() {
+            assert!(ValueBuf::collect(&42).unwrap().is_complete());
+        }
+
+        #[test]
+        fn text_is_complete() {
+            let mut buf = ValueBuf::new();
+
+            buf.text_begin(None).unwrap();
+
+            assert!(!buf.is_complete());
+
+            buf.text_end().unwrap();
+
+            assert!(buf.is_complete());
+        }
+
+        #[test]
+        fn binary_is_complete() {
+            let mut buf = ValueBuf::new();
+
+            buf.binary_begin(None).unwrap();
+
+            assert!(!buf.is_complete());
+
+            buf.binary_end().unwrap();
+
+            assert!(buf.is_complete());
+        }
+
+        #[test]
+        fn map_is_complete() {
+            let mut buf = ValueBuf::new();
+
+            buf.map_begin(None).unwrap();
+
+            assert!(!buf.is_complete());
+
+            buf.map_end().unwrap();
+
+            assert!(buf.is_complete());
+        }
+
+        #[test]
+        fn seq_is_complete() {
+            let mut buf = ValueBuf::new();
+
+            buf.seq_begin(None).unwrap();
+
+            assert!(!buf.is_complete());
+
+            buf.seq_end().unwrap();
+
+            assert!(buf.is_complete());
+        }
+
+        #[test]
+        fn empty() {
             use sval_test::{assert_tokens, Token::*};
 
             assert_tokens(&ValueBuf::new(), &[Null]);
