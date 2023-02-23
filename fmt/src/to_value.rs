@@ -1,21 +1,21 @@
 use core::fmt::{self, Write as _};
 
 /**
-Stream a [fmt::Debug`] into an [`sval::Stream`].
+Stream a [`fmt::Debug`] into an [`sval::Stream`].
 */
-pub fn stream_debug<'sval, S: sval::Stream<'sval> + ?Sized, V: fmt::Debug + ?Sized>(
+pub fn stream_debug<'sval, S: sval::Stream<'sval> + ?Sized, V: fmt::Debug>(
     stream: &mut S,
-    value: &V,
+    value: V,
 ) -> sval::Result {
     stream.value_computed(&DebugToValue(value))
 }
 
 /**
-Stream a [fmt::Display`] into an [`sval::Stream`].
+Stream a [`fmt::Display`] into an [`sval::Stream`].
 */
-pub fn stream_display<'sval, S: sval::Stream<'sval> + ?Sized, V: fmt::Display + ?Sized>(
+pub fn stream_display<'sval, S: sval::Stream<'sval> + ?Sized, V: fmt::Display>(
     stream: &mut S,
-    value: &V,
+    value: V,
 ) -> sval::Result {
     stream.value_computed(&DisplayToValue(value))
 }
