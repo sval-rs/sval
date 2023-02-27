@@ -33,10 +33,22 @@ pub struct Label<'computed> {
     // but this way is cheaper to access because it avoids checking the
     // `Cow` variant
     value_computed: *const str,
-    value_static: Option<&'static str>,
+    // Only one `backing_field_*` may be `Some`
+    backing_field_static: Option<&'static str>,
     #[cfg(feature = "alloc")]
-    _value_owned: Option<String>,
+    backing_field_owned: Option<String>,
     _marker: PhantomData<&'computed str>,
+}
+
+#[cfg(not(feature = "alloc"))]
+impl<'computed> Clone for Label<'computed> {
+    fn clone(&self) -> Self {
+        Label {
+            value_computed: self.value_computed,
+            backing_field_static: self.backing_field_static,
+            _marker: PhantomData,
+        }
+    }
 }
 
 impl<'computed> Label<'computed> {
@@ -44,14 +56,14 @@ impl<'computed> Label<'computed> {
     Create a new label from a static string value.
 
     For labels that can't satisfy the `'static` lifetime, use [`Label::new_computed`].
-    For labels that need owned values, use [`Label::from_owned`].
+    For labels that need owned values, use [`Label::new_owned`].
     */
     pub const fn new(label: &'static str) -> Self {
         Label {
             value_computed: label as *const str,
-            value_static: Some(label),
+            backing_field_static: Some(label),
             #[cfg(feature = "alloc")]
-            _value_owned: None,
+            backing_field_owned: None,
             _marker: PhantomData,
         }
     }
@@ -62,9 +74,9 @@ impl<'computed> Label<'computed> {
     pub const fn new_computed(label: &'computed str) -> Self {
         Label {
             value_computed: label as *const str,
-            value_static: None,
+            backing_field_static: None,
             #[cfg(feature = "alloc")]
-            _value_owned: None,
+            backing_field_owned: None,
             _marker: PhantomData,
         }
     }
@@ -85,7 +97,7 @@ impl<'computed> Label<'computed> {
     For labels that were created over computed data this method will return `None`.
     */
     pub const fn as_static_str(&self) -> Option<&'static str> {
-        self.value_static
+        self.backing_field_static
     }
 }
 
@@ -275,17 +287,6 @@ impl Value for bool {
     }
 }
 
-#[cfg(not(feature = "alloc"))]
-impl<'computed> Clone for Label<'computed> {
-    fn clone(&self) -> Self {
-        Label {
-            value_computed: self.value_computed,
-            value_static: self.value_static,
-            _marker: PhantomData,
-        }
-    }
-}
-
 #[cfg(feature = "alloc")]
 mod alloc_support {
     use super::*;
@@ -294,13 +295,13 @@ mod alloc_support {
 
     impl<'computed> Clone for Label<'computed> {
         fn clone(&self) -> Self {
-            if let Some(ref owned) = self._value_owned {
-                Label::from_owned(owned.clone())
+            if let Some(ref owned) = self.backing_field_owned {
+                Label::new_owned(owned.clone())
             } else {
                 Label {
                     value_computed: self.value_computed,
-                    value_static: self.value_static,
-                    _value_owned: None,
+                    backing_field_static: self.backing_field_static,
+                    backing_field_owned: None,
                     _marker: PhantomData,
                 }
             }
@@ -314,10 +315,10 @@ mod alloc_support {
         This method will allocate if the label isn't based on a static string.
         */
         pub fn to_owned(&self) -> Label<'static> {
-            if let Some(value_static) = self.value_static {
-                Label::new(value_static)
+            if let Some(backing_field_static) = self.backing_field_static {
+                Label::new(backing_field_static)
             } else {
-                Label::from_owned(self.as_str().into())
+                Label::new_owned(self.as_str().into())
             }
         }
     }
@@ -326,11 +327,11 @@ mod alloc_support {
         /**
         Create a new label from an owned string value.
         */
-        pub fn from_owned(label: String) -> Self {
+        pub fn new_owned(label: String) -> Self {
             Label {
                 value_computed: label.as_str() as *const str,
-                value_static: None,
-                _value_owned: Some(label),
+                backing_field_static: None,
+                backing_field_owned: Some(label),
                 _marker: PhantomData,
             }
         }
@@ -373,7 +374,7 @@ mod tests {
         let b = a.clone();
 
         assert_eq!(a.value_computed, b.value_computed);
-        assert_eq!(a.value_static, b.value_static);
+        assert_eq!(a.backing_field_static, b.backing_field_static);
     }
 
     #[test]
@@ -429,7 +430,7 @@ mod tests {
 
         #[test]
         fn label_owned() {
-            let label = Label::from_owned(String::from("a"));
+            let label = Label::new_owned(String::from("a"));
 
             assert!(label.as_static_str().is_none());
             assert_eq!("a", label.as_str());
@@ -437,12 +438,12 @@ mod tests {
 
         #[test]
         fn label_owned_clone() {
-            let a = Label::from_owned(String::from("a"));
+            let a = Label::new_owned(String::from("a"));
             let b = a.clone();
 
             assert_ne!(
-                a._value_owned.as_ref().unwrap().as_ptr(),
-                b._value_owned.as_ref().unwrap().as_ptr()
+                a.backing_field_owned.as_ref().unwrap().as_ptr(),
+                b.backing_field_owned.as_ref().unwrap().as_ptr()
             );
         }
     }
