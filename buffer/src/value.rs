@@ -1,4 +1,4 @@
-use crate::std::marker::PhantomData;
+use crate::{std::marker::PhantomData, Error};
 
 #[cfg(feature = "alloc")]
 use crate::{std::vec::Vec, BinaryBuf, TextBuf};
@@ -14,12 +14,23 @@ will fail.
 */
 #[derive(Debug)]
 pub struct ValueBuf<'sval> {
-    #[cfg(feature = "alloc")]
-    parts: Vec<ValuePart<'sval>>,
+    value: Value<'sval>,
     #[cfg(feature = "alloc")]
     stack: Vec<usize>,
     #[cfg(feature = "alloc")]
     is_in_text_or_binary: bool,
+    err: Option<Error>,
+}
+
+/**
+An immutable buffered value.
+
+This type is more compact than `ValueBuf`.
+*/
+#[derive(Debug, Clone)]
+pub struct Value<'sval> {
+    #[cfg(feature = "alloc")]
+    parts: Vec<ValuePart<'sval>>,
     _marker: PhantomData<&'sval ()>,
 }
 
@@ -35,13 +46,16 @@ impl<'sval> ValueBuf<'sval> {
     */
     pub fn new() -> Self {
         ValueBuf {
-            #[cfg(feature = "alloc")]
-            parts: Vec::new(),
+            value: Value {
+                #[cfg(feature = "alloc")]
+                parts: Vec::new(),
+                _marker: PhantomData,
+            },
             #[cfg(feature = "alloc")]
             stack: Vec::new(),
             #[cfg(feature = "alloc")]
             is_in_text_or_binary: false,
-            _marker: PhantomData,
+            err: None,
         }
     }
 
@@ -50,12 +64,13 @@ impl<'sval> ValueBuf<'sval> {
 
     This method will fail if the `alloc` feature is not enabled.
     */
-    pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> sval::Result<Self> {
+    pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
         let mut buf = ValueBuf::new();
 
-        v.stream(&mut buf)?;
-
-        Ok(buf)
+        match v.stream(&mut buf) {
+            Ok(()) => Ok(buf),
+            Err(_) => Err(buf.err.unwrap()),
+        }
     }
 
     /**
@@ -64,16 +79,56 @@ impl<'sval> ValueBuf<'sval> {
     pub fn is_complete(&self) -> bool {
         #[cfg(feature = "alloc")]
         {
-            self.stack.len() == 0 && self.parts.len() > 0 && !self.is_in_text_or_binary
+            self.stack.len() == 0 && self.value.parts.len() > 0 && !self.is_in_text_or_binary
         }
         #[cfg(not(feature = "alloc"))]
         {
             true
         }
     }
+
+    /**
+    Convert this buffer into an immutable value, dropping any temporary state.
+    */
+    pub fn into_value(self) -> Value<'sval> {
+        self.value
+    }
+
+    #[cfg(feature = "alloc")]
+    fn try_catch(
+        &mut self,
+        f: impl FnOnce(&mut ValueBuf<'sval>) -> Result<(), Error>,
+    ) -> sval::Result {
+        match f(self) {
+            Ok(()) => Ok(()),
+            Err(e) => self.fail(e),
+        }
+    }
+
+    fn fail(&mut self, err: Error) -> sval::Result {
+        self.err = Some(err);
+        sval::error()
+    }
+}
+
+impl<'sval> Value<'sval> {
+    /**
+    Buffer a value.
+
+    This method will fail if the `alloc` feature is not enabled.
+    */
+    pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
+        ValueBuf::collect(v).map(|buf| buf.into_value())
+    }
 }
 
 impl<'a> sval::Value for ValueBuf<'a> {
+    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+        self.value.stream(stream)
+    }
+}
+
+impl<'a> sval::Value for Value<'a> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
@@ -102,7 +157,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -116,7 +171,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -130,37 +185,37 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
     fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            match self.current_mut().kind {
+            self.try_catch(|buf| match buf.current_mut().kind {
                 ValueKind::Text(ref mut text) => text.push_fragment(fragment),
-                _ => Err(sval::Error::new()),
-            }
+                _ => Err(Error::outside_container("text")),
+            })
         }
         #[cfg(not(feature = "alloc"))]
         {
             let _ = fragment;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            match self.current_mut().kind {
+            self.try_catch(|buf| match buf.current_mut().kind {
                 ValueKind::Text(ref mut text) => text.push_fragment_computed(fragment),
-                _ => Err(sval::Error::new()),
-            }
+                _ => Err(Error::outside_container("text")),
+            })
         }
         #[cfg(not(feature = "alloc"))]
         {
             let _ = fragment;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -173,7 +228,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -187,37 +242,37 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
     fn binary_fragment(&mut self, fragment: &'sval [u8]) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            match self.current_mut().kind {
+            self.try_catch(|buf| match buf.current_mut().kind {
                 ValueKind::Binary(ref mut binary) => binary.push_fragment(fragment),
-                _ => Err(sval::Error::new()),
-            }
+                _ => Err(Error::outside_container("binary")),
+            })
         }
         #[cfg(not(feature = "alloc"))]
         {
             let _ = fragment;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
     fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            match self.current_mut().kind {
+            self.try_catch(|buf| match buf.current_mut().kind {
                 ValueKind::Binary(ref mut binary) => binary.push_fragment_computed(fragment),
-                _ => Err(sval::Error::new()),
-            }
+                _ => Err(Error::outside_container("binary")),
+            })
         }
         #[cfg(not(feature = "alloc"))]
         {
             let _ = fragment;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -229,7 +284,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -243,7 +298,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -257,7 +312,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -271,7 +326,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -285,7 +340,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -299,7 +354,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -313,7 +368,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -327,7 +382,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -341,7 +396,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -355,7 +410,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -369,7 +424,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -383,7 +438,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -397,7 +452,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = value;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -414,7 +469,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = num_entries_hint;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -427,7 +482,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -440,7 +495,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -453,7 +508,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -466,7 +521,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -479,7 +534,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -496,7 +551,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = num_entries_hint;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -509,7 +564,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -522,7 +577,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -535,7 +590,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -559,7 +614,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = (tag, label, index);
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -577,7 +632,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -601,7 +656,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = (tag, label, index);
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -619,7 +674,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -642,7 +697,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = (tag, label, index);
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -668,7 +723,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = (tag, label, index, num_entries);
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -687,7 +742,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         {
             let _ = tag;
             let _ = label;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -700,7 +755,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -718,7 +773,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -744,7 +799,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = (tag, label, index, num_entries);
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -763,7 +818,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         {
             let _ = tag;
             let _ = index;
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -776,7 +831,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 
@@ -794,7 +849,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            sval::error()
+            self.fail(Error::no_alloc("buffered value"))
         }
     }
 }
@@ -811,19 +866,21 @@ mod alloc_support {
     /**
     Buffer a value.
     */
-    pub fn stream_to_value<'sval>(v: &'sval (impl sval::Value + ?Sized)) -> sval::Result<ValueBuf> {
+    pub fn stream_to_value<'sval>(
+        v: &'sval (impl sval::Value + ?Sized),
+    ) -> Result<ValueBuf, Error> {
         ValueBuf::collect(v)
     }
 
     #[repr(transparent)]
     pub(super) struct ValueSlice<'sval>([ValuePart<'sval>]);
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub(super) struct ValuePart<'sval> {
         pub(super) kind: ValueKind<'sval>,
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub(super) enum ValueKind<'sval> {
         Null,
         Bool(bool),
@@ -902,26 +959,22 @@ mod alloc_support {
     }
 
     impl<'sval> ValueBuf<'sval> {
-        pub(super) fn slice<'a>(&'a self) -> &'a ValueSlice<'sval> {
-            // SAFETY: `&[ValuePart]` and `&ValueSlice` have the same ABI
-            unsafe { mem::transmute::<&'a [ValuePart<'sval>], &'a ValueSlice<'sval>>(&self.parts) }
-        }
-
         pub(super) fn push_kind(&mut self, kind: ValueKind<'sval>) {
-            self.parts.push(ValuePart { kind });
+            self.value.parts.push(ValuePart { kind });
         }
 
         pub(super) fn push_begin(&mut self, kind: ValueKind<'sval>) {
-            self.stack.push(self.parts.len());
-            self.parts.push(ValuePart { kind });
+            self.stack.push(self.value.parts.len());
+            self.value.parts.push(ValuePart { kind });
         }
 
         pub(super) fn push_end(&mut self) {
+            // TODO: Error here
             let index = self.stack.pop().expect("missing stack frame");
 
-            let len = self.parts.len() - index - 1;
+            let len = self.value.parts.len() - index - 1;
 
-            *match &mut self.parts[index].kind {
+            *match &mut self.value.parts[index].kind {
                 ValueKind::Map { len, .. } => len,
                 ValueKind::MapKey { len } => len,
                 ValueKind::MapValue { len } => len,
@@ -954,7 +1007,14 @@ mod alloc_support {
         }
 
         pub(super) fn current_mut(&mut self) -> &mut ValuePart<'sval> {
-            self.parts.last_mut().expect("missing current")
+            self.value.parts.last_mut().expect("missing current")
+        }
+    }
+
+    impl<'sval> Value<'sval> {
+        pub(super) fn slice<'a>(&'a self) -> &'a ValueSlice<'sval> {
+            // SAFETY: `&[ValuePart]` and `&ValueSlice` have the same ABI
+            unsafe { mem::transmute::<&'a [ValuePart<'sval>], &'a ValueSlice<'sval>>(&self.parts) }
         }
     }
 
@@ -1318,7 +1378,7 @@ mod alloc_support {
                     }],
                 ),
             ] {
-                assert_eq!(expected, value.parts, "{:?}", value);
+                assert_eq!(expected, value.value.parts, "{:?}", value);
             }
         }
 
@@ -1332,7 +1392,10 @@ mod alloc_support {
                 },
             }];
 
-            assert_eq!(expected, ValueBuf::collect(&None::<i32>).unwrap().parts);
+            assert_eq!(
+                expected,
+                ValueBuf::collect(&None::<i32>).unwrap().value.parts
+            );
 
             let expected = vec![
                 ValuePart {
@@ -1348,7 +1411,10 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, ValueBuf::collect(&Some(42i32)).unwrap().parts);
+            assert_eq!(
+                expected,
+                ValueBuf::collect(&Some(42i32)).unwrap().value.parts
+            );
         }
 
         #[test]
@@ -1408,7 +1474,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.parts);
+            assert_eq!(expected, value.value.parts);
         }
 
         #[test]
@@ -1448,7 +1514,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.parts);
+            assert_eq!(expected, value.value.parts);
         }
 
         #[test]
@@ -1520,7 +1586,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.parts);
+            assert_eq!(expected, value.value.parts);
         }
 
         #[test]
@@ -1584,7 +1650,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.parts);
+            assert_eq!(expected, value.value.parts);
         }
 
         #[test]
@@ -1633,7 +1699,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.parts);
+            assert_eq!(expected, value.value.parts);
         }
 
         #[test]
@@ -1675,7 +1741,7 @@ mod alloc_support {
             ] {
                 let value_2 = ValueBuf::collect(&value_1).unwrap();
 
-                assert_eq!(value_1.parts, value_2.parts, "{:?}", value_1);
+                assert_eq!(value_1.value.parts, value_2.value.parts, "{:?}", value_1);
             }
         }
     }

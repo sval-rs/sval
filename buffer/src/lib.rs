@@ -11,6 +11,11 @@ out functionality when an allocator isn't available.
 
 #![no_std]
 
+mod error;
+
+#[cfg(feature = "std")]
+extern crate std as libstd;
+
 #[cfg(not(feature = "alloc"))]
 extern crate core as std;
 
@@ -25,9 +30,12 @@ mod std {
         alloc::{borrow, boxed, collections, string, vec},
         core::{convert, fmt, hash, marker, mem, ops, result, str},
     };
+
+    #[cfg(feature = "std")]
+    pub use libstd::error;
 }
 
 mod fragments;
 mod value;
 
-pub use self::{fragments::*, value::*};
+pub use self::{error::*, fragments::*, value::*};

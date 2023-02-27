@@ -1,4 +1,4 @@
-use crate::std::fmt;
+use crate::{std::fmt, Error};
 
 #[cfg(feature = "alloc")]
 use crate::std::borrow::{Cow, ToOwned};
@@ -9,7 +9,7 @@ Buffer text fragments into a single contiguous string.
 In no-std environments, this buffer only supports a single
 borrowed text fragment. Other methods will fail.
 */
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextBuf<'sval>(FragmentBuf<'sval, str>);
 
 impl<'sval> TextBuf<'sval> {
@@ -23,8 +23,28 @@ impl<'sval> TextBuf<'sval> {
     /**
     Buffer a text value into a contiguous string.
     */
-    pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> sval::Result<Self> {
-        struct Collector<'a>(TextBuf<'a>);
+    pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
+        struct Collector<'a> {
+            buf: TextBuf<'a>,
+            err: Option<Error>,
+        }
+
+        impl<'a> Collector<'a> {
+            fn try_catch(
+                &mut self,
+                f: impl FnOnce(&mut TextBuf<'a>) -> Result<(), Error>,
+            ) -> sval::Result {
+                match f(&mut self.buf) {
+                    Ok(()) => Ok(()),
+                    Err(e) => self.fail(e),
+                }
+            }
+
+            fn fail(&mut self, err: Error) -> sval::Result {
+                self.err = Some(err);
+                sval::error()
+            }
+        }
 
         impl<'a> sval::Stream<'a> for Collector<'a> {
             fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
@@ -32,11 +52,11 @@ impl<'sval> TextBuf<'sval> {
             }
 
             fn text_fragment(&mut self, fragment: &'a str) -> sval::Result {
-                self.0.push_fragment(fragment)
+                self.try_catch(|buf| buf.push_fragment(fragment))
             }
 
             fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-                self.0.push_fragment_computed(fragment)
+                self.try_catch(|buf| buf.push_fragment_computed(fragment))
             }
 
             fn text_end(&mut self) -> sval::Result {
@@ -44,49 +64,54 @@ impl<'sval> TextBuf<'sval> {
             }
 
             fn null(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "null"))
             }
 
             fn bool(&mut self, _: bool) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "boolean"))
             }
 
             fn i64(&mut self, _: i64) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "integer"))
             }
 
             fn f64(&mut self, _: f64) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "floating point"))
             }
 
             fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "sequence"))
             }
 
             fn seq_value_begin(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "sequence"))
             }
 
             fn seq_value_end(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "sequence"))
             }
 
             fn seq_end(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("text", "sequence"))
             }
         }
 
-        let mut collector = Collector(TextBuf::new());
+        let mut collector = Collector {
+            buf: TextBuf::new(),
+            err: None,
+        };
 
-        value.stream(&mut collector)?;
+        value
+            .stream(&mut collector)
+            .map_err(|_| collector.err.unwrap())?;
 
-        Ok(collector.0)
+        Ok(collector.buf)
     }
 
     /**
     Push a borrowed text fragment onto the buffer.
     */
-    pub fn push_fragment(&mut self, fragment: &'sval str) -> sval::Result {
+    pub fn push_fragment(&mut self, fragment: &'sval str) -> Result<(), Error> {
         self.0.push(fragment)
     }
 
@@ -96,7 +121,7 @@ impl<'sval> TextBuf<'sval> {
     If the `std` feature of this library is enabled, this method will
     buffer the fragment. In no-std environments this method will fail.
     */
-    pub fn push_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+    pub fn push_fragment_computed(&mut self, fragment: &str) -> Result<(), Error> {
         self.0.push_computed(fragment)
     }
 
@@ -145,7 +170,7 @@ Buffer binary fragments into a single contiguous slice.
 In no-std environments, this buffer only supports a single
 borrowed binary fragment. Other methods will fail.
 */
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BinaryBuf<'sval>(FragmentBuf<'sval, [u8]>);
 
 impl<'sval> BinaryBuf<'sval> {
@@ -159,8 +184,28 @@ impl<'sval> BinaryBuf<'sval> {
     /**
     Buffer a binary value into a contiguous slice.
     */
-    pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> sval::Result<Self> {
-        struct Collector<'a>(BinaryBuf<'a>);
+    pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
+        struct Collector<'a> {
+            buf: BinaryBuf<'a>,
+            err: Option<Error>,
+        }
+
+        impl<'a> Collector<'a> {
+            fn try_catch(
+                &mut self,
+                f: impl FnOnce(&mut BinaryBuf<'a>) -> Result<(), Error>,
+            ) -> sval::Result {
+                match f(&mut self.buf) {
+                    Ok(()) => Ok(()),
+                    Err(e) => self.fail(e),
+                }
+            }
+
+            fn fail(&mut self, err: Error) -> sval::Result {
+                self.err = Some(err);
+                sval::error()
+            }
+        }
 
         impl<'a> sval::Stream<'a> for Collector<'a> {
             fn binary_begin(&mut self, _: Option<usize>) -> sval::Result {
@@ -168,11 +213,11 @@ impl<'sval> BinaryBuf<'sval> {
             }
 
             fn binary_fragment(&mut self, fragment: &'a [u8]) -> sval::Result {
-                self.0.push_fragment(fragment)
+                self.try_catch(|buf| buf.push_fragment(fragment))
             }
 
             fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
-                self.0.push_fragment_computed(fragment)
+                self.try_catch(|buf| buf.push_fragment_computed(fragment))
             }
 
             fn binary_end(&mut self) -> sval::Result {
@@ -180,61 +225,66 @@ impl<'sval> BinaryBuf<'sval> {
             }
 
             fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "text"))
             }
 
             fn text_fragment_computed(&mut self, _: &str) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "text"))
             }
 
             fn text_end(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "text"))
             }
 
             fn null(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "null"))
             }
 
             fn bool(&mut self, _: bool) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "boolean"))
             }
 
             fn i64(&mut self, _: i64) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "integer"))
             }
 
             fn f64(&mut self, _: f64) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "floating point"))
             }
 
             fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "sequence"))
             }
 
             fn seq_value_begin(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "sequence"))
             }
 
             fn seq_value_end(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "sequence"))
             }
 
             fn seq_end(&mut self) -> sval::Result {
-                sval::error()
+                self.fail(Error::unsupported("binary", "sequence"))
             }
         }
 
-        let mut collector = Collector(BinaryBuf::new());
+        let mut collector = Collector {
+            buf: BinaryBuf::new(),
+            err: None,
+        };
 
-        value.stream(&mut collector)?;
+        value
+            .stream(&mut collector)
+            .map_err(|_| collector.err.unwrap())?;
 
-        Ok(collector.0)
+        Ok(collector.buf)
     }
 
     /**
     Push a borrowed binary fragment onto the buffer.
     */
-    pub fn push_fragment(&mut self, fragment: &'sval [u8]) -> sval::Result {
+    pub fn push_fragment(&mut self, fragment: &'sval [u8]) -> Result<(), Error> {
         self.0.push(fragment)
     }
 
@@ -244,7 +294,7 @@ impl<'sval> BinaryBuf<'sval> {
     If the `std` feature of this library is enabled, this method will
     buffer the fragment. In no-std environments this method will fail.
     */
-    pub fn push_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
+    pub fn push_fragment_computed(&mut self, fragment: &[u8]) -> Result<(), Error> {
         self.0.push_computed(fragment)
     }
 
@@ -343,6 +393,25 @@ struct FragmentBuf<'sval, T: ?Sized + Fragment> {
 }
 
 #[cfg(not(feature = "alloc"))]
+impl<'sval, T: ?Sized + Fragment> Clone for FragmentBuf<'sval, T> {
+    fn clone(&self) -> Self {
+        FragmentBuf { value: self.value }
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'sval, T: ?Sized + Fragment> Clone for FragmentBuf<'sval, T>
+where
+    T::Owned: Clone,
+{
+    fn clone(&self) -> Self {
+        FragmentBuf {
+            value: self.value.clone(),
+        }
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
 impl<'sval, T: ?Sized + Fragment + fmt::Debug> fmt::Debug for FragmentBuf<'sval, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.value.fmt(f)
@@ -391,7 +460,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
 }
 
 impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
-    fn push(&mut self, fragment: &'sval T) -> sval::Result {
+    fn push(&mut self, fragment: &'sval T) -> Result<(), Error> {
         if self.value.can_replace() {
             self.value = fragment.to_fragment();
 
@@ -401,7 +470,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         }
     }
 
-    fn push_computed(&mut self, fragment: &T) -> sval::Result {
+    fn push_computed(&mut self, fragment: &T) -> Result<(), Error> {
         #[cfg(feature = "alloc")]
         {
             Fragment::extend(&mut self.value, fragment);
@@ -412,7 +481,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = fragment;
-            Err(sval::Error::new())
+            Err(Error::no_alloc("computed fragment"))
         }
     }
 

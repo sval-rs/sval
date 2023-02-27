@@ -875,11 +875,12 @@ impl<'sval, S: serde::Serializer> Serializer<'sval, S> {
         }
     }
 
-    fn with_text(&mut self, f: impl FnOnce(&mut TextBuf<'sval>) -> sval::Result) -> sval::Result {
+    fn with_text(
+        &mut self,
+        f: impl FnOnce(&mut TextBuf<'sval>) -> Result<(), sval_buffer::Error>,
+    ) -> sval::Result {
         try_catch(self, |serializer| match serializer.buffered {
-            Some(Buffered::Text(ref mut buf)) => {
-                f(buf).map_err(|_| S::Error::custom("failed to buffer a text fragment"))
-            }
+            Some(Buffered::Text(ref mut buf)) => f(buf).map_err(|e| S::Error::custom(e)),
             _ => Err(S::Error::custom("no active text buffer")),
         })
     }
@@ -898,12 +899,10 @@ impl<'sval, S: serde::Serializer> Serializer<'sval, S> {
 
     fn with_binary(
         &mut self,
-        f: impl FnOnce(&mut BinaryBuf<'sval>) -> sval::Result,
+        f: impl FnOnce(&mut BinaryBuf<'sval>) -> Result<(), sval_buffer::Error>,
     ) -> sval::Result {
         try_catch(self, |serializer| match serializer.buffered {
-            Some(Buffered::Binary(ref mut buf)) => {
-                f(buf).map_err(|_| S::Error::custom("failed to buffer a binary fragment"))
-            }
+            Some(Buffered::Binary(ref mut buf)) => f(buf).map_err(|e| S::Error::custom(e)),
             _ => Err(S::Error::custom("no active binary buffer")),
         })
     }

@@ -27,9 +27,6 @@ pub use self::{binary::*, text::*};
 /**
 A textual label for some value.
 */
-// NOTE: Implementing `Clone` on this type would need to be done manually
-// If `value_computed` points to `_value_owned` then the clone will need
-// to update its pointer accordingly
 pub struct Label<'computed> {
     // This field may point to some external data borrowed for `'computed`
     // or to the `_value_owned` field. It could be a `Cow<'computed, str>`,
@@ -278,11 +275,37 @@ impl Value for bool {
     }
 }
 
+#[cfg(not(feature = "alloc"))]
+impl<'computed> Clone for Label<'computed> {
+    fn clone(&self) -> Self {
+        Label {
+            value_computed: self.value_computed,
+            value_static: self.value_static,
+            _marker: PhantomData,
+        }
+    }
+}
+
 #[cfg(feature = "alloc")]
 mod alloc_support {
     use super::*;
 
     use crate::std::string::String;
+
+    impl<'computed> Clone for Label<'computed> {
+        fn clone(&self) -> Self {
+            if let Some(ref owned) = self._value_owned {
+                Label::from_owned(owned.clone())
+            } else {
+                Label {
+                    value_computed: self.value_computed,
+                    value_static: self.value_static,
+                    _value_owned: None,
+                    _marker: PhantomData,
+                }
+            }
+        }
+    }
 
     impl<'computed> Label<'computed> {
         /**
@@ -345,6 +368,15 @@ mod tests {
     }
 
     #[test]
+    fn label_clone() {
+        let a = Label::new("a");
+        let b = a.clone();
+
+        assert_eq!(a.value_computed, b.value_computed);
+        assert_eq!(a.value_static, b.value_static);
+    }
+
+    #[test]
     fn index() {
         let small = Index::new(1);
         let large = Index::new(usize::MAX);
@@ -401,6 +433,17 @@ mod tests {
 
             assert!(label.as_static_str().is_none());
             assert_eq!("a", label.as_str());
+        }
+
+        #[test]
+        fn label_owned_clone() {
+            let a = Label::from_owned(String::from("a"));
+            let b = a.clone();
+
+            assert_ne!(
+                a._value_owned.as_ref().unwrap().as_ptr(),
+                b._value_owned.as_ref().unwrap().as_ptr()
+            );
         }
     }
 }
