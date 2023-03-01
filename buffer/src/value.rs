@@ -88,6 +88,42 @@ impl<'sval> ValueBuf<'sval> {
     }
 
     /**
+    Clear this buffer so it can be re-used for future values.
+    */
+    pub fn clear(&mut self) {
+        #[cfg(feature = "alloc")]
+        {
+            let ValueBuf {
+                value: Value { parts, _marker },
+                stack,
+                is_in_text_or_binary,
+                err,
+            } = self;
+
+            parts.clear();
+            stack.clear();
+            *is_in_text_or_binary = false;
+            *err = None;
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let ValueBuf {
+                value: Value { _marker },
+                err,
+            } = self;
+
+            *err = None;
+        }
+    }
+
+    /**
+    Get an independent immutable value from this buffer.
+    */
+    pub fn to_value(&self) -> Value<'sval> {
+        self.value.clone()
+    }
+
+    /**
     Convert this buffer into an immutable value, dropping any temporary state.
     */
     pub fn into_value(self) -> Value<'sval> {
@@ -1744,5 +1780,41 @@ mod alloc_support {
                 assert_eq!(value_1.value.parts, value_2.value.parts, "{:?}", value_1);
             }
         }
+
+        #[test]
+        fn buffer_reuse() {
+            let mut buf = ValueBuf::new();
+
+            buf.i32(42).unwrap();
+
+            assert_eq!(Value::collect(&42i32).unwrap().parts, buf.to_value().parts);
+
+            buf.clear();
+
+            buf.bool(true).unwrap();
+
+            assert_eq!(Value::collect(&true).unwrap().parts, buf.to_value().parts);
+        }
+    }
+}
+
+#[cfg(test)]
+#[cfg(not(feature = "alloc"))]
+mod no_std_tests {
+    use super::*;
+
+    use sval::Stream as _;
+
+    #[test]
+    fn buffer_reuse() {
+        let mut buf = ValueBuf::new();
+
+        buf.i32(42).unwrap_err();
+
+        assert!(buf.err.is_some());
+
+        buf.clear();
+
+        assert!(buf.err.is_none());
     }
 }

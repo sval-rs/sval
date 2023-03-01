@@ -132,6 +132,8 @@ A type tag for a value.
 
 Tags are additional hints that a stream may use to interpret a value differently,
 or to avoid some unnecessary work.
+
+The contents of a tag aren't considered public, only equality between two tag identifiers.
 */
 #[derive(Clone, PartialEq, Eq)]
 pub struct Tag {

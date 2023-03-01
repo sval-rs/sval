@@ -13,9 +13,9 @@ arbitrary-precision numbers and fixed-size arrays.
 
 `sval` isn't intended as a successor project to `serde`. It fills a particular niche in the
 landscape that can't be served by `serde` + `erased_serde`. In general, `sval`'s API is noisier
-than `serde`s, since it's flat so the starts and ends of structural elements like map keys need
+than `serde`s since it's flat, so the starts and ends of structural elements like map keys need
 to be called out. Implementations of `Stream` need to do more work to track their state internally,
-instead of relying on the callstack.
+instead of relying on the callstack. In general, `Stream` is probably harder to implement than `Serializer`.
 
 # Current status
 

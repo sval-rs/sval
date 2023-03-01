@@ -6,7 +6,7 @@ use crate::{
     tags, Result, Stream, Value,
 };
 
-macro_rules! int {
+macro_rules! stream_default {
     ($($fi:ident => $i:ty, $fu:ident => $u:ty,)*) => {
         $(
             pub(crate) fn $fi<'sval>(v: $i, stream: &mut (impl Stream<'sval> + ?Sized)) -> crate::Result {
@@ -20,7 +20,7 @@ macro_rules! int {
     };
 }
 
-macro_rules! convert {
+macro_rules! impl_value {
     ($(
         $convert:ident => $ty:ident,
     )+) => {
@@ -38,12 +38,12 @@ macro_rules! convert {
     };
 }
 
-int!(
+stream_default!(
     stream_i128 => i128,
     stream_u128 => u128,
 );
 
-convert!(
+impl_value!(
     to_u8 => u8,
     to_u16 => u16,
     to_u32 => u32,
