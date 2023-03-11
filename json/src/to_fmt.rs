@@ -20,7 +20,8 @@ pub(crate) struct Formatter<W> {
     is_internally_tagged: bool,
     is_current_depth_empty: bool,
     is_text_quoted: bool,
-    is_json_native: bool,
+    is_text_native: bool,
+    is_number_native: bool,
     text_handler: Option<TextHandler>,
     err: Option<Error>,
     out: W,
@@ -32,7 +33,8 @@ impl<W> Formatter<W> {
             is_internally_tagged: false,
             is_current_depth_empty: true,
             is_text_quoted: true,
-            is_json_native: false,
+            is_text_native: false,
+            is_number_native: false,
             text_handler: None,
             err: None,
             out,
@@ -80,7 +82,7 @@ where
             handler
                 .text_fragment(v, &mut self.out)
                 .map_err(|e| self.err(Error::from_fmt(e)))?;
-        } else if !self.is_json_native {
+        } else if !self.is_text_native {
             escape_str(v, &mut self.out).map_err(|e| self.err(Error::from_fmt(e)))?;
         } else {
             self.out
@@ -336,25 +338,28 @@ where
         _: Option<&sval::Index>,
     ) -> sval::Result {
         match tag {
-            Some(&tags::JSON_NATIVE) => {
-                self.is_json_native = true;
-
-                // If the value is guaranteed to be valid JSON then it doesn't need
-                // any text handler
-                self.text_handler = None;
+            Some(&tags::JSON_TEXT) => {
+                self.is_text_native = true;
             }
             Some(&sval::tags::NUMBER) => {
                 self.is_text_quoted = false;
 
                 // If the number isn't guaranteed to be valid JSON then create an adapter
-                if !self.is_json_native {
+                if !self.is_number_native {
                     self.text_handler = Some(TextHandler::number());
                 }
+            }
+            Some(&tags::JSON_NUMBER) => {
+                self.is_text_quoted = false;
+                self.is_number_native = true;
+
+                // If there was a previously set text handler then clear it
+                self.text_handler = None;
             }
             _ => (),
         }
 
-        self.internally_tagged_begin(label)?;
+        self.internally_tagged_begin(tag, label)?;
 
         Ok(())
     }
@@ -366,19 +371,21 @@ where
         _: Option<&sval::Index>,
     ) -> sval::Result {
         match tag {
-            Some(&tags::JSON_NATIVE) => {
-                self.is_json_native = false;
+            Some(&tags::JSON_TEXT) => {
+                self.is_text_native = false;
             }
             Some(&sval::tags::NUMBER) => {
                 self.is_text_quoted = true;
 
-                if !self.is_json_native {
-                    if let Some(TextHandler::Number(mut number)) = self.text_handler.take() {
-                        number
-                            .end(&mut self.out)
-                            .map_err(|e| self.err(Error::from_fmt(e)))?;
-                    }
+                if let Some(TextHandler::Number(mut number)) = self.text_handler.take() {
+                    number
+                        .end(&mut self.out)
+                        .map_err(|e| self.err(Error::from_fmt(e)))?;
                 }
+            }
+            Some(&tags::JSON_NUMBER) => {
+                self.is_text_quoted = true;
+                self.is_number_native = false;
             }
             _ => (),
         }
@@ -408,12 +415,12 @@ where
 
     fn record_begin(
         &mut self,
-        _: Option<&sval::Tag>,
+        tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
         num_entries_hint: Option<usize>,
     ) -> sval::Result {
-        self.internally_tagged_begin(label)?;
+        self.internally_tagged_begin(tag, label)?;
         self.map_begin(num_entries_hint)
     }
 
@@ -431,7 +438,7 @@ where
         }
 
         // If the field is JSON native then it doesn't require escaping
-        if let Some(&tags::JSON_NATIVE) = tag {
+        if let Some(&tags::JSON_TEXT) = tag {
             self.out
                 .write_str(label.as_str())
                 .map_err(|e| self.err(Error::from_fmt(e)))?;
@@ -458,12 +465,12 @@ where
 
     fn tuple_begin(
         &mut self,
-        _: Option<&sval::Tag>,
+        tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
         num_entries_hint: Option<usize>,
     ) -> sval::Result {
-        self.internally_tagged_begin(label)?;
+        self.internally_tagged_begin(tag, label)?;
         self.seq_begin(num_entries_hint)
     }
 
@@ -482,11 +489,15 @@ impl<'sval, W> Formatter<W>
 where
     W: Write,
 {
-    fn internally_tagged_begin(&mut self, label: Option<&sval::Label>) -> sval::Result {
+    fn internally_tagged_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+    ) -> sval::Result {
         // If there's a label then begin a map, using the label as the key
         if self.is_internally_tagged {
             if let Some(label) = label {
-                self.internally_tagged_map_begin(label)?;
+                self.internally_tagged_map_begin(tag, label)?;
             }
 
             self.is_internally_tagged = false;
@@ -503,11 +514,23 @@ where
         Ok(())
     }
 
-    fn internally_tagged_map_begin(&mut self, label: &sval::Label) -> sval::Result {
+    fn internally_tagged_map_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+    ) -> sval::Result {
         self.map_begin(Some(1))?;
 
         self.map_key_begin()?;
-        escape_str(label.as_str(), &mut self.out).map_err(|e| self.err(Error::from_fmt(e)))?;
+
+        if let Some(&tags::JSON_TEXT) = tag {
+            self.out
+                .write_str(label.as_str())
+                .map_err(|e| self.err(Error::from_fmt(e)))?;
+        } else {
+            escape_str(label.as_str(), &mut self.out).map_err(|e| self.err(Error::from_fmt(e)))?;
+        }
+
         self.map_key_end()?;
 
         self.map_value_begin()

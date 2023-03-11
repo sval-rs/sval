@@ -50,8 +50,12 @@ enum Enum {
 struct Number<T>(T);
 
 #[derive(Value)]
-#[sval(tag = "sval_json::tags::JSON_NATIVE")]
-struct JsonNative<T>(T);
+#[sval(tag = "sval_json::tags::JSON_NUMBER")]
+struct JsonNumber<T>(T);
+
+#[derive(Value)]
+#[sval(tag = "sval_json::tags::JSON_TEXT")]
+struct JsonText<T>(T);
 
 #[test]
 fn stream_primitive() {
@@ -63,7 +67,7 @@ fn stream_primitive() {
 }
 
 #[test]
-fn stream_number() {
+fn stream_native_number() {
     for (num, expected) in [
         ("0", "0"),
         ("000", "0"),
@@ -84,17 +88,18 @@ fn stream_number() {
         ),
     ] {
         assert_stream(expected, Number(num));
-        assert_stream(num, JsonNative(Number(num)));
-        assert_stream(num, Number(JsonNative(num)));
+        assert_stream(num, JsonNumber(Number(num)));
+        assert_stream(num, Number(JsonNumber(num)));
+        assert_stream(num, JsonNumber(num));
     }
 }
 
 #[test]
-fn stream_native() {
+fn stream_native_text() {
     for str in ["abc", "a\nb"] {
         let expected = format!("\"{}\"", str);
 
-        assert_stream(&expected, JsonNative(str));
+        assert_stream(&expected, JsonText(str));
     }
 }
 
