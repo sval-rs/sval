@@ -38,8 +38,6 @@ pub(crate) struct Formatter<W> {
     is_internally_tagged: bool,
     is_current_depth_empty: bool,
     is_text_quoted: bool,
-    is_text_native: bool,
-    is_number_native: bool,
     text_handler: Option<TextHandler>,
     err: Option<Error>,
     out: W,
@@ -51,8 +49,6 @@ impl<W> Formatter<W> {
             is_internally_tagged: false,
             is_current_depth_empty: true,
             is_text_quoted: true,
-            is_text_native: false,
-            is_number_native: false,
             text_handler: None,
             err: None,
             out,
@@ -86,12 +82,9 @@ where
     }
 
     fn text_fragment_computed(&mut self, v: &str) -> sval::Result {
-        if let Some(ref mut handler) = self.text_handler {
-            _try!(handler.text_fragment(v, &mut self.out));
-        } else if !self.is_text_native {
-            _try!(escape_str(v, &mut self.out));
-        } else {
-            _try!(self.out.write_str(v));
+        match self.text_handler {
+            None => _try!(escape_str(v, &mut self.out)),
+            Some(ref mut handler) => _try!(handler.text_fragment(v, &mut self.out)),
         }
 
         Ok(())
@@ -302,22 +295,18 @@ where
     ) -> sval::Result {
         match tag {
             Some(&tags::JSON_TEXT) => {
-                self.is_text_native = true;
+                self.text_handler = Some(TextHandler::native());
             }
             Some(&sval::tags::NUMBER) => {
                 self.is_text_quoted = false;
 
-                // If the number isn't guaranteed to be valid JSON then create an adapter
-                if !self.is_number_native {
+                if self.text_handler.is_none() {
                     self.text_handler = Some(TextHandler::number());
                 }
             }
             Some(&tags::JSON_NUMBER) => {
                 self.is_text_quoted = false;
-                self.is_number_native = true;
-
-                // If there was a previously set text handler then clear it
-                self.text_handler = None;
+                self.text_handler = Some(TextHandler::native());
             }
             _ => (),
         }
@@ -333,7 +322,7 @@ where
     ) -> sval::Result {
         match tag {
             Some(&tags::JSON_TEXT) => {
-                self.is_text_native = false;
+                self.text_handler = None;
             }
             Some(&sval::tags::NUMBER) => {
                 self.is_text_quoted = true;
@@ -344,7 +333,7 @@ where
             }
             Some(&tags::JSON_NUMBER) => {
                 self.is_text_quoted = true;
-                self.is_number_native = false;
+                self.text_handler = None;
             }
             _ => (),
         }
@@ -473,6 +462,7 @@ where
 }
 
 enum TextHandler {
+    Native,
     Number(NumberTextHandler),
 }
 
@@ -484,7 +474,11 @@ struct NumberTextHandler {
 }
 
 impl TextHandler {
-    fn number() -> Self {
+    const fn native() -> Self {
+        TextHandler::Native
+    }
+
+    const fn number() -> Self {
         TextHandler::Number(NumberTextHandler {
             sign_negative: false,
             leading_zeroes: 0,
@@ -493,8 +487,9 @@ impl TextHandler {
         })
     }
 
-    fn text_fragment(&mut self, v: &str, out: impl Write) -> fmt::Result {
+    fn text_fragment(&mut self, v: &str, mut out: impl Write) -> fmt::Result {
         match self {
+            TextHandler::Native => out.write_str(v),
             TextHandler::Number(number) => number.text_fragment(v, out),
         }
     }
