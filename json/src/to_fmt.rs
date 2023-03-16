@@ -4,6 +4,24 @@ use sval::Stream as _;
 
 use crate::{tags, Error};
 
+macro_rules! _try {
+    ($e:expr) => {
+        match ($e) {
+            Ok(_o) => _o,
+            Err(_) => return Err(sval::Error::new()),
+        }
+    };
+}
+
+macro_rules! _try_no_conv {
+    ($e:expr) => {
+        match ($e) {
+            Ok(()) => (),
+            Err(e) => return Err(e),
+        }
+    };
+}
+
 /**
 Stream a value as JSON to an underlying formatter.
 */
@@ -52,26 +70,16 @@ where
     W: Write,
 {
     fn null(&mut self) -> sval::Result {
-        self.out
-            .write_str("null")
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
-
-        Ok(())
+        Ok(_try!(self.out.write_str("null")))
     }
 
     fn bool(&mut self, v: bool) -> sval::Result {
-        self.out
-            .write_str(if v { "true" } else { "false" })
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
-
-        Ok(())
+        Ok(_try!(self.out.write_str(if v { "true" } else { "false" })))
     }
 
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
         if self.is_text_quoted {
-            self.out
-                .write_char('"')
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_char('"'));
         }
 
         Ok(())
@@ -79,15 +87,11 @@ where
 
     fn text_fragment_computed(&mut self, v: &str) -> sval::Result {
         if let Some(ref mut handler) = self.text_handler {
-            handler
-                .text_fragment(v, &mut self.out)
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(handler.text_fragment(v, &mut self.out));
         } else if !self.is_text_native {
-            escape_str(v, &mut self.out).map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(escape_str(v, &mut self.out));
         } else {
-            self.out
-                .write_str(v)
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_str(v));
         }
 
         Ok(())
@@ -95,116 +99,90 @@ where
 
     fn text_end(&mut self) -> sval::Result {
         if self.is_text_quoted {
-            self.out
-                .write_char('"')
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_char('"'));
         }
 
         Ok(())
     }
 
     fn u8(&mut self, v: u8) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u16(&mut self, v: u16) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u32(&mut self, v: u32) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u64(&mut self, v: u64) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u128(&mut self, v: u128) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i8(&mut self, v: i8) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i16(&mut self, v: i16) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i32(&mut self, v: i32) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i64(&mut self, v: i64) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i128(&mut self, v: i128) -> sval::Result {
-        self.out
-            .write_str(itoa::Buffer::new().format(v))
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn f32(&mut self, v: f32) -> sval::Result {
         if v.is_nan() || v.is_infinite() {
-            self.null()?;
+            self.null()
         } else {
-            self.out
-                .write_str(ryu::Buffer::new().format_finite(v))
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
-        }
+            _try!(self.out.write_str(ryu::Buffer::new().format_finite(v)));
 
-        Ok(())
+            Ok(())
+        }
     }
 
     fn f64(&mut self, v: f64) -> sval::Result {
         if v.is_nan() || v.is_infinite() {
-            self.null()?;
+            self.null()
         } else {
-            self.out
-                .write_str(ryu::Buffer::new().format_finite(v))
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
-        }
+            _try!(self.out.write_str(ryu::Buffer::new().format_finite(v)));
 
-        Ok(())
+            Ok(())
+        }
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> sval::Result {
@@ -213,9 +191,8 @@ where
         }
 
         self.is_current_depth_empty = true;
-        self.out
-            .write_char('{')
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+
+        _try!(self.out.write_char('{'));
 
         Ok(())
     }
@@ -225,22 +202,16 @@ where
         self.is_internally_tagged = false;
 
         if !self.is_current_depth_empty {
-            self.out
-                .write_str(",\"")
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_str(",\""));
         } else {
-            self.out
-                .write_char('"')
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_char('"'));
         }
 
         Ok(())
     }
 
     fn map_key_end(&mut self) -> sval::Result {
-        self.out
-            .write_str("\":")
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str("\":"));
 
         self.is_text_quoted = true;
 
@@ -258,9 +229,7 @@ where
     }
 
     fn map_end(&mut self) -> sval::Result {
-        self.out
-            .write_char('}')
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_char('}'));
 
         Ok(())
     }
@@ -272,9 +241,7 @@ where
 
         self.is_current_depth_empty = true;
 
-        self.out
-            .write_char('[')
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_char('['));
 
         Ok(())
     }
@@ -283,9 +250,7 @@ where
         self.is_internally_tagged = false;
 
         if !self.is_current_depth_empty {
-            self.out
-                .write_char(',')
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_char(','));
         }
 
         Ok(())
@@ -298,9 +263,7 @@ where
     }
 
     fn seq_end(&mut self) -> sval::Result {
-        self.out
-            .write_char(']')
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_char(']'));
 
         Ok(())
     }
@@ -323,12 +286,12 @@ where
         _: Option<&sval::Index>,
     ) -> sval::Result {
         if self.is_internally_tagged {
-            self.internally_tagged_map_end()?;
-
             self.is_internally_tagged = false;
-        }
 
-        Ok(())
+            self.internally_tagged_map_end()
+        } else {
+            Ok(())
+        }
     }
 
     fn tagged_begin(
@@ -359,9 +322,7 @@ where
             _ => (),
         }
 
-        self.internally_tagged_begin(tag, label)?;
-
-        Ok(())
+        self.internally_tagged_begin(label)
     }
 
     fn tagged_end(
@@ -378,9 +339,7 @@ where
                 self.is_text_quoted = true;
 
                 if let Some(TextHandler::Number(mut number)) = self.text_handler.take() {
-                    number
-                        .end(&mut self.out)
-                        .map_err(|e| self.err(Error::from_fmt(e)))?;
+                    _try!(number.end(&mut self.out));
                 }
             }
             Some(&tags::JSON_NUMBER) => {
@@ -415,40 +374,27 @@ where
 
     fn record_begin(
         &mut self,
-        tag: Option<&sval::Tag>,
+        _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
         num_entries_hint: Option<usize>,
     ) -> sval::Result {
-        self.internally_tagged_begin(tag, label)?;
+        _try_no_conv!(self.internally_tagged_begin(label));
         self.map_begin(num_entries_hint)
     }
 
-    fn record_value_begin(&mut self, tag: Option<&sval::Tag>, label: &sval::Label) -> sval::Result {
+    fn record_value_begin(&mut self, _: Option<&sval::Tag>, label: &sval::Label) -> sval::Result {
         self.is_internally_tagged = false;
 
         if !self.is_current_depth_empty {
-            self.out
-                .write_str(",\"")
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_str(",\""));
         } else {
-            self.out
-                .write_char('"')
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
+            _try!(self.out.write_char('"'));
         }
 
-        // If the field is JSON native then it doesn't require escaping
-        if let Some(&tags::JSON_TEXT) = tag {
-            self.out
-                .write_str(label.as_str())
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
-        } else {
-            escape_str(label.as_str(), &mut self.out).map_err(|e| self.err(Error::from_fmt(e)))?;
-        }
+        _try!(escape_str(label.as_str(), &mut self.out));
 
-        self.out
-            .write_str("\":")
-            .map_err(|e| self.err(Error::from_fmt(e)))?;
+        _try!(self.out.write_str("\":"));
 
         self.map_value_begin()
     }
@@ -459,18 +405,18 @@ where
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        self.map_end()?;
+        _try_no_conv!(self.map_end());
         self.internally_tagged_end(label)
     }
 
     fn tuple_begin(
         &mut self,
-        tag: Option<&sval::Tag>,
+        _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
         num_entries_hint: Option<usize>,
     ) -> sval::Result {
-        self.internally_tagged_begin(tag, label)?;
+        _try_no_conv!(self.internally_tagged_begin(label));
         self.seq_begin(num_entries_hint)
     }
 
@@ -480,7 +426,7 @@ where
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        self.seq_end()?;
+        _try_no_conv!(self.seq_end());
         self.internally_tagged_end(label)
     }
 }
@@ -489,18 +435,14 @@ impl<'sval, W> Formatter<W>
 where
     W: Write,
 {
-    fn internally_tagged_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-    ) -> sval::Result {
+    fn internally_tagged_begin(&mut self, label: Option<&sval::Label>) -> sval::Result {
         // If there's a label then begin a map, using the label as the key
         if self.is_internally_tagged {
-            if let Some(label) = label {
-                self.internally_tagged_map_begin(tag, label)?;
-            }
-
             self.is_internally_tagged = false;
+
+            if let Some(label) = label {
+                return self.internally_tagged_map_begin(label);
+            }
         }
 
         Ok(())
@@ -514,33 +456,19 @@ where
         Ok(())
     }
 
-    fn internally_tagged_map_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: &sval::Label,
-    ) -> sval::Result {
-        self.map_begin(Some(1))?;
+    fn internally_tagged_map_begin(&mut self, label: &sval::Label) -> sval::Result {
+        _try_no_conv!(self.map_begin(Some(1)));
 
-        self.map_key_begin()?;
-
-        if let Some(&tags::JSON_TEXT) = tag {
-            self.out
-                .write_str(label.as_str())
-                .map_err(|e| self.err(Error::from_fmt(e)))?;
-        } else {
-            escape_str(label.as_str(), &mut self.out).map_err(|e| self.err(Error::from_fmt(e)))?;
-        }
-
-        self.map_key_end()?;
+        _try_no_conv!(self.map_key_begin());
+        _try!(escape_str(label.as_str(), &mut self.out));
+        _try_no_conv!(self.map_key_end());
 
         self.map_value_begin()
     }
 
     fn internally_tagged_map_end(&mut self) -> sval::Result {
-        self.map_value_end()?;
-        self.map_end()?;
-
-        Ok(())
+        _try_no_conv!(self.map_value_end());
+        self.map_end()
     }
 }
 
@@ -589,7 +517,7 @@ impl NumberTextHandler {
                     // If we're not skipping zeroes then shift over it to write later
                     b'0'..=b'9' => {
                         if self.at_start && self.sign_negative {
-                            out.write_char('-')?;
+                            _try_no_conv!(out.write_char('-'));
                         }
 
                         self.at_start = false;
@@ -599,10 +527,10 @@ impl NumberTextHandler {
                     b'.' => {
                         if self.at_start {
                             if self.sign_negative {
-                                out.write_char('-')?;
+                                _try_no_conv!(out.write_char('-'));
                             }
 
-                            out.write_char('0')?;
+                            _try_no_conv!(out.write_char('0'));
                         }
 
                         self.at_start = false;
@@ -625,7 +553,7 @@ impl NumberTextHandler {
                         self.is_nan_or_infinity = true;
                         self.at_start = false;
 
-                        out.write_str("null")?;
+                        _try_no_conv!(out.write_str("null"));
 
                         range.start = 0;
                         range.end = 0;
@@ -636,7 +564,7 @@ impl NumberTextHandler {
                 }
             }
 
-            out.write_str(&v[range])?;
+            _try_no_conv!(out.write_str(&v[range]));
         }
 
         Ok(())
@@ -644,7 +572,7 @@ impl NumberTextHandler {
 
     fn end(&mut self, mut out: impl Write) -> fmt::Result {
         if self.at_start {
-            out.write_char('0')?;
+            _try_no_conv!(out.write_char('0'));
         }
 
         Ok(())
@@ -668,22 +596,22 @@ fn escape_str(value: &str, mut out: impl Write) -> Result<(), fmt::Error> {
         }
 
         if start < i {
-            out.write_str(&value[start..i])?;
+            _try_no_conv!(out.write_str(&value[start..i]));
         }
 
         match escape {
-            BB => out.write_str("\\b")?,
-            TT => out.write_str("\\t")?,
-            NN => out.write_str("\\n")?,
-            FF => out.write_str("\\f")?,
-            RR => out.write_str("\\r")?,
-            QU => out.write_str("\\\"")?,
-            BS => out.write_str("\\\\")?,
+            BB => _try_no_conv!(out.write_str("\\b")),
+            TT => _try_no_conv!(out.write_str("\\t")),
+            NN => _try_no_conv!(out.write_str("\\n")),
+            FF => _try_no_conv!(out.write_str("\\f")),
+            RR => _try_no_conv!(out.write_str("\\r")),
+            QU => _try_no_conv!(out.write_str("\\\"")),
+            BS => _try_no_conv!(out.write_str("\\\\")),
             U => {
                 static HEX_DIGITS: [u8; 16] = *b"0123456789abcdef";
-                out.write_str("\\u00")?;
-                out.write_char(HEX_DIGITS[(byte >> 4) as usize] as char)?;
-                out.write_char(HEX_DIGITS[(byte & 0xF) as usize] as char)?;
+                _try_no_conv!(out.write_str("\\u00"));
+                _try_no_conv!(out.write_char(HEX_DIGITS[(byte >> 4) as usize] as char));
+                _try_no_conv!(out.write_char(HEX_DIGITS[(byte & 0xF) as usize] as char));
             }
             _ => unreachable!(),
         }
@@ -692,7 +620,7 @@ fn escape_str(value: &str, mut out: impl Write) -> Result<(), fmt::Error> {
     }
 
     if start != bytes.len() {
-        out.write_str(&value[start..])?;
+        _try_no_conv!(out.write_str(&value[start..]));
     }
 
     Ok(())
