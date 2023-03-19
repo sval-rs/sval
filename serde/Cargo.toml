@@ -1,0 +1,35 @@
+[package]
+name = "sval_serde"
+version = "2.0.0"
+authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+documentation = "https://docs.rs/sval_serde"
+description = "Integration between serde::Serialize and sval::Value"
+repository = "https://github.com/sval-rs/sval"
+keywords = ["serialization", "no_std"]
+categories = ["encoding", "no-std"]
+
+[package.metadata.docs.rs]
+features = ["std"]
+
+[features]
+std = ["alloc", "serde/std", "sval/std", "sval_buffer/std"]
+alloc = ["serde/alloc", "sval/alloc", "sval_buffer/alloc"]
+
+[dependencies.sval]
+version = "2.0.0"
+path = "../"
+
+[dependencies.sval_buffer]
+version = "2.0.0"
+path = "../buffer"
+default-features = false
+
+[dependencies.sval_fmt]
+version = "2.0.0"
+path = "../fmt"
+
+[dependencies.serde]
+version = "1"
+default-features = false

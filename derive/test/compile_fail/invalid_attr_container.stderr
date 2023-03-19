@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> compile_fail/invalid_attr_container.rs:4:10
+  |
+4 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: unsupported attribute `not_an_attr` on container

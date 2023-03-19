@@ -1,0 +1,37 @@
+[package]
+name = "sval_serde_test"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.sval_serde]
+path = "../"
+
+[dependencies.sval]
+path = "../../"
+features = ["std"]
+
+[dependencies.sval_derive]
+path = "../../derive"
+
+[dependencies.sval_buffer]
+path = "../../buffer"
+features = ["alloc"]
+
+[dependencies.sval_dynamic]
+path = "../../dynamic"
+
+[dependencies.sval_test]
+path = "../../test"
+
+[dependencies.serde]
+version = "1"
+
+[dependencies.serde_derive]
+version = "1"
+
+[dependencies.serde_test]
+version = "1"

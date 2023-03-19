@@ -1,0 +1,27 @@
+[package]
+name = "sval_json_test"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.sval]
+path = "../../"
+
+[dependencies.sval_json]
+path = "../"
+features = ["std"]
+
+[dependencies.sval_derive]
+path = "../../derive"
+
+[dependencies.serde]
+version = "1"
+
+[dependencies.serde_json]
+version = "1"
+
+[dependencies.serde_derive]
+version = "1"
