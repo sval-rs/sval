@@ -204,7 +204,7 @@ fn stream_exotic_record() {
 }
 
 #[test]
-fn stream_exotic_nested_enum() {
+fn stream_exotic_nested_enum_tag() {
     // Outer::Inner::Variant
     struct NestedEnum;
 
@@ -239,6 +239,57 @@ fn stream_exotic_nested_enum() {
 
     assert_eq!(
         "{\"Inner\":\"Variant\"}",
+        format!("{}", sval_json::stream_to_string(NestedEnum).unwrap())
+    );
+}
+
+#[test]
+fn stream_exotic_nested_enum_record() {
+    // Outer::Inner::Variant { a: 42 }
+    struct NestedEnum;
+
+    impl sval::Value for NestedEnum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, Some(&sval::Label::new("Outer")), None)?;
+
+            stream.enum_begin(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.record_begin(
+                None,
+                Some(&sval::Label::new("Variant")),
+                Some(&sval::Index::new(0)),
+                None,
+            )?;
+
+            stream.record_value_begin(None, &sval::Label::new("a"))?;
+            stream.i32(42)?;
+            stream.record_value_end(None, &sval::Label::new("a"))?;
+
+            stream.record_end(
+                None,
+                Some(&sval::Label::new("Variant")),
+                Some(&sval::Index::new(0)),
+            )?;
+
+            stream.enum_end(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.enum_end(None, Some(&sval::Label::new("Outer")), None)
+        }
+    }
+
+    assert_eq!(
+        "{\"Inner\":{\"Variant\":{\"a\":42}}}",
         format!("{}", sval_json::stream_to_string(NestedEnum).unwrap())
     );
 }
@@ -282,6 +333,40 @@ fn stream_exotic_unnamed_enum() {
             "{}",
             sval_json::stream_to_string(UntaggedEnum::I32(42)).unwrap()
         )
+    );
+}
+
+#[test]
+fn stream_exotic_unnamed_nested_enum_record() {
+    // { a: 42 }
+    struct NestedEnum;
+
+    impl sval::Value for NestedEnum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, None, None)?;
+
+            stream.enum_begin(None, None, None)?;
+
+            stream.record_begin(None, None, None, None)?;
+
+            stream.record_value_begin(None, &sval::Label::new("a"))?;
+            stream.i32(42)?;
+            stream.record_value_end(None, &sval::Label::new("a"))?;
+
+            stream.record_end(None, None, None)?;
+
+            stream.enum_end(None, None, None)?;
+
+            stream.enum_end(None, None, None)
+        }
+    }
+
+    assert_eq!(
+        "{\"a\":42}",
+        format!("{}", sval_json::stream_to_string(NestedEnum).unwrap())
     );
 }
 

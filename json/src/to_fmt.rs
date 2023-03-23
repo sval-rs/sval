@@ -264,9 +264,11 @@ where
     fn enum_begin(
         &mut self,
         _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
+        label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
+        _try_no_conv!(self.internally_tagged_begin(label));
+
         self.is_internally_tagged = true;
 
         Ok(())
@@ -275,15 +277,13 @@ where
     fn enum_end(
         &mut self,
         _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
+        label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
         if self.is_internally_tagged {
-            self.is_internally_tagged = false;
-
             self.internally_tagged_map_end()
         } else {
-            Ok(())
+            self.internally_tagged_end(label)
         }
     }
 
