@@ -197,6 +197,7 @@ where
         if !self.is_current_depth_empty {
             _try!(self.out.write_str(",\""));
         } else {
+            self.is_current_depth_empty = false;
             _try!(self.out.write_char('"'));
         }
 
@@ -216,8 +217,6 @@ where
     }
 
     fn map_value_end(&mut self) -> sval::Result {
-        self.is_current_depth_empty = false;
-
         Ok(())
     }
 
@@ -244,14 +243,14 @@ where
 
         if !self.is_current_depth_empty {
             _try!(self.out.write_char(','));
+        } else {
+            self.is_current_depth_empty = false;
         }
 
         Ok(())
     }
 
     fn seq_value_end(&mut self) -> sval::Result {
-        self.is_current_depth_empty = false;
-
         Ok(())
     }
 
@@ -378,6 +377,7 @@ where
         if !self.is_current_depth_empty {
             _try!(self.out.write_str(",\""));
         } else {
+            self.is_current_depth_empty = false;
             _try!(self.out.write_char('"'));
         }
 
