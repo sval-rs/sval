@@ -3,9 +3,9 @@ use core::fmt::{self, Write as _};
 /**
 Stream a [`fmt::Debug`] into an [`sval::Stream`].
 */
-pub fn stream_debug<'sval, S: sval::Stream<'sval> + ?Sized, V: fmt::Debug>(
-    stream: &mut S,
-    value: V,
+pub fn stream_debug<'sval>(
+    stream: &mut (impl sval::Stream<'sval> + ?Sized),
+    value: impl fmt::Debug,
 ) -> sval::Result {
     stream.value_computed(&DebugToValue(value))
 }
@@ -13,9 +13,9 @@ pub fn stream_debug<'sval, S: sval::Stream<'sval> + ?Sized, V: fmt::Debug>(
 /**
 Stream a [`fmt::Display`] into an [`sval::Stream`].
 */
-pub fn stream_display<'sval, S: sval::Stream<'sval> + ?Sized, V: fmt::Display>(
-    stream: &mut S,
-    value: V,
+pub fn stream_display<'sval>(
+    stream: &mut (impl sval::Stream<'sval> + ?Sized),
+    value: impl fmt::Display,
 ) -> sval::Result {
     stream.value_computed(&DisplayToValue(value))
 }

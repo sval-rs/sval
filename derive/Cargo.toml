@@ -14,8 +14,8 @@ categories = ["encoding", "no-std"]
 proc-macro = true
 
 [dependencies.syn]
-version = "1"
-features = ["extra-traits"]
+version = "2"
+features = ["derive", "parsing", "extra-traits"]
 
 [dependencies.quote]
 version = "1"

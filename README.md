@@ -1,22 +1,20 @@
-# `sval`
+# `sval`: Streaming, structured values
 
-`sval` is a serialization API for Rust that streams the structure of data like a tokenizer.
-`sval` is well suited to streaming self-describing text-based data formats like JSON.
-`sval` is a lot like `serde::ser`, but with a few differences in design:
+`sval` is a lightweight serialization-only framework that treats values like a flat stream of tokens.
+It's well suited to self-describing text formats like JSON.
 
-1. It uses a single `Stream` trait instead of `serde::Serializer` with its associated types.
-2. It carries an optional `'sval` lifetime for borrowing text and binary data.
-3. All state is internal to the implementation of `Stream`, so providing an object-safe API doesn't
-require an allocator.
-4. The basic data-model is smaller than `serde`'s, but tags allow natural customization for things like
-arbitrary-precision numbers and fixed-size arrays.
+## How is this different from `serde`?
 
-`sval` isn't intended as a successor project to `serde`. It fills a particular niche in the
-landscape that can't be served by `serde` + `erased_serde`. In general, `sval`'s API is noisier
-than `serde`s since it's flat, so the starts and ends of structural elements like map keys need
-to be called out. Implementations of `Stream` need to do more work to track their state internally,
-instead of relying on the callstack. In general, `Stream` is probably harder to implement than `Serializer`.
+`serde` is the de-facto serialization framework for Rust and is well suited to the majority of
+use cases. `sval` is like a light blend of `serde::ser` and `serde::de` that is smaller in scope.
+It makes a few key different design decisions than `serde` that make it effective for working with
+self-describing formats:
 
-# Current status
+1. The API is flat rather than using recursion to stream nested datastructures.
+2. All values with dynamic sizes, including text strings, can be streamed in multiple calls.
+3. Borrowing is an optional optimization.
+4. The data model isn't a one-to-one mapping of Rust's own.
+
+## Current status
 
 This project has a complete and stable API, but isn't well documented yet.

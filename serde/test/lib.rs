@@ -609,3 +609,37 @@ fn enum_tuple_to_serialize() {
         },
     );
 }
+
+#[cfg(feature = "alloc")]
+mod alloc_support {
+    use super::*;
+
+    #[test]
+    fn text_fragments() {
+        struct SplitText<'a>(&'a [&'a str]);
+
+        impl<'a> sval::Value for SplitText<'a> {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.text_begin(None)?;
+
+                for fragment in self.0 {
+                    stream.text_fragment(fragment)?;
+                }
+
+                stream.text_end()
+            }
+        }
+
+        assert_ser_tokens(
+            &sval_serde::ToSerialize::new(&SplitText(&["a", "bcd", "e"])),
+            {
+                use serde_test::Token::*;
+
+                &[Str("abcde")]
+            },
+        );
+    }
+}

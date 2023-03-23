@@ -1,3 +1,7 @@
+/*!
+Tags for JSON-specific types.
+*/
+
 /**
 A tag for strings that either don't contain characters that need escaping or are already escaped.
 */

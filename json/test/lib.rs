@@ -33,7 +33,7 @@ struct SeqStruct(i32, bool, &'static str);
 #[derive(Value, Serialize)]
 struct Tagged(i32);
 
-#[derive(Value, Serialize)]
+#[derive(Clone, Value, Serialize)]
 enum Enum {
     Constant,
     Tagged(i32),
@@ -43,6 +43,7 @@ enum Enum {
         field_2: &'static str,
     },
     SeqStruct(i32, bool, &'static str),
+    Nested(Box<Enum>),
 }
 
 #[derive(Value)]
@@ -136,17 +137,24 @@ fn stream_tagged() {
 
 #[test]
 fn stream_enum() {
-    assert_json(Enum::Constant);
+    for variant in [
+        Enum::Constant,
+        Enum::MapStruct {
+            field_0: 42,
+            field_1: true,
+            field_2: "Hello",
+        },
+        Enum::SeqStruct(42, true, "Hello"),
+        Enum::Tagged(42),
+    ] {
+        assert_json(&variant);
 
-    assert_json(Enum::MapStruct {
-        field_0: 42,
-        field_1: true,
-        field_2: "Hello",
-    });
+        assert_json(Enum::Nested(Box::new(variant.clone())));
 
-    assert_json(Enum::SeqStruct(42, true, "Hello"));
-
-    assert_json(Enum::Tagged(42));
+        assert_json(Enum::Nested(Box::new(Enum::Nested(Box::new(
+            variant.clone(),
+        )))));
+    }
 }
 
 #[test]
@@ -230,7 +238,7 @@ fn stream_exotic_nested_enum() {
     }
 
     assert_eq!(
-        "\"Variant\"",
+        "{\"Inner\":\"Variant\"}",
         format!("{}", sval_json::stream_to_string(NestedEnum).unwrap())
     );
 }

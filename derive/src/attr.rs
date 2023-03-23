@@ -1,5 +1,42 @@
-use syn::{spanned::Spanned, Attribute, Lit, LitBool, Meta, NestedMeta, Path};
+use syn::{spanned::Spanned, Attribute, Lit, LitBool, Path};
 
+/**
+Get an attribute that is applicable to a container.
+*/
+pub(crate) fn container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
+    get("container", &[&Tag, &Label, &Index], request, attrs)
+}
+
+/**
+Get an attribute that is applicable to a named struct field.
+*/
+pub(crate) fn named_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
+    get("named field", &[&Tag, &Label, &Skip], request, attrs)
+}
+
+/**
+Get an attribute that is applicable to an unnamed tuple field.
+*/
+pub(crate) fn unnamed_field<T: SvalAttribute>(
+    request: T,
+    attrs: &[Attribute],
+) -> Option<T::Result> {
+    get("unnamed field", &[&Tag, &Index, &Skip], request, attrs)
+}
+
+/**
+Ensure that no attributes are applied to a newtype field.
+*/
+pub(crate) fn ensure_newtype_field_empty(attrs: &[Attribute]) {
+    ensure_empty("newtype field", attrs)
+}
+
+/**
+The `tag` attribute.
+
+This attribute specifies a path to an `sval::Tag` to use
+for the annotated item.
+*/
 pub(crate) struct Tag;
 
 impl SvalAttribute for Tag {
@@ -20,6 +57,12 @@ impl RawAttribute for Tag {
     }
 }
 
+/**
+The `label` attribute.
+
+This attribute specifies an `sval::Label` as a constant
+to use for the annotated item.
+*/
 pub(crate) struct Label;
 
 impl SvalAttribute for Label {
@@ -40,6 +83,12 @@ impl RawAttribute for Label {
     }
 }
 
+/**
+The `index` attribute.
+
+This attribute specifies an `sval::Index` as a constant
+to use for the annotated item.
+*/
 pub(crate) struct Index;
 
 impl SvalAttribute for Index {
@@ -60,6 +109,12 @@ impl RawAttribute for Index {
     }
 }
 
+/**
+The `skip` attribute.
+
+This attribute signals that an item should be skipped
+from streaming.
+*/
 pub(crate) struct Skip;
 
 impl SvalAttribute for Skip {
@@ -88,25 +143,6 @@ pub(crate) trait SvalAttribute: RawAttribute {
     type Result: 'static;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result;
-}
-
-pub(crate) fn container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    get("container", &[&Tag, &Label, &Index], request, attrs)
-}
-
-pub(crate) fn named_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    get("named field", &[&Tag, &Label, &Skip], request, attrs)
-}
-
-pub(crate) fn unnamed_field<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    get("unnamed field", &[&Tag, &Index, &Skip], request, attrs)
-}
-
-pub(crate) fn ensure_newtype_field_empty(attrs: &[Attribute]) {
-    ensure_empty("newtype field", attrs)
 }
 
 fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
@@ -167,20 +203,26 @@ fn sval_attr<'a>(
     ctxt: &'a str,
     attr: &'_ Attribute,
 ) -> Option<impl IntoIterator<Item = (Path, Lit)> + 'a> {
-    if !attr.path.is_ident("sval") {
+    if !attr.path().is_ident("sval") {
         return None;
     }
 
-    match attr.parse_meta().ok() {
-        Some(Meta::List(list)) => Some(list.nested.into_iter().map(move |meta| match meta {
-            NestedMeta::Meta(Meta::NameValue(value)) => (value.path, value.lit),
-            NestedMeta::Meta(Meta::Path(path)) => {
-                let lit = Lit::Bool(LitBool::new(true, path.span()));
+    let mut results = Vec::new();
+    attr.parse_nested_meta(|meta| {
+        let lit: Lit = match meta.value() {
+            Ok(value) => value.parse()?,
+            // If there isn't a value associated with the item
+            // then use the boolean `true`
+            Err(_) => Lit::Bool(LitBool::new(true, meta.path.span())),
+        };
 
-                (path, lit)
-            }
-            _ => panic!("unexpected `sval` attribute on {}", ctxt),
-        })),
-        _ => panic!("unsupported attribute `{}` on {}", quote!(#attr), ctxt),
-    }
+        let path = meta.path;
+
+        results.push((path, lit));
+
+        Ok(())
+    })
+    .unwrap_or_else(|e| panic!("failed to parse attribute on {}: {}", ctxt, e));
+
+    Some(results)
 }
