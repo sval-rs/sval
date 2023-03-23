@@ -13,7 +13,7 @@ self-describing formats:
 1. The API is flat rather than using recursion to stream nested datastructures.
 2. All values with dynamic sizes, including text strings, can be streamed in multiple calls.
 3. Borrowing is an optional optimization.
-4. The data model isn't a one-to-one mapping of Rust's own.
+4. The core data model is small, with tags for extensibility.
 
 ## Current status
 
