@@ -15,6 +15,33 @@ self-describing formats:
 3. Borrowing is an optional optimization.
 4. The core data model is small, with tags for extensibility.
 
+# Data-model
+
+- Values:
+    - `null`: the absence of any other meaningful value.
+    - Booleans: `true` and `false`.
+    - Text strings: stream of UTF8-encoded bytes.
+    - Binary strings: stream of arbtirary bytes.
+    - Numbers:
+        - Integers: `u8`-`u128`, `i8`-`i128`.
+        - Binary floating point: `f32`-`f64`.
+    - Maps: heterogeneous collection of key-value pairs.
+    - Sequences: heterogeneous collection of values.
+    - Tags: out-of-band type hints.
+    - Tagged values: a tag associated with a value.
+    - Records: tagged maps where keys are well-known labels.
+    - Tuples: tagged sequences.
+    - Enums: tagged variants, where variants are enums, tags, tagged values, records, or tuples.
+
+`sval` includes built-in tags that extend its data-model with some common datatypes:
+
+- Rust primitives:
+    - `()`.
+    - `Option<T>`.
+- Arbitrary-precision decimal floating point numbers.
+
+Other built-in tags may be added in the future. Libraries may also define their own tags.
+
 ## Current status
 
 This project has a complete and stable API, but isn't well documented yet.

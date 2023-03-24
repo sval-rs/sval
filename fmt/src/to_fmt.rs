@@ -27,16 +27,21 @@ impl<V: sval::Value + ?Sized> ToFmt<V> {
     }
 }
 
+/**
+Format a value into an underlying formatter.
+*/
+pub fn stream_to_fmt(fmt: &mut fmt::Formatter, v: impl sval::Value) -> fmt::Result {
+    v.stream(&mut Writer::new(fmt)).map_err(|_| fmt::Error)
+}
+
 impl<V: sval::Value> fmt::Debug for ToFmt<V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.0.stream(&mut Writer::new(f)).map_err(|_| fmt::Error)?;
-
-        Ok(())
+        stream_to_fmt(f, &self.0)
     }
 }
 
 impl<V: sval::Value> fmt::Display for ToFmt<V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
+        stream_to_fmt(f, &self.0)
     }
 }
