@@ -1,5 +1,9 @@
 # `sval`: Streaming, structured values
 
+[![Rust](https://github.com/sval-rs/sval/workflows/sval/badge.svg)](https://github.com/sval-rs/sval/actions)
+[![Latest version](https://img.shields.io/crates/v/sval.svg)](https://crates.io/crates/sval)
+[![Documentation Latest](https://docs.rs/sval/badge.svg)](https://docs.rs/sval)
+
 `sval` is a lightweight serialization-only framework that treats values like a flat stream of tokens.
 It's well suited to self-describing text formats like JSON.
 
