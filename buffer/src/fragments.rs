@@ -109,6 +109,13 @@ impl<'sval> TextBuf<'sval> {
     }
 
     /**
+    Clear the text buffer so it can be re-used.
+    */
+    pub fn clear(&mut self) {
+        *self = Default::default();
+    }
+
+    /**
     Push a borrowed text fragment onto the buffer.
     */
     pub fn push_fragment(&mut self, fragment: &'sval str) -> Result<(), Error> {
@@ -279,6 +286,13 @@ impl<'sval> BinaryBuf<'sval> {
             .map_err(|_| collector.err.unwrap())?;
 
         Ok(collector.buf)
+    }
+
+    /**
+    Clear the binary buffer so it can be re-used.
+    */
+    pub fn clear(&mut self) {
+        *self = Default::default();
     }
 
     /**
@@ -457,9 +471,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
             value: value.to_fragment(),
         }
     }
-}
 
-impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
     fn push(&mut self, fragment: &'sval T) -> Result<(), Error> {
         if self.value.can_replace() {
             self.value = fragment.to_fragment();
@@ -541,6 +553,16 @@ mod tests {
     }
 
     #[test]
+    fn text_fragment_clear() {
+        let mut buf = TextBuf::new();
+
+        buf.push_fragment("abc").unwrap();
+        buf.clear();
+
+        assert_eq!("", buf.as_str());
+    }
+
+    #[test]
     fn binary_fragment_replace() {
         let mut buf = BinaryBuf::new();
 
@@ -551,6 +573,16 @@ mod tests {
 
         assert_eq!(b"abc", buf.as_slice());
         assert_eq!(Some(b"abc" as &[u8]), buf.as_borrowed_slice());
+    }
+
+    #[test]
+    fn binary_fragment_clear() {
+        let mut buf = BinaryBuf::new();
+
+        buf.push_fragment(b"abc").unwrap();
+        buf.clear();
+
+        assert_eq!(b"", buf.as_slice());
     }
 
     #[test]
