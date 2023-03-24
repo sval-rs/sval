@@ -18,6 +18,7 @@ produce errors during serialization.
 */
 
 #![no_std]
+#![deny(missing_docs)]
 
 mod to_serialize;
 mod to_value;

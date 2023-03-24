@@ -31,16 +31,17 @@ features = ["std"]
 # The `Value` trait
 
 [`Value`] is a trait for data types to implement that surfaces their structure
-through visitors called _streams_. `Value` is like `serde`'s `Serialize`.
+through visitors called _streams_. `Value` is like `serde`'s `Serialize`. It
+can also be used like `serde`'s `Deserialize`.
 
-Many standard types in Rust implement the `Value` trait.
-
-`Value` can be derived when the `derive` feature is enabled.
+Many standard types in Rust implement the `Value` trait. It can be derived
+on your own types using the `sval_derive` library.
 
 # The `Stream` trait
 
 [`Stream`] is a trait for data formats and visitors to implement that observes
-the structure of _values_. `Stream` is like `serde`'s `Serializer`.
+the structure of _values_. `Stream` is like `serde`'s `Serializer`. It can
+also be used like `serde`'s `Deserializer`.
 
 # Data-model
 
@@ -78,8 +79,8 @@ The [`Value`] and [`Stream`] traits aren't object-safe themselves, but object-sa
 wrappers are provided by the `sval_dynamic` crate. This wrapper works in no-std.
 */
 
-#![deny(missing_docs)]
 #![cfg_attr(not(test), no_std)]
+#![deny(missing_docs)]
 
 #[cfg(feature = "std")]
 extern crate std;
@@ -116,9 +117,9 @@ pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 /**
 Stream a value through a stream.
 */
-pub fn stream<'sval, S: Stream<'sval> + ?Sized, V: Value + ?Sized>(
-    stream: &mut S,
-    value: &'sval V,
+pub fn stream<'sval>(
+    stream: &mut (impl Stream<'sval> + ?Sized),
+    value: &'sval (impl Value + ?Sized),
 ) -> Result {
     stream.value(value)
 }
@@ -126,9 +127,9 @@ pub fn stream<'sval, S: Stream<'sval> + ?Sized, V: Value + ?Sized>(
 /**
 Stream a value through a stream with an arbitrarily short lifetime.
 */
-pub fn stream_computed<'sval, S: Stream<'sval> + ?Sized, V: Value>(
-    stream: &mut S,
-    value: V,
+pub fn stream_computed<'sval>(
+    stream: &mut (impl Stream<'sval> + ?Sized),
+    value: impl Value,
 ) -> Result {
     stream.value_computed(&value)
 }

@@ -7,6 +7,7 @@ so it's possible to use in no-std environments.
 */
 
 #![no_std]
+#![deny(missing_docs)]
 
 mod stream;
 mod value;

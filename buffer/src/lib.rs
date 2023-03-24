@@ -10,6 +10,7 @@ out functionality when an allocator isn't available.
 */
 
 #![no_std]
+#![deny(missing_docs)]
 
 mod error;
 

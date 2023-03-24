@@ -5,6 +5,7 @@ Values are serialized in a `serde`-compatible way.
 */
 
 #![no_std]
+#![deny(missing_docs)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

@@ -11,9 +11,9 @@ use sval_buffer::{BinaryBuf, TextBuf, ValueBuf};
 /**
 Serialize an [`sval::Value`] into a [`serde::Serializer`].
 */
-pub fn serialize<S: serde::Serializer, V: sval::Value>(
+pub fn serialize<S: serde::Serializer>(
     serializer: S,
-    value: V,
+    value: impl sval::Value,
 ) -> Result<S::Ok, S::Error> {
     ToSerialize(value).serialize(serializer)
 }

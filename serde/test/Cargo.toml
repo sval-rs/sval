@@ -7,6 +7,9 @@ edition = "2021"
 [lib]
 path = "lib.rs"
 
+[features]
+alloc = ["sval_serde/alloc"]
+
 [dependencies.sval_serde]
 path = "../"
 

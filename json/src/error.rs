@@ -1,5 +1,8 @@
 use core::fmt;
 
+/**
+An error encountered streaming JSON.
+*/
 #[derive(Debug)]
 pub struct Error {
     pub(crate) kind: ErrorKind,

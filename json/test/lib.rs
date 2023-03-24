@@ -20,29 +20,31 @@ fn assert_stream(expected: &str, v: impl sval::Value) {
     assert_eq!(expected, actual_bytes);
 }
 
-#[derive(Value, Serialize)]
-struct MapStruct {
-    field_0: i32,
-    field_1: bool,
-    field_2: &'static str,
+fn assert_valid(v: impl sval::Value) {
+    let json = sval_json::stream_to_string(v).unwrap();
+
+    let _: serde_json::Value = serde_json::from_str(&json).unwrap();
 }
 
 #[derive(Value, Serialize)]
-struct SeqStruct(i32, bool, &'static str);
+struct MapStruct<F0, F1> {
+    field_0: F0,
+    field_1: F1,
+}
 
 #[derive(Value, Serialize)]
-struct Tagged(i32);
+struct SeqStruct<F0, F1>(F0, F1);
 
 #[derive(Value, Serialize)]
-enum Enum {
+struct Tagged<T>(T);
+
+#[derive(Clone, Value, Serialize)]
+enum Enum<F0, F1> {
     Constant,
-    Tagged(i32),
-    MapStruct {
-        field_0: i32,
-        field_1: bool,
-        field_2: &'static str,
-    },
-    SeqStruct(i32, bool, &'static str),
+    Tagged(F0),
+    MapStruct { field_0: F0, field_1: F1 },
+    SeqStruct(F0, F1),
+    Nested(Box<Enum<F0, F1>>),
 }
 
 #[derive(Value)]
@@ -119,14 +121,19 @@ fn stream_map_struct() {
     assert_json(MapStruct {
         field_0: 42,
         field_1: true,
-        field_2: "Hello",
+    });
+
+    assert_json(MapStruct {
+        field_0: "Hello",
+        field_1: 1.3,
     });
 }
 
 #[test]
 fn stream_seq_struct() {
-    assert_json(SeqStruct(42, true, "Hello"));
-    assert_json((42, true, "Hello"));
+    assert_json(SeqStruct(42, true));
+    assert_json(SeqStruct("Hello", 1.3));
+    assert_json((42, true));
 }
 
 #[test]
@@ -136,17 +143,23 @@ fn stream_tagged() {
 
 #[test]
 fn stream_enum() {
-    assert_json(Enum::Constant);
+    for variant in [
+        Enum::Constant,
+        Enum::MapStruct {
+            field_0: 42,
+            field_1: true,
+        },
+        Enum::SeqStruct(42, true),
+        Enum::Tagged(42),
+    ] {
+        assert_json(&variant);
 
-    assert_json(Enum::MapStruct {
-        field_0: 42,
-        field_1: true,
-        field_2: "Hello",
-    });
+        assert_json(Enum::Nested(Box::new(variant.clone())));
 
-    assert_json(Enum::SeqStruct(42, true, "Hello"));
-
-    assert_json(Enum::Tagged(42));
+        assert_json(Enum::Nested(Box::new(Enum::Nested(Box::new(
+            variant.clone(),
+        )))));
+    }
 }
 
 #[test]
@@ -183,20 +196,59 @@ fn stream_exotic_record() {
 
     assert_eq!(
         "{\"field_0\":42,\"field_1\":true,\"field_2\":\"Hello\"}",
-        format!(
-            "{}",
-            sval_json::stream_to_string(&UnnamedRecord {
+        sval_json::stream_to_string(UnnamedRecord {
+            field_0: 42,
+            field_1: true,
+            field_2: "Hello",
+        })
+        .unwrap()
+    );
+
+    assert_eq!(
+        "{\"field_0\":{\"field_0\":42,\"field_1\":true,\"field_2\":\"Hello\"},\"field_1\":{\"field_0\":42,\"field_1\":true,\"field_2\":\"Hello\"}}",
+        sval_json::stream_to_string(MapStruct {
+            field_0: UnnamedRecord {
                 field_0: 42,
                 field_1: true,
                 field_2: "Hello",
-            })
-            .unwrap()
-        )
+            },
+            field_1: UnnamedRecord {
+                field_0: 42,
+                field_1: true,
+                field_2: "Hello",
+            },
+        }).unwrap()
     );
+
+    assert_valid(MapStruct {
+        field_0: UnnamedRecord {
+            field_0: 42,
+            field_1: true,
+            field_2: "Hello",
+        },
+        field_1: UnnamedRecord {
+            field_0: 42,
+            field_1: true,
+            field_2: "Hello",
+        },
+    });
+
+    assert_valid(SeqStruct(
+        UnnamedRecord {
+            field_0: 42,
+            field_1: true,
+            field_2: "Hello",
+        },
+        UnnamedRecord {
+            field_0: 42,
+            field_1: true,
+            field_2: "Hello",
+        },
+    ));
 }
 
 #[test]
-fn stream_exotic_nested_enum() {
+fn stream_exotic_nested_enum_tag() {
     // Outer::Inner::Variant
     struct NestedEnum;
 
@@ -230,9 +282,74 @@ fn stream_exotic_nested_enum() {
     }
 
     assert_eq!(
-        "\"Variant\"",
-        format!("{}", sval_json::stream_to_string(NestedEnum).unwrap())
+        "{\"Inner\":\"Variant\"}",
+        sval_json::stream_to_string(NestedEnum).unwrap(),
     );
+
+    assert_valid(MapStruct {
+        field_0: NestedEnum,
+        field_1: NestedEnum,
+    });
+
+    assert_valid(SeqStruct(NestedEnum, NestedEnum));
+}
+
+#[test]
+fn stream_exotic_nested_enum_record() {
+    // Outer::Inner::Variant { a: 42 }
+    struct NestedEnum;
+
+    impl sval::Value for NestedEnum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, Some(&sval::Label::new("Outer")), None)?;
+
+            stream.enum_begin(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.record_begin(
+                None,
+                Some(&sval::Label::new("Variant")),
+                Some(&sval::Index::new(0)),
+                None,
+            )?;
+
+            stream.record_value_begin(None, &sval::Label::new("a"))?;
+            stream.i32(42)?;
+            stream.record_value_end(None, &sval::Label::new("a"))?;
+
+            stream.record_end(
+                None,
+                Some(&sval::Label::new("Variant")),
+                Some(&sval::Index::new(0)),
+            )?;
+
+            stream.enum_end(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.enum_end(None, Some(&sval::Label::new("Outer")), None)
+        }
+    }
+
+    assert_eq!(
+        "{\"Inner\":{\"Variant\":{\"a\":42}}}",
+        sval_json::stream_to_string(NestedEnum).unwrap(),
+    );
+
+    assert_valid(MapStruct {
+        field_0: NestedEnum,
+        field_1: NestedEnum,
+    });
+
+    assert_valid(SeqStruct(NestedEnum, NestedEnum));
 }
 
 #[test]
@@ -240,7 +357,6 @@ fn stream_exotic_unnamed_enum() {
     // (i32 | bool)
     enum UntaggedEnum {
         I32(i32),
-        #[allow(dead_code)]
         Bool(bool),
     }
 
@@ -270,11 +386,56 @@ fn stream_exotic_unnamed_enum() {
 
     assert_eq!(
         "42",
-        format!(
-            "{}",
-            sval_json::stream_to_string(UntaggedEnum::I32(42)).unwrap()
-        )
+        sval_json::stream_to_string(UntaggedEnum::I32(42)).unwrap(),
     );
+
+    assert_valid(MapStruct {
+        field_0: UntaggedEnum::I32(42),
+        field_1: UntaggedEnum::Bool(true),
+    });
+
+    assert_valid(SeqStruct(UntaggedEnum::I32(42), UntaggedEnum::Bool(true)));
+}
+
+#[test]
+fn stream_exotic_unnamed_nested_enum_record() {
+    // { a: 42 }
+    struct NestedEnum;
+
+    impl sval::Value for NestedEnum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, None, None)?;
+
+            stream.enum_begin(None, None, None)?;
+
+            stream.record_begin(None, None, None, None)?;
+
+            stream.record_value_begin(None, &sval::Label::new("a"))?;
+            stream.i32(42)?;
+            stream.record_value_end(None, &sval::Label::new("a"))?;
+
+            stream.record_end(None, None, None)?;
+
+            stream.enum_end(None, None, None)?;
+
+            stream.enum_end(None, None, None)
+        }
+    }
+
+    assert_eq!(
+        "{\"a\":42}",
+        sval_json::stream_to_string(NestedEnum).unwrap(),
+    );
+
+    assert_valid(MapStruct {
+        field_0: NestedEnum,
+        field_1: NestedEnum,
+    });
+
+    assert_valid(SeqStruct(NestedEnum, NestedEnum));
 }
 
 #[test]
@@ -286,13 +447,12 @@ fn stream_to_io() {
         MapStruct {
             field_0: 42,
             field_1: true,
-            field_2: "a",
         },
     )
     .unwrap();
 
     assert_eq!(
-        "{\"field_0\":42,\"field_1\":true,\"field_2\":\"a\"}",
+        "{\"field_0\":42,\"field_1\":true}",
         String::from_utf8(buf).unwrap()
     );
 }

@@ -123,13 +123,6 @@ impl<'sval> ValueBuf<'sval> {
         self.value.clone()
     }
 
-    /**
-    Convert this buffer into an immutable value, dropping any temporary state.
-    */
-    pub fn into_value(self) -> Value<'sval> {
-        self.value
-    }
-
     #[cfg(feature = "alloc")]
     fn try_catch(
         &mut self,
@@ -154,7 +147,7 @@ impl<'sval> Value<'sval> {
     This method will fail if the `alloc` feature is not enabled.
     */
     pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
-        ValueBuf::collect(v).map(|buf| buf.into_value())
+        ValueBuf::collect(v).map(|buf| buf.to_value())
     }
 }
 
