@@ -1,4 +1,4 @@
-use crate::{data, tags, Index, Label, Result, Tag, Value};
+use crate::{data, tags, Index, Label, Result, Tag, Value, ValueRef};
 
 /**
 A consumer of structured data.
@@ -16,6 +16,13 @@ pub trait Stream<'sval> {
     */
     fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
         stream_computed(self, v)
+    }
+
+    /**
+    Recurse into a nested value reference.
+    */
+    fn value_ref<V: ValueRef<'sval> + ?Sized>(&mut self, v: &V) -> Result {
+        v.stream_ref(self)
     }
 
     /**
@@ -443,6 +450,11 @@ macro_rules! impl_stream_forward {
             fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
                 let $bind = self;
                 ($($forward)*).value_computed(v)
+            }
+
+            fn value_ref<V: ValueRef<'sval> + ?Sized>(&mut self, v: &V) -> Result {
+                let $bind = self;
+                ($($forward)*).value_ref(v)
             }
 
             fn null(&mut self) -> Result {
@@ -945,5 +957,26 @@ mod tests {
         }
 
         assert_eq!(true, ComputedValue(5).to_bool().unwrap());
+    }
+
+    #[test]
+    fn stream_ref_computed() {
+        struct RefValue<'a>(&'a str);
+
+        impl<'a> Value for RefValue<'a> {
+            fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+                self.stream_ref(stream)
+            }
+        }
+
+        impl<'a> ValueRef<'a> for RefValue<'a> {
+            fn stream_ref<S: Stream<'a> + ?Sized>(&self, stream: &mut S) -> Result {
+                stream.value(self.0)
+            }
+        }
+
+        fn _check<'a>(stream: &mut impl Stream<'a>, v: RefValue<'a>) {
+            let _ = stream.value_computed(&v);
+        }
     }
 }

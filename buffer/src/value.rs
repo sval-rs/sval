@@ -3,6 +3,8 @@ use crate::{std::marker::PhantomData, Error};
 #[cfg(feature = "alloc")]
 use crate::{std::vec::Vec, BinaryBuf, TextBuf};
 
+use sval::ValueRef as _;
+
 #[cfg(feature = "alloc")]
 pub use alloc_support::*;
 
@@ -153,12 +155,24 @@ impl<'sval> Value<'sval> {
 
 impl<'a> sval::Value for ValueBuf<'a> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-        self.value.stream(stream)
+        self.stream_ref(stream)
+    }
+}
+
+impl<'sval> sval::ValueRef<'sval> for ValueBuf<'sval> {
+    fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
+        self.value.stream_ref(stream)
     }
 }
 
 impl<'a> sval::Value for Value<'a> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+        self.stream_ref(stream)
+    }
+}
+
+impl<'sval> sval::ValueRef<'sval> for Value<'sval> {
+    fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
             // If the buffer is empty then stream null
@@ -166,7 +180,7 @@ impl<'a> sval::Value for Value<'a> {
                 return stream.null();
             }
 
-            self.slice().stream(stream)
+            self.slice().stream_ref(stream)
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -1048,6 +1062,10 @@ mod alloc_support {
     }
 
     impl<'sval> ValueSlice<'sval> {
+        fn get(&self, i: usize) -> Option<&ValuePart<'sval>> {
+            self.0.get(i)
+        }
+
         pub(super) fn slice<'a>(&'a self, range: Range<usize>) -> &'a ValueSlice<'sval> {
             match self.0.get(range.clone()) {
                 Some(_) => (),
@@ -1068,14 +1086,23 @@ mod alloc_support {
             &'sval self,
             stream: &mut S,
         ) -> sval::Result {
+            self.stream_ref(stream)
+        }
+    }
+
+    impl<'sval> sval::ValueRef<'sval> for ValueSlice<'sval> {
+        fn stream_ref<'a, S: sval::Stream<'sval> + ?Sized>(
+            &'a self,
+            stream: &mut S,
+        ) -> sval::Result {
             let mut i = 0;
 
-            fn stream_value<'sval, S: sval::Stream<'sval> + ?Sized>(
+            fn stream_value<'a, 'sval, S: sval::Stream<'sval> + ?Sized>(
                 stream: &mut S,
                 i: &mut usize,
                 len: usize,
-                value: &'sval ValueSlice,
-                f: impl FnOnce(&mut S, &'sval ValueSlice) -> sval::Result,
+                value: &ValueSlice<'sval>,
+                f: impl FnOnce(&mut S, &ValueSlice<'sval>) -> sval::Result,
             ) -> sval::Result {
                 let value = value.slice({
                     let start = *i + 1;
@@ -1091,45 +1118,46 @@ mod alloc_support {
                 Ok(())
             }
 
-            while let Some(part) = self.0.get(i) {
+            while let Some(part) = self.get(i) {
+                let part: &ValuePart<'sval> = part;
                 match &part.kind {
                     ValueKind::Null => stream.null()?,
-                    ValueKind::Bool(v) => v.stream(stream)?,
-                    ValueKind::U8(v) => v.stream(stream)?,
-                    ValueKind::U16(v) => v.stream(stream)?,
-                    ValueKind::U32(v) => v.stream(stream)?,
-                    ValueKind::U64(v) => v.stream(stream)?,
-                    ValueKind::U128(v) => v.stream(stream)?,
-                    ValueKind::I8(v) => v.stream(stream)?,
-                    ValueKind::I16(v) => v.stream(stream)?,
-                    ValueKind::I32(v) => v.stream(stream)?,
-                    ValueKind::I64(v) => v.stream(stream)?,
-                    ValueKind::I128(v) => v.stream(stream)?,
-                    ValueKind::F32(v) => v.stream(stream)?,
-                    ValueKind::F64(v) => v.stream(stream)?,
-                    ValueKind::Text(v) => v.stream(stream)?,
-                    ValueKind::Binary(v) => v.stream(stream)?,
+                    ValueKind::Bool(v) => stream.bool(*v)?,
+                    ValueKind::U8(v) => stream.u8(*v)?,
+                    ValueKind::U16(v) => stream.u16(*v)?,
+                    ValueKind::U32(v) => stream.u32(*v)?,
+                    ValueKind::U64(v) => stream.u64(*v)?,
+                    ValueKind::U128(v) => stream.u128(*v)?,
+                    ValueKind::I8(v) => stream.i8(*v)?,
+                    ValueKind::I16(v) => stream.i16(*v)?,
+                    ValueKind::I32(v) => stream.i32(*v)?,
+                    ValueKind::I64(v) => stream.i64(*v)?,
+                    ValueKind::I128(v) => stream.i128(*v)?,
+                    ValueKind::F32(v) => stream.f32(*v)?,
+                    ValueKind::F64(v) => stream.f64(*v)?,
+                    ValueKind::Text(v) => stream.value_ref(v)?,
+                    ValueKind::Binary(v) => stream.value_ref(v)?,
                     ValueKind::Map {
                         len,
                         num_entries_hint,
                     } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.map_begin(*num_entries_hint)?;
-                            body.stream(stream)?;
+                            stream.value_ref(body)?;
                             stream.map_end()
                         })?;
                     }
                     ValueKind::MapKey { len } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.map_key_begin()?;
-                            stream.value(body)?;
+                            stream.value_ref(body)?;
                             stream.map_key_end()
                         })?;
                     }
                     ValueKind::MapValue { len } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.map_value_begin()?;
-                            stream.value(body)?;
+                            stream.value_ref(body)?;
                             stream.map_value_end()
                         })?;
                     }
@@ -1139,14 +1167,14 @@ mod alloc_support {
                     } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.seq_begin(*num_entries_hint)?;
-                            body.stream(stream)?;
+                            stream.value_ref(body)?;
                             stream.seq_end()
                         })?;
                     }
                     ValueKind::SeqValue { len } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.seq_value_begin()?;
-                            stream.value(body)?;
+                            stream.value_ref(body)?;
                             stream.seq_value_end()
                         })?;
                     }
@@ -1161,7 +1189,7 @@ mod alloc_support {
                     } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.enum_begin(tag.as_ref(), label.as_ref(), index.as_ref())?;
-                            body.stream(stream)?;
+                            stream.value_ref(body)?;
                             stream.enum_end(tag.as_ref(), label.as_ref(), index.as_ref())
                         })?;
                     }
@@ -1173,7 +1201,7 @@ mod alloc_support {
                     } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.tagged_begin(tag.as_ref(), label.as_ref(), index.as_ref())?;
-                            stream.value(body)?;
+                            stream.value_ref(body)?;
                             stream.tagged_end(tag.as_ref(), label.as_ref(), index.as_ref())
                         })?;
                     }
@@ -1191,14 +1219,14 @@ mod alloc_support {
                                 index.as_ref(),
                                 *num_entries,
                             )?;
-                            body.stream(stream)?;
+                            stream.value_ref(body)?;
                             stream.record_end(tag.as_ref(), label.as_ref(), index.as_ref())
                         })?;
                     }
                     ValueKind::RecordValue { len, tag, label } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.record_value_begin(tag.as_ref(), label)?;
-                            stream.value(body)?;
+                            stream.value_ref(body)?;
                             stream.record_value_end(tag.as_ref(), label)
                         })?;
                     }
@@ -1216,14 +1244,14 @@ mod alloc_support {
                                 index.as_ref(),
                                 *num_entries,
                             )?;
-                            body.stream(stream)?;
+                            stream.value_ref(body)?;
                             stream.tuple_end(tag.as_ref(), label.as_ref(), index.as_ref())
                         })?;
                     }
                     ValueKind::TupleValue { len, tag, index } => {
                         stream_value(stream, &mut i, *len, self, |stream, body| {
                             stream.tuple_value_begin(tag.as_ref(), index)?;
-                            stream.value(body)?;
+                            stream.value_ref(body)?;
                             stream.tuple_value_end(tag.as_ref(), index)
                         })?;
                     }
