@@ -147,7 +147,7 @@ impl<'sval> Value<'sval> {
     This method will fail if the `alloc` feature is not enabled.
     */
     pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
-        ValueBuf::collect(v).map(|buf| buf.to_value())
+        ValueBuf::collect(v).map(|buf| buf.value)
     }
 }
 
