@@ -654,35 +654,7 @@ macro_rules! impl_value_forward {
     };
 }
 
-macro_rules! impl_value_ref_forward {
-    ({ $($r:tt)* } => $bind:ident => { $($forward:tt)* }) => {
-        $($r)* {
-            fn stream_ref<S: Stream<'sval> + ?Sized>(&self, stream: &mut S) -> Result {
-                let $bind = self;
-                ($($forward)*).stream_ref(stream)
-            }
-        }
-    };
-}
-
-/**
-A producer of structured data that stores a reference internally.
-
-This trait is a variant of [`Value`] for wrapper types that keep a reference to a value internally.
-In `Value`, the `'sval` lifetime comes from the borrow of `&'sval self`. In `ValueRef`, it comes
-from the `'sval` lifetime in the trait itself.
-
-This is a niche API. In general values shouldn't implement it, even if they technically could.
-*/
-pub trait ValueRef<'sval>: Value {
-    /**
-    Stream this value through a [`Stream`].
-    */
-    fn stream_ref<S: Stream<'sval> + ?Sized>(&self, stream: &mut S) -> Result;
-}
-
 impl_value_forward!({impl<'a, T: Value + ?Sized> Value for &'a T} => x => { **x });
-impl_value_ref_forward!({impl<'sval, 'a, T: ValueRef<'sval> + ?Sized> ValueRef<'sval> for &'a T} => x => { **x });
 
 #[cfg(feature = "alloc")]
 mod alloc_support {
@@ -691,5 +663,4 @@ mod alloc_support {
     use crate::std::boxed::Box;
 
     impl_value_forward!({impl<T: Value + ?Sized> Value for Box<T>} => x => { **x });
-    impl_value_ref_forward!({impl<'sval, T: ValueRef<'sval> + ?Sized> ValueRef<'sval> for Box<T>} => x => { **x });
 }

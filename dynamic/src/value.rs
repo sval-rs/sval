@@ -22,16 +22,8 @@ mod private {
         fn dispatch_to_binary(&self) -> Option<&[u8]>;
     }
 
-    pub trait DispatchValueRef<'sval> {
-        fn dispatch_stream_ref(&self, stream: &mut dyn Stream<'sval>) -> sval::Result;
-    }
-
     pub trait EraseValue {
         fn erase_value(&self) -> crate::private::Erased<&dyn DispatchValue>;
-    }
-
-    pub trait EraseValueRef<'sval> {
-        fn erase_value_ref(&self) -> crate::private::Erased<&dyn DispatchValueRef<'sval>>;
     }
 }
 
@@ -114,25 +106,6 @@ impl<T: sval::Value> private::DispatchValue for T {
     }
 }
 
-/**
-An object-safe version of [`sval::ValueRef`].
-*/
-pub trait ValueRef<'sval>: Value + private::EraseValueRef<'sval> {}
-
-impl<'sval, T: sval::ValueRef<'sval>> ValueRef<'sval> for T {}
-
-impl<'sval, T: sval::ValueRef<'sval>> private::EraseValueRef<'sval> for T {
-    fn erase_value_ref(&self) -> crate::private::Erased<&dyn private::DispatchValueRef<'sval>> {
-        crate::private::Erased(self)
-    }
-}
-
-impl<'sval, T: sval::ValueRef<'sval>> private::DispatchValueRef<'sval> for T {
-    fn dispatch_stream_ref(&self, stream: &mut dyn Stream<'sval>) -> sval::Result {
-        self.stream_ref(stream)
-    }
-}
-
 macro_rules! impl_value {
     ($($impl:tt)*) => {
         $($impl)* {
@@ -203,24 +176,8 @@ macro_rules! impl_value {
     }
 }
 
-macro_rules! impl_value_ref {
-    ($($impl:tt)*) => {
-        $($impl)* {
-            fn stream_ref<S: sval::Stream<'svalr> + ?Sized>(&self, mut stream: &mut S) -> sval::Result {
-                self.erase_value_ref().0.dispatch_stream_ref(&mut stream)
-            }
-        }
-    }
-}
+
 
 impl_value!(impl<'d> sval::Value for dyn Value + 'd);
 impl_value!(impl<'d> sval::Value for dyn Value + Send + 'd);
 impl_value!(impl<'d> sval::Value for dyn Value + Send + Sync + 'd);
-
-impl_value!(impl<'svalr, 'd> sval::Value for dyn ValueRef<'svalr> + 'd);
-impl_value!(impl<'svalr, 'd> sval::Value for dyn ValueRef<'svalr> + Send + 'd);
-impl_value!(impl<'svalr, 'd> sval::Value for dyn ValueRef<'svalr> + Send + Sync + 'd);
-
-impl_value_ref!(impl<'svalr, 'd> sval::ValueRef<'svalr> for dyn ValueRef<'svalr> + 'd);
-impl_value_ref!(impl<'svalr, 'd> sval::ValueRef<'svalr> for dyn ValueRef<'svalr> + Send + 'd);
-impl_value_ref!(impl<'svalr, 'd> sval::ValueRef<'svalr> for dyn ValueRef<'svalr> + Send + Sync + 'd);

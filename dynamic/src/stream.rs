@@ -2,8 +2,6 @@ mod private {
     pub trait DispatchStream<'sval> {
         fn dispatch_value_computed(&mut self, value: &dyn crate::Value) -> sval::Result;
 
-        fn dispatch_value_ref(&mut self, value: &dyn crate::ValueRef<'sval>) -> sval::Result;
-
         fn dispatch_null(&mut self) -> sval::Result;
 
         fn dispatch_u8(&mut self, value: u8) -> sval::Result;
@@ -184,10 +182,6 @@ impl<'sval, R: sval::Stream<'sval>> private::EraseStream<'sval> for R {
 impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
     fn dispatch_value_computed(&mut self, value: &dyn crate::Value) -> sval::Result {
         self.value_computed(value)
-    }
-
-    fn dispatch_value_ref(&mut self, value: &dyn crate::ValueRef<'sval>) -> sval::Result {
-        self.value_ref(value)
     }
 
     fn dispatch_null(&mut self) -> sval::Result {
@@ -439,10 +433,6 @@ macro_rules! impl_stream {
         $($impl)* {
             fn value_computed<V: sval::Value + ?Sized>(&mut self, v: &V) -> sval::Result {
                 self.erase_stream().0.dispatch_value_computed(&v)
-            }
-
-            fn value_ref<V: sval::ValueRef<'sval> + ?Sized>(&mut self, v: &V) -> sval::Result {
-                self.erase_stream().0.dispatch_value_ref(&v)
             }
 
             fn null(&mut self) -> sval::Result {

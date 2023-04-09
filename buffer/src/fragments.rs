@@ -171,7 +171,7 @@ impl<'a> sval::Value for TextBuf<'a> {
     }
 }
 
-impl<'sval> sval::ValueRef<'sval> for TextBuf<'sval> {
+impl<'sval> sval_ref::ValueRef<'sval> for TextBuf<'sval> {
     fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
         match self.as_borrowed_str() {
             Some(v) => stream.value(v),
@@ -366,7 +366,7 @@ impl<'a> sval::Value for BinaryBuf<'a> {
     }
 }
 
-impl<'sval> sval::ValueRef<'sval> for BinaryBuf<'sval> {
+impl<'sval> sval_ref::ValueRef<'sval> for BinaryBuf<'sval> {
     fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
         match self.as_borrowed_slice() {
             Some(v) => stream.value(sval::BinarySlice::new(v)),
