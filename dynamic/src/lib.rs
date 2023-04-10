@@ -16,9 +16,6 @@ mod private {
     pub struct Erased<T>(pub(crate) T);
 }
 
-pub use self::{
-    stream::Stream,
-    value::Value,
-};
+pub use self::{stream::Stream, value::Value};
 
 // NOTE: Tests for forwarding through dynamic traits is in `sval_test`

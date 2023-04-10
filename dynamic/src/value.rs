@@ -176,8 +176,6 @@ macro_rules! impl_value {
     }
 }
 
-
-
 impl_value!(impl<'d> sval::Value for dyn Value + 'd);
 impl_value!(impl<'d> sval::Value for dyn Value + Send + 'd);
 impl_value!(impl<'d> sval::Value for dyn Value + Send + Sync + 'd);

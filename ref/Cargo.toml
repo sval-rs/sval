@@ -10,3 +10,7 @@ alloc = ["sval/alloc"]
 [dependencies.sval]
 version = "2.0.3"
 path = "../"
+
+[dev-dependencies.sval_test]
+version = "2.0.3"
+path = "../test"
