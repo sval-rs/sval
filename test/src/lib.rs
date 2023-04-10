@@ -6,7 +6,7 @@ Test utilities for `sval`.
 Assert that a value streams to exactly the sequence of tokens provided.
 */
 pub fn assert_tokens<'sval>(value: &'sval (impl sval::Value + ?Sized), tokens: &[Token<'sval>]) {
-    let mut stream = Stream(Vec::new());
+    let mut stream = TokenBuf(Vec::new());
 
     value.stream(&mut stream).expect("infallible stream");
 
@@ -239,15 +239,36 @@ pub enum Token<'a> {
     ),
 }
 
-struct Stream<'a>(Vec<Token<'a>>);
+/**
+A buffer for collecting test tokens.
 
-impl<'a> Stream<'a> {
+This type shouldn't be used as a general-purpose buffer.
+See the `sval-buffer` library for that.
+*/
+#[derive(Default, PartialEq, Debug)]
+pub struct TokenBuf<'a>(Vec<Token<'a>>);
+
+impl<'a> TokenBuf<'a> {
+    /**
+    Create a new, empty token buffer.
+    */
+    pub fn new() -> Self {
+        TokenBuf(Vec::new())
+    }
+
+    /**
+    Get the underlying tokens in this buffer.
+    */
+    pub fn as_tokens(&self) -> &[Token<'a>] {
+        &self.0
+    }
+
     fn push(&mut self, token: Token<'a>) {
         self.0.push(token);
     }
 }
 
-impl<'sval> sval::Stream<'sval> for Stream<'sval> {
+impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
     fn null(&mut self) -> sval::Result {
         self.push(Token::Null);
         Ok(())
@@ -758,6 +779,23 @@ mod tests {
                 Token::I32(1),
                 Token::SeqValueEnd,
                 Token::SeqEnd,
+            ],
+        );
+
+        assert_tokens(
+            &(1, 2, 3),
+            &[
+                Token::TupleBegin(None, None, None, Some(3)),
+                Token::TupleValueBegin(None, sval::Index::new(0)),
+                Token::I32(1),
+                Token::TupleValueEnd(None, sval::Index::new(0)),
+                Token::TupleValueBegin(None, sval::Index::new(1)),
+                Token::I32(2),
+                Token::TupleValueEnd(None, sval::Index::new(1)),
+                Token::TupleValueBegin(None, sval::Index::new(2)),
+                Token::I32(3),
+                Token::TupleValueEnd(None, sval::Index::new(2)),
+                Token::TupleEnd(None, None, None),
             ],
         );
     }

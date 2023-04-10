@@ -171,6 +171,15 @@ impl<'a> sval::Value for TextBuf<'a> {
     }
 }
 
+impl<'sval> sval_ref::ValueRef<'sval> for TextBuf<'sval> {
+    fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
+        match self.as_borrowed_str() {
+            Some(v) => stream.value(v),
+            None => stream.value_computed(self.as_str()),
+        }
+    }
+}
+
 /**
 Buffer binary fragments into a single contiguous slice.
 
@@ -353,7 +362,16 @@ impl<'sval> AsRef<[u8]> for BinaryBuf<'sval> {
 
 impl<'a> sval::Value for BinaryBuf<'a> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-        self.as_slice().stream(stream)
+        sval::BinarySlice::new(self.as_slice()).stream(stream)
+    }
+}
+
+impl<'sval> sval_ref::ValueRef<'sval> for BinaryBuf<'sval> {
+    fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
+        match self.as_borrowed_slice() {
+            Some(v) => stream.value(sval::BinarySlice::new(v)),
+            None => stream.value_computed(sval::BinarySlice::new(self.as_slice())),
+        }
     }
 }
 
@@ -629,5 +647,29 @@ mod tests {
 
         assert_eq!(b"abcdef" as &[u8], buf.as_slice());
         assert_eq!(None, buf.as_borrowed_slice());
+    }
+
+    #[test]
+    fn stream_text_buf() {
+        let mut buf = TextBuf::new();
+        buf.push_fragment("abc").unwrap();
+
+        sval_test::assert_tokens(&buf, {
+            use sval_test::Token::*;
+
+            &[TextBegin(Some(3)), TextFragment("abc"), TextEnd]
+        });
+    }
+
+    #[test]
+    fn stream_binary_buf() {
+        let mut buf = BinaryBuf::new();
+        buf.push_fragment(b"abc").unwrap();
+
+        sval_test::assert_tokens(&buf, {
+            use sval_test::Token::*;
+
+            &[BinaryBegin(Some(3)), BinaryFragment(b"abc"), BinaryEnd]
+        });
     }
 }
