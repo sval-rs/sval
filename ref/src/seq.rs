@@ -233,7 +233,7 @@ mod alloc_support {
 
     impl<'sval, T: ValueRef<'sval>> ValueRef<'sval> for Vec<T> {
         fn stream_ref<S: Stream<'sval> + ?Sized>(&self, stream: &mut S) -> Result {
-            (&**self).stream(stream)
+            (&**self).stream_ref(stream)
         }
     }
 }
