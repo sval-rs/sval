@@ -584,7 +584,10 @@ impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
 mod tests {
     use super::*;
 
-    use std::collections::{BTreeMap, HashMap};
+    use std::{
+        collections::{BTreeMap, HashMap},
+        fmt,
+    };
 
     fn assert_tokens<'sval>(value: &'sval impl sval::Value, tokens: &[Token<'sval>]) {
         super::assert_tokens(value, tokens);
@@ -796,6 +799,50 @@ mod tests {
                 Token::I32(3),
                 Token::TupleValueEnd(None, sval::Index::new(2)),
                 Token::TupleEnd(None, None, None),
+            ],
+        );
+    }
+
+    #[test]
+    fn stream_tagged() {
+        struct BigInt {
+            is_negative: bool,
+            digits: &'static str,
+        }
+
+        impl fmt::Display for BigInt {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                if self.is_negative {
+                    f.write_str("-")?;
+                }
+
+                f.write_str(self.digits)
+            }
+        }
+
+        impl sval::Value for BigInt {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.tagged_begin(Some(&sval::tags::NUMBER), None, None)?;
+                sval::stream_display(stream, self)?;
+                stream.tagged_end(Some(&sval::tags::NUMBER), None, None)
+            }
+        }
+
+        assert_tokens(
+            &BigInt {
+                is_negative: true,
+                digits: "123456",
+            },
+            &[
+                Token::TaggedBegin(Some(sval::tags::NUMBER), None, None),
+                Token::TextBegin(None),
+                Token::TextFragmentComputed("-".to_owned()),
+                Token::TextFragmentComputed("123456".to_owned()),
+                Token::TextEnd,
+                Token::TaggedEnd(Some(sval::tags::NUMBER), None, None),
             ],
         );
     }

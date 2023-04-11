@@ -1,4 +1,31 @@
-use crate::{Result, Stream, Value};
+use crate::{
+    std::fmt::{self, Write as _},
+    Error, Result, Stream, Value,
+};
+
+/**
+Stream a [`fmt::Display`] into an [`sval::Stream`].
+*/
+pub fn stream_display<'sval>(
+    stream: &mut (impl Stream<'sval> + ?Sized),
+    value: impl fmt::Display,
+) -> Result {
+    struct Writer<S>(S);
+
+    impl<'a, S: Stream<'a>> fmt::Write for Writer<S> {
+        fn write_str(&mut self, s: &str) -> fmt::Result {
+            self.0.text_fragment_computed(s).map_err(|_| fmt::Error)?;
+
+            Ok(())
+        }
+    }
+
+    stream.text_begin(None)?;
+
+    write!(Writer(&mut *stream), "{}", value).map_err(|_| Error::new())?;
+
+    stream.text_end()
+}
 
 impl Value for char {
     fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
