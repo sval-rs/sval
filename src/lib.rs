@@ -101,6 +101,9 @@ mod std {
 #[cfg(all(not(feature = "alloc"), not(feature = "std")))]
 extern crate core as std;
 
+#[cfg(feature = "derive")]
+pub use sval_derive::*;
+
 mod data;
 mod result;
 mod stream;
