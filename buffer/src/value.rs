@@ -193,7 +193,7 @@ impl ValueBuf<'static> {
 
     This method will fail if the `alloc` feature is not enabled.
     */
-    pub fn collect_owned(v: &(impl sval::Value + ?Sized)) -> Result<Self, Error> {
+    pub fn collect_owned(v: impl sval::Value) -> Result<Self, Error> {
         let mut buf = ValueBuf::new();
 
         // Buffering the value as computed means any borrowed data will
@@ -254,7 +254,7 @@ impl Value<'static> {
 
     This method will fail if the `alloc` feature is not enabled.
     */
-    pub fn collect_owned(v: &(impl sval::Value + ?Sized)) -> Result<Self, Error> {
+    pub fn collect_owned(v: impl sval::Value) -> Result<Self, Error> {
         ValueBuf::collect_owned(v).map(|buf| buf.value)
     }
 }
