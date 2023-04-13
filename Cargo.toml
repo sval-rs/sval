@@ -1,6 +1,6 @@
 [package]
 name = "sval"
-version = "2.1.1"
+version = "2.2.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -37,7 +37,7 @@ alloc = []
 derive = ["dep:sval_derive"]
 
 [dependencies.sval_derive]
-version = "2.1.1"
+version = "2.2.0"
 path = "derive"
 optional = true
 
