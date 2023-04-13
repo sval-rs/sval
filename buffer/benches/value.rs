@@ -12,7 +12,11 @@ struct OwnedData {
 
 #[cfg(feature = "alloc")]
 fn owned_data() -> OwnedData {
-    OwnedData { id:  42, title: "A very important document".to_owned(), attributes: vec!["#1".to_owned(), "#2".to_owned(), "#3".to_owned()] }
+    OwnedData {
+        id: 42,
+        title: "A very important document".to_owned(),
+        attributes: vec!["#1".to_owned(), "#2".to_owned(), "#3".to_owned()],
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -25,7 +29,11 @@ struct BorrowedData<'a> {
 
 #[cfg(feature = "alloc")]
 fn borrowed_data() -> BorrowedData<'static> {
-    BorrowedData { id:  42, title: "A very important document", attributes: &["#1", "#2", "#3"] }
+    BorrowedData {
+        id: 42,
+        title: "A very important document",
+        attributes: &["#1", "#2", "#3"],
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -57,7 +65,10 @@ fn borrowed_collect(b: &mut test::Bencher) {
 fn borrowed_collect_ref_to_owned(b: &mut test::Bencher) {
     b.iter(|| {
         let data = borrowed_data();
-        sval_buffer::ValueBuf::collect(&data).unwrap().into_owned().unwrap()
+        sval_buffer::ValueBuf::collect(&data)
+            .unwrap()
+            .into_owned()
+            .unwrap()
     })
 }
 
@@ -66,10 +77,12 @@ fn borrowed_collect_ref_to_owned(b: &mut test::Bencher) {
 fn borrowed_collect_to_owned(b: &mut test::Bencher) {
     b.iter(|| {
         let data = borrowed_data();
-        sval_buffer::ValueBuf::collect_owned(&data).unwrap().into_owned().unwrap()
+        sval_buffer::ValueBuf::collect_owned(&data)
+            .unwrap()
+            .into_owned()
+            .unwrap()
     })
 }
-
 
 #[cfg(feature = "alloc")]
 #[bench]
@@ -100,7 +113,10 @@ fn owned_collect(b: &mut test::Bencher) {
 fn owned_collect_ref_to_owned(b: &mut test::Bencher) {
     b.iter(|| {
         let data = owned_data();
-        sval_buffer::ValueBuf::collect(&data).unwrap().into_owned().unwrap()
+        sval_buffer::ValueBuf::collect(&data)
+            .unwrap()
+            .into_owned()
+            .unwrap()
     })
 }
 
@@ -109,6 +125,9 @@ fn owned_collect_ref_to_owned(b: &mut test::Bencher) {
 fn owned_collect_to_owned(b: &mut test::Bencher) {
     b.iter(|| {
         let data = owned_data();
-        sval_buffer::ValueBuf::collect_owned(&data).unwrap().into_owned().unwrap()
+        sval_buffer::ValueBuf::collect_owned(&data)
+            .unwrap()
+            .into_owned()
+            .unwrap()
     })
 }
