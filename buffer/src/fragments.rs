@@ -153,6 +153,7 @@ impl<'sval> TextBuf<'sval> {
     pub(crate) fn into_owned_in_place(&mut self) -> &mut TextBuf<'static> {
         crate::assert_static(self.0.into_owned_in_place());
 
+        // SAFETY: `self` no longer contains any data borrowed for `'sval`
         unsafe { mem::transmute::<&mut TextBuf<'sval>, &mut TextBuf<'static>>(self) }
     }
 }
