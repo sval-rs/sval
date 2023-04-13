@@ -39,4 +39,7 @@ mod std {
 mod fragments;
 mod value;
 
+#[cfg(feature = "alloc")]
+fn assert_static<T: 'static>(_: &mut T) {}
+
 pub use self::{error::*, fragments::*, value::*};

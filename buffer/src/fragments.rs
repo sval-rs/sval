@@ -1,7 +1,10 @@
 use crate::{std::fmt, Error};
 
 #[cfg(feature = "alloc")]
-use crate::std::borrow::{Cow, ToOwned};
+use crate::std::{
+    borrow::{Cow, ToOwned},
+    mem,
+};
 
 /**
 Buffer text fragments into a single contiguous string.
@@ -144,6 +147,13 @@ impl<'sval> TextBuf<'sval> {
     */
     pub fn as_str(&self) -> &str {
         self.0.as_inner()
+    }
+
+    #[cfg(feature = "alloc")]
+    pub(crate) fn into_owned_in_place(&mut self) -> &mut TextBuf<'static> {
+        crate::assert_static(self.0.into_owned_in_place());
+
+        unsafe { mem::transmute::<&mut TextBuf<'sval>, &mut TextBuf<'static>>(self) }
     }
 }
 
@@ -334,6 +344,14 @@ impl<'sval> BinaryBuf<'sval> {
     pub fn as_slice(&self) -> &[u8] {
         self.0.as_inner()
     }
+
+    #[cfg(feature = "alloc")]
+    pub(crate) fn into_owned_in_place(&mut self) -> &mut BinaryBuf<'static> {
+        crate::assert_static(self.0.into_owned_in_place());
+
+        // SAFETY: `self` no longer contains any data borrowed for `'sval`
+        unsafe { mem::transmute::<&mut BinaryBuf<'sval>, &mut BinaryBuf<'static>>(self) }
+    }
 }
 
 impl<'sval> Default for BinaryBuf<'sval> {
@@ -393,6 +411,15 @@ trait Fragment: ToOwned {
     fn extend(buf: &mut Cow<Self>, fragment: &Self);
 
     fn can_replace(&self) -> bool;
+
+    fn into_owned_in_place<'a, 'sval>(buf: &'a mut Cow<'sval, Self>) -> &'a mut Cow<'static, Self> {
+        if let Cow::Borrowed(v) = buf {
+            *buf = Cow::Owned(v.to_owned());
+        }
+
+        // SAFETY: `self` no longer contains any data borrowed for `'sval`
+        unsafe { mem::transmute::<&mut Cow<'_, Self>, &mut Cow<'static, Self>>(buf) }
+    }
 }
 
 impl Fragment for str {
@@ -540,6 +567,14 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         {
             self.value
         }
+    }
+
+    #[cfg(feature = "alloc")]
+    pub(crate) fn into_owned_in_place(&mut self) -> &mut FragmentBuf<'static, T> {
+        crate::assert_static(Fragment::into_owned_in_place(&mut self.value));
+
+        // SAFETY: `self` no longer contains any data borrowed for `'sval`
+        unsafe { mem::transmute::<&mut FragmentBuf<'sval, T>, &mut FragmentBuf<'static, T>>(self) }
     }
 }
 
