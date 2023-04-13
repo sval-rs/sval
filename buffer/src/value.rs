@@ -1,7 +1,10 @@
 use crate::{std::marker::PhantomData, Error};
 
 #[cfg(feature = "alloc")]
-use crate::{std::vec::Vec, BinaryBuf, TextBuf};
+use crate::{
+    std::{mem, vec::Vec},
+    BinaryBuf, TextBuf,
+};
 
 use sval_ref::ValueRef as _;
 
@@ -125,6 +128,48 @@ impl<'sval> ValueBuf<'sval> {
         self.value.clone()
     }
 
+    /**
+    Convert this buffer into an immutable value.
+    */
+    pub fn into_value(self) -> Value<'sval> {
+        self.value
+    }
+
+    /**
+    Fully buffer any borrowed data, returning a buffer that doesn't borrow anything.
+
+    This method will fail if the `alloc` feature is not enabled.
+    */
+    pub fn into_owned(self) -> Result<ValueBuf<'static>, Error> {
+        #[cfg(feature = "alloc")]
+        {
+            let ValueBuf {
+                value,
+                mut stack,
+                mut is_in_text_or_binary,
+                mut err,
+            } = self;
+
+            let mut value = value.into_owned()?;
+
+            crate::assert_static(&mut value);
+            crate::assert_static(&mut stack);
+            crate::assert_static(&mut is_in_text_or_binary);
+            crate::assert_static(&mut err);
+
+            Ok(ValueBuf {
+                value,
+                stack,
+                is_in_text_or_binary,
+                err,
+            })
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            Err(Error::no_alloc("buffered value"))
+        }
+    }
+
     #[cfg(feature = "alloc")]
     fn try_catch(
         &mut self,
@@ -142,6 +187,24 @@ impl<'sval> ValueBuf<'sval> {
     }
 }
 
+impl ValueBuf<'static> {
+    /**
+    Fully buffer a value, including any internal borrowed data.
+
+    This method will fail if the `alloc` feature is not enabled.
+    */
+    pub fn collect_owned(v: impl sval::Value) -> Result<Self, Error> {
+        let mut buf = ValueBuf::new();
+
+        // Buffering the value as computed means any borrowed data will
+        // have to be converted into owned anyways
+        match sval::stream_computed(&mut buf, v) {
+            Ok(()) => Ok(buf),
+            Err(_) => Err(buf.err.unwrap()),
+        }
+    }
+}
+
 impl<'sval> Value<'sval> {
     /**
     Buffer a value.
@@ -150,6 +213,49 @@ impl<'sval> Value<'sval> {
     */
     pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
         ValueBuf::collect(v).map(|buf| buf.value)
+    }
+
+    /**
+    Fully buffer this value, including any internal borrowed data.
+
+    This method will fail if the `alloc` feature is not enabled.
+    */
+    pub fn into_owned(self) -> Result<Value<'static>, Error> {
+        #[cfg(feature = "alloc")]
+        {
+            let Value { mut parts, _marker } = self;
+
+            // Re-assign all parts within the value in-place without re-allocating for them
+            // This will take care of converted any actually borrowed data into owned
+            for part in &mut parts {
+                crate::assert_static(part.into_owned_in_place());
+            }
+
+            // SAFETY: `parts` no longer contains any data borrowed for `'sval`
+            let mut parts =
+                unsafe { mem::transmute::<Vec<ValuePart<'sval>>, Vec<ValuePart<'static>>>(parts) };
+            crate::assert_static(&mut parts);
+
+            Ok(Value {
+                parts,
+                _marker: PhantomData,
+            })
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            Err(Error::no_alloc("buffered value"))
+        }
+    }
+}
+
+impl Value<'static> {
+    /**
+    Fully buffer a value, including any internal borrowed data.
+
+    This method will fail if the `alloc` feature is not enabled.
+    */
+    pub fn collect_owned(v: impl sval::Value) -> Result<Self, Error> {
+        ValueBuf::collect_owned(v).map(|buf| buf.value)
     }
 }
 
@@ -532,9 +638,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn map_key_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -558,9 +662,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn map_value_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -571,9 +673,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn map_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -614,9 +714,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn seq_value_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -627,9 +725,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn seq_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -669,9 +765,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     ) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -711,9 +805,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     ) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -792,9 +884,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn record_value_end(&mut self, _: Option<&sval::Tag>, _: &sval::Label) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -810,9 +900,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     ) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -868,9 +956,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     fn tuple_value_end(&mut self, _: Option<&sval::Tag>, _: &sval::Index) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -886,9 +972,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     ) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            self.push_end();
-
-            Ok(())
+            self.try_catch(|buf| buf.push_end())
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -1011,9 +1095,11 @@ mod alloc_support {
             self.value.parts.push(ValuePart { kind });
         }
 
-        pub(super) fn push_end(&mut self) {
-            // TODO: Error here
-            let index = self.stack.pop().expect("missing stack frame");
+        pub(super) fn push_end(&mut self) -> Result<(), Error> {
+            let index = self
+                .stack
+                .pop()
+                .ok_or_else(|| Error::invalid_value("unbalanced calls to `begin` and `end`"))?;
 
             let len = self.value.parts.len() - index - 1;
 
@@ -1045,8 +1131,12 @@ mod alloc_support {
                 | ValueKind::F64(_)
                 | ValueKind::Text(_)
                 | ValueKind::Binary(_)
-                | ValueKind::Tag { .. } => panic!("can't end at this index"),
+                | ValueKind::Tag { .. } => {
+                    return Err(Error::invalid_value("can't end at this index"))
+                }
             } = len;
+
+            Ok(())
         }
 
         pub(super) fn current_mut(&mut self) -> &mut ValuePart<'sval> {
@@ -1078,6 +1168,116 @@ mod alloc_support {
             unsafe {
                 mem::transmute::<&'a [ValuePart<'sval>], &'a ValueSlice<'sval>>(&self.0[range])
             }
+        }
+    }
+
+    impl<'sval> ValuePart<'sval> {
+        pub(super) fn into_owned_in_place(&mut self) -> &mut ValuePart<'static> {
+            let ValuePart { kind } = self;
+
+            match kind {
+                ValueKind::Text(ref mut text) => crate::assert_static(text.into_owned_in_place()),
+                ValueKind::Binary(ref mut binary) => {
+                    crate::assert_static(binary.into_owned_in_place())
+                }
+                ValueKind::Null => (),
+                ValueKind::Bool(v) => crate::assert_static(v),
+                ValueKind::U8(v) => crate::assert_static(v),
+                ValueKind::U16(v) => crate::assert_static(v),
+                ValueKind::U32(v) => crate::assert_static(v),
+                ValueKind::U64(v) => crate::assert_static(v),
+                ValueKind::U128(v) => crate::assert_static(v),
+                ValueKind::I8(v) => crate::assert_static(v),
+                ValueKind::I16(v) => crate::assert_static(v),
+                ValueKind::I32(v) => crate::assert_static(v),
+                ValueKind::I64(v) => crate::assert_static(v),
+                ValueKind::I128(v) => crate::assert_static(v),
+                ValueKind::F32(v) => crate::assert_static(v),
+                ValueKind::F64(v) => crate::assert_static(v),
+                ValueKind::Map {
+                    len,
+                    num_entries_hint,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(num_entries_hint)
+                }
+                ValueKind::MapKey { len } => crate::assert_static(len),
+                ValueKind::MapValue { len } => crate::assert_static(len),
+                ValueKind::Seq {
+                    len,
+                    num_entries_hint,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(num_entries_hint)
+                }
+                ValueKind::SeqValue { len } => crate::assert_static(len),
+                ValueKind::Tag { tag, label, index } => {
+                    crate::assert_static(tag);
+                    crate::assert_static(label);
+                    crate::assert_static(index)
+                }
+                ValueKind::Enum {
+                    len,
+                    tag,
+                    label,
+                    index,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(label);
+                    crate::assert_static(index)
+                }
+                ValueKind::Tagged {
+                    len,
+                    tag,
+                    label,
+                    index,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(label);
+                    crate::assert_static(index)
+                }
+                ValueKind::Record {
+                    len,
+                    tag,
+                    label,
+                    index,
+                    num_entries,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(label);
+                    crate::assert_static(index);
+                    crate::assert_static(num_entries)
+                }
+                ValueKind::RecordValue { len, tag, label } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(label)
+                }
+                ValueKind::Tuple {
+                    len,
+                    tag,
+                    label,
+                    index,
+                    num_entries,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(label);
+                    crate::assert_static(index);
+                    crate::assert_static(num_entries)
+                }
+                ValueKind::TupleValue { len, tag, index } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(index)
+                }
+            }
+
+            // SAFETY: `self` no longer contains any data borrowed for `'sval`
+            unsafe { mem::transmute::<&mut ValuePart<'sval>, &mut ValuePart<'static>>(self) }
         }
     }
 
@@ -1267,7 +1467,7 @@ mod alloc_support {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::std::vec;
+        use crate::std::{string::String, vec};
 
         use sval::Stream as _;
         use sval_derive::*;
@@ -1815,6 +2015,44 @@ mod alloc_support {
             buf.bool(true).unwrap();
 
             assert_eq!(Value::collect(&true).unwrap().parts, buf.to_value().parts);
+        }
+
+        #[test]
+        fn into_owned() {
+            let short_lived = String::from("abc");
+
+            let buf = ValueBuf::collect(&short_lived).unwrap();
+            let borrowed_ptr = buf.value.parts.as_ptr() as *const ();
+
+            let owned = buf.into_owned().unwrap();
+            let owned_ptr = owned.value.parts.as_ptr() as *const ();
+            drop(short_lived);
+
+            assert!(core::ptr::eq(borrowed_ptr, owned_ptr));
+
+            match owned.value.parts[0].kind {
+                ValueKind::Text(ref text) => {
+                    assert!(text.as_borrowed_str().is_none());
+                    assert_eq!("abc", text.as_str());
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        #[test]
+        fn collect_owned() {
+            let short_lived = String::from("abc");
+
+            let buf = ValueBuf::collect_owned(&short_lived).unwrap();
+            drop(short_lived);
+
+            match buf.value.parts[0].kind {
+                ValueKind::Text(ref text) => {
+                    assert!(text.as_borrowed_str().is_none());
+                    assert_eq!("abc", text.as_str());
+                }
+                _ => unreachable!(),
+            }
         }
     }
 }

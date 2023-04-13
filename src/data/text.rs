@@ -4,7 +4,7 @@ use crate::{
 };
 
 /**
-Stream a [`fmt::Display`] into an [`sval::Stream`].
+Stream a [`fmt::Display`] into a [`Stream`].
 */
 pub fn stream_display<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),

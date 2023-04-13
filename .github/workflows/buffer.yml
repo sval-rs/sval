@@ -27,6 +27,27 @@ jobs:
         working-directory: ./buffer
         run: cargo hack test --feature-powerset
 
+  bench:
+    name: Bench
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
+
+      - name: Powerset
+        working-directory: ./buffer
+        run: cargo hack bench --feature-powerset --no-run
+
   embedded:
     name: Build (embedded)
     runs-on: ubuntu-latest
