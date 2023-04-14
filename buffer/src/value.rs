@@ -995,8 +995,17 @@ mod alloc_support {
     */
     pub fn stream_to_value<'sval>(
         v: &'sval (impl sval::Value + ?Sized),
-    ) -> Result<ValueBuf, Error> {
+    ) -> Result<ValueBuf<'sval>, Error> {
         ValueBuf::collect(v)
+    }
+
+    /**
+    Buffer an owned value.
+    */
+    pub fn stream_to_value_owned(
+        v: impl sval::Value,
+    ) -> Result<ValueBuf<'static>, Error> {
+        ValueBuf::collect_owned(v)
     }
 
     #[repr(transparent)]
