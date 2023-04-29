@@ -2,7 +2,7 @@ use crate::{std::marker::PhantomData, Error};
 
 #[cfg(feature = "alloc")]
 use crate::{
-    std::{mem, vec::Vec},
+    std::{boxed::Box, mem, vec::Vec},
     BinaryBuf, TextBuf,
 };
 
@@ -19,12 +19,14 @@ will fail.
 */
 #[derive(Debug)]
 pub struct ValueBuf<'sval> {
-    value: Value<'sval>,
+    #[cfg(feature = "alloc")]
+    parts: Vec<ValuePart<'sval>>,
     #[cfg(feature = "alloc")]
     stack: Vec<usize>,
     #[cfg(feature = "alloc")]
     is_in_text_or_binary: bool,
     err: Option<Error>,
+    _marker: PhantomData<&'sval ()>,
 }
 
 /**
@@ -35,7 +37,7 @@ This type is more compact than `ValueBuf`.
 #[derive(Debug, Clone)]
 pub struct Value<'sval> {
     #[cfg(feature = "alloc")]
-    parts: Vec<ValuePart<'sval>>,
+    parts: Box<[ValuePart<'sval>]>,
     _marker: PhantomData<&'sval ()>,
 }
 
@@ -51,16 +53,14 @@ impl<'sval> ValueBuf<'sval> {
     */
     pub fn new() -> Self {
         ValueBuf {
-            value: Value {
-                #[cfg(feature = "alloc")]
-                parts: Vec::new(),
-                _marker: PhantomData,
-            },
+            #[cfg(feature = "alloc")]
+            parts: Vec::new(),
             #[cfg(feature = "alloc")]
             stack: Vec::new(),
             #[cfg(feature = "alloc")]
             is_in_text_or_binary: false,
             err: None,
+            _marker: PhantomData,
         }
     }
 
@@ -84,7 +84,7 @@ impl<'sval> ValueBuf<'sval> {
     pub fn is_complete(&self) -> bool {
         #[cfg(feature = "alloc")]
         {
-            self.stack.len() == 0 && self.value.parts.len() > 0 && !self.is_in_text_or_binary
+            self.stack.len() == 0 && self.parts.len() > 0 && !self.is_in_text_or_binary
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -99,10 +99,11 @@ impl<'sval> ValueBuf<'sval> {
         #[cfg(feature = "alloc")]
         {
             let ValueBuf {
-                value: Value { parts, _marker },
+                parts,
                 stack,
                 is_in_text_or_binary,
                 err,
+                _marker,
             } = self;
 
             parts.clear();
@@ -112,10 +113,7 @@ impl<'sval> ValueBuf<'sval> {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            let ValueBuf {
-                value: Value { _marker },
-                err,
-            } = self;
+            let ValueBuf { err, _marker } = self;
 
             *err = None;
         }
@@ -125,14 +123,22 @@ impl<'sval> ValueBuf<'sval> {
     Get an independent immutable value from this buffer.
     */
     pub fn to_value(&self) -> Value<'sval> {
-        self.value.clone()
+        Value {
+            #[cfg(feature = "alloc")]
+            parts: self.parts.clone().into_boxed_slice(),
+            _marker: PhantomData,
+        }
     }
 
     /**
     Convert this buffer into an immutable value.
     */
     pub fn into_value(self) -> Value<'sval> {
-        self.value
+        Value {
+            #[cfg(feature = "alloc")]
+            parts: self.parts.into_boxed_slice(),
+            _marker: PhantomData,
+        }
     }
 
     /**
@@ -144,24 +150,34 @@ impl<'sval> ValueBuf<'sval> {
         #[cfg(feature = "alloc")]
         {
             let ValueBuf {
-                value,
+                mut parts,
                 mut stack,
                 mut is_in_text_or_binary,
                 mut err,
+                _marker,
             } = self;
 
-            let mut value = value.into_owned()?;
+            // Re-assign all parts within the value in-place without re-allocating for them
+            // This will take care of converted any actually borrowed data into owned
+            for part in &mut parts {
+                crate::assert_static(part.into_owned_in_place());
+            }
 
-            crate::assert_static(&mut value);
+            // SAFETY: `parts` no longer contains any data borrowed for `'sval`
+            let mut parts =
+                unsafe { mem::transmute::<Vec<ValuePart<'sval>>, Vec<ValuePart<'static>>>(parts) };
+
+            crate::assert_static(&mut parts);
             crate::assert_static(&mut stack);
             crate::assert_static(&mut is_in_text_or_binary);
             crate::assert_static(&mut err);
 
             Ok(ValueBuf {
-                value,
+                parts,
                 stack,
                 is_in_text_or_binary,
                 err,
+                _marker: PhantomData,
             })
         }
         #[cfg(not(feature = "alloc"))]
@@ -212,7 +228,7 @@ impl<'sval> Value<'sval> {
     This method will fail if the `alloc` feature is not enabled.
     */
     pub fn collect(v: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
-        ValueBuf::collect(v).map(|buf| buf.value)
+        ValueBuf::collect(v).map(|buf| buf.into_value())
     }
 
     /**
@@ -227,13 +243,14 @@ impl<'sval> Value<'sval> {
 
             // Re-assign all parts within the value in-place without re-allocating for them
             // This will take care of converted any actually borrowed data into owned
-            for part in &mut parts {
+            for part in &mut *parts {
                 crate::assert_static(part.into_owned_in_place());
             }
 
             // SAFETY: `parts` no longer contains any data borrowed for `'sval`
-            let mut parts =
-                unsafe { mem::transmute::<Vec<ValuePart<'sval>>, Vec<ValuePart<'static>>>(parts) };
+            let mut parts = unsafe {
+                mem::transmute::<Box<[ValuePart<'sval>]>, Box<[ValuePart<'static>]>>(parts)
+            };
             crate::assert_static(&mut parts);
 
             Ok(Value {
@@ -255,7 +272,7 @@ impl Value<'static> {
     This method will fail if the `alloc` feature is not enabled.
     */
     pub fn collect_owned(v: impl sval::Value) -> Result<Self, Error> {
-        ValueBuf::collect_owned(v).map(|buf| buf.value)
+        ValueBuf::collect_owned(v).map(|buf| buf.into_value())
     }
 }
 
@@ -267,7 +284,15 @@ impl<'a> sval::Value for ValueBuf<'a> {
 
 impl<'sval> sval_ref::ValueRef<'sval> for ValueBuf<'sval> {
     fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
-        self.value.stream_ref(stream)
+        #[cfg(feature = "alloc")]
+        {
+            stream_ref(&self.parts, stream)
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let _ = stream;
+            sval::error()
+        }
     }
 }
 
@@ -281,12 +306,7 @@ impl<'sval> sval_ref::ValueRef<'sval> for Value<'sval> {
     fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
-            // If the buffer is empty then stream null
-            if self.parts.len() == 0 {
-                return stream.null();
-            }
-
-            self.slice().stream_ref(stream)
+            stream_ref(&self.parts, stream)
         }
         #[cfg(not(feature = "alloc"))]
         {
@@ -294,6 +314,19 @@ impl<'sval> sval_ref::ValueRef<'sval> for Value<'sval> {
             sval::error()
         }
     }
+}
+
+#[cfg(feature = "alloc")]
+fn stream_ref<'a, 'sval, S: sval::Stream<'sval> + ?Sized>(
+    parts: &'a [ValuePart<'sval>],
+    stream: &mut S,
+) -> sval::Result {
+    // If the buffer is empty then stream null
+    if parts.len() == 0 {
+        return stream.null();
+    }
+
+    ValueSlice::new(parts).stream_ref(stream)
 }
 
 impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
@@ -1002,9 +1035,7 @@ mod alloc_support {
     /**
     Buffer an owned value.
     */
-    pub fn stream_to_value_owned(
-        v: impl sval::Value,
-    ) -> Result<ValueBuf<'static>, Error> {
+    pub fn stream_to_value_owned(v: impl sval::Value) -> Result<ValueBuf<'static>, Error> {
         ValueBuf::collect_owned(v)
     }
 
@@ -1096,12 +1127,12 @@ mod alloc_support {
 
     impl<'sval> ValueBuf<'sval> {
         pub(super) fn push_kind(&mut self, kind: ValueKind<'sval>) {
-            self.value.parts.push(ValuePart { kind });
+            self.parts.push(ValuePart { kind });
         }
 
         pub(super) fn push_begin(&mut self, kind: ValueKind<'sval>) {
-            self.stack.push(self.value.parts.len());
-            self.value.parts.push(ValuePart { kind });
+            self.stack.push(self.parts.len());
+            self.parts.push(ValuePart { kind });
         }
 
         pub(super) fn push_end(&mut self) -> Result<(), Error> {
@@ -1110,9 +1141,9 @@ mod alloc_support {
                 .pop()
                 .ok_or_else(|| Error::invalid_value("unbalanced calls to `begin` and `end`"))?;
 
-            let len = self.value.parts.len() - index - 1;
+            let len = self.parts.len() - index - 1;
 
-            *match &mut self.value.parts[index].kind {
+            *match &mut self.parts[index].kind {
                 ValueKind::Map { len, .. } => len,
                 ValueKind::MapKey { len } => len,
                 ValueKind::MapValue { len } => len,
@@ -1149,18 +1180,15 @@ mod alloc_support {
         }
 
         pub(super) fn current_mut(&mut self) -> &mut ValuePart<'sval> {
-            self.value.parts.last_mut().expect("missing current")
-        }
-    }
-
-    impl<'sval> Value<'sval> {
-        pub(super) fn slice<'a>(&'a self) -> &'a ValueSlice<'sval> {
-            // SAFETY: `&[ValuePart]` and `&ValueSlice` have the same ABI
-            unsafe { mem::transmute::<&'a [ValuePart<'sval>], &'a ValueSlice<'sval>>(&self.parts) }
+            self.parts.last_mut().expect("missing current")
         }
     }
 
     impl<'sval> ValueSlice<'sval> {
+        pub(super) fn new<'a>(parts: &'a [ValuePart<'sval>]) -> &'a ValueSlice<'sval> {
+            unsafe { mem::transmute::<&'a [ValuePart<'sval>], &'a ValueSlice<'sval>>(parts) }
+        }
+
         fn get(&self, i: usize) -> Option<&ValuePart<'sval>> {
             self.0.get(i)
         }
@@ -1644,7 +1672,7 @@ mod alloc_support {
                     }],
                 ),
             ] {
-                assert_eq!(expected, value.value.parts, "{:?}", value);
+                assert_eq!(expected, value.parts, "{:?}", value);
             }
         }
 
@@ -1658,10 +1686,7 @@ mod alloc_support {
                 },
             }];
 
-            assert_eq!(
-                expected,
-                ValueBuf::collect(&None::<i32>).unwrap().value.parts
-            );
+            assert_eq!(expected, ValueBuf::collect(&None::<i32>).unwrap().parts);
 
             let expected = vec![
                 ValuePart {
@@ -1677,10 +1702,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(
-                expected,
-                ValueBuf::collect(&Some(42i32)).unwrap().value.parts
-            );
+            assert_eq!(expected, ValueBuf::collect(&Some(42i32)).unwrap().parts);
         }
 
         #[test]
@@ -1740,7 +1762,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.value.parts);
+            assert_eq!(expected, value.parts);
         }
 
         #[test]
@@ -1780,7 +1802,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.value.parts);
+            assert_eq!(expected, value.parts);
         }
 
         #[test]
@@ -1852,7 +1874,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.value.parts);
+            assert_eq!(expected, value.parts);
         }
 
         #[test]
@@ -1916,7 +1938,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.value.parts);
+            assert_eq!(expected, value.parts);
         }
 
         #[test]
@@ -1965,7 +1987,7 @@ mod alloc_support {
                 },
             ];
 
-            assert_eq!(expected, value.value.parts);
+            assert_eq!(expected, value.parts);
         }
 
         #[test]
@@ -2007,7 +2029,7 @@ mod alloc_support {
             ] {
                 let value_2 = ValueBuf::collect(&value_1).unwrap();
 
-                assert_eq!(value_1.value.parts, value_2.value.parts, "{:?}", value_1);
+                assert_eq!(value_1.parts, value_2.parts, "{:?}", value_1);
             }
         }
 
@@ -2031,15 +2053,15 @@ mod alloc_support {
             let short_lived = String::from("abc");
 
             let buf = ValueBuf::collect(&short_lived).unwrap();
-            let borrowed_ptr = buf.value.parts.as_ptr() as *const ();
+            let borrowed_ptr = buf.parts.as_ptr() as *const ();
 
             let owned = buf.into_owned().unwrap();
-            let owned_ptr = owned.value.parts.as_ptr() as *const ();
+            let owned_ptr = owned.parts.as_ptr() as *const ();
             drop(short_lived);
 
             assert!(core::ptr::eq(borrowed_ptr, owned_ptr));
 
-            match owned.value.parts[0].kind {
+            match owned.parts[0].kind {
                 ValueKind::Text(ref text) => {
                     assert!(text.as_borrowed_str().is_none());
                     assert_eq!("abc", text.as_str());
@@ -2055,7 +2077,7 @@ mod alloc_support {
             let buf = ValueBuf::collect_owned(&short_lived).unwrap();
             drop(short_lived);
 
-            match buf.value.parts[0].kind {
+            match buf.parts[0].kind {
                 ValueKind::Text(ref text) => {
                     assert!(text.as_borrowed_str().is_none());
                     assert_eq!("abc", text.as_str());
