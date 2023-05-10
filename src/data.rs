@@ -40,6 +40,11 @@ pub struct Label<'computed> {
     _marker: PhantomData<&'computed str>,
 }
 
+// SAFETY: Label doesn't mutate or synchronize: it acts just like a `&str`
+unsafe impl<'computed> Send for Label<'computed> { }
+// SAFETY: Label doesn't mutate or synchronize: it acts just like a `&str`
+unsafe impl<'computed> Sync for Label<'computed> { }
+
 #[cfg(not(feature = "alloc"))]
 impl<'computed> Clone for Label<'computed> {
     fn clone(&self) -> Self {
@@ -343,6 +348,13 @@ mod alloc_support {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn label_send_sync() {
+        fn assert<T: Send + Sync>() {}
+
+        assert::<Label>();
+    }
 
     #[test]
     fn label_static() {
