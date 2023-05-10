@@ -40,6 +40,11 @@ pub struct Label<'computed> {
     _marker: PhantomData<&'computed str>,
 }
 
+// SAFETY: Label doesn't mutate or synchronize: it acts just like a `&str`
+unsafe impl<'computed> Send for Label<'computed> { }
+// SAFETY: Label doesn't mutate or synchronize: it acts just like a `&str`
+unsafe impl<'computed> Sync for Label<'computed> { }
+
 #[cfg(not(feature = "alloc"))]
 impl<'computed> Clone for Label<'computed> {
     fn clone(&self) -> Self {
