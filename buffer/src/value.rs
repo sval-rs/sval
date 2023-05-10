@@ -1510,6 +1510,14 @@ mod alloc_support {
         use sval_derive::*;
 
         #[test]
+        fn is_send_sync() {
+            fn assert<T: Send + Sync>() {}
+
+            assert::<ValueBuf>();
+            assert::<Value>();
+        }
+
+        #[test]
         fn empty_is_complete() {
             assert!(!ValueBuf::new().is_complete());
         }

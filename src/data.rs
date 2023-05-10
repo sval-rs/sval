@@ -350,6 +350,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn label_send_sync() {
+        fn assert<T: Send + Sync>() {}
+
+        assert::<Label>();
+    }
+
+    #[test]
     fn label_static() {
         let label = Label::new("a");
 
