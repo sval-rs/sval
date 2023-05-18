@@ -219,3 +219,24 @@ fn debug_exotic_unnamed_enum() {
         format!("{:?}", sval_fmt::ToFmt::new(UntaggedEnum::I32(42)))
     );
 }
+
+#[test]
+    fn failing_value_does_not_panic_to_string() {
+    struct Kaboom;
+
+    impl sval::Value for Kaboom {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, _: &mut S) -> sval::Result {
+            Err(sval::Error::new())
+        }
+    }
+
+    #[derive(Value)]
+        struct NestedKaboom {
+        a: i32,
+        b: Kaboom,
+        c: i32,
+    }
+
+    assert_eq!("<an error occurred when formatting an argument>", sval_fmt::ToFmt::new(Kaboom).to_string());
+    assert_eq!("NestedKaboom { a: 1, b: <an error occurred when formatting an argument>", sval_fmt::ToFmt::new(NestedKaboom { a: 1, b: Kaboom, c: 2 }).to_string());
+}

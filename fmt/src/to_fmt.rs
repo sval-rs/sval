@@ -36,12 +36,18 @@ pub fn stream_to_fmt(fmt: &mut fmt::Formatter, v: impl sval::Value) -> fmt::Resu
 
 impl<V: sval::Value> fmt::Debug for ToFmt<V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        stream_to_fmt(f, &self.0)
+        fmt::Display::fmt(self, f)
     }
 }
 
 impl<V: sval::Value> fmt::Display for ToFmt<V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        stream_to_fmt(f, &self.0)
+        // If the `Value` impl fails then swallow the error rather than
+        // propagate it; Traits like `ToString` expect formatting to be
+        // infallible unless the writer itself fails
+        match stream_to_fmt(f, &self.0) {
+            Ok(()) => Ok(()),
+            Err(e) => write!(f, "<{}>", e),
+        }
     }
 }
