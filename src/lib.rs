@@ -16,7 +16,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml
 [dependencies.sval]
-version = "2.3.0"
+version = "2.3.1"
 ```
 
 By default, `sval` doesn't depend on Rust's standard library or integrate
@@ -24,7 +24,7 @@ with its collection types. To include them, add the `alloc` or `std` features:
 
 ```toml
 [dependencies.sval]
-version = "2.3.0"
+version = "2.3.1"
 features = ["std"]
 ```
 
