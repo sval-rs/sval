@@ -20,6 +20,10 @@ fn assert_fmt(v: impl sval::Value + fmt::Debug) {
 }
 
 #[derive(Value, Debug)]
+#[sval(tag = "sval::tags::NUMBER")]
+struct Number(&'static str);
+
+#[derive(Value, Debug)]
 struct MapStruct {
     field_0: i32,
     field_1: bool,
@@ -221,7 +225,66 @@ fn debug_exotic_unnamed_enum() {
 }
 
 #[test]
-    fn failing_value_does_not_panic_to_string() {
+fn token_write() {
+    #[derive(Default, PartialEq, Eq, Debug, Clone, Copy)]
+    struct Writer {
+        null: bool,
+        bool: bool,
+        text: bool,
+        number: bool,
+    }
+
+    impl fmt::Write for Writer {
+        fn write_str(&mut self, _: &str) -> fmt::Result {
+            Ok(())
+        }
+    }
+
+    impl sval_fmt::TokenWrite for Writer {
+        fn write_null(&mut self) -> core::fmt::Result {
+            self.null = true;
+            Ok(())
+        }
+
+        fn write_text(&mut self, _: &str) -> core::fmt::Result {
+            self.text = true;
+            Ok(())
+        }
+
+        fn write_number<N: fmt::Display>(&mut self, _: N) -> fmt::Result {
+            self.number = true;
+            Ok(())
+        }
+
+        fn write_bool(&mut self, _: bool) -> core::fmt::Result {
+            self.bool = true;
+            Ok(())
+        }
+    }
+
+    let mut writer = Writer::default();
+    sval_fmt::stream_to_token_write(&mut writer, 42).unwrap();
+    assert!(writer.number);
+
+    let mut writer = Writer::default();
+    sval_fmt::stream_to_token_write(&mut writer, Number("436543.457656765")).unwrap();
+    assert!(writer.number);
+
+    let mut writer = Writer::default();
+    sval_fmt::stream_to_token_write(&mut writer, true).unwrap();
+    assert!(writer.bool);
+
+    let mut writer = Writer::default();
+    sval_fmt::stream_to_token_write(&mut writer, "a string").unwrap();
+    assert!(writer.text);
+
+    let mut writer = Writer::default();
+    sval_fmt::stream_to_token_write(&mut writer, ()).unwrap();
+    assert!(writer.null);
+}
+
+#[test]
+fn failing_value_does_not_panic_to_string() {
     struct Kaboom;
 
     impl sval::Value for Kaboom {
@@ -231,12 +294,23 @@ fn debug_exotic_unnamed_enum() {
     }
 
     #[derive(Value)]
-        struct NestedKaboom {
+    struct NestedKaboom {
         a: i32,
         b: Kaboom,
         c: i32,
     }
 
-    assert_eq!("<an error occurred when formatting an argument>", sval_fmt::ToFmt::new(Kaboom).to_string());
-    assert_eq!("NestedKaboom { a: 1, b: <an error occurred when formatting an argument>", sval_fmt::ToFmt::new(NestedKaboom { a: 1, b: Kaboom, c: 2 }).to_string());
+    assert_eq!(
+        "<an error occurred when formatting an argument>",
+        sval_fmt::ToFmt::new(Kaboom).to_string()
+    );
+    assert_eq!(
+        "NestedKaboom { a: 1, b: <an error occurred when formatting an argument>",
+        sval_fmt::ToFmt::new(NestedKaboom {
+            a: 1,
+            b: Kaboom,
+            c: 2
+        })
+        .to_string()
+    );
 }

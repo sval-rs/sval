@@ -41,9 +41,9 @@ pub struct Label<'computed> {
 }
 
 // SAFETY: Label doesn't mutate or synchronize: it acts just like a `&str`
-unsafe impl<'computed> Send for Label<'computed> { }
+unsafe impl<'computed> Send for Label<'computed> {}
 // SAFETY: Label doesn't mutate or synchronize: it acts just like a `&str`
-unsafe impl<'computed> Sync for Label<'computed> { }
+unsafe impl<'computed> Sync for Label<'computed> {}
 
 #[cfg(not(feature = "alloc"))]
 impl<'computed> Clone for Label<'computed> {

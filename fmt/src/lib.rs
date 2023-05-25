@@ -18,7 +18,7 @@ mod to_fmt;
 mod to_value;
 mod to_write;
 
-pub use self::{to_fmt::*, to_value::*, to_write::*};
+pub use self::{to_fmt::*, to_value::*, to_write::*, writer::*};
 
 #[cfg(feature = "alloc")]
 mod to_string;
