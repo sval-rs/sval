@@ -289,6 +289,10 @@ impl Value for bool {
         stream.bool(*self)
     }
 
+    fn tag(&self) -> Option<Tag> {
+        None
+    }
+
     fn to_bool(&self) -> Option<bool> {
         Some(*self)
     }

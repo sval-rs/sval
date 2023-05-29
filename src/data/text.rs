@@ -1,6 +1,6 @@
 use crate::{
     std::fmt::{self, Write as _},
-    Error, Result, Stream, Value,
+    Error, Result, Stream, Tag, Value,
 };
 
 /**
@@ -45,6 +45,10 @@ impl Value for str {
         stream.text_end()
     }
 
+    fn tag(&self) -> Option<Tag> {
+        None
+    }
+
     fn to_text(&self) -> Option<&str> {
         Some(self)
     }
@@ -59,6 +63,10 @@ mod alloc_support {
     impl Value for String {
         fn stream<'a, S: Stream<'a> + ?Sized>(&'a self, stream: &mut S) -> Result {
             (&**self).stream(stream)
+        }
+
+        fn tag(&self) -> Option<Tag> {
+            None
         }
 
         #[inline]
