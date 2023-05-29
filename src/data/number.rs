@@ -102,4 +102,34 @@ mod tests {
         assert_eq!(Some(3f32), 3f32.to_f32());
         assert_eq!(Some(4f64), 4f64.to_f64());
     }
+
+    #[test]
+    fn number_tag() {
+        struct Number(&'static str);
+
+        impl Value for Number {
+            fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+                stream.tagged_begin(Some(&tags::NUMBER), None, None)?;
+                stream.value(self.0)?;
+                stream.tagged_end(Some(&tags::NUMBER), None, None)
+            }
+        }
+
+        assert_eq!(Some(tags::NUMBER), 1u8.tag());
+        assert_eq!(Some(tags::NUMBER), 1u16.tag());
+        assert_eq!(Some(tags::NUMBER), 1u32.tag());
+        assert_eq!(Some(tags::NUMBER), 1u64.tag());
+        assert_eq!(Some(tags::NUMBER), 1u128.tag());
+
+        assert_eq!(Some(tags::NUMBER), 1i8.tag());
+        assert_eq!(Some(tags::NUMBER), 1i16.tag());
+        assert_eq!(Some(tags::NUMBER), 1i32.tag());
+        assert_eq!(Some(tags::NUMBER), 1i64.tag());
+        assert_eq!(Some(tags::NUMBER), 1i128.tag());
+
+        assert_eq!(Some(tags::NUMBER), 1f32.tag());
+        assert_eq!(Some(tags::NUMBER), 1f64.tag());
+
+        assert_eq!(Some(tags::NUMBER), Number("42").tag());
+    }
 }

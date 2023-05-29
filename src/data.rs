@@ -350,6 +350,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn unit_tag() {
+        assert_eq!(Some(tags::RUST_UNIT), ().tag());
+    }
+
+    #[test]
     fn label_send_sync() {
         fn assert<T: Send + Sync>() {}
 

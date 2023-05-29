@@ -1,4 +1,4 @@
-use crate::{std::convert::TryInto, Result, Stream};
+use crate::{std::convert::TryInto, Index, Label, Result, Stream, Tag};
 
 /**
 A producer of structured data.
@@ -8,6 +8,127 @@ pub trait Value {
     Stream this value through a [`Stream`].
     */
     fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result;
+
+    /**
+    Get the tag of this value, if there is one.
+    */
+    #[inline]
+    fn tag(&self) -> Option<Tag> {
+        struct Extract {
+            value: Option<Tag>,
+            set: bool,
+        }
+
+        impl Extract {
+            fn set(&mut self, tag: Option<&Tag>) -> Result {
+                if self.set {
+                    return crate::error();
+                }
+
+                self.set = true;
+                self.value = tag.cloned();
+
+                Ok(())
+            }
+        }
+
+        impl<'sval> Stream<'sval> for Extract {
+            fn tag(&mut self, tag: Option<&Tag>, _: Option<&Label>, _: Option<&Index>) -> Result {
+                self.set(tag)
+            }
+
+            fn tagged_begin(
+                &mut self,
+                tag: Option<&Tag>,
+                _: Option<&Label>,
+                _: Option<&Index>,
+            ) -> Result {
+                self.set(tag)
+            }
+
+            fn enum_begin(
+                &mut self,
+                tag: Option<&Tag>,
+                _: Option<&Label>,
+                _: Option<&Index>,
+            ) -> Result {
+                self.set(tag)
+            }
+
+            fn record_begin(
+                &mut self,
+                tag: Option<&Tag>,
+                _: Option<&Label>,
+                _: Option<&Index>,
+                _: Option<usize>,
+            ) -> Result {
+                self.set(tag)
+            }
+
+            fn tuple_begin(
+                &mut self,
+                tag: Option<&Tag>,
+                _: Option<&Label>,
+                _: Option<&Index>,
+                _: Option<usize>,
+            ) -> Result {
+                self.set(tag)
+            }
+
+            fn bool(&mut self, _: bool) -> Result {
+                crate::error()
+            }
+
+            fn null(&mut self) -> Result {
+                crate::error()
+            }
+
+            fn text_begin(&mut self, _: Option<usize>) -> Result {
+                crate::error()
+            }
+
+            fn text_fragment_computed(&mut self, _: &str) -> Result {
+                crate::error()
+            }
+
+            fn text_end(&mut self) -> Result {
+                crate::error()
+            }
+
+            fn i64(&mut self, _: i64) -> Result {
+                self.set(Some(&crate::tags::NUMBER))
+            }
+
+            fn f64(&mut self, _: f64) -> Result {
+                self.set(Some(&crate::tags::NUMBER))
+            }
+
+            fn seq_begin(&mut self, _: Option<usize>) -> Result {
+                crate::error()
+            }
+
+            fn seq_value_begin(&mut self) -> Result {
+                crate::error()
+            }
+
+            fn seq_value_end(&mut self) -> Result {
+                crate::error()
+            }
+
+            fn seq_end(&mut self) -> Result {
+                crate::error()
+            }
+        }
+
+        let mut extract = Extract {
+            value: None,
+            set: false,
+        };
+
+        let _ = self.stream(&mut extract);
+
+        extract.value
+    }
 
     /**
     Try convert this value into a boolean.
@@ -559,6 +680,12 @@ macro_rules! impl_value_forward {
             fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
                 let $bind = self;
                 ($($forward)*).stream(stream)
+            }
+
+            #[inline]
+            fn tag(&self) -> Option<Tag> {
+                let $bind = self;
+                ($($forward)*).tag()
             }
 
             #[inline]

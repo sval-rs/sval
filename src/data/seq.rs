@@ -235,3 +235,13 @@ mod alloc_support {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn array_tag() {
+        assert_eq!(Some(tags::CONSTANT_SIZE), [true, false].tag());
+    }
+}
