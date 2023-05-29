@@ -5,6 +5,7 @@ mod private {
 
     pub trait DispatchValue {
         fn dispatch_stream<'sval>(&'sval self, stream: &mut dyn Stream<'sval>) -> sval::Result;
+        fn dispatch_tag(&self) -> Option<sval::Tag>;
         fn dispatch_to_bool(&self) -> Option<bool>;
         fn dispatch_to_f32(&self) -> Option<f32>;
         fn dispatch_to_f64(&self) -> Option<f64>;
@@ -43,6 +44,10 @@ impl<T: sval::Value> private::EraseValue for T {
 impl<T: sval::Value> private::DispatchValue for T {
     fn dispatch_stream<'sval>(&'sval self, stream: &mut dyn Stream<'sval>) -> sval::Result {
         self.stream(stream)
+    }
+
+    fn dispatch_tag(&self) -> Option<sval::Tag> {
+        self.tag()
     }
 
     fn dispatch_to_bool(&self) -> Option<bool> {
@@ -111,6 +116,10 @@ macro_rules! impl_value {
         $($impl)* {
             fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, mut stream: &mut S) -> sval::Result {
                 self.erase_value().0.dispatch_stream(&mut stream)
+            }
+
+            fn tag(&self) -> Option<sval::Tag> {
+                self.erase_value().0.dispatch_tag()
             }
 
             fn to_bool(&self) -> Option<bool> {

@@ -289,6 +289,10 @@ impl Value for bool {
         stream.bool(*self)
     }
 
+    fn tag(&self) -> Option<Tag> {
+        None
+    }
+
     fn to_bool(&self) -> Option<bool> {
         Some(*self)
     }
@@ -348,6 +352,11 @@ mod alloc_support {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unit_tag() {
+        assert_eq!(Some(tags::RUST_UNIT), ().tag());
+    }
 
     #[test]
     fn label_send_sync() {

@@ -111,4 +111,10 @@ mod tests {
 
         assert_eq!(Some("a string"), Some("a string").to_text());
     }
+
+    #[test]
+    fn option_tag() {
+        assert_eq!(Some(tags::RUST_OPTION_SOME), Some(42).tag());
+        assert_eq!(Some(tags::RUST_OPTION_NONE), None::<i32>.tag());
+    }
 }

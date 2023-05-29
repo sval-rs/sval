@@ -88,6 +88,8 @@ fn derive_struct<'a>(
 
     let match_arm = stream_record(quote!(#ident), tag, &label, index, fields);
 
+    let tag = quote_tag_owned(tag);
+
     TokenStream::from(quote! {
         const _: () = {
             extern crate sval;
@@ -99,6 +101,10 @@ fn derive_struct<'a>(
                     }
 
                     Ok(())
+                }
+
+                fn tag(&self) -> Option<sval::Tag> {
+                    #tag
                 }
             }
         };
@@ -121,6 +127,8 @@ fn derive_unit_struct<'a>(
 
     let match_arm = stream_tag(quote!(_), tag, &label, index);
 
+    let tag = quote_tag_owned(tag);
+
     TokenStream::from(quote! {
         const _: () = {
             extern crate sval;
@@ -132,6 +140,10 @@ fn derive_unit_struct<'a>(
                     }
 
                     Ok(())
+                }
+
+                fn tag(&self) -> Option<sval::Tag> {
+                    #tag
                 }
             }
         };
@@ -157,6 +169,8 @@ fn derive_newtype<'a>(
 
     let match_arm = stream_newtype(quote!(#ident), tag, &label, index);
 
+    let tag = quote_tag_owned(tag);
+
     TokenStream::from(quote! {
         const _: () = {
             extern crate sval;
@@ -168,6 +182,10 @@ fn derive_newtype<'a>(
                     }
 
                     Ok(())
+                }
+
+                fn tag(&self) -> Option<sval::Tag> {
+                    #tag
                 }
             }
         };
@@ -191,6 +209,8 @@ fn derive_tuple<'a>(
 
     let match_arm = stream_tuple(quote!(#ident), tag, &label, index, fields);
 
+    let tag = quote_tag_owned(tag);
+
     TokenStream::from(quote! {
         const _: () = {
             extern crate sval;
@@ -202,6 +222,10 @@ fn derive_tuple<'a>(
                     }
 
                     Ok(())
+                }
+
+                fn tag(&self) -> Option<sval::Tag> {
+                    #tag
                 }
             }
         };
@@ -266,6 +290,8 @@ fn derive_enum<'a>(
         });
     }
 
+    let tag = quote_tag_owned(tag);
+
     TokenStream::from(quote! {
         const _: () = {
             extern crate sval;
@@ -279,6 +305,10 @@ fn derive_enum<'a>(
                     }
 
                     stream.enum_end(#enum_tag, #enum_label, #enum_index)
+                }
+
+                fn tag(&self) -> Option<sval::Tag> {
+                    #tag
                 }
             }
         };
@@ -448,6 +478,13 @@ fn quote_tag_label_index(
 fn quote_tag(tag: Option<&Path>) -> proc_macro2::TokenStream {
     match tag {
         Some(tag) => quote!(Some(&#tag)),
+        None => quote!(None),
+    }
+}
+
+fn quote_tag_owned(tag: Option<&Path>) -> proc_macro2::TokenStream {
+    match tag {
+        Some(tag) => quote!(Some(#tag)),
         None => quote!(None),
     }
 }
