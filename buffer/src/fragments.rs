@@ -1,9 +1,12 @@
+use sval::{Stream as _, Tag, Value as _};
 use crate::{std::fmt, Error};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
     borrow::{Cow, ToOwned},
     mem,
+    ops::Range,
+    vec::Vec,
 };
 
 /**
@@ -13,14 +16,20 @@ In no-std environments, this buffer only supports a single
 borrowed text fragment. Other methods will fail.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TextBuf<'sval>(FragmentBuf<'sval, str>);
+pub struct TextBuf<'sval> {
+    buf: FragmentBuf<'sval, str>,
+    tags: TagBuf,
+}
 
 impl<'sval> TextBuf<'sval> {
     /**
     Create a new empty text buffer.
     */
     pub fn new() -> Self {
-        TextBuf(FragmentBuf::new(""))
+        TextBuf {
+            buf: FragmentBuf::new(""),
+            tags: TagBuf::new(),
+        }
     }
 
     /**
@@ -60,6 +69,14 @@ impl<'sval> TextBuf<'sval> {
 
             fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
                 self.try_catch(|buf| buf.push_fragment_computed(fragment))
+            }
+
+            fn tagged_text_fragment(&mut self, tag: &Tag, fragment: &'a str) -> sval::Result {
+                todo!()
+            }
+
+            fn tagged_text_fragment_computed(&mut self, tag: &Tag, fragment: &str) -> sval::Result {
+                todo!()
             }
 
             fn text_end(&mut self) -> sval::Result {
@@ -122,7 +139,15 @@ impl<'sval> TextBuf<'sval> {
     Push a borrowed text fragment onto the buffer.
     */
     pub fn push_fragment(&mut self, fragment: &'sval str) -> Result<(), Error> {
-        self.0.push(fragment)
+        self.buf.push(fragment)
+    }
+
+    /**
+    Push a tagged borrowed text fragment onto the buffer.
+    */
+    pub fn push_tagged_fragment(&mut self, tag: sval::Tag, fragment: &'sval str) -> Result<(), Error> {
+        self.buf.push(fragment)?;
+        self.tags.push(tag, fragment.len())
     }
 
     /**
@@ -132,26 +157,44 @@ impl<'sval> TextBuf<'sval> {
     buffer the fragment. In no-std environments this method will fail.
     */
     pub fn push_fragment_computed(&mut self, fragment: &str) -> Result<(), Error> {
-        self.0.push_computed(fragment)
+        self.buf.push_computed(fragment)
+    }
+
+    /**
+    Push a tagged computed text fragment onto the buffer.
+
+    If the `std` feature of this library is enabled, this method will
+    buffer the fragment. In no-std environments this method will fail.
+     */
+    pub fn push_tagged_fragment_computed(&mut self, tag: sval::Tag, fragment: &str) -> Result<(), Error> {
+        self.buf.push_computed(fragment)?;
+        self.tags.push(tag, fragment.len())
+    }
+
+    fn tags(&self) -> &[TagRange] {
+        self.tags.iter()
     }
 
     /**
     Try get the contents of the buffer as a string borrowed for the `'sval` lifetime.
     */
     pub fn as_borrowed_str(&self) -> Option<&'sval str> {
-        self.0.as_borrowed_inner()
+        self.buf.as_borrowed_inner()
     }
 
     /**
     Get the contents of the buffer as a string.
     */
     pub fn as_str(&self) -> &str {
-        self.0.as_inner()
+        self.buf.as_inner()
     }
 
     #[cfg(feature = "alloc")]
     pub(crate) fn into_owned_in_place(&mut self) -> &mut TextBuf<'static> {
-        crate::assert_static(self.0.into_owned_in_place());
+        let TextBuf { ref mut buf, ref mut tags } = self;
+
+        crate::assert_static(tags);
+        crate::assert_static(buf.into_owned_in_place());
 
         // SAFETY: `self` no longer contains any data borrowed for `'sval`
         unsafe { mem::transmute::<&mut TextBuf<'sval>, &mut TextBuf<'static>>(self) }
@@ -166,7 +209,10 @@ impl<'sval> Default for TextBuf<'sval> {
 
 impl<'sval> From<&'sval str> for TextBuf<'sval> {
     fn from(fragment: &'sval str) -> Self {
-        TextBuf(FragmentBuf::new(fragment))
+        TextBuf {
+            buf: FragmentBuf::new(fragment),
+            tags: TagBuf::new(),
+        }
     }
 }
 
@@ -178,15 +224,136 @@ impl<'sval> AsRef<str> for TextBuf<'sval> {
 
 impl<'a> sval::Value for TextBuf<'a> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-        self.as_str().stream(stream)
+        let tags = self.tags();
+
+        if tags.is_empty() {
+            self.as_str().stream(stream)
+        } else {
+            stream_tagged_text(self.as_str(), tags, stream)
+        }
     }
 }
 
 impl<'sval> sval_ref::ValueRef<'sval> for TextBuf<'sval> {
     fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
+        let tags = self.tags();
+
         match self.as_borrowed_str() {
-            Some(v) => stream.value(v),
-            None => stream.value_computed(self.as_str()),
+            Some(v) => {
+                if tags.is_empty() {
+                    stream.value(v)
+                } else {
+                    stream_tagged_text(v, tags, stream)
+                }
+            },
+            None => {
+                self.stream(stream.computed())
+            },
+        }
+    }
+}
+
+fn stream_tagged_text<'sval, S: sval::Stream<'sval> + ?Sized>(v: &'sval str, tags: &[TagRange], stream: &mut S) -> sval::Result {
+    stream.text_begin(Some(v.len()))?;
+
+    let start = tags[0].range.start;
+    let mut end = 0;
+
+    if start != 0 {
+        stream.text_fragment(&v[..start])?;
+    }
+
+    for tag in tags {
+        end = tag.range.end;
+
+        stream.tagged_text_fragment(&tag.tag, &v[tag.range.clone()])?;
+    }
+
+    if end < v.len() {
+        stream.text_fragment(&v[end..])?;
+    }
+
+    stream.text_end()
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct TagBuf(
+    #[cfg(feature = "alloc")]
+    Vec<TagRange>,
+    #[cfg(not(feature = "alloc"))]
+    Option<TagRange>,
+);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct TagRange {
+    range: Range<usize>,
+    tag: sval::Tag,
+}
+
+impl TagBuf {
+    fn new() -> Self {
+        let tags = {
+            #[cfg(feature = "alloc")]
+            {
+                Vec::new()
+            }
+            #[cfg(not(feature = "alloc"))]
+            {
+                None
+            }
+        };
+
+        TagBuf(tags)
+    }
+
+    fn push(&mut self, tag: sval::Tag, len: usize) -> Result<(), Error> {
+        #[cfg(feature = "alloc")]
+        {
+            match self.0.last_mut() {
+                Some(last) if last.tag == tag => {
+                    last.range.end += len;
+                }
+                Some(last) => {
+                    let start = last.range.end;
+
+                    self.0.push(TagRange {
+                        tag,
+                        range: start..start  + len,
+                    });
+                }
+                None => {
+                    self.0.push(TagRange {
+                        tag,
+                        range: 0..len,
+                    });
+                }
+            }
+
+            Ok(())
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let _ = len;
+
+            if self.0.is_some() {
+                let _ = fragment;
+                return Err(Error::no_alloc("computed fragment"));
+            }
+
+            self.0 = Some(tag.clone());
+        }
+    }
+
+    fn iter(&self) -> &[TagRange] {
+        #[cfg(feature = "alloc")]
+        {
+            &self.0
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            self.0.as_ref()
+                .map(crate::core::slice::from_ref)
+                .unwrap_or_default()
         }
     }
 }
@@ -198,14 +365,18 @@ In no-std environments, this buffer only supports a single
 borrowed binary fragment. Other methods will fail.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BinaryBuf<'sval>(FragmentBuf<'sval, [u8]>);
+pub struct BinaryBuf<'sval> {
+    buf: FragmentBuf<'sval, [u8]>,
+}
 
 impl<'sval> BinaryBuf<'sval> {
     /**
     Create a new empty binary buffer.
     */
     pub fn new() -> Self {
-        BinaryBuf(FragmentBuf::new(&[]))
+        BinaryBuf {
+            buf: FragmentBuf::new(&[]),
+        }
     }
 
     /**
@@ -319,7 +490,7 @@ impl<'sval> BinaryBuf<'sval> {
     Push a borrowed binary fragment onto the buffer.
     */
     pub fn push_fragment(&mut self, fragment: &'sval [u8]) -> Result<(), Error> {
-        self.0.push(fragment)
+        self.buf.push(fragment)
     }
 
     /**
@@ -329,26 +500,28 @@ impl<'sval> BinaryBuf<'sval> {
     buffer the fragment. In no-std environments this method will fail.
     */
     pub fn push_fragment_computed(&mut self, fragment: &[u8]) -> Result<(), Error> {
-        self.0.push_computed(fragment)
+        self.buf.push_computed(fragment)
     }
 
     /**
     Try get the contents of the buffer as a slice borrowed for the `'sval` lifetime.
     */
     pub fn as_borrowed_slice(&self) -> Option<&'sval [u8]> {
-        self.0.as_borrowed_inner()
+        self.buf.as_borrowed_inner()
     }
 
     /**
     Get the contents of the buffer as a slice.
     */
     pub fn as_slice(&self) -> &[u8] {
-        self.0.as_inner()
+        self.buf.as_inner()
     }
 
     #[cfg(feature = "alloc")]
     pub(crate) fn into_owned_in_place(&mut self) -> &mut BinaryBuf<'static> {
-        crate::assert_static(self.0.into_owned_in_place());
+        let BinaryBuf { ref mut buf } = self;
+
+        crate::assert_static(buf.into_owned_in_place());
 
         // SAFETY: `self` no longer contains any data borrowed for `'sval`
         unsafe { mem::transmute::<&mut BinaryBuf<'sval>, &mut BinaryBuf<'static>>(self) }
@@ -363,13 +536,17 @@ impl<'sval> Default for BinaryBuf<'sval> {
 
 impl<'sval> From<&'sval [u8]> for BinaryBuf<'sval> {
     fn from(fragment: &'sval [u8]) -> Self {
-        BinaryBuf(FragmentBuf::new(fragment))
+        BinaryBuf {
+            buf: FragmentBuf::new(fragment),
+        }
     }
 }
 
 impl<'sval, const N: usize> From<&'sval [u8; N]> for BinaryBuf<'sval> {
     fn from(fragment: &'sval [u8; N]) -> Self {
-        BinaryBuf(FragmentBuf::new(fragment))
+        BinaryBuf {
+            buf: FragmentBuf::new(fragment)
+        }
     }
 }
 
@@ -617,6 +794,26 @@ mod tests {
     }
 
     #[test]
+    fn tagged_text_fragment_replace() {
+        let mut buf = TextBuf::new();
+
+        buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
+
+        assert_eq!("123", buf.as_str());
+        assert_eq!(&[TagRange { range: 0..3, tag: sval::tags::NUMBER }] as &[TagRange], buf.tags());
+    }
+
+    #[test]
+    fn empty_tagged_text_fragment_replace() {
+        let mut buf = TextBuf::new();
+
+        buf.push_tagged_fragment(sval::tags::NUMBER, "").unwrap();
+
+        assert_eq!("", buf.as_str());
+        assert_eq!(&[TagRange { range: 0..0, tag: sval::tags::NUMBER }] as &[TagRange], buf.tags());
+    }
+
+    #[test]
     fn binary_fragment_replace() {
         let mut buf = BinaryBuf::new();
 
@@ -675,6 +872,40 @@ mod tests {
 
     #[test]
     #[cfg(feature = "alloc")]
+    fn tagged_text_fragment_extend() {
+        let mut buf = TextBuf::new();
+
+        buf.push_fragment("").unwrap();
+
+        buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
+        buf.push_tagged_fragment(sval::tags::NUMBER, "456").unwrap();
+
+        buf.push_tagged_fragment(sval::tags::RUST_UNIT, "").unwrap();
+
+        buf.push_tagged_fragment(sval::tags::NUMBER, "789").unwrap();
+
+        assert_eq!("123456789", buf.as_str());
+        assert_eq!(&[TagRange { range: 0..6, tag: sval::tags::NUMBER }, TagRange { range: 6..6, tag: sval::tags::RUST_UNIT }, TagRange { range: 6..9, tag: sval::tags::NUMBER }], buf.tags());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn tagged_text_fragment_computed_extend() {
+        let mut buf = TextBuf::new();
+
+        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "123").unwrap();
+        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "456").unwrap();
+
+        buf.push_tagged_fragment_computed(sval::tags::RUST_UNIT, "").unwrap();
+
+        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "789").unwrap();
+
+        assert_eq!("123456789", buf.as_str());
+        assert_eq!(&[TagRange { range: 0..6, tag: sval::tags::NUMBER }, TagRange { range: 6..6, tag: sval::tags::RUST_UNIT }, TagRange { range: 6..9, tag: sval::tags::NUMBER }], buf.tags());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
     fn binary_fragment_extend() {
         let mut buf = BinaryBuf::new();
 
@@ -683,6 +914,24 @@ mod tests {
 
         assert_eq!(b"abcdef" as &[u8], buf.as_slice());
         assert_eq!(None, buf.as_borrowed_slice());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_text_buf() {
+        todo!()
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_text_buf_tagged() {
+        todo!()
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_binary_buf() {
+        todo!()
     }
 
     #[test]
@@ -697,6 +946,38 @@ mod tests {
         });
     }
 
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn stream_text_buf_tagged() {
+        let mut buf = TextBuf::new();
+        buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
+        buf.push_tagged_fragment(sval::tags::RUST_UNIT, "()").unwrap();
+        buf.push_fragment("data").unwrap();
+
+        sval_test::assert_tokens(&buf, {
+            use sval_test::Token::*;
+
+            &[
+                TextBegin(Some(9)),
+                TaggedTextFragment(sval::tags::NUMBER, "123"),
+                TaggedTextFragment(sval::tags::RUST_UNIT, "()"),
+                TextFragment("data"),
+                TextEnd
+            ]
+        });
+    }
+
+    #[test]
+    fn stream_ref_text_buf() {
+        todo!()
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn stream_ref_text_buf_tagged() {
+        todo!()
+    }
+
     #[test]
     fn stream_binary_buf() {
         let mut buf = BinaryBuf::new();
@@ -707,5 +988,10 @@ mod tests {
 
             &[BinaryBegin(Some(3)), BinaryFragment(b"abc"), BinaryEnd]
         });
+    }
+
+    #[test]
+    fn stream_ref_binary_buf() {
+        todo!()
     }
 }

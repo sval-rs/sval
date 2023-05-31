@@ -401,6 +401,14 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         }
     }
 
+    fn tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result {
+        todo!()
+    }
+
+    fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
+        todo!()
+    }
+
     fn text_end(&mut self) -> sval::Result {
         #[cfg(feature = "alloc")]
         {
@@ -1682,6 +1690,11 @@ mod alloc_support {
             ] {
                 assert_eq!(expected, value.parts, "{:?}", value);
             }
+        }
+
+        #[test]
+        fn buffer_text_tagged() {
+            todo!()
         }
 
         #[test]

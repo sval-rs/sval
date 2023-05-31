@@ -38,6 +38,10 @@ mod private {
 
         fn dispatch_text_fragment_computed(&mut self, fragment: &str) -> sval::Result;
 
+        fn dispatch_tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result;
+
+        fn dispatch_tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result;
+
         fn dispatch_binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result;
 
         fn dispatch_binary_end(&mut self) -> sval::Result;
@@ -254,6 +258,14 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
 
     fn dispatch_text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
         self.text_fragment_computed(fragment)
+    }
+
+    fn dispatch_tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result {
+        self.tagged_text_fragment(tag, fragment)
+    }
+
+    fn dispatch_tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
+        self.tagged_text_fragment_computed(tag, fragment)
     }
 
     fn dispatch_binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
@@ -500,11 +512,19 @@ macro_rules! impl_stream {
             }
 
             fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
-                self.erase_stream().0.dispatch_text_fragment(&fragment)
+                self.erase_stream().0.dispatch_text_fragment(fragment)
             }
 
             fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-                self.erase_stream().0.dispatch_text_fragment_computed(&fragment)
+                self.erase_stream().0.dispatch_text_fragment_computed(fragment)
+            }
+
+            fn tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result {
+                self.erase_stream().0.dispatch_tagged_text_fragment(tag, fragment)
+            }
+
+            fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
+                self.erase_stream().0.dispatch_tagged_text_fragment_computed(tag, fragment)
             }
 
             fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
@@ -516,11 +536,11 @@ macro_rules! impl_stream {
             }
 
             fn binary_fragment(&mut self, fragment: &'sval [u8]) -> sval::Result {
-                self.erase_stream().0.dispatch_binary_fragment(&fragment)
+                self.erase_stream().0.dispatch_binary_fragment(fragment)
             }
 
             fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
-                self.erase_stream().0.dispatch_binary_fragment_computed(fragment.as_ref())
+                self.erase_stream().0.dispatch_binary_fragment_computed(fragment)
             }
 
             fn map_begin(&mut self, num_entries_hint: Option<usize>) -> sval::Result {
