@@ -1,4 +1,6 @@
-use core::fmt::{self, Debug, Write};
+use core::fmt::{self, Debug, Display, Write};
+use sval::Tag;
+use crate::tags;
 
 pub(crate) struct Writer<W> {
     is_current_depth_empty: bool,
@@ -13,6 +15,14 @@ This trait can be used to customize the way various tokens are written, such
 as colorizing numbers and booleans differently.
 */
 pub trait TokenWrite: Write {
+    /**
+    Write a tagged fragment.
+     */
+    fn write_token<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
+        let _ = tag;
+        self.write_fmt(format_args!("{}", token))
+    }
+
     /**
     Write a number.
     */
@@ -98,13 +108,6 @@ pub trait TokenWrite: Write {
     }
 
     /**
-    Write a number.
-    */
-    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
-        self.write_fmt(format_args!("{}", num))
-    }
-
-    /**
     Write null or unit.
     */
     fn write_null(&mut self) -> fmt::Result {
@@ -119,20 +122,6 @@ pub trait TokenWrite: Write {
     }
 
     /**
-    Write an atom, like `true` or `()`.
-    */
-    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
-        self.write_fmt(format_args!("{}", atom))
-    }
-
-    /**
-    Write a fragment of punctuation, like `:` or `,`.
-    */
-    fn write_punct(&mut self, punct: &str) -> fmt::Result {
-        self.write_str(punct)
-    }
-
-    /**
     Write a type name.
     */
     fn write_type(&mut self, ty: &str) -> fmt::Result {
@@ -140,35 +129,74 @@ pub trait TokenWrite: Write {
     }
 
     /**
-    Write an identifier.
-    */
-    fn write_ident(&mut self, ident: &str) -> fmt::Result {
-        self.write_str(ident)
+    Write a field name.
+     */
+    fn write_field(&mut self, field: &str) -> fmt::Result {
+        self.write_ident(field)
+    }
+
+    /**
+    Write an opening or closing quote.
+     */
+    fn write_text_quote(&mut self) -> fmt::Result {
+        self.write_text("\"")
     }
 
     /**
     Write a fragment of text.
-    */
+     */
     fn write_text(&mut self, text: &str) -> fmt::Result {
-        self.write_str(text)
+        self.write_tagged_text(&tags::TEXT, text)
     }
 
     /**
-    Write a field name.
-    */
-    fn write_field(&mut self, field: &str) -> fmt::Result {
-        self.write_ident(field)
+    Write a number.
+     */
+    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
+        self.write_token(&sval::tags::NUMBER, num)
+    }
+
+    /**
+    Write an atom, like `true` or `()`.
+     */
+    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
+        self.write_token(&tags::ATOM, atom)
+    }
+
+    /**
+    Write an identifier.
+     */
+    fn write_ident(&mut self, ident: &str) -> fmt::Result {
+        self.write_token(&tags::IDENT, ident)
+    }
+
+    /**
+    Write a fragment of punctuation, like `:` or `,`.
+     */
+    fn write_punct(&mut self, punct: &str) -> fmt::Result {
+        self.write_token(&tags::PUNCT, punct)
+    }
+
+    /**
+    Write a fragment of tagged text.
+     */
+    fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
+        self.write_token(tag, text)
     }
 
     /**
     Write whitespace.
     */
     fn write_ws(&mut self, ws: &str) -> fmt::Result {
-        self.write_str(ws)
+        self.write_token(&tags::WS, ws)
     }
 }
 
 impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
+    fn write_token<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
+        todo!()
+    }
+
     fn write_u8(&mut self, value: u8) -> fmt::Result {
         (**self).write_u8(value)
     }
@@ -217,10 +245,6 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
         (**self).write_f64(value)
     }
 
-    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
-        (**self).write_number(num)
-    }
-
     fn write_null(&mut self) -> fmt::Result {
         (**self).write_null()
     }
@@ -229,28 +253,44 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
         (**self).write_bool(value)
     }
 
-    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
-        (**self).write_atom(atom)
-    }
-
-    fn write_punct(&mut self, punct: &str) -> fmt::Result {
-        (**self).write_punct(punct)
-    }
-
     fn write_type(&mut self, ty: &str) -> fmt::Result {
         (**self).write_type(ty)
     }
 
-    fn write_ident(&mut self, ident: &str) -> fmt::Result {
-        (**self).write_ident(ident)
+    fn write_field(&mut self, field: &str) -> fmt::Result {
+        (**self).write_field(field)
+    }
+
+    fn write_text_quote(&mut self) -> fmt::Result {
+        todo!()
     }
 
     fn write_text(&mut self, text: &str) -> fmt::Result {
         (**self).write_text(text)
     }
 
-    fn write_field(&mut self, field: &str) -> fmt::Result {
-        (**self).write_field(field)
+    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
+        (**self).write_number(num)
+    }
+
+    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
+        (**self).write_atom(atom)
+    }
+
+    fn write_ident(&mut self, ident: &str) -> fmt::Result {
+        (**self).write_ident(ident)
+    }
+
+    fn write_punct(&mut self, punct: &str) -> fmt::Result {
+        (**self).write_punct(punct)
+    }
+
+    fn write_tagged_text(&mut self, tag: &Tag, text: &str) -> fmt::Result {
+        todo!()
+    }
+
+    fn write_ws(&mut self, ws: &str) -> fmt::Result {
+        todo!()
     }
 }
 
@@ -370,6 +410,18 @@ impl<W: Write> TokenWrite for GenericWriter<W> {
     }
 }
 
+pub(crate) struct StreamWriter<S>(pub S);
+
+impl<'sval, S: sval::Stream<'sval>> Write for StreamWriter<S> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.0.text_fragment_computed(s).map_err(|_| fmt::Error)
+    }
+}
+
+impl<'sval, S: sval::Stream<'sval>> TokenWrite for StreamWriter<S> {
+
+}
+
 impl<W> Writer<W> {
     pub fn new(out: W) -> Self {
         Writer {
@@ -395,13 +447,18 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
 
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
         if !self.is_text_number {
-            self.out.write_text("\"").map_err(|_| sval::Error::new())?;
+            self.out.write_text_quote().map_err(|_| sval::Error::new())?;
         }
 
         Ok(())
     }
 
+    fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
+        todo!()
+    }
+
     fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+        // TODO: `if escape`, we also need to stash the active tag
         if !self.is_text_number {
             // Inlined from `impl Debug for str`
             // This avoids writing the outer quotes for the string
@@ -442,7 +499,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
 
     fn text_end(&mut self) -> sval::Result {
         if !self.is_text_number {
-            self.out.write_text("\"").map_err(|_| sval::Error::new())?;
+            self.out.write_text_quote().map_err(|_| sval::Error::new())?;
         }
 
         Ok(())
