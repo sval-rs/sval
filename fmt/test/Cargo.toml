@@ -19,3 +19,6 @@ path = "../../derive"
 
 [dependencies.sval_buffer]
 path = "../../buffer"
+
+[dependencies.sval_test]
+path = "../../test"

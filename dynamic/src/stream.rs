@@ -38,9 +38,17 @@ mod private {
 
         fn dispatch_text_fragment_computed(&mut self, fragment: &str) -> sval::Result;
 
-        fn dispatch_tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result;
+        fn dispatch_tagged_text_fragment(
+            &mut self,
+            tag: &sval::Tag,
+            fragment: &'sval str,
+        ) -> sval::Result;
 
-        fn dispatch_tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result;
+        fn dispatch_tagged_text_fragment_computed(
+            &mut self,
+            tag: &sval::Tag,
+            fragment: &str,
+        ) -> sval::Result;
 
         fn dispatch_binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result;
 
@@ -260,11 +268,19 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.text_fragment_computed(fragment)
     }
 
-    fn dispatch_tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result {
+    fn dispatch_tagged_text_fragment(
+        &mut self,
+        tag: &sval::Tag,
+        fragment: &'sval str,
+    ) -> sval::Result {
         self.tagged_text_fragment(tag, fragment)
     }
 
-    fn dispatch_tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
+    fn dispatch_tagged_text_fragment_computed(
+        &mut self,
+        tag: &sval::Tag,
+        fragment: &str,
+    ) -> sval::Result {
         self.tagged_text_fragment_computed(tag, fragment)
     }
 

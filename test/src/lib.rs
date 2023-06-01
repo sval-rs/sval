@@ -344,7 +344,10 @@ impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
     }
 
     fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        self.push(Token::TaggedTextFragmentComputed(tag.clone(), fragment.to_owned()));
+        self.push(Token::TaggedTextFragmentComputed(
+            tag.clone(),
+            fragment.to_owned(),
+        ));
         Ok(())
     }
 

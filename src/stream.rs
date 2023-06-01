@@ -891,12 +891,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.tagged_end(tag, label, index)
     }
 
-    fn tag(
-        &mut self,
-        tag: Option<&Tag>,
-        label: Option<&Label>,
-        index: Option<&Index>,
-    ) -> Result {
+    fn tag(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
         self.0.tag(tag, label, index)
     }
 

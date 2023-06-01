@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::writer::{Writer, StreamWriter};
+use crate::writer::Writer;
 
 /**
 Adapt an [`sval::Value`] into a [`fmt::Debug`] or [`fmt::Display`].
@@ -49,11 +49,5 @@ impl<V: sval::Value> fmt::Display for ToFmt<V> {
             Ok(()) => Ok(()),
             Err(e) => write!(f, "<{}>", e),
         }
-    }
-}
-
-impl<V: sval::Value> sval::Value for ToFmt<V> {
-    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-        v.stream(&mut Writer::new(StreamWriter(stream)))
     }
 }

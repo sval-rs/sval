@@ -1,5 +1,5 @@
-use sval::{Stream as _, Tag, Value as _};
 use crate::{std::fmt, Error};
+use sval::{Stream as _, Tag, Value as _};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
@@ -145,7 +145,11 @@ impl<'sval> TextBuf<'sval> {
     /**
     Push a tagged borrowed text fragment onto the buffer.
     */
-    pub fn push_tagged_fragment(&mut self, tag: sval::Tag, fragment: &'sval str) -> Result<(), Error> {
+    pub fn push_tagged_fragment(
+        &mut self,
+        tag: sval::Tag,
+        fragment: &'sval str,
+    ) -> Result<(), Error> {
         self.buf.push(fragment)?;
         self.tags.push(tag, fragment.len())
     }
@@ -166,7 +170,11 @@ impl<'sval> TextBuf<'sval> {
     If the `std` feature of this library is enabled, this method will
     buffer the fragment. In no-std environments this method will fail.
      */
-    pub fn push_tagged_fragment_computed(&mut self, tag: sval::Tag, fragment: &str) -> Result<(), Error> {
+    pub fn push_tagged_fragment_computed(
+        &mut self,
+        tag: sval::Tag,
+        fragment: &str,
+    ) -> Result<(), Error> {
         self.buf.push_computed(fragment)?;
         self.tags.push(tag, fragment.len())
     }
@@ -191,7 +199,10 @@ impl<'sval> TextBuf<'sval> {
 
     #[cfg(feature = "alloc")]
     pub(crate) fn into_owned_in_place(&mut self) -> &mut TextBuf<'static> {
-        let TextBuf { ref mut buf, ref mut tags } = self;
+        let TextBuf {
+            ref mut buf,
+            ref mut tags,
+        } = self;
 
         crate::assert_static(tags);
         crate::assert_static(buf.into_owned_in_place());
@@ -245,15 +256,17 @@ impl<'sval> sval_ref::ValueRef<'sval> for TextBuf<'sval> {
                 } else {
                     stream_tagged_text(v, tags, stream)
                 }
-            },
-            None => {
-                self.stream(stream.computed())
-            },
+            }
+            None => self.stream(stream.computed()),
         }
     }
 }
 
-fn stream_tagged_text<'sval, S: sval::Stream<'sval> + ?Sized>(v: &'sval str, tags: &[TagRange], stream: &mut S) -> sval::Result {
+fn stream_tagged_text<'sval, S: sval::Stream<'sval> + ?Sized>(
+    v: &'sval str,
+    tags: &[TagRange],
+    stream: &mut S,
+) -> sval::Result {
     stream.text_begin(Some(v.len()))?;
 
     let start = tags[0].range.start;
@@ -278,10 +291,8 @@ fn stream_tagged_text<'sval, S: sval::Stream<'sval> + ?Sized>(v: &'sval str, tag
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct TagBuf(
-    #[cfg(feature = "alloc")]
-    Vec<TagRange>,
-    #[cfg(not(feature = "alloc"))]
-    Option<TagRange>,
+    #[cfg(feature = "alloc")] Vec<TagRange>,
+    #[cfg(not(feature = "alloc"))] Option<TagRange>,
 );
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -318,14 +329,11 @@ impl TagBuf {
 
                     self.0.push(TagRange {
                         tag,
-                        range: start..start  + len,
+                        range: start..start + len,
                     });
                 }
                 None => {
-                    self.0.push(TagRange {
-                        tag,
-                        range: 0..len,
-                    });
+                    self.0.push(TagRange { tag, range: 0..len });
                 }
             }
 
@@ -351,7 +359,8 @@ impl TagBuf {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            self.0.as_ref()
+            self.0
+                .as_ref()
                 .map(crate::core::slice::from_ref)
                 .unwrap_or_default()
         }
@@ -545,7 +554,7 @@ impl<'sval> From<&'sval [u8]> for BinaryBuf<'sval> {
 impl<'sval, const N: usize> From<&'sval [u8; N]> for BinaryBuf<'sval> {
     fn from(fragment: &'sval [u8; N]) -> Self {
         BinaryBuf {
-            buf: FragmentBuf::new(fragment)
+            buf: FragmentBuf::new(fragment),
         }
     }
 }
@@ -800,7 +809,13 @@ mod tests {
         buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
 
         assert_eq!("123", buf.as_str());
-        assert_eq!(&[TagRange { range: 0..3, tag: sval::tags::NUMBER }] as &[TagRange], buf.tags());
+        assert_eq!(
+            &[TagRange {
+                range: 0..3,
+                tag: sval::tags::NUMBER
+            }] as &[TagRange],
+            buf.tags()
+        );
     }
 
     #[test]
@@ -810,7 +825,13 @@ mod tests {
         buf.push_tagged_fragment(sval::tags::NUMBER, "").unwrap();
 
         assert_eq!("", buf.as_str());
-        assert_eq!(&[TagRange { range: 0..0, tag: sval::tags::NUMBER }] as &[TagRange], buf.tags());
+        assert_eq!(
+            &[TagRange {
+                range: 0..0,
+                tag: sval::tags::NUMBER
+            }] as &[TagRange],
+            buf.tags()
+        );
     }
 
     #[test]
@@ -885,7 +906,23 @@ mod tests {
         buf.push_tagged_fragment(sval::tags::NUMBER, "789").unwrap();
 
         assert_eq!("123456789", buf.as_str());
-        assert_eq!(&[TagRange { range: 0..6, tag: sval::tags::NUMBER }, TagRange { range: 6..6, tag: sval::tags::RUST_UNIT }, TagRange { range: 6..9, tag: sval::tags::NUMBER }], buf.tags());
+        assert_eq!(
+            &[
+                TagRange {
+                    range: 0..6,
+                    tag: sval::tags::NUMBER
+                },
+                TagRange {
+                    range: 6..6,
+                    tag: sval::tags::RUST_UNIT
+                },
+                TagRange {
+                    range: 6..9,
+                    tag: sval::tags::NUMBER
+                }
+            ],
+            buf.tags()
+        );
     }
 
     #[test]
@@ -893,15 +930,35 @@ mod tests {
     fn tagged_text_fragment_computed_extend() {
         let mut buf = TextBuf::new();
 
-        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "123").unwrap();
-        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "456").unwrap();
+        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "123")
+            .unwrap();
+        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "456")
+            .unwrap();
 
-        buf.push_tagged_fragment_computed(sval::tags::RUST_UNIT, "").unwrap();
+        buf.push_tagged_fragment_computed(sval::tags::RUST_UNIT, "")
+            .unwrap();
 
-        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "789").unwrap();
+        buf.push_tagged_fragment_computed(sval::tags::NUMBER, "789")
+            .unwrap();
 
         assert_eq!("123456789", buf.as_str());
-        assert_eq!(&[TagRange { range: 0..6, tag: sval::tags::NUMBER }, TagRange { range: 6..6, tag: sval::tags::RUST_UNIT }, TagRange { range: 6..9, tag: sval::tags::NUMBER }], buf.tags());
+        assert_eq!(
+            &[
+                TagRange {
+                    range: 0..6,
+                    tag: sval::tags::NUMBER
+                },
+                TagRange {
+                    range: 6..6,
+                    tag: sval::tags::RUST_UNIT
+                },
+                TagRange {
+                    range: 6..9,
+                    tag: sval::tags::NUMBER
+                }
+            ],
+            buf.tags()
+        );
     }
 
     #[test]
@@ -951,7 +1008,8 @@ mod tests {
     fn stream_text_buf_tagged() {
         let mut buf = TextBuf::new();
         buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
-        buf.push_tagged_fragment(sval::tags::RUST_UNIT, "()").unwrap();
+        buf.push_tagged_fragment(sval::tags::RUST_UNIT, "()")
+            .unwrap();
         buf.push_fragment("data").unwrap();
 
         sval_test::assert_tokens(&buf, {
@@ -962,7 +1020,7 @@ mod tests {
                 TaggedTextFragment(sval::tags::NUMBER, "123"),
                 TaggedTextFragment(sval::tags::RUST_UNIT, "()"),
                 TextFragment("data"),
-                TextEnd
+                TextEnd,
             ]
         });
     }

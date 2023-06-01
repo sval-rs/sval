@@ -4,6 +4,7 @@
 extern crate sval_derive;
 
 use std::fmt;
+use sval::Stream;
 
 fn assert_fmt(v: impl sval::Value + fmt::Debug) {
     let expected = format!("{:?}", v);
@@ -281,6 +282,76 @@ fn token_write() {
     let mut writer = Writer::default();
     sval_fmt::stream_to_token_write(&mut writer, ()).unwrap();
     assert!(writer.null);
+}
+
+#[test]
+fn stream_fragments() {
+    struct Template<V> {
+        pre: &'static str,
+        value: V,
+        post: &'static str,
+    }
+
+    impl<V: sval::Value> sval::Value for Template<V> {
+        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+            stream.text_begin(None)?;
+            stream.text_fragment(self.pre)?;
+            sval_fmt::stream_to_text_fragments(&mut *stream, &self.value)?;
+            stream.text_fragment(self.post)?;
+            stream.text_end()
+        }
+    }
+
+    sval_test::assert_tokens(
+        &Template {
+            pre: "before ",
+            value: MapStruct {
+                field_0: 42,
+                field_1: true,
+                field_2: "text \"in quotes\"",
+            },
+            post: " after",
+        },
+        {
+            use sval_test::Token::*;
+
+            &[
+                TextBegin(None),
+                TextFragment("before "),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "MapStruct".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "{".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_0".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::NUMBER, "42".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_1".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::ATOM, "true".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_2".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "text ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "in quotes".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "}".to_owned()),
+                TextFragment(" after"),
+                TextEnd,
+            ]
+        },
+    );
 }
 
 #[test]

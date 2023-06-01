@@ -1,10 +1,9 @@
-use core::fmt::{self, Debug, Display, Write};
-use sval::Tag;
 use crate::tags;
+use core::fmt::{self, Display, Write};
 
 pub(crate) struct Writer<W> {
     is_current_depth_empty: bool,
-    is_text_number: bool,
+    current_tag: Option<sval::Tag>,
     out: W,
 }
 
@@ -18,7 +17,7 @@ pub trait TokenWrite: Write {
     /**
     Write a tagged fragment.
      */
-    fn write_token<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
+    fn write_token_fragment<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
         let _ = tag;
         self.write_fmt(format_args!("{}", token))
     }
@@ -139,62 +138,97 @@ pub trait TokenWrite: Write {
     Write an opening or closing quote.
      */
     fn write_text_quote(&mut self) -> fmt::Result {
-        self.write_text("\"")
+        self.write_token_fragment(&tags::TEXT, "\"")
     }
 
     /**
     Write a fragment of text.
      */
     fn write_text(&mut self, text: &str) -> fmt::Result {
-        self.write_tagged_text(&tags::TEXT, text)
+        // Inlined from `impl Debug for str`
+        // This avoids writing the outer quotes for the string
+        // and handles the `'` case
+        // NOTE: The vast (vast) majority of formatting time is spent here
+        // Optimizing this would be a big win
+        let mut from = 0;
+
+        for (i, c) in text.char_indices() {
+            let esc = c.escape_debug();
+
+            // If char needs escaping, flush backlog so far and write, else skip
+            if c != '\'' && esc.len() != 1 {
+                self.write_tagged_text(&tags::TEXT, &text[from..i])?;
+
+                for c in esc {
+                    let mut buf = [0; 4];
+                    self.write_tagged_text(&tags::TEXT, c.encode_utf8(&mut buf))?;
+                }
+
+                from = i + c.len_utf8();
+            }
+        }
+
+        if from == text.len() {
+            Ok(())
+        } else {
+            self.write_tagged_text(&tags::TEXT, &text[from..])
+        }
     }
 
     /**
     Write a number.
      */
     fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
-        self.write_token(&sval::tags::NUMBER, num)
+        self.write_token_fragment(&sval::tags::NUMBER, num)
     }
 
     /**
     Write an atom, like `true` or `()`.
      */
     fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
-        self.write_token(&tags::ATOM, atom)
+        self.write_token_fragment(&tags::ATOM, atom)
     }
 
     /**
     Write an identifier.
      */
     fn write_ident(&mut self, ident: &str) -> fmt::Result {
-        self.write_token(&tags::IDENT, ident)
+        self.write_token_fragment(&tags::IDENT, ident)
     }
 
     /**
     Write a fragment of punctuation, like `:` or `,`.
      */
     fn write_punct(&mut self, punct: &str) -> fmt::Result {
-        self.write_token(&tags::PUNCT, punct)
+        self.write_token_fragment(&tags::PUNCT, punct)
+    }
+
+    /**
+    Write an opening or closing quote for tagged text.
+    */
+    fn write_tagged_text_quote(&mut self, tag: &sval::Tag) -> fmt::Result {
+        let _ = tag;
+        Ok(())
     }
 
     /**
     Write a fragment of tagged text.
      */
     fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
-        self.write_token(tag, text)
+        self.write_token_fragment(tag, text)
     }
 
     /**
     Write whitespace.
     */
     fn write_ws(&mut self, ws: &str) -> fmt::Result {
-        self.write_token(&tags::WS, ws)
+        self.write_token_fragment(&tags::WS, ws)
     }
 }
 
 impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
-    fn write_token<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
-        todo!()
+    fn write_token_fragment<T: Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
+        (**self).write_token_fragment(tag, token)
     }
 
     fn write_u8(&mut self, value: u8) -> fmt::Result {
@@ -262,7 +296,7 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
     }
 
     fn write_text_quote(&mut self) -> fmt::Result {
-        todo!()
+        (**self).write_text_quote()
     }
 
     fn write_text(&mut self, text: &str) -> fmt::Result {
@@ -285,12 +319,16 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
         (**self).write_punct(punct)
     }
 
-    fn write_tagged_text(&mut self, tag: &Tag, text: &str) -> fmt::Result {
-        todo!()
+    fn write_tagged_text_quote(&mut self, tag: &sval::Tag) -> fmt::Result {
+        (**self).write_tagged_text_quote(tag)
+    }
+
+    fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
+        (**self).write_tagged_text(tag, text)
     }
 
     fn write_ws(&mut self, ws: &str) -> fmt::Result {
-        todo!()
+        (**self).write_ws(ws)
     }
 }
 
@@ -418,15 +456,39 @@ impl<'sval, S: sval::Stream<'sval>> Write for StreamWriter<S> {
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> TokenWrite for StreamWriter<S> {
+impl<'sval, S: sval::Stream<'sval>> StreamWriter<S> {
+    fn tagged<'a>(&'a mut self, tag: &'a sval::Tag) -> impl Write + 'a {
+        struct TaggedWrite<'a, S> {
+            tag: &'a sval::Tag,
+            stream: S,
+        }
 
+        impl<'a, 'b, S: sval::Stream<'b>> Write for TaggedWrite<'a, S> {
+            fn write_str(&mut self, s: &str) -> fmt::Result {
+                self.stream
+                    .tagged_text_fragment_computed(self.tag, s)
+                    .map_err(|_| fmt::Error)
+            }
+        }
+
+        TaggedWrite {
+            tag,
+            stream: &mut self.0,
+        }
+    }
+}
+
+impl<'sval, S: sval::Stream<'sval>> TokenWrite for StreamWriter<S> {
+    fn write_token_fragment<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
+        write!(self.tagged(tag), "{}", token)
+    }
 }
 
 impl<W> Writer<W> {
     pub fn new(out: W) -> Self {
         Writer {
             is_current_depth_empty: true,
-            is_text_number: false,
+            current_tag: None,
             out,
         }
     }
@@ -446,63 +508,49 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
-        if !self.is_text_number {
-            self.out.write_text_quote().map_err(|_| sval::Error::new())?;
-        }
-
-        Ok(())
+        // Just writes quotes, so the impl for beginning a string is the same as ending
+        self.text_end()
     }
 
     fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        todo!()
+        if tag == &sval::tags::NUMBER {
+            self.out
+                .write_number(fragment)
+                .map_err(|_| sval::Error::new())
+        } else {
+            self.out
+                .write_tagged_text(tag, fragment)
+                .map_err(|_| sval::Error::new())
+        }
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-        // TODO: `if escape`, we also need to stash the active tag
-        if !self.is_text_number {
-            // Inlined from `impl Debug for str`
-            // This avoids writing the outer quotes for the string
-            // and handles the `'` case
-            // NOTE: The vast (vast) majority of formatting time is spent here
-            // Optimizing this would be a big win
-            let mut from = 0;
-
-            for (i, c) in fragment.char_indices() {
-                let esc = c.escape_debug();
-
-                // If char needs escaping, flush backlog so far and write, else skip
-                if c != '\'' && esc.len() != 1 {
-                    self.out
-                        .write_text(&fragment[from..i])
-                        .map_err(|_| sval::Error::new())?;
-                    for c in esc {
-                        let mut buf = [0; 4];
-                        self.out
-                            .write_text(c.encode_utf8(&mut buf))
-                            .map_err(|_| sval::Error::new())?;
-                    }
-                    from = i + c.len_utf8();
-                }
-            }
-
-            self.out
-                .write_text(&fragment[from..])
-                .map_err(|_| sval::Error::new())?;
-        } else {
-            self.out
+        match self.current_tag.as_ref() {
+            Some(&sval::tags::NUMBER) => self
+                .out
                 .write_number(fragment)
-                .map_err(|_| sval::Error::new())?;
+                .map_err(|_| sval::Error::new()),
+            // Inherit the tag of the overall text handler if there is one
+            Some(tag) => self
+                .out
+                .write_tagged_text(tag, fragment)
+                .map_err(|_| sval::Error::new()),
+            None => self
+                .out
+                .write_text(fragment)
+                .map_err(|_| sval::Error::new()),
         }
-
-        Ok(())
     }
 
     fn text_end(&mut self) -> sval::Result {
-        if !self.is_text_number {
-            self.out.write_text_quote().map_err(|_| sval::Error::new())?;
+        match self.current_tag.as_ref() {
+            Some(&sval::tags::NUMBER) => Ok(()),
+            Some(tag) => self
+                .out
+                .write_tagged_text_quote(tag)
+                .map_err(|_| sval::Error::new()),
+            None => self.out.write_text_quote().map_err(|_| sval::Error::new()),
         }
-
-        Ok(())
     }
 
     fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
@@ -596,7 +644,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> sval::Result {
-        self.is_text_number = false;
+        self.current_tag = None;
         self.is_current_depth_empty = true;
 
         self.out.write_punct("{").map_err(|_| sval::Error::new())?;
@@ -642,7 +690,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-        self.is_text_number = false;
+        self.current_tag = None;
         self.is_current_depth_empty = true;
 
         self.out.write_punct("[").map_err(|_| sval::Error::new())?;
@@ -695,47 +743,31 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        self.is_text_number = false;
+        self.current_tag = tag.cloned();
 
-        match tag {
-            Some(&sval::tags::NUMBER) => {
-                self.is_text_number = true;
-
-                Ok(())
-            }
-            _ => {
-                if let Some(label) = label {
-                    self.out
-                        .write_type(label.as_str())
-                        .map_err(|_| sval::Error::new())?;
-                    self.out.write_punct("(").map_err(|_| sval::Error::new())?;
-                }
-
-                Ok(())
-            }
+        if let Some(label) = label {
+            self.out
+                .write_type(label.as_str())
+                .map_err(|_| sval::Error::new())?;
+            self.out.write_punct("(").map_err(|_| sval::Error::new())?;
         }
+
+        Ok(())
     }
 
     fn tagged_end(
         &mut self,
-        tag: Option<&sval::Tag>,
+        _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        match tag {
-            Some(&sval::tags::NUMBER) => {
-                self.is_text_number = false;
+        self.current_tag = None;
 
-                Ok(())
-            }
-            _ => {
-                if label.is_some() {
-                    self.out.write_punct(")").map_err(|_| sval::Error::new())?;
-                }
-
-                Ok(())
-            }
+        if label.is_some() {
+            self.out.write_punct(")").map_err(|_| sval::Error::new())?;
         }
+
+        Ok(())
     }
 
     fn tag(
@@ -802,7 +834,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         _: Option<&sval::Index>,
         _: Option<usize>,
     ) -> sval::Result {
-        self.is_text_number = false;
+        self.current_tag = None;
         self.is_current_depth_empty = true;
 
         if let Some(label) = label {
