@@ -449,6 +449,9 @@ pub trait Stream<'sval> {
 
     /**
     Adapt this stream to accept values for any lifetime.
+
+    This won't automatically require buffering data that doesn't satisfy this stream's
+    `'sval` lifetime.
     */
     fn computed(&mut self) -> &mut Computed<Self> {
         Computed::new_borrowed(self)

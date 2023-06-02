@@ -72,11 +72,11 @@ impl<'sval> TextBuf<'sval> {
             }
 
             fn tagged_text_fragment(&mut self, tag: &Tag, fragment: &'a str) -> sval::Result {
-                todo!()
+                self.try_catch(|buf| buf.push_tagged_fragment(tag.clone(), fragment))
             }
 
             fn tagged_text_fragment_computed(&mut self, tag: &Tag, fragment: &str) -> sval::Result {
-                todo!()
+                self.try_catch(|buf| buf.push_tagged_fragment_computed(tag.clone(), fragment))
             }
 
             fn text_end(&mut self) -> sval::Result {
@@ -150,8 +150,8 @@ impl<'sval> TextBuf<'sval> {
         tag: sval::Tag,
         fragment: &'sval str,
     ) -> Result<(), Error> {
-        self.buf.push(fragment)?;
-        self.tags.push(tag, fragment.len())
+        self.tags.push(tag, self.buf.value.len(), fragment.len())?;
+        self.buf.push(fragment)
     }
 
     /**
@@ -175,8 +175,8 @@ impl<'sval> TextBuf<'sval> {
         tag: sval::Tag,
         fragment: &str,
     ) -> Result<(), Error> {
-        self.buf.push_computed(fragment)?;
-        self.tags.push(tag, fragment.len())
+        self.tags.push(tag, self.buf.value.len(), fragment.len())?;
+        self.buf.push_computed(fragment)
     }
 
     fn tags(&self) -> &[TagRange] {
@@ -317,23 +317,18 @@ impl TagBuf {
         TagBuf(tags)
     }
 
-    fn push(&mut self, tag: sval::Tag, len: usize) -> Result<(), Error> {
+    fn push(&mut self, tag: sval::Tag, buf_len: usize, fragment_len: usize) -> Result<(), Error> {
         #[cfg(feature = "alloc")]
         {
             match self.0.last_mut() {
-                Some(last) if last.tag == tag => {
-                    last.range.end += len;
+                Some(last) if last.tag == tag && last.range.end == buf_len => {
+                    last.range.end += fragment_len;
                 }
-                Some(last) => {
-                    let start = last.range.end;
-
+                _ => {
                     self.0.push(TagRange {
                         tag,
-                        range: start..start + len,
+                        range: buf_len..buf_len + fragment_len,
                     });
-                }
-                None => {
-                    self.0.push(TagRange { tag, range: 0..len });
                 }
             }
 
@@ -976,13 +971,51 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn collect_text_buf() {
-        todo!()
+        let buf = TextBuf::collect("a string").unwrap();
+
+        assert_eq!(Some("a string"), buf.as_borrowed_str());
     }
 
     #[test]
     #[cfg(feature = "alloc")]
     fn collect_text_buf_tagged() {
-        todo!()
+        struct TaggedText {
+            pre: &'static str,
+            num: &'static str,
+            post: &'static str,
+        }
+
+        impl sval::Value for TaggedText {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.text_begin(None)?;
+
+                stream.text_fragment(self.pre)?;
+                stream.tagged_text_fragment(&sval::tags::NUMBER, self.num)?;
+                stream.text_fragment(self.post)?;
+
+                stream.text_end()
+            }
+        }
+
+        let buf = TextBuf::collect(&TaggedText {
+            pre: "the number ",
+            num: "123",
+            post: " is small",
+        })
+        .unwrap();
+
+        assert_eq!("the number 123 is small", buf.as_str());
+
+        assert_eq!(
+            &[TagRange {
+                range: 11..14,
+                tag: sval::tags::NUMBER
+            }],
+            buf.tags()
+        );
     }
 
     #[test]
