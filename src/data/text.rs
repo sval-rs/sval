@@ -80,8 +80,33 @@ mod alloc_support {
 mod tests {
     use super::*;
 
+    struct TextLike(&'static str);
+    struct TaggedTextLike(&'static str);
+
+    impl Value for TextLike {
+        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+            self.0.stream(stream)
+        }
+    }
+
+    impl Value for TaggedTextLike {
+        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+            stream.text_begin(Some(self.0.len()))?;
+            stream.tagged_text_fragment(&crate::tags::NUMBER, self.0)?;
+            stream.text_end()
+        }
+    }
+
     #[test]
     fn string_cast() {
         assert_eq!(Some("a string"), "a string".to_text());
+        assert_eq!(Some("a string"), TextLike("a string").to_text());
+        assert_eq!(Some("123"), TaggedTextLike("123").to_text());
+    }
+
+    #[test]
+    fn string_tag() {
+        // Tags on text fragments aren't considered tags on the value
+        assert_eq!(None, TaggedTextLike("123").tag());
     }
 }

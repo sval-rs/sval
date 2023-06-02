@@ -49,7 +49,7 @@ pub trait Stream<'sval> {
     Stream a fragment of UTF8 text with a tag.
     */
     fn tagged_text_fragment(&mut self, tag: &Tag, fragment: &'sval str) -> Result {
-        self.tagged_text_fragment(tag, fragment)
+        self.tagged_text_fragment_computed(tag, fragment)
     }
 
     /**

@@ -15,8 +15,8 @@ as colorizing numbers and booleans differently.
 */
 pub trait TokenWrite: Write {
     /**
-    Write a tagged fragment.
-     */
+    Write a token fragment.
+    */
     fn write_token_fragment<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
         let _ = tag;
         self.write_fmt(format_args!("{}", token))
@@ -129,21 +129,25 @@ pub trait TokenWrite: Write {
 
     /**
     Write a field name.
-     */
+    */
     fn write_field(&mut self, field: &str) -> fmt::Result {
         self.write_ident(field)
     }
 
     /**
     Write an opening or closing quote.
-     */
+
+    By default, a double quote (`"`) is used.
+    */
     fn write_text_quote(&mut self) -> fmt::Result {
         self.write_token_fragment(&tags::TEXT, "\"")
     }
 
     /**
     Write a fragment of text.
-     */
+
+    By default, text input is escaped for debug rendering.
+    */
     fn write_text(&mut self, text: &str) -> fmt::Result {
         // Inlined from `impl Debug for str`
         // This avoids writing the outer quotes for the string
@@ -157,11 +161,11 @@ pub trait TokenWrite: Write {
 
             // If char needs escaping, flush backlog so far and write, else skip
             if c != '\'' && esc.len() != 1 {
-                self.write_tagged_text(&tags::TEXT, &text[from..i])?;
+                self.write_token_fragment(&tags::TEXT, &text[from..i])?;
 
                 for c in esc {
                     let mut buf = [0; 4];
-                    self.write_tagged_text(&tags::TEXT, c.encode_utf8(&mut buf))?;
+                    self.write_token_fragment(&tags::TEXT, c.encode_utf8(&mut buf))?;
                 }
 
                 from = i + c.len_utf8();
@@ -171,40 +175,14 @@ pub trait TokenWrite: Write {
         if from == text.len() {
             Ok(())
         } else {
-            self.write_tagged_text(&tags::TEXT, &text[from..])
+            self.write_token_fragment(&tags::TEXT, &text[from..])
         }
     }
 
     /**
-    Write a number.
-     */
-    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
-        self.write_token_fragment(&sval::tags::NUMBER, num)
-    }
-
-    /**
-    Write an atom, like `true` or `()`.
-     */
-    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
-        self.write_token_fragment(&tags::ATOM, atom)
-    }
-
-    /**
-    Write an identifier.
-     */
-    fn write_ident(&mut self, ident: &str) -> fmt::Result {
-        self.write_token_fragment(&tags::IDENT, ident)
-    }
-
-    /**
-    Write a fragment of punctuation, like `:` or `,`.
-     */
-    fn write_punct(&mut self, punct: &str) -> fmt::Result {
-        self.write_token_fragment(&tags::PUNCT, punct)
-    }
-
-    /**
     Write an opening or closing quote for tagged text.
+
+    By default, tagged text values aren't quoted.
     */
     fn write_tagged_text_quote(&mut self, tag: &sval::Tag) -> fmt::Result {
         let _ = tag;
@@ -213,9 +191,39 @@ pub trait TokenWrite: Write {
 
     /**
     Write a fragment of tagged text.
-     */
+
+    By default, tagged text values aren't escaped.
+    */
     fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
         self.write_token_fragment(tag, text)
+    }
+
+    /**
+    Write a number.
+    */
+    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
+        self.write_token_fragment(&sval::tags::NUMBER, num)
+    }
+
+    /**
+    Write an atom, like `true` or `()`.
+    */
+    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
+        self.write_token_fragment(&tags::ATOM, atom)
+    }
+
+    /**
+    Write an identifier.
+    */
+    fn write_ident(&mut self, ident: &str) -> fmt::Result {
+        self.write_token_fragment(&tags::IDENT, ident)
+    }
+
+    /**
+    Write a fragment of punctuation, like `:` or `,`.
+    */
+    fn write_punct(&mut self, punct: &str) -> fmt::Result {
+        self.write_token_fragment(&tags::PUNCT, punct)
     }
 
     /**

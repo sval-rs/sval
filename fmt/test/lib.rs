@@ -4,7 +4,7 @@
 extern crate sval_derive;
 
 use std::fmt;
-use sval::Stream;
+use sval::{Stream, Value};
 
 fn assert_fmt(v: impl sval::Value + fmt::Debug) {
     let expected = format!("{:?}", v);
@@ -352,6 +352,35 @@ fn stream_fragments() {
             ]
         },
     );
+}
+
+#[test]
+fn stream_fragments_nested() {
+    // Not a valid value; just making sure streaming fragments passes through
+    struct Template<V>(V);
+
+    impl<V: sval::Value> sval::Value for Template<V> {
+        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+            sval_fmt::stream_to_text_fragments(&mut *stream, &self.0)
+        }
+    }
+
+    let mut a = sval_test::TokenBuf::new();
+    let mut b = sval_test::TokenBuf::new();
+
+    let value = MapStruct {
+        field_0: 42,
+        field_1: false,
+        field_2: "a string with \"escapes\"",
+    };
+
+    let av = Template(Template(Template(&value)));
+    let bv = Template(&value);
+
+    av.stream(&mut a).unwrap();
+    bv.stream(&mut b).unwrap();
+
+    assert_eq!(a.as_tokens(), b.as_tokens());
 }
 
 #[test]
