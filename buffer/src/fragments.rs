@@ -1,5 +1,5 @@
 use crate::{std::fmt, Error};
-use sval::{Stream as _, Tag, Value as _};
+use sval::{Tag, Value as _};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
@@ -446,6 +446,10 @@ impl<'sval> BinaryBuf<'sval> {
                 self.fail(Error::unsupported("binary", "boolean"))
             }
 
+            fn u8(&mut self, value: u8) -> sval::Result {
+                self.try_catch(|buf| buf.push_fragment_computed(&[value]))
+            }
+
             fn i64(&mut self, _: i64) -> sval::Result {
                 self.fail(Error::unsupported("binary", "integer"))
             }
@@ -454,20 +458,24 @@ impl<'sval> BinaryBuf<'sval> {
                 self.fail(Error::unsupported("binary", "floating point"))
             }
 
+            fn map_begin(&mut self, _: Option<usize>) -> sval::Result {
+                self.fail(Error::unsupported("binary", "map"))
+            }
+
             fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
 
             fn seq_value_begin(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
 
             fn seq_value_end(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
 
             fn seq_end(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
         }
 
@@ -763,6 +771,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sval_ref::ValueRef;
 
     #[test]
     fn text_buf_empty() {
@@ -1021,7 +1030,17 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn collect_binary_buf() {
-        todo!()
+        let buf = BinaryBuf::collect(sval::BinarySlice::new(b"a string")).unwrap();
+
+        assert_eq!(Some(b"a string" as &[u8]), buf.as_borrowed_slice());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_binary_buf_seq() {
+        let buf = BinaryBuf::collect(b"a string").unwrap();
+
+        assert_eq!(b"a string" as &[u8], buf.as_slice());
     }
 
     #[test]
@@ -1059,22 +1078,70 @@ mod tests {
     }
 
     #[test]
-    fn stream_ref_text_buf() {
-        todo!()
+    fn stream_ref_text_buf_computed() {
+        let mut buf = TextBuf::new();
+        buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
+        buf.push_tagged_fragment(sval::tags::RUST_UNIT, "()")
+            .unwrap();
+        buf.push_fragment("data").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
+            use sval_test::Token::*;
+
+            &[
+                TextBegin(Some(9)),
+                TaggedTextFragmentComputed(sval::tags::NUMBER, "123".to_owned()),
+                TaggedTextFragmentComputed(sval::tags::RUST_UNIT, "()".to_owned()),
+                TextFragmentComputed("data".to_owned()),
+                TextEnd,
+            ]
+        });
     }
 
-    #[cfg(feature = "alloc")]
     #[test]
-    fn stream_ref_text_buf_tagged() {
-        todo!()
+    fn stream_ref_text_buf_borrowed() {
+        let mut buf = TextBuf::new();
+        buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
+            use sval_test::Token::*;
+
+            &[
+                TextBegin(Some(3)),
+                TaggedTextFragment(sval::tags::NUMBER, "123"),
+                TextEnd,
+            ]
+        });
     }
 
     #[test]
     fn stream_binary_buf() {
         let mut buf = BinaryBuf::new();
         buf.push_fragment(b"abc").unwrap();
+        buf.push_fragment_computed(b"def").unwrap();
 
         sval_test::assert_tokens(&buf, {
+            use sval_test::Token::*;
+
+            &[BinaryBegin(Some(6)), BinaryFragment(b"abcdef"), BinaryEnd]
+        });
+    }
+
+    #[test]
+    fn stream_ref_binary_buf_borrowed() {
+        let mut buf = BinaryBuf::new();
+        buf.push_fragment(b"abc").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
             use sval_test::Token::*;
 
             &[BinaryBegin(Some(3)), BinaryFragment(b"abc"), BinaryEnd]
@@ -1082,7 +1149,22 @@ mod tests {
     }
 
     #[test]
-    fn stream_ref_binary_buf() {
-        todo!()
+    fn stream_ref_binary_buf_computed() {
+        let mut buf = BinaryBuf::new();
+        buf.push_fragment(b"abc").unwrap();
+        buf.push_fragment_computed(b"def").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
+            use sval_test::Token::*;
+
+            &[
+                BinaryBegin(Some(6)),
+                BinaryFragmentComputed(b"abcdef".to_vec()),
+                BinaryEnd,
+            ]
+        });
     }
 }

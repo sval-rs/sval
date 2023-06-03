@@ -402,11 +402,37 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
     }
 
     fn tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result {
-        todo!()
+        #[cfg(feature = "alloc")]
+        {
+            self.try_catch(|buf| match buf.current_mut().kind {
+                ValueKind::Text(ref mut text) => text.push_tagged_fragment(tag.clone(), fragment),
+                _ => Err(Error::outside_container("text")),
+            })
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let _ = tag;
+            let _ = fragment;
+            self.fail(Error::no_alloc("buffered value"))
+        }
     }
 
     fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        todo!()
+        #[cfg(feature = "alloc")]
+        {
+            self.try_catch(|buf| match buf.current_mut().kind {
+                ValueKind::Text(ref mut text) => {
+                    text.push_tagged_fragment_computed(tag.clone(), fragment)
+                }
+                _ => Err(Error::outside_container("text")),
+            })
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let _ = tag;
+            let _ = fragment;
+            self.fail(Error::no_alloc("buffered value"))
+        }
     }
 
     fn text_end(&mut self) -> sval::Result {
@@ -1694,7 +1720,32 @@ mod alloc_support {
 
         #[test]
         fn buffer_text_tagged() {
-            todo!()
+            struct TaggedText(&'static str);
+
+            impl sval::Value for TaggedText {
+                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                    &'sval self,
+                    stream: &mut S,
+                ) -> sval::Result {
+                    stream.text_begin(Some(self.0.len()))?;
+                    stream.tagged_text_fragment(&sval::tags::NUMBER, self.0)?;
+                    stream.text_end()
+                }
+            }
+
+            let expected = vec![ValuePart {
+                kind: ValueKind::Text({
+                    let mut text = TextBuf::new();
+                    text.push_tagged_fragment(sval::tags::NUMBER, "123")
+                        .unwrap();
+                    text
+                }),
+            }];
+
+            assert_eq!(
+                expected,
+                ValueBuf::collect(&TaggedText("123")).unwrap().parts
+            );
         }
 
         #[test]
