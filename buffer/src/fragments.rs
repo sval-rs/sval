@@ -1,11 +1,13 @@
-use crate::{std::fmt, Error};
+use crate::{
+    std::{fmt, ops::Range},
+    Error,
+};
 use sval::{Tag, Value as _};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
     borrow::{Cow, ToOwned},
     mem,
-    ops::Range,
     vec::Vec,
 };
 
@@ -336,14 +338,16 @@ impl TagBuf {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            let _ = len;
-
             if self.0.is_some() {
-                let _ = fragment;
                 return Err(Error::no_alloc("computed fragment"));
             }
 
-            self.0 = Some(tag.clone());
+            self.0 = Some(TagRange {
+                tag,
+                range: buf_len..buf_len + fragment_len,
+            });
+
+            Ok(())
         }
     }
 
@@ -356,7 +360,7 @@ impl TagBuf {
         {
             self.0
                 .as_ref()
-                .map(crate::core::slice::from_ref)
+                .map(crate::std::slice::from_ref)
                 .unwrap_or_default()
         }
     }
@@ -1078,6 +1082,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn stream_ref_text_buf_computed() {
         let mut buf = TextBuf::new();
         buf.push_tagged_fragment(sval::tags::NUMBER, "123").unwrap();
@@ -1121,7 +1126,8 @@ mod tests {
     }
 
     #[test]
-    fn stream_binary_buf() {
+    #[cfg(feature = "alloc")]
+    fn stream_binary_buf_computed() {
         let mut buf = BinaryBuf::new();
         buf.push_fragment(b"abc").unwrap();
         buf.push_fragment_computed(b"def").unwrap();
@@ -1149,6 +1155,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn stream_ref_binary_buf_computed() {
         let mut buf = BinaryBuf::new();
         buf.push_fragment(b"abc").unwrap();
