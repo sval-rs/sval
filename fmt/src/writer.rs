@@ -430,40 +430,6 @@ impl<W: Write> TokenWrite for GenericWriter<W> {
     }
 }
 
-pub(crate) struct StreamWriter<S>(pub S);
-
-impl<'sval, S: sval::Stream<'sval>> Write for StreamWriter<S> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.0.text_fragment_computed(s).map_err(|_| fmt::Error)
-    }
-}
-
-struct TaggedTextFragmentWriter<'a, S> {
-    tag: &'a sval::Tag,
-    stream: S,
-}
-
-impl<'a, 'b, S: sval::Stream<'b>> Write for TaggedTextFragmentWriter<'a, S> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.stream
-            .tagged_text_fragment_computed(self.tag, s)
-            .map_err(|_| fmt::Error)
-    }
-}
-
-impl<'sval, S: sval::Stream<'sval>> TokenWrite for StreamWriter<S> {
-    fn write_token_fragment<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
-        write!(
-            TaggedTextFragmentWriter {
-                stream: &mut self.0,
-                tag,
-            },
-            "{}",
-            token
-        )
-    }
-}
-
 impl<W> Writer<W> {
     pub fn new(out: W) -> Self {
         Writer {

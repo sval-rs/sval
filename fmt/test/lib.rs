@@ -4,7 +4,8 @@
 extern crate sval_derive;
 
 use std::fmt;
-use sval::{Stream, Value};
+use std::fmt::Display;
+use sval::{Stream, Tag, Value};
 
 fn assert_fmt(v: impl sval::Value + fmt::Debug) {
     let expected = format!("{:?}", v);
@@ -284,6 +285,20 @@ fn token_write() {
     assert!(writer.null);
 }
 
+struct DefaultWriter<S>(S);
+
+impl<'sval, S: sval::Stream<'sval>> fmt::Write for DefaultWriter<S> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        sval_fmt::stream_display_to_text_fragments(&mut self.0, s)
+    }
+}
+
+impl<'sval, S: sval::Stream<'sval>> sval_fmt::TokenWrite for DefaultWriter<S> {
+    fn write_token_fragment<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
+        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token)
+    }
+}
+
 #[test]
 fn stream_fragments_idempotent() {
     struct Template<V> {
@@ -296,7 +311,8 @@ fn stream_fragments_idempotent() {
         fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
             stream.text_begin(None)?;
             stream.text_fragment(self.pre)?;
-            sval_fmt::stream_to_text_fragments(&mut *stream, &self.value)?;
+            sval_fmt::stream_to_token_write(DefaultWriter(&mut *stream), &self.value)
+                .map_err(|_| sval::Error::new())?;
             stream.text_fragment(self.post)?;
             stream.text_end()
         }
@@ -361,7 +377,8 @@ fn stream_fragments_idempotent_nested() {
 
     impl<V: sval::Value> sval::Value for Template<V> {
         fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-            sval_fmt::stream_to_text_fragments(&mut *stream, &self.0)
+            sval_fmt::stream_to_token_write(DefaultWriter(&mut *stream), &self.0)
+                .map_err(|_| sval::Error::new())
         }
     }
 
