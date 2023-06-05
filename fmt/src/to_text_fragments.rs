@@ -8,8 +8,8 @@ This function can be used to support implementations of [`TokenWrite`].
 pub fn stream_display_to_text_fragments<'sval>(
     stream: &mut (impl sval::Stream<'sval> + ?Sized),
     value: impl fmt::Display,
-) -> fmt::Result {
-    write!(TextFragmentWriter::new(stream), "{}", value)
+) -> sval::Result {
+    write!(TextFragmentWriter::new(stream), "{}", value).map_err(|_| sval::Error::new())
 }
 
 /**
@@ -21,8 +21,8 @@ pub fn stream_display_to_tagged_text_fragments<'sval>(
     stream: &mut (impl sval::Stream<'sval> + ?Sized),
     tag: &sval::Tag,
     value: impl fmt::Display,
-) -> fmt::Result {
-    write!(TaggedTextFragmentWriter::new(stream, tag), "{}", value)
+) -> sval::Result {
+    write!(TaggedTextFragmentWriter::new(stream, tag), "{}", value).map_err(|_| sval::Error::new())
 }
 
 struct TextFragmentWriter<S> {

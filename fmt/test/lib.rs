@@ -289,13 +289,13 @@ struct DefaultWriter<S>(S);
 
 impl<'sval, S: sval::Stream<'sval>> fmt::Write for DefaultWriter<S> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        sval_fmt::stream_display_to_text_fragments(&mut self.0, s)
+        sval_fmt::stream_display_to_text_fragments(&mut self.0, s).map_err(|_| fmt::Error)
     }
 }
 
 impl<'sval, S: sval::Stream<'sval>> sval_fmt::TokenWrite for DefaultWriter<S> {
     fn write_token_fragment<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
-        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token)
+        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token).map_err(|_| fmt::Error)
     }
 }
 
