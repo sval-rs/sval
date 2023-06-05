@@ -4,7 +4,7 @@ use core::fmt::{self, Display, Write};
 pub(crate) struct Writer<W> {
     is_current_depth_empty: bool,
     is_number: bool,
-    escaper: Escaper,
+    escaper: TextEscaper,
     flush_text_tag: Option<sval::Tag>,
     out: W,
 }
@@ -21,8 +21,8 @@ pub trait TokenWrite: Write {
 
     Implementors can override this method to change the strategy for escaping input.
     */
-    fn escaper(&self) -> Escaper {
-        Escaper::escape_idempotent()
+    fn text_escaper(&self) -> TextEscaper {
+        TextEscaper::escape_idempotent()
     }
 
     /**
@@ -209,8 +209,8 @@ pub trait TokenWrite: Write {
 }
 
 impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
-    fn escaper(&self) -> Escaper {
-        (**self).escaper()
+    fn text_escaper(&self) -> TextEscaper {
+        (**self).text_escaper()
     }
 
     fn write_token_fragment<T: Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
@@ -470,7 +470,7 @@ impl<W> Writer<W> {
             is_current_depth_empty: true,
             is_number: false,
             flush_text_tag: None,
-            escaper: Escaper::no_escaping(),
+            escaper: TextEscaper::no_escaping(),
             out,
         }
     }
@@ -490,7 +490,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
-        self.escaper = self.out.escaper();
+        self.escaper = self.out.text_escaper();
 
         if self.is_number {
             Ok(())
@@ -869,7 +869,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
 /**
 Encapsulates a strategy for escaping text fragments.
 */
-pub struct Escaper(EscaperStrategy);
+pub struct TextEscaper(EscaperStrategy);
 
 enum EscaperStrategy {
     Idempotent(IdempotentEscaper),
@@ -881,19 +881,19 @@ enum IdempotentEscaper {
     SeenBackslash,
 }
 
-impl Escaper {
+impl TextEscaper {
     /**
     Don't escape any input.
     */
     pub fn no_escaping() -> Self {
-        Escaper(EscaperStrategy::NoEscaping)
+        TextEscaper(EscaperStrategy::NoEscaping)
     }
 
     /**
     Escape the input, unless it already appears to be escaped.
     */
     pub fn escape_idempotent() -> Self {
-        Escaper(EscaperStrategy::Idempotent(IdempotentEscaper::Normal))
+        TextEscaper(EscaperStrategy::Idempotent(IdempotentEscaper::Normal))
     }
 
     fn write(&mut self, input: &str, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
@@ -1009,7 +1009,7 @@ mod tests {
 
     #[test]
     fn no_escaping() {
-        let mut escaper = Escaper::no_escaping();
+        let mut escaper = TextEscaper::no_escaping();
 
         let mut out = String::new();
 
@@ -1032,7 +1032,7 @@ mod tests {
             ("\r", r#"\r"#),
             ("\\r", r#"\r"#),
         ] {
-            let mut escaper = Escaper::escape_idempotent();
+            let mut escaper = TextEscaper::escape_idempotent();
 
             let mut out = String::new();
 
@@ -1056,7 +1056,7 @@ mod tests {
     #[test]
     fn idempotent_write_escape_across_boundaries() {
         for i in ["\\", "n", "r"] {
-            let mut escaper = Escaper::escape_idempotent();
+            let mut escaper = TextEscaper::escape_idempotent();
 
             let mut out = String::new();
 
@@ -1089,7 +1089,7 @@ mod tests {
 
     #[test]
     fn idempotent_flush_escape_across_boundaries() {
-        let mut escaper = Escaper::escape_idempotent();
+        let mut escaper = TextEscaper::escape_idempotent();
 
         let mut out = String::new();
 
