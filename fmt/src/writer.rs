@@ -919,6 +919,9 @@ impl IdempotentEscaper {
             if let IdempotentEscaper::SeenBackslash = self {
                 *self = IdempotentEscaper::Normal;
 
+                // This won't result in flushing the backslash multiple times
+                // because we increment `from` when we first see it to skip
+                // over the leading backslash
                 let flush = &input[from..i];
                 if flush.len() > 0 {
                     output(flush)?;
@@ -929,7 +932,7 @@ impl IdempotentEscaper {
                     // an escape then write the backslash as-is. We don't just
                     // increment an index here because the backslash may have
                     // come from a previous write
-                    'r' | 'n' | 't' | '\\' | 'u' => {
+                    'r' | 'n' | 't' | '"' | '\'' | '\\' | 'u' => {
                         output("\\")?;
                         from = i;
                         continue;
@@ -949,16 +952,19 @@ impl IdempotentEscaper {
                 }
             }
 
-            // Backslash is handled explicitly
+            // Backslash is handled explicitly; if we get this far then
+            // this backslash isn't preceded by another backslash, so it
+            // will either need to be escaped, or it'll be the start of
+            // an escape sequence
             if c == '\\' {
+                let flush = &input[from..i];
+                if flush.len() > 0 {
+                    output(flush)?;
+                }
+
                 from = i + c.len_utf8();
 
                 *self = IdempotentEscaper::SeenBackslash;
-                continue;
-            }
-
-            // Single-quotes aren't escaped
-            if c == '\'' {
                 continue;
             }
 
@@ -988,6 +994,8 @@ impl IdempotentEscaper {
     }
 
     fn flush(&mut self, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
+        // If the input ended on a backslash then we'll need to write it
+        // and escape it
         if let IdempotentEscaper::SeenBackslash = self {
             *self = IdempotentEscaper::Normal;
 
@@ -1030,26 +1038,29 @@ mod tests {
             ("\\", r#"\\"#),
             ("\\\\", r#"\\"#),
             ("\r", r#"\r"#),
+            ("\n", r#"\n"#),
+            ("\t", r#"\t"#),
+            ("\"", r#"\""#),
+            ("'", r#"\'"#),
+            ("⛰️", r#"⛰\u{fe0f}"#),
             ("\\r", r#"\r"#),
         ] {
             let mut escaper = TextEscaper::escape_idempotent();
 
             let mut out = String::new();
-
-            escaper
-                .write(input, |s| {
-                    out.push_str(s);
-                    Ok(())
-                })
-                .unwrap();
-            escaper
-                .flush(|s| {
-                    out.push_str(s);
-                    Ok(())
-                })
-                .unwrap();
+            escaper.write(input, |s| Ok(out.push_str(s))).unwrap();
+            escaper.flush(|s| Ok(out.push_str(s))).unwrap();
 
             assert_eq!(expected, out);
+
+            // Ensure escaping the same sequence again is a no-op
+            let mut escaper = TextEscaper::escape_idempotent();
+
+            let mut out2 = String::new();
+            escaper.write(&out, |s| Ok(out2.push_str(s))).unwrap();
+            escaper.flush(|s| Ok(out2.push_str(s))).unwrap();
+
+            assert_eq!(out, out2);
         }
     }
 
@@ -1060,28 +1071,12 @@ mod tests {
 
             let mut out = String::new();
 
-            escaper
-                .write("\\", |s| {
-                    out.push_str(s);
-                    Ok(())
-                })
-                .unwrap();
+            escaper.write("\\", |s| Ok(out.push_str(s))).unwrap();
 
             assert_eq!("", out);
 
-            escaper
-                .write(i, |s| {
-                    out.push_str(s);
-                    Ok(())
-                })
-                .unwrap();
-
-            escaper
-                .flush(|s| {
-                    out.push_str(s);
-                    Ok(())
-                })
-                .unwrap();
+            escaper.write(i, |s| Ok(out.push_str(s))).unwrap();
+            escaper.flush(|s| Ok(out.push_str(s))).unwrap();
 
             assert_eq!(format!("\\{}", i), out);
         }
