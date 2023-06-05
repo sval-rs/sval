@@ -4,6 +4,7 @@ use core::fmt::{self, Display, Write};
 pub(crate) struct Writer<W> {
     is_current_depth_empty: bool,
     current_tag: Option<sval::Tag>,
+    escaper: Option<Escaper>,
     out: W,
 }
 
@@ -497,6 +498,7 @@ impl<W> Writer<W> {
         Writer {
             is_current_depth_empty: true,
             current_tag: None,
+            escaper: None,
             out,
         }
     }
@@ -516,6 +518,8 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+        self.escaper = self.out.escaper();
+
         // Just writes quotes, so the impl for beginning a string is the same as ending
         self.text_end()
     }
@@ -558,7 +562,11 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
                 .write_tagged_text_quote(tag)
                 .map_err(|_| sval::Error::new()),
             None => self.out.write_text_quote().map_err(|_| sval::Error::new()),
-        }
+        }?;
+
+        self.escaper.flush();
+
+        Ok(())
     }
 
     fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
@@ -873,5 +881,176 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         self.out.write_punct(")").map_err(|_| sval::Error::new())?;
 
         Ok(())
+    }
+}
+
+#[derive(Default)]
+struct Escaper {
+    state: EscaperState,
+}
+
+enum EscaperState {
+    Normal,
+    SeenBackslash,
+}
+
+impl Default for EscaperState {
+    fn default() -> Self {
+        EscaperState::Normal
+    }
+}
+
+impl Escaper {
+    fn write_escaped_idempotent(&mut self, input: &str, mut output: impl Write) -> fmt::Result {
+        // Inlined from `impl Debug for str`
+        // This avoids writing the outer quotes for the string
+        // and handles the `'` case
+        // NOTE: The vast (vast) majority of formatting time is spent here
+        // Optimizing this would be a big win
+        let mut from = 0;
+
+        for (i, c) in input.char_indices() {
+            if let EscaperState::SeenBackslash = self.state {
+                self.state = EscaperState::Normal;
+
+                let flush = &input[from..i];
+                if flush.len() > 0 {
+                    output.write_str(flush)?;
+                }
+
+                match c {
+                    // If the character following the backslash looks like
+                    // an escape then write the backslash as-is. We don't just
+                    // increment an index here because the backslash may have
+                    // come from a previous write
+                    'r' | 'n' | 't' | '\\' | 'u' => {
+                        output.write_char('\\')?;
+                        from = i;
+                        continue;
+                    }
+                    // If the character following the backslash doesn't look
+                    // like an escape then escape the backslash
+                    _ => {
+                        let esc = c.escape_debug();
+
+                        for c in esc {
+                            output.write_char(c)?;
+                        }
+
+                        from = i + c.len_utf8();
+                    },
+                }
+            }
+
+            // Backslash is handled explicitly
+            if c == '\\' {
+                from = i + c.len_utf8();
+
+                self.state = EscaperState::SeenBackslash;
+                continue;
+            }
+
+            // Single-quotes aren't escaped
+            if c == '\'' {
+                continue;
+            }
+
+            let esc = c.escape_debug();
+
+            // A character is escaped if its number of escaped characters
+            // is not 1; that means there's at least a leading `\` in there
+            if esc.len() != 1 {
+                output.write_str(&input[from..i])?;
+
+                for c in esc {
+                    output.write_char(c)?;
+                }
+
+                from = i + c.len_utf8();
+            }
+        }
+
+        // Flush the rest of the buffer
+        let flush = &input[from..];
+        if flush.len() > 0 {
+            output.write_str(flush)?;
+        }
+
+        Ok(())
+    }
+
+    fn flush(&mut self, mut output: impl Write) -> fmt::Result {
+        if let EscaperState::SeenBackslash = self.state {
+            self.state = EscaperState::Normal;
+
+            let esc = '\\'.escape_debug();
+
+            for c in esc {
+                output.write_char(c)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_escape() {
+        for (input, expected) in [
+            ("hello", r#"hello"#),
+            ("\\", r#"\\"#),
+            ("\\\\", r#"\\"#),
+            ("\r", r#"\r"#),
+            ("\\r", r#"\r"#),
+        ] {
+            let mut escaper = Escaper::default();
+
+            let mut out = String::new();
+
+            escaper.write_escaped_idempotent(input, &mut out).unwrap();
+            escaper.flush(&mut out).unwrap();
+
+            assert_eq!(expected, out);
+        }
+    }
+
+    #[test]
+    fn write_escape_across_boundaries() {
+        for i in [
+            "\\",
+            "n",
+            "r",
+        ] {
+            let mut escaper = Escaper::default();
+
+            let mut out = String::new();
+
+            escaper.write_escaped_idempotent("\\", &mut out).unwrap();
+
+            assert_eq!("", out);
+
+            escaper.write_escaped_idempotent(i, &mut out).unwrap();
+
+            escaper.flush(&mut out).unwrap();
+
+            assert_eq!(format!("\\{}", i), out);
+        }
+    }
+
+    #[test]
+    fn flush_escape_across_boundaries() {
+        let mut escaper = Escaper::default();
+
+        let mut out = String::new();
+
+        escaper.write_escaped_idempotent("\\", &mut out).unwrap();
+
+        escaper.flush(&mut out).unwrap();
+
+        assert_eq!("\\\\", out);
     }
 }
