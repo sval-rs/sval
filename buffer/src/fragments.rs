@@ -2,7 +2,7 @@ use crate::{
     std::{fmt, ops::Range},
     Error,
 };
-use sval::{Stream, Tag, Value as _};
+use sval::{Tag, Value as _};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
