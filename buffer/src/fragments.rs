@@ -2,7 +2,7 @@ use crate::{
     std::{fmt, ops::Range},
     Error,
 };
-use sval::{Tag, Value as _};
+use sval::{Stream, Tag, Value as _};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
@@ -271,21 +271,21 @@ fn stream_tagged_text<'sval, S: sval::Stream<'sval> + ?Sized>(
 ) -> sval::Result {
     stream.text_begin(Some(v.len()))?;
 
-    let start = tags[0].range.start;
-    let mut end = 0;
-
-    if start != 0 {
-        stream.text_fragment(&v[..start])?;
-    }
+    let mut from = 0;
 
     for tag in tags {
-        end = tag.range.end;
+        let pre = &v[from..tag.range.start];
+        if pre.len() > 0 {
+            stream.text_fragment(pre)?;
+        }
+        from = tag.range.end;
 
         stream.tagged_text_fragment(&tag.tag, &v[tag.range.clone()])?;
     }
 
-    if end < v.len() {
-        stream.text_fragment(&v[end..])?;
+    let post = &v[from..];
+    if post.len() > 0 {
+        stream.text_fragment(post)?;
     }
 
     stream.text_end()
@@ -1079,6 +1079,93 @@ mod tests {
                 TextEnd,
             ]
         });
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn stream_text_buf_tagged_exhaustive() {
+        struct Case {
+            tag: Option<sval::Tag>,
+            borrowed: bool,
+            value: &'static str,
+        }
+
+        impl Case {
+            fn push(&self, buf: &mut TextBuf) {
+                match (&self.tag, self.borrowed) {
+                    (Some(tag), true) => buf.push_tagged_fragment(tag.clone(), self.value).unwrap(),
+                    (Some(tag), false) => buf
+                        .push_tagged_fragment_computed(tag.clone(), self.value)
+                        .unwrap(),
+                    (None, true) => buf.push_fragment(self.value).unwrap(),
+                    (None, false) => buf.push_fragment_computed(self.value).unwrap(),
+                }
+            }
+        }
+
+        let cases = [
+            Case {
+                tag: None,
+                borrowed: true,
+                value: "bu ",
+            },
+            Case {
+                tag: None,
+                borrowed: false,
+                value: "cu ",
+            },
+            Case {
+                tag: Some(sval::tags::NUMBER),
+                borrowed: true,
+                value: "bn ",
+            },
+            Case {
+                tag: Some(sval::tags::NUMBER),
+                borrowed: false,
+                value: "cn ",
+            },
+            Case {
+                tag: Some(sval::tags::RUST_UNIT),
+                borrowed: true,
+                value: "br ",
+            },
+            Case {
+                tag: Some(sval::tags::RUST_UNIT),
+                borrowed: false,
+                value: "cr ",
+            },
+        ];
+
+        for a in &cases {
+            for b in &cases {
+                for c in &cases {
+                    for d in &cases {
+                        for e in &cases {
+                            let mut expected = crate::std::string::String::new();
+                            expected.push_str(a.value);
+                            expected.push_str(b.value);
+                            expected.push_str(c.value);
+                            expected.push_str(d.value);
+                            expected.push_str(e.value);
+
+                            let mut buf = TextBuf::new();
+
+                            a.push(&mut buf);
+                            b.push(&mut buf);
+                            c.push(&mut buf);
+                            d.push(&mut buf);
+                            e.push(&mut buf);
+
+                            assert_eq!(expected, buf.as_str());
+
+                            let rebuf = TextBuf::collect(&buf).unwrap();
+
+                            assert_eq!(expected, rebuf.as_str());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]
