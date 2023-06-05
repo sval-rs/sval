@@ -3,8 +3,9 @@ use core::fmt::{self, Display, Write};
 
 pub(crate) struct Writer<W> {
     is_current_depth_empty: bool,
-    current_tag: Option<sval::Tag>,
-    escaper: Option<Escaper>,
+    is_number: bool,
+    escaper: Escaper,
+    flush_text_tag: Option<sval::Tag>,
     out: W,
 }
 
@@ -15,6 +16,15 @@ This trait can be used to customize the way various tokens are written, such
 as colorizing numbers and booleans differently.
 */
 pub trait TokenWrite: Write {
+    /**
+    Get an escaper to use for text.
+
+    Implementors can override this method to change the strategy for escaping input.
+    */
+    fn escaper(&self) -> Escaper {
+        Escaper::escape_idempotent()
+    }
+
     /**
     Write a token fragment.
     */
@@ -150,44 +160,7 @@ pub trait TokenWrite: Write {
     By default, text input is escaped for debug rendering.
     */
     fn write_text(&mut self, text: &str) -> fmt::Result {
-        // Inlined from `impl Debug for str`
-        // This avoids writing the outer quotes for the string
-        // and handles the `'` case
-        // NOTE: The vast (vast) majority of formatting time is spent here
-        // Optimizing this would be a big win
-        let mut from = 0;
-
-        for (i, c) in text.char_indices() {
-            let esc = c.escape_debug();
-
-            // If char needs escaping, flush backlog so far and write, else skip
-            if c != '\'' && esc.len() != 1 {
-                self.write_token_fragment(&tags::TEXT, &text[from..i])?;
-
-                for c in esc {
-                    let mut buf = [0; 4];
-                    self.write_token_fragment(&tags::TEXT, c.encode_utf8(&mut buf))?;
-                }
-
-                from = i + c.len_utf8();
-            }
-        }
-
-        if from == text.len() {
-            Ok(())
-        } else {
-            self.write_token_fragment(&tags::TEXT, &text[from..])
-        }
-    }
-
-    /**
-    Write an opening or closing quote for tagged text.
-
-    By default, tagged text values aren't quoted.
-    */
-    fn write_tagged_text_quote(&mut self, tag: &sval::Tag) -> fmt::Result {
-        let _ = tag;
-        Ok(())
+        self.write_token_fragment(&tags::TEXT, text)
     }
 
     /**
@@ -203,7 +176,7 @@ pub trait TokenWrite: Write {
     Write a number.
     */
     fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
-        self.write_token_fragment(&sval::tags::NUMBER, num)
+        self.write_token_fragment(&tags::NUMBER, num)
     }
 
     /**
@@ -236,6 +209,10 @@ pub trait TokenWrite: Write {
 }
 
 impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
+    fn escaper(&self) -> Escaper {
+        (**self).escaper()
+    }
+
     fn write_token_fragment<T: Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
         (**self).write_token_fragment(tag, token)
     }
@@ -326,10 +303,6 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
 
     fn write_punct(&mut self, punct: &str) -> fmt::Result {
         (**self).write_punct(punct)
-    }
-
-    fn write_tagged_text_quote(&mut self, tag: &sval::Tag) -> fmt::Result {
-        (**self).write_tagged_text_quote(tag)
     }
 
     fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
@@ -465,31 +438,29 @@ impl<'sval, S: sval::Stream<'sval>> Write for StreamWriter<S> {
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> StreamWriter<S> {
-    fn tagged<'a>(&'a mut self, tag: &'a sval::Tag) -> impl Write + 'a {
-        struct TaggedWrite<'a, S> {
-            tag: &'a sval::Tag,
-            stream: S,
-        }
+struct TaggedTextFragmentWriter<'a, S> {
+    tag: &'a sval::Tag,
+    stream: S,
+}
 
-        impl<'a, 'b, S: sval::Stream<'b>> Write for TaggedWrite<'a, S> {
-            fn write_str(&mut self, s: &str) -> fmt::Result {
-                self.stream
-                    .tagged_text_fragment_computed(self.tag, s)
-                    .map_err(|_| fmt::Error)
-            }
-        }
-
-        TaggedWrite {
-            tag,
-            stream: &mut self.0,
-        }
+impl<'a, 'b, S: sval::Stream<'b>> Write for TaggedTextFragmentWriter<'a, S> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.stream
+            .tagged_text_fragment_computed(self.tag, s)
+            .map_err(|_| fmt::Error)
     }
 }
 
 impl<'sval, S: sval::Stream<'sval>> TokenWrite for StreamWriter<S> {
     fn write_token_fragment<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
-        write!(self.tagged(tag), "{}", token)
+        write!(
+            TaggedTextFragmentWriter {
+                stream: &mut self.0,
+                tag,
+            },
+            "{}",
+            token
+        )
     }
 }
 
@@ -497,8 +468,9 @@ impl<W> Writer<W> {
     pub fn new(out: W) -> Self {
         Writer {
             is_current_depth_empty: true,
-            current_tag: None,
-            escaper: None,
+            is_number: false,
+            flush_text_tag: None,
+            escaper: Escaper::no_escaping(),
             out,
         }
     }
@@ -520,53 +492,59 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
         self.escaper = self.out.escaper();
 
-        // Just writes quotes, so the impl for beginning a string is the same as ending
-        self.text_end()
+        if self.is_number {
+            Ok(())
+        } else {
+            self.out.write_text_quote().map_err(|_| sval::Error::new())
+        }
     }
 
     fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        if tag == &sval::tags::NUMBER {
+        self.flush_text_tag = Some(tag.clone());
+
+        if tag == &tags::NUMBER {
             self.out
                 .write_number(fragment)
                 .map_err(|_| sval::Error::new())
         } else {
-            self.out
-                .write_tagged_text(tag, fragment)
+            self.escaper
+                .write(fragment, |fragment| {
+                    self.out.write_tagged_text(tag, fragment)
+                })
                 .map_err(|_| sval::Error::new())
         }
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-        match self.current_tag.as_ref() {
-            Some(&sval::tags::NUMBER) => self
-                .out
+        self.flush_text_tag = None;
+
+        if self.is_number {
+            self.out
                 .write_number(fragment)
-                .map_err(|_| sval::Error::new()),
-            // Inherit the tag of the overall text handler if there is one
-            Some(tag) => self
-                .out
-                .write_tagged_text(tag, fragment)
-                .map_err(|_| sval::Error::new()),
-            None => self
-                .out
-                .write_text(fragment)
-                .map_err(|_| sval::Error::new()),
+                .map_err(|_| sval::Error::new())
+        } else {
+            self.escaper
+                .write(fragment, |fragment| self.out.write_text(fragment))
+                .map_err(|_| sval::Error::new())
         }
     }
 
     fn text_end(&mut self) -> sval::Result {
-        match self.current_tag.as_ref() {
-            Some(&sval::tags::NUMBER) => Ok(()),
-            Some(tag) => self
-                .out
-                .write_tagged_text_quote(tag)
-                .map_err(|_| sval::Error::new()),
-            None => self.out.write_text_quote().map_err(|_| sval::Error::new()),
-        }?;
+        if let Some(tag) = self.flush_text_tag.take() {
+            self.escaper
+                .flush(|fragment| self.out.write_tagged_text(&tag, fragment))
+                .map_err(|_| sval::Error::new())?;
+        } else {
+            self.escaper
+                .flush(|fragment| self.out.write_text(fragment))
+                .map_err(|_| sval::Error::new())?;
+        }
 
-        self.escaper.flush();
-
-        Ok(())
+        if self.is_number {
+            Ok(())
+        } else {
+            self.out.write_text_quote().map_err(|_| sval::Error::new())
+        }
     }
 
     fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
@@ -660,7 +638,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn map_begin(&mut self, _: Option<usize>) -> sval::Result {
-        self.current_tag = None;
+        self.is_number = false;
         self.is_current_depth_empty = true;
 
         self.out.write_punct("{").map_err(|_| sval::Error::new())?;
@@ -706,7 +684,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-        self.current_tag = None;
+        self.is_number = false;
         self.is_current_depth_empty = true;
 
         self.out.write_punct("[").map_err(|_| sval::Error::new())?;
@@ -759,7 +737,9 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        self.current_tag = tag.cloned();
+        if tag == Some(&tags::NUMBER) {
+            self.is_number = true;
+        }
 
         if let Some(label) = label {
             self.out
@@ -773,11 +753,13 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
 
     fn tagged_end(
         &mut self,
-        _: Option<&sval::Tag>,
+        tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        self.current_tag = None;
+        if tag == Some(&tags::NUMBER) {
+            self.is_number = false;
+        }
 
         if label.is_some() {
             self.out.write_punct(")").map_err(|_| sval::Error::new())?;
@@ -850,7 +832,7 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         _: Option<&sval::Index>,
         _: Option<usize>,
     ) -> sval::Result {
-        self.current_tag = None;
+        self.is_number = false;
         self.is_current_depth_empty = true;
 
         if let Some(label) = label {
@@ -884,38 +866,62 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 }
 
-#[derive(Default)]
-struct Escaper {
-    state: EscaperState,
+/**
+Encapsulates a strategy for escaping text fragments.
+*/
+pub struct Escaper(EscaperStrategy);
+
+enum EscaperStrategy {
+    Idempotent(IdempotentEscaper),
+    NoEscaping,
 }
 
-enum EscaperState {
+enum IdempotentEscaper {
     Normal,
     SeenBackslash,
 }
 
-impl Default for EscaperState {
-    fn default() -> Self {
-        EscaperState::Normal
+impl Escaper {
+    /**
+    Don't escape any input.
+    */
+    pub fn no_escaping() -> Self {
+        Escaper(EscaperStrategy::NoEscaping)
+    }
+
+    /**
+    Escape the input, unless it already appears to be escaped.
+    */
+    pub fn escape_idempotent() -> Self {
+        Escaper(EscaperStrategy::Idempotent(IdempotentEscaper::Normal))
+    }
+
+    fn write(&mut self, input: &str, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
+        match self.0 {
+            EscaperStrategy::Idempotent(ref mut escaper) => escaper.write(input, output),
+            EscaperStrategy::NoEscaping => output(input),
+        }
+    }
+
+    fn flush(&mut self, output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
+        match self.0 {
+            EscaperStrategy::Idempotent(ref mut escaper) => escaper.flush(output),
+            EscaperStrategy::NoEscaping => Ok(()),
+        }
     }
 }
 
-impl Escaper {
-    fn write_escaped_idempotent(&mut self, input: &str, mut output: impl Write) -> fmt::Result {
-        // Inlined from `impl Debug for str`
-        // This avoids writing the outer quotes for the string
-        // and handles the `'` case
-        // NOTE: The vast (vast) majority of formatting time is spent here
-        // Optimizing this would be a big win
+impl IdempotentEscaper {
+    fn write(&mut self, input: &str, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
         let mut from = 0;
 
         for (i, c) in input.char_indices() {
-            if let EscaperState::SeenBackslash = self.state {
-                self.state = EscaperState::Normal;
+            if let IdempotentEscaper::SeenBackslash = self {
+                *self = IdempotentEscaper::Normal;
 
                 let flush = &input[from..i];
                 if flush.len() > 0 {
-                    output.write_str(flush)?;
+                    output(flush)?;
                 }
 
                 match c {
@@ -924,7 +930,7 @@ impl Escaper {
                     // increment an index here because the backslash may have
                     // come from a previous write
                     'r' | 'n' | 't' | '\\' | 'u' => {
-                        output.write_char('\\')?;
+                        output("\\")?;
                         from = i;
                         continue;
                     }
@@ -934,11 +940,12 @@ impl Escaper {
                         let esc = c.escape_debug();
 
                         for c in esc {
-                            output.write_char(c)?;
+                            let mut buf = [0; 4];
+                            output(c.encode_utf8(&mut buf))?;
                         }
 
                         from = i + c.len_utf8();
-                    },
+                    }
                 }
             }
 
@@ -946,7 +953,7 @@ impl Escaper {
             if c == '\\' {
                 from = i + c.len_utf8();
 
-                self.state = EscaperState::SeenBackslash;
+                *self = IdempotentEscaper::SeenBackslash;
                 continue;
             }
 
@@ -960,10 +967,11 @@ impl Escaper {
             // A character is escaped if its number of escaped characters
             // is not 1; that means there's at least a leading `\` in there
             if esc.len() != 1 {
-                output.write_str(&input[from..i])?;
+                output(&input[from..i])?;
 
                 for c in esc {
-                    output.write_char(c)?;
+                    let mut buf = [0; 4];
+                    output(c.encode_utf8(&mut buf))?;
                 }
 
                 from = i + c.len_utf8();
@@ -973,20 +981,21 @@ impl Escaper {
         // Flush the rest of the buffer
         let flush = &input[from..];
         if flush.len() > 0 {
-            output.write_str(flush)?;
+            output(flush)?;
         }
 
         Ok(())
     }
 
-    fn flush(&mut self, mut output: impl Write) -> fmt::Result {
-        if let EscaperState::SeenBackslash = self.state {
-            self.state = EscaperState::Normal;
+    fn flush(&mut self, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
+        if let IdempotentEscaper::SeenBackslash = self {
+            *self = IdempotentEscaper::Normal;
 
             let esc = '\\'.escape_debug();
 
             for c in esc {
-                output.write_char(c)?;
+                let mut buf = [0; 4];
+                output(c.encode_utf8(&mut buf))?;
             }
         }
 
@@ -999,7 +1008,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn write_escape() {
+    fn no_escaping() {
+        let mut escaper = Escaper::no_escaping();
+
+        let mut out = String::new();
+
+        escaper
+            .write("hello\rworld\\", |s| {
+                out.push_str(s);
+                Ok(())
+            })
+            .unwrap();
+
+        assert_eq!("hello\rworld\\", out);
+    }
+
+    #[test]
+    fn idempotent_write_escape() {
         for (input, expected) in [
             ("hello", r#"hello"#),
             ("\\", r#"\\"#),
@@ -1007,49 +1032,80 @@ mod tests {
             ("\r", r#"\r"#),
             ("\\r", r#"\r"#),
         ] {
-            let mut escaper = Escaper::default();
+            let mut escaper = Escaper::escape_idempotent();
 
             let mut out = String::new();
 
-            escaper.write_escaped_idempotent(input, &mut out).unwrap();
-            escaper.flush(&mut out).unwrap();
+            escaper
+                .write(input, |s| {
+                    out.push_str(s);
+                    Ok(())
+                })
+                .unwrap();
+            escaper
+                .flush(|s| {
+                    out.push_str(s);
+                    Ok(())
+                })
+                .unwrap();
 
             assert_eq!(expected, out);
         }
     }
 
     #[test]
-    fn write_escape_across_boundaries() {
-        for i in [
-            "\\",
-            "n",
-            "r",
-        ] {
-            let mut escaper = Escaper::default();
+    fn idempotent_write_escape_across_boundaries() {
+        for i in ["\\", "n", "r"] {
+            let mut escaper = Escaper::escape_idempotent();
 
             let mut out = String::new();
 
-            escaper.write_escaped_idempotent("\\", &mut out).unwrap();
+            escaper
+                .write("\\", |s| {
+                    out.push_str(s);
+                    Ok(())
+                })
+                .unwrap();
 
             assert_eq!("", out);
 
-            escaper.write_escaped_idempotent(i, &mut out).unwrap();
+            escaper
+                .write(i, |s| {
+                    out.push_str(s);
+                    Ok(())
+                })
+                .unwrap();
 
-            escaper.flush(&mut out).unwrap();
+            escaper
+                .flush(|s| {
+                    out.push_str(s);
+                    Ok(())
+                })
+                .unwrap();
 
             assert_eq!(format!("\\{}", i), out);
         }
     }
 
     #[test]
-    fn flush_escape_across_boundaries() {
-        let mut escaper = Escaper::default();
+    fn idempotent_flush_escape_across_boundaries() {
+        let mut escaper = Escaper::escape_idempotent();
 
         let mut out = String::new();
 
-        escaper.write_escaped_idempotent("\\", &mut out).unwrap();
+        escaper
+            .write("\\", |s| {
+                out.push_str(s);
+                Ok(())
+            })
+            .unwrap();
 
-        escaper.flush(&mut out).unwrap();
+        escaper
+            .flush(|s| {
+                out.push_str(s);
+                Ok(())
+            })
+            .unwrap();
 
         assert_eq!("\\\\", out);
     }

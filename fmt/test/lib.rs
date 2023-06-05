@@ -285,7 +285,7 @@ fn token_write() {
 }
 
 #[test]
-fn stream_fragments() {
+fn stream_fragments_idempotent() {
     struct Template<V> {
         pre: &'static str,
         value: V,
@@ -355,7 +355,7 @@ fn stream_fragments() {
 }
 
 #[test]
-fn stream_fragments_nested() {
+fn stream_fragments_idempotent_nested() {
     // Not a valid value; just making sure streaming fragments passes through
     struct Template<V>(V);
 
@@ -371,7 +371,7 @@ fn stream_fragments_nested() {
     let value = MapStruct {
         field_0: 42,
         field_1: false,
-        field_2: "a string with \"escapes\"",
+        field_2: "a string with \"escapes\" ending in a \\",
     };
 
     let av = Template(Template(Template(&value)));
