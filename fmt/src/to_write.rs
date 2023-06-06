@@ -1,4 +1,7 @@
-use crate::writer::{GenericWriter, TokenWrite, Writer};
+use crate::{
+    writer::{GenericWriter, Writer},
+    TokenWrite,
+};
 use core::fmt::{self, Write};
 
 /**

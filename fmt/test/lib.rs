@@ -291,37 +291,47 @@ struct DefaultWriter<S>(S);
 
 impl<'sval, S: sval::Stream<'sval>> fmt::Write for DefaultWriter<S> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        sval_fmt::stream_display_to_text_fragments(&mut self.0, s).map_err(|_| fmt::Error)
+        sval_fmt::token_write::write(s, |token| {
+            self.0.text_fragment_computed(token).map_err(|_| fmt::Error)
+        })
     }
 }
 
 impl<'sval, S: sval::Stream<'sval>> sval_fmt::TokenWrite for DefaultWriter<S> {
     fn write_token_fragment<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
-        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token)
-            .map_err(|_| fmt::Error)
+        sval_fmt::token_write::write(token, |token| {
+            self.0
+                .tagged_text_fragment_computed(tag, token)
+                .map_err(|_| fmt::Error)
+        })
     }
 }
 
 struct TemplateWrite<S>(S);
 
+impl<'sval, S: Stream<'sval>> fmt::Write for TemplateWrite<S> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        sval_fmt::token_write::write(s, |token| {
+            self.0.text_fragment_computed(token).map_err(|_| fmt::Error)
+        })
+    }
+}
+
 impl<'sval, S: Stream<'sval>> sval_fmt::TokenWrite for TemplateWrite<S> {
     fn write_token_fragment<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
-        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token)
-            .map_err(|_| fmt::Error)
+        sval_fmt::token_write::write(token, |token| {
+            self.0
+                .tagged_text_fragment_computed(tag, token)
+                .map_err(|_| fmt::Error)
+        })
     }
 
     fn write_text_quote(&mut self) -> fmt::Result {
         Ok(())
     }
 
-    fn text_escaper(&self) -> sval_fmt::TextEscaper {
-        sval_fmt::TextEscaper::no_escaping()
-    }
-}
-
-impl<'sval, S: Stream<'sval>> fmt::Write for TemplateWrite<S> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        sval_fmt::stream_display_to_text_fragments(&mut self.0, s).map_err(|_| fmt::Error)
+    fn write_tagged_text(&mut self, tag: &Tag, text: &str) -> fmt::Result {
+        self.write_token_fragment(tag, text)
     }
 }
 

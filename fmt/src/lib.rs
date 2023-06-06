@@ -15,13 +15,13 @@ extern crate alloc;
 mod writer;
 
 mod to_fmt;
-mod to_text_fragments;
 mod to_value;
 mod to_write;
 
 pub mod tags;
+pub mod token_write;
 
-pub use self::{to_fmt::*, to_text_fragments::*, to_value::*, to_write::*, writer::*};
+pub use self::{to_fmt::*, to_value::*, to_write::*, token_write::TokenWrite};
 
 #[cfg(feature = "alloc")]
 mod to_string;
