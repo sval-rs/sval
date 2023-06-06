@@ -116,6 +116,13 @@ pub trait TokenWrite: Write {
     }
 
     /**
+    Write a number.
+     */
+    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
+        self.write_token_fragment(&tags::NUMBER, num)
+    }
+
+    /**
     Write null or unit.
     */
     fn write_null(&mut self) -> fmt::Result {
@@ -127,6 +134,13 @@ pub trait TokenWrite: Write {
     */
     fn write_bool(&mut self, value: bool) -> fmt::Result {
         self.write_atom(value)
+    }
+
+    /**
+    Write an atom, like `true` or `()`.
+     */
+    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
+        self.write_token_fragment(&tags::ATOM, atom)
     }
 
     /**
@@ -144,65 +158,175 @@ pub trait TokenWrite: Write {
     }
 
     /**
-    Write an opening or closing quote.
-
-    By default, a double quote (`"`) is used.
-    */
-    fn write_text_quote(&mut self) -> fmt::Result {
-        self.write_token_fragment(&tags::TEXT, "\"")
-    }
-
-    /**
-    Write a fragment of text.
-
-    By default, text input is escaped for debug rendering.
-    */
-    fn write_text(&mut self, text: &str) -> fmt::Result {
-        self.write_token_fragment(&tags::TEXT, text)
-    }
-
-    /**
-    Write a fragment of tagged text.
-
-    By default, tagged text values aren't escaped.
-    */
-    fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
-        self.write_token_fragment(tag, text)
-    }
-
-    /**
-    Write a number.
-    */
-    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
-        self.write_token_fragment(&tags::NUMBER, num)
-    }
-
-    /**
-    Write an atom, like `true` or `()`.
-    */
-    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
-        self.write_token_fragment(&tags::ATOM, atom)
-    }
-
-    /**
     Write an identifier.
-    */
+     */
     fn write_ident(&mut self, ident: &str) -> fmt::Result {
         self.write_token_fragment(&tags::IDENT, ident)
     }
 
     /**
     Write a fragment of punctuation, like `:` or `,`.
-    */
+     */
     fn write_punct(&mut self, punct: &str) -> fmt::Result {
         self.write_token_fragment(&tags::PUNCT, punct)
     }
 
     /**
     Write whitespace.
-    */
+     */
     fn write_ws(&mut self, ws: &str) -> fmt::Result {
         self.write_token_fragment(&tags::WS, ws)
+    }
+
+    /**
+    Write an opening or closing quote.
+
+    By default, a double quote (`"`) is used.
+     */
+    fn write_text_quote(&mut self) -> fmt::Result {
+        self.write_token_fragment(&tags::TEXT, "\"")
+    }
+
+    /**
+    Write a fragment of text.
+     */
+    fn write_text(&mut self, text: &str) -> fmt::Result {
+        self.write_token_fragment(&tags::TEXT, text)
+    }
+
+    /**
+    Write a fragment of tagged text.
+     */
+    fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
+        self.write_token_fragment(tag, text)
+    }
+
+    /**
+    Write the start of a map.
+    */
+    fn write_map_begin(&mut self) -> fmt::Result {
+        self.write_punct("{")
+    }
+
+    /**
+    Write a separator between a map value and the next key.
+    */
+    fn write_map_key_begin(&mut self, is_first: bool) -> fmt::Result {
+        if !is_first {
+            self.write_punct(",")?;
+        }
+
+        self.write_ws(" ")
+    }
+
+    /**
+    Write a separator between a map key and its value.
+    */
+    fn write_map_value_begin(&mut self, is_first: bool) -> fmt::Result {
+        let _ = is_first;
+
+        self.write_punct(":")?;
+        self.write_ws(" ")
+    }
+
+    /**
+    Write the end of a map.
+    */
+    fn write_map_end(&mut self, is_empty: bool) -> fmt::Result {
+        if !is_empty {
+            self.write_ws(" ")?;
+        }
+
+        self.write_punct("}")
+    }
+
+    /**
+    Write the type of a record.
+    */
+    fn write_record_type(&mut self, ty: &str) -> fmt::Result {
+        self.write_type(ty)?;
+        self.write_ws(" ")
+    }
+
+    /**
+    Write the start of a record.
+    */
+    fn write_record_begin(&mut self) -> fmt::Result {
+        self.write_map_begin()
+    }
+
+    /**
+    Write a record field.
+    */
+    fn write_record_value_begin(&mut self, field: &str, is_first: bool) -> fmt::Result {
+        self.write_map_key_begin(is_first)?;
+        self.write_field(field)?;
+        self.write_map_value_begin(is_first)
+    }
+
+    /**
+    Write the end of a record.
+    */
+    fn write_record_end(&mut self, is_empty: bool) -> fmt::Result {
+        self.write_map_end(is_empty)
+    }
+
+    /**
+    Write the start of a sequence.
+    */
+    fn write_seq_begin(&mut self) -> fmt::Result {
+        self.write_punct("[")
+    }
+
+    /**
+    Write a separator between sequence elements.
+    */
+    fn write_seq_value_begin(&mut self, is_first: bool) -> fmt::Result {
+        if !is_first {
+            self.write_punct(",")?;
+            self.write_ws(" ")?;
+        }
+
+        Ok(())
+    }
+
+    /**
+    Write the end of a sequence.
+    */
+    fn write_seq_end(&mut self, is_empty: bool) -> fmt::Result {
+        let _ = is_empty;
+
+        self.write_punct("]")
+    }
+
+    /**
+    Write the type of a tuple.
+    */
+    fn write_tuple_type(&mut self, ty: &str) -> fmt::Result {
+        self.write_type(ty)
+    }
+
+    /**
+    Write the start of a tuple.
+    */
+    fn write_tuple_begin(&mut self) -> fmt::Result {
+        self.write_punct("(")
+    }
+
+    /**
+    Write a separator between tuple values.
+    */
+    fn write_tuple_value_begin(&mut self, is_first: bool) -> fmt::Result {
+        self.write_seq_value_begin(is_first)
+    }
+
+    /**
+    Write the end of a tuple.
+    */
+    fn write_tuple_end(&mut self, is_empty: bool) -> fmt::Result {
+        let _ = is_empty;
+
+        self.write_punct(")")
     }
 }
 
@@ -211,7 +335,7 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
         (**self).text_escaper()
     }
 
-    fn write_token_fragment<T: Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
+    fn write_token_fragment<T: fmt::Display>(&mut self, tag: &sval::Tag, token: T) -> fmt::Result {
         (**self).write_token_fragment(tag, token)
     }
 
@@ -263,12 +387,20 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
         (**self).write_f64(value)
     }
 
+    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
+        (**self).write_number(num)
+    }
+
     fn write_null(&mut self) -> fmt::Result {
         (**self).write_null()
     }
 
     fn write_bool(&mut self, value: bool) -> fmt::Result {
         (**self).write_bool(value)
+    }
+
+    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
+        (**self).write_atom(atom)
     }
 
     fn write_type(&mut self, ty: &str) -> fmt::Result {
@@ -279,22 +411,6 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
         (**self).write_field(field)
     }
 
-    fn write_text_quote(&mut self) -> fmt::Result {
-        (**self).write_text_quote()
-    }
-
-    fn write_text(&mut self, text: &str) -> fmt::Result {
-        (**self).write_text(text)
-    }
-
-    fn write_number<N: fmt::Display>(&mut self, num: N) -> fmt::Result {
-        (**self).write_number(num)
-    }
-
-    fn write_atom<A: fmt::Display>(&mut self, atom: A) -> fmt::Result {
-        (**self).write_atom(atom)
-    }
-
     fn write_ident(&mut self, ident: &str) -> fmt::Result {
         (**self).write_ident(ident)
     }
@@ -303,12 +419,80 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
         (**self).write_punct(punct)
     }
 
+    fn write_ws(&mut self, ws: &str) -> fmt::Result {
+        (**self).write_ws(ws)
+    }
+
+    fn write_text_quote(&mut self) -> fmt::Result {
+        (**self).write_text_quote()
+    }
+
+    fn write_text(&mut self, text: &str) -> fmt::Result {
+        (**self).write_text(text)
+    }
+
     fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
         (**self).write_tagged_text(tag, text)
     }
 
-    fn write_ws(&mut self, ws: &str) -> fmt::Result {
-        (**self).write_ws(ws)
+    fn write_map_begin(&mut self) -> fmt::Result {
+        (**self).write_map_begin()
+    }
+
+    fn write_map_key_begin(&mut self, is_first: bool) -> fmt::Result {
+        (**self).write_map_key_begin(is_first)
+    }
+
+    fn write_map_value_begin(&mut self, is_first: bool) -> fmt::Result {
+        (**self).write_map_value_begin(is_first)
+    }
+
+    fn write_map_end(&mut self, is_empty: bool) -> fmt::Result {
+        (**self).write_map_end(is_empty)
+    }
+
+    fn write_record_type(&mut self, ty: &str) -> fmt::Result {
+        (**self).write_record_type(ty)
+    }
+
+    fn write_record_begin(&mut self) -> fmt::Result {
+        (**self).write_record_begin()
+    }
+
+    fn write_record_value_begin(&mut self, field: &str, is_first: bool) -> fmt::Result {
+        (**self).write_record_value_begin(field, is_first)
+    }
+
+    fn write_record_end(&mut self, is_empty: bool) -> fmt::Result {
+        (**self).write_record_end(is_empty)
+    }
+
+    fn write_seq_begin(&mut self) -> fmt::Result {
+        (**self).write_seq_begin()
+    }
+
+    fn write_seq_value_begin(&mut self, is_first: bool) -> fmt::Result {
+        (**self).write_seq_value_begin(is_first)
+    }
+
+    fn write_seq_end(&mut self, is_empty: bool) -> fmt::Result {
+        (**self).write_seq_end(is_empty)
+    }
+
+    fn write_tuple_type(&mut self, ty: &str) -> fmt::Result {
+        (**self).write_tuple_type(ty)
+    }
+
+    fn write_tuple_begin(&mut self) -> fmt::Result {
+        (**self).write_tuple_begin()
+    }
+
+    fn write_tuple_value_begin(&mut self, is_first: bool) -> fmt::Result {
+        (**self).write_tuple_value_begin(is_first)
+    }
+
+    fn write_tuple_end(&mut self, is_empty: bool) -> fmt::Result {
+        (**self).write_tuple_end(is_empty)
     }
 }
 
@@ -460,18 +644,12 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        if tag == &tags::NUMBER {
-            self.out
-                .write_number(fragment)
-                .map_err(|_| sval::Error::new())
-        } else {
-            self.out
-                .text_escaper()
-                .escape(fragment, |fragment| {
-                    self.out.write_tagged_text(tag, fragment)
-                })
-                .map_err(|_| sval::Error::new())
-        }
+        self.out
+            .text_escaper()
+            .escape(fragment, |fragment| {
+                self.out.write_tagged_text(tag, fragment)
+            })
+            .map_err(|_| sval::Error::new())
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
@@ -589,24 +767,23 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         self.is_number = false;
         self.is_current_depth_empty = true;
 
-        self.out.write_punct("{").map_err(|_| sval::Error::new())?;
+        self.out.write_map_begin().map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
 
     fn map_key_begin(&mut self) -> sval::Result {
-        if !self.is_current_depth_empty {
-            self.out.write_punct(",").map_err(|_| sval::Error::new())?;
-        }
-
-        self.out.write_ws(" ").map_err(|_| sval::Error::new())?;
+        self.out
+            .write_map_key_begin(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
 
     fn map_key_end(&mut self) -> sval::Result {
-        self.out.write_punct(":").map_err(|_| sval::Error::new())?;
-        self.out.write_ws(" ").map_err(|_| sval::Error::new())?;
+        self.out
+            .write_map_value_begin(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
@@ -622,11 +799,9 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn map_end(&mut self) -> sval::Result {
-        if !self.is_current_depth_empty {
-            self.out.write_ws(" ").map_err(|_| sval::Error::new())?;
-        }
-
-        self.out.write_punct("}").map_err(|_| sval::Error::new())?;
+        self.out
+            .write_map_end(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
@@ -635,16 +810,15 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         self.is_number = false;
         self.is_current_depth_empty = true;
 
-        self.out.write_punct("[").map_err(|_| sval::Error::new())?;
+        self.out.write_seq_begin().map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
 
     fn seq_value_begin(&mut self) -> sval::Result {
-        if !self.is_current_depth_empty {
-            self.out.write_punct(",").map_err(|_| sval::Error::new())?;
-            self.out.write_ws(" ").map_err(|_| sval::Error::new())?;
-        }
+        self.out
+            .write_seq_value_begin(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
@@ -656,7 +830,9 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn seq_end(&mut self) -> sval::Result {
-        self.out.write_punct("]").map_err(|_| sval::Error::new())?;
+        self.out
+            .write_seq_end(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
@@ -691,9 +867,11 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
 
         if let Some(label) = label {
             self.out
-                .write_type(label.as_str())
+                .write_tuple_type(label.as_str())
                 .map_err(|_| sval::Error::new())?;
-            self.out.write_punct("(").map_err(|_| sval::Error::new())?;
+            self.out
+                .write_tuple_begin()
+                .map_err(|_| sval::Error::new())?;
         }
 
         Ok(())
@@ -710,7 +888,9 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         }
 
         if label.is_some() {
-            self.out.write_punct(")").map_err(|_| sval::Error::new())?;
+            self.out
+                .write_tuple_end(false)
+                .map_err(|_| sval::Error::new())?;
         }
 
         Ok(())
@@ -738,30 +918,36 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
-        num_entries_hint: Option<usize>,
+        _: Option<usize>,
     ) -> sval::Result {
+        self.is_number = false;
+        self.is_current_depth_empty = true;
+
         if let Some(label) = label {
             self.out
-                .write_type(label.as_str())
+                .write_record_type(label.as_str())
                 .map_err(|_| sval::Error::new())?;
-            self.out.write_ws(" ").map_err(|_| sval::Error::new())?;
         }
 
-        self.map_begin(num_entries_hint)
+        self.out
+            .write_record_begin()
+            .map_err(|_| sval::Error::new())?;
+
+        Ok(())
     }
 
     fn record_value_begin(&mut self, _: Option<&sval::Tag>, label: &sval::Label) -> sval::Result {
-        self.map_key_begin()?;
         self.out
-            .write_field(label.as_str())
+            .write_record_value_begin(label.as_str(), self.is_current_depth_empty)
             .map_err(|_| sval::Error::new())?;
-        self.map_key_end()?;
 
-        self.map_value_begin()
+        Ok(())
     }
 
     fn record_value_end(&mut self, _: Option<&sval::Tag>, _: &sval::Label) -> sval::Result {
-        self.map_value_end()
+        self.is_current_depth_empty = false;
+
+        Ok(())
     }
 
     fn record_end(
@@ -770,7 +956,11 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         _: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        self.map_end()
+        self.out
+            .write_record_end(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
+
+        Ok(())
     }
 
     fn tuple_begin(
@@ -785,21 +975,29 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
 
         if let Some(label) = label {
             self.out
-                .write_type(label.as_str())
+                .write_tuple_type(label.as_str())
                 .map_err(|_| sval::Error::new())?;
         }
 
-        self.out.write_punct("(").map_err(|_| sval::Error::new())?;
+        self.out
+            .write_tuple_begin()
+            .map_err(|_| sval::Error::new())?;
 
         Ok(())
     }
 
     fn tuple_value_begin(&mut self, _: Option<&sval::Tag>, _: &sval::Index) -> sval::Result {
-        self.seq_value_begin()
+        self.out
+            .write_tuple_value_begin(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
+
+        Ok(())
     }
 
     fn tuple_value_end(&mut self, _: Option<&sval::Tag>, _: &sval::Index) -> sval::Result {
-        self.seq_value_end()
+        self.is_current_depth_empty = false;
+
+        Ok(())
     }
 
     fn tuple_end(
@@ -808,7 +1006,9 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         _: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
-        self.out.write_punct(")").map_err(|_| sval::Error::new())?;
+        self.out
+            .write_tuple_end(self.is_current_depth_empty)
+            .map_err(|_| sval::Error::new())?;
 
         Ok(())
     }

@@ -58,6 +58,8 @@ fn debug_retains_flags() {
 #[test]
 fn debug_primitive() {
     assert_fmt(42i32);
+    assert_fmt(true);
+    assert_fmt("a string");
 }
 
 #[test]
@@ -342,56 +344,55 @@ fn stream_fragments_to_tokens_default() {
         }
     }
 
-    sval_test::assert_tokens(
-        &Template {
-            pre: "before ",
-            value: MapStruct {
-                field_0: 42,
-                field_1: true,
-                field_2: "text \"in quotes\"",
-            },
-            post: " after",
+    let template = Template {
+        pre: "before ",
+        value: MapStruct {
+            field_0: 42,
+            field_1: true,
+            field_2: "text \"in quotes\"",
         },
-        {
-            use sval_test::Token::*;
+        post: " after",
+    };
 
-            &[
-                TextBegin(None),
-                TextFragment("before "),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "MapStruct".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "{".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_0".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::NUMBER, "42".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_1".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::ATOM, "true".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_2".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "text ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "in quotes".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "}".to_owned()),
-                TextFragment(" after"),
-                TextEnd,
-            ]
-        },
-    );
+    sval_test::assert_tokens(&template, {
+        use sval_test::Token::*;
+
+        &[
+            TextBegin(None),
+            TextFragment("before "),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "MapStruct".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "{".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_0".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::NUMBER, "42".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_1".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::ATOM, "true".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_2".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "text ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "in quotes".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "}".to_owned()),
+            TextFragment(" after"),
+            TextEnd,
+        ]
+    });
 }
 
 #[test]
@@ -413,49 +414,48 @@ fn stream_fragments_to_tokens_custom() {
         }
     }
 
-    sval_test::assert_tokens(
-        &Template {
-            pre: "before ",
-            value: MapStruct {
-                field_0: 42,
-                field_1: true,
-                field_2: "text \"in quotes\"",
-            },
-            post: " after",
+    let template = Template {
+        pre: "before ",
+        value: MapStruct {
+            field_0: 42,
+            field_1: true,
+            field_2: "text \"in quotes\"",
         },
-        {
-            use sval_test::Token::*;
+        post: " after",
+    };
 
-            &[
-                TextBegin(None),
-                TextFragment("before "),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "MapStruct".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "{".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_0".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::NUMBER, "42".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_1".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::ATOM, "true".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_2".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "text \"in quotes\"".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "}".to_owned()),
-                TextFragment(" after"),
-                TextEnd,
-            ]
-        },
-    );
+    sval_test::assert_tokens(&template, {
+        use sval_test::Token::*;
+
+        &[
+            TextBegin(None),
+            TextFragment("before "),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "MapStruct".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "{".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_0".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::NUMBER, "42".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_1".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::ATOM, "true".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_2".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "text \"in quotes\"".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "}".to_owned()),
+            TextFragment(" after"),
+            TextEnd,
+        ]
+    });
 }
 
 #[test]
