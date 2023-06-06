@@ -4,8 +4,6 @@ use core::fmt::{self, Display, Write};
 pub(crate) struct Writer<W> {
     is_current_depth_empty: bool,
     is_number: bool,
-    escaper: TextEscaper,
-    flush_text_tag: Option<sval::Tag>,
     out: W,
 }
 
@@ -17,12 +15,12 @@ as colorizing numbers and booleans differently.
 */
 pub trait TokenWrite: Write {
     /**
-    Get an escaper to use for text.
+    Get an escaper to use for text fragments.
 
-    Implementors can override this method to change the strategy for escaping input.
+    By default, an escaper that uses the same strategy as Rust's `Debug` is used.
     */
     fn text_escaper(&self) -> TextEscaper {
-        TextEscaper::escape_idempotent()
+        TextEscaper::escape_debug()
     }
 
     /**
@@ -435,8 +433,6 @@ impl<W> Writer<W> {
         Writer {
             is_current_depth_empty: true,
             is_number: false,
-            flush_text_tag: None,
-            escaper: TextEscaper::no_escaping(),
             out,
         }
     }
@@ -456,8 +452,6 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
-        self.escaper = self.out.text_escaper();
-
         if self.is_number {
             Ok(())
         } else {
@@ -466,15 +460,14 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        self.flush_text_tag = Some(tag.clone());
-
         if tag == &tags::NUMBER {
             self.out
                 .write_number(fragment)
                 .map_err(|_| sval::Error::new())
         } else {
-            self.escaper
-                .write(fragment, |fragment| {
+            self.out
+                .text_escaper()
+                .escape(fragment, |fragment| {
                     self.out.write_tagged_text(tag, fragment)
                 })
                 .map_err(|_| sval::Error::new())
@@ -482,30 +475,19 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-        self.flush_text_tag = None;
-
         if self.is_number {
             self.out
                 .write_number(fragment)
                 .map_err(|_| sval::Error::new())
         } else {
-            self.escaper
-                .write(fragment, |fragment| self.out.write_text(fragment))
+            self.out
+                .text_escaper()
+                .escape(fragment, |fragment| self.out.write_text(fragment))
                 .map_err(|_| sval::Error::new())
         }
     }
 
     fn text_end(&mut self) -> sval::Result {
-        if let Some(tag) = self.flush_text_tag.take() {
-            self.escaper
-                .flush(|fragment| self.out.write_tagged_text(&tag, fragment))
-                .map_err(|_| sval::Error::new())?;
-        } else {
-            self.escaper
-                .flush(|fragment| self.out.write_text(fragment))
-                .map_err(|_| sval::Error::new())?;
-        }
-
         if self.is_number {
             Ok(())
         } else {
@@ -833,146 +815,70 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
 }
 
 /**
-Encapsulates a strategy for escaping text fragments.
+A strategy for escaping fragments of text.
 */
-pub struct TextEscaper(EscaperStrategy);
+pub struct TextEscaper(TextEscaperStrategy);
 
-enum EscaperStrategy {
-    Idempotent(IdempotentEscaper),
+enum TextEscaperStrategy {
     NoEscaping,
-}
-
-enum IdempotentEscaper {
-    Normal,
-    SeenBackslash,
+    EscapeDebug,
 }
 
 impl TextEscaper {
     /**
-    Don't escape any input.
+    Don't perform any escaping.
+
+    This strategy can be used for writers that either don't escape, or that implement
+    their own custom escaping.
     */
     pub fn no_escaping() -> Self {
-        TextEscaper(EscaperStrategy::NoEscaping)
+        TextEscaper(TextEscaperStrategy::NoEscaping)
     }
 
     /**
-    Escape the input, unless it already appears to be escaped.
+    Escape using the same strategy as Rust's `Debug`.
     */
-    pub fn escape_idempotent() -> Self {
-        TextEscaper(EscaperStrategy::Idempotent(IdempotentEscaper::Normal))
+    pub fn escape_debug() -> Self {
+        TextEscaper(TextEscaperStrategy::EscapeDebug)
     }
 
-    fn write(&mut self, input: &str, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
+    fn escape(&mut self, input: &str, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
         match self.0 {
-            EscaperStrategy::Idempotent(ref mut escaper) => escaper.write(input, output),
-            EscaperStrategy::NoEscaping => output(input),
-        }
-    }
-
-    fn flush(&mut self, output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
-        match self.0 {
-            EscaperStrategy::Idempotent(ref mut escaper) => escaper.flush(output),
-            EscaperStrategy::NoEscaping => Ok(()),
+            TextEscaperStrategy::NoEscaping => output(input),
+            TextEscaperStrategy::EscapeDebug => escape_debug(input, output),
         }
     }
 }
 
-impl IdempotentEscaper {
-    fn write(&mut self, input: &str, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
-        let mut from = 0;
+fn escape_debug(input: &str, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
+    let mut from = 0;
 
-        for (i, c) in input.char_indices() {
-            if let IdempotentEscaper::SeenBackslash = self {
-                *self = IdempotentEscaper::Normal;
+    // Iterate over each character, escaping it if necessary
+    for (i, c) in input.char_indices() {
+        let esc = c.escape_debug();
 
-                // This won't result in flushing the backslash multiple times
-                // because we increment `from` when we first see it to skip
-                // over the leading backslash
-                let flush = &input[from..i];
-                if flush.len() > 0 {
-                    output(flush)?;
-                }
-
-                match c {
-                    // If the character following the backslash looks like
-                    // an escape then write the backslash as-is. We don't just
-                    // increment an index here because the backslash may have
-                    // come from a previous write
-                    'r' | 'n' | 't' | '"' | '\'' | '\\' | 'u' => {
-                        output("\\")?;
-                        from = i;
-                        continue;
-                    }
-                    // If the character following the backslash doesn't look
-                    // like an escape then escape the backslash
-                    _ => {
-                        let esc = c.escape_debug();
-
-                        for c in esc {
-                            let mut buf = [0; 4];
-                            output(c.encode_utf8(&mut buf))?;
-                        }
-
-                        from = i + c.len_utf8();
-                    }
-                }
+        // A character is escaped if it produces more than an
+        // escape sequence with more than a single character in it
+        if esc.len() > 1 {
+            let flush = &input[from..i];
+            if flush.len() > 0 {
+                output(flush)?;
             }
 
-            // Backslash is handled explicitly; if we get this far then
-            // this backslash isn't preceded by another backslash, so it
-            // will either need to be escaped, or it'll be the start of
-            // an escape sequence
-            if c == '\\' {
-                let flush = &input[from..i];
-                if flush.len() > 0 {
-                    output(flush)?;
-                }
-
-                from = i + c.len_utf8();
-
-                *self = IdempotentEscaper::SeenBackslash;
-                continue;
-            }
-
-            let esc = c.escape_debug();
-
-            // A character is escaped if its number of escaped characters
-            // is not 1; that means there's at least a leading `\` in there
-            if esc.len() != 1 {
-                output(&input[from..i])?;
-
-                for c in esc {
-                    let mut buf = [0; 4];
-                    output(c.encode_utf8(&mut buf))?;
-                }
-
-                from = i + c.len_utf8();
-            }
-        }
-
-        // Flush the rest of the buffer
-        let flush = &input[from..];
-        if flush.len() > 0 {
-            output(flush)?;
-        }
-
-        Ok(())
-    }
-
-    fn flush(&mut self, mut output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
-        // If the input ended on a backslash then we'll need to write it
-        // and escape it
-        if let IdempotentEscaper::SeenBackslash = self {
-            *self = IdempotentEscaper::Normal;
-
-            let esc = '\\'.escape_debug();
-
+            let mut buf = [0; 4];
             for c in esc {
-                let mut buf = [0; 4];
                 output(c.encode_utf8(&mut buf))?;
             }
-        }
 
+            // Skip over the original character without writing it
+            from = i + c.len_utf8();
+        }
+    }
+
+    let flush = &input[from..];
+    if flush.len() > 0 {
+        output(flush)
+    } else {
         Ok(())
     }
 }
@@ -982,92 +888,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn no_escaping() {
+    fn write_no_escaping() {
+        let mut actual = String::new();
         let mut escaper = TextEscaper::no_escaping();
+        escaper.escape("hello", |i| Ok(actual.push_str(i))).unwrap();
+        escaper.escape("\n", |i| Ok(actual.push_str(i))).unwrap();
 
-        let mut out = String::new();
-
-        escaper
-            .write("hello\rworld\\", |s| {
-                out.push_str(s);
-                Ok(())
-            })
-            .unwrap();
-
-        assert_eq!("hello\rworld\\", out);
+        assert_eq!("hello\n", actual);
     }
 
     #[test]
-    fn idempotent_write_escape() {
-        for (input, expected) in [
+    fn write_escape_debug() {
+        let cases = [
             ("hello", r#"hello"#),
             ("\\", r#"\\"#),
-            ("\\\\", r#"\\"#),
             ("\r", r#"\r"#),
             ("\n", r#"\n"#),
             ("\t", r#"\t"#),
             ("\"", r#"\""#),
             ("'", r#"\'"#),
             ("⛰️", r#"⛰\u{fe0f}"#),
-            ("\\r", r#"\r"#),
-        ] {
-            let mut escaper = TextEscaper::escape_idempotent();
+        ];
 
-            let mut out = String::new();
-            escaper.write(input, |s| Ok(out.push_str(s))).unwrap();
-            escaper.flush(|s| Ok(out.push_str(s))).unwrap();
+        for (ai, ae) in cases {
+            for (bi, be) in cases {
+                let mut expected = String::new();
+                expected.push_str(ae);
+                expected.push_str(be);
 
-            assert_eq!(expected, out);
+                let mut actual = String::new();
+                let mut escaper = TextEscaper::escape_debug();
+                escaper.escape(ai, |i| Ok(actual.push_str(i))).unwrap();
+                escaper.escape(bi, |i| Ok(actual.push_str(i))).unwrap();
 
-            // Ensure escaping the same sequence again is a no-op
-            let mut escaper = TextEscaper::escape_idempotent();
-
-            let mut out2 = String::new();
-            escaper.write(&out, |s| Ok(out2.push_str(s))).unwrap();
-            escaper.flush(|s| Ok(out2.push_str(s))).unwrap();
-
-            assert_eq!(out, out2);
+                assert_eq!(expected, actual);
+            }
         }
-    }
-
-    #[test]
-    fn idempotent_write_escape_across_boundaries() {
-        for i in ["\\", "n", "r"] {
-            let mut escaper = TextEscaper::escape_idempotent();
-
-            let mut out = String::new();
-
-            escaper.write("\\", |s| Ok(out.push_str(s))).unwrap();
-
-            assert_eq!("", out);
-
-            escaper.write(i, |s| Ok(out.push_str(s))).unwrap();
-            escaper.flush(|s| Ok(out.push_str(s))).unwrap();
-
-            assert_eq!(format!("\\{}", i), out);
-        }
-    }
-
-    #[test]
-    fn idempotent_flush_escape_across_boundaries() {
-        let mut escaper = TextEscaper::escape_idempotent();
-
-        let mut out = String::new();
-
-        escaper
-            .write("\\", |s| {
-                out.push_str(s);
-                Ok(())
-            })
-            .unwrap();
-
-        escaper
-            .flush(|s| {
-                out.push_str(s);
-                Ok(())
-            })
-            .unwrap();
-
-        assert_eq!("\\\\", out);
     }
 }

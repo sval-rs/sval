@@ -5,7 +5,7 @@ extern crate sval_derive;
 
 use std::fmt;
 use std::fmt::Display;
-use sval::{Stream, Tag, Value};
+use sval::{Stream, Tag};
 
 fn assert_fmt(v: impl sval::Value + fmt::Debug) {
     let expected = format!("{:?}", v);
@@ -295,12 +295,36 @@ impl<'sval, S: sval::Stream<'sval>> fmt::Write for DefaultWriter<S> {
 
 impl<'sval, S: sval::Stream<'sval>> sval_fmt::TokenWrite for DefaultWriter<S> {
     fn write_token_fragment<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
-        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token).map_err(|_| fmt::Error)
+        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token)
+            .map_err(|_| fmt::Error)
+    }
+}
+
+struct TemplateWrite<S>(S);
+
+impl<'sval, S: Stream<'sval>> sval_fmt::TokenWrite for TemplateWrite<S> {
+    fn write_token_fragment<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
+        sval_fmt::stream_display_to_tagged_text_fragments(&mut self.0, tag, token)
+            .map_err(|_| fmt::Error)
+    }
+
+    fn write_text_quote(&mut self) -> fmt::Result {
+        Ok(())
+    }
+
+    fn text_escaper(&self) -> sval_fmt::TextEscaper {
+        sval_fmt::TextEscaper::no_escaping()
+    }
+}
+
+impl<'sval, S: Stream<'sval>> fmt::Write for TemplateWrite<S> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        sval_fmt::stream_display_to_text_fragments(&mut self.0, s).map_err(|_| fmt::Error)
     }
 }
 
 #[test]
-fn stream_fragments_idempotent() {
+fn stream_fragments_to_tokens_default() {
     struct Template<V> {
         pre: &'static str,
         value: V,
@@ -371,33 +395,67 @@ fn stream_fragments_idempotent() {
 }
 
 #[test]
-fn stream_fragments_idempotent_nested() {
-    // Not a valid value; just making sure streaming fragments passes through
-    struct Template<V>(V);
+fn stream_fragments_to_tokens_custom() {
+    struct Template<V> {
+        pre: &'static str,
+        value: V,
+        post: &'static str,
+    }
 
     impl<V: sval::Value> sval::Value for Template<V> {
         fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-            sval_fmt::stream_to_token_write(DefaultWriter(&mut *stream), &self.0)
-                .map_err(|_| sval::Error::new())
+            stream.text_begin(None)?;
+            stream.text_fragment(self.pre)?;
+            sval_fmt::stream_to_token_write(TemplateWrite(&mut *stream), &self.value)
+                .map_err(|_| sval::Error::new())?;
+            stream.text_fragment(self.post)?;
+            stream.text_end()
         }
     }
 
-    let mut a = sval_test::TokenBuf::new();
-    let mut b = sval_test::TokenBuf::new();
+    sval_test::assert_tokens(
+        &Template {
+            pre: "before ",
+            value: MapStruct {
+                field_0: 42,
+                field_1: true,
+                field_2: "text \"in quotes\"",
+            },
+            post: " after",
+        },
+        {
+            use sval_test::Token::*;
 
-    let value = MapStruct {
-        field_0: 42,
-        field_1: false,
-        field_2: "a string with \"escapes\" ending in a \\",
-    };
-
-    let av = Template(Template(Template(&value)));
-    let bv = Template(&value);
-
-    av.stream(&mut a).unwrap();
-    bv.stream(&mut b).unwrap();
-
-    assert_eq!(a.as_tokens(), b.as_tokens());
+            &[
+                TextBegin(None),
+                TextFragment("before "),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "MapStruct".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "{".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_0".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::NUMBER, "42".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_1".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::ATOM, "true".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_2".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "text \"in quotes\"".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
+                TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "}".to_owned()),
+                TextFragment(" after"),
+                TextEnd,
+            ]
+        },
+    );
 }
 
 #[test]
