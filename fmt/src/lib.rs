@@ -19,9 +19,9 @@ mod to_value;
 mod to_write;
 
 pub mod tags;
-pub mod token_write;
+mod token_write;
 
-pub use self::{to_fmt::*, to_value::*, to_write::*, token_write::TokenWrite};
+pub use self::{to_fmt::*, to_value::*, to_write::*, token_write::*};
 
 #[cfg(feature = "alloc")]
 mod to_string;

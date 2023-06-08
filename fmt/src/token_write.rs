@@ -299,7 +299,7 @@ pub trait TokenWrite: Write {
 /**
 Write a token fragment.
  */
-pub fn default_write_token_fragment<T: fmt::Display>(
+fn default_write_token_fragment<T: fmt::Display>(
     mut writer: impl TokenWrite,
     tag: &sval::Tag,
     token: T,
@@ -311,147 +311,147 @@ pub fn default_write_token_fragment<T: fmt::Display>(
 /**
 Write a number.
  */
-pub fn default_write_u8(mut writer: impl TokenWrite, value: u8) -> fmt::Result {
+fn default_write_u8(mut writer: impl TokenWrite, value: u8) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_u16(mut writer: impl TokenWrite, value: u16) -> fmt::Result {
+fn default_write_u16(mut writer: impl TokenWrite, value: u16) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_u32(mut writer: impl TokenWrite, value: u32) -> fmt::Result {
+fn default_write_u32(mut writer: impl TokenWrite, value: u32) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_u64(mut writer: impl TokenWrite, value: u64) -> fmt::Result {
+fn default_write_u64(mut writer: impl TokenWrite, value: u64) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_u128(mut writer: impl TokenWrite, value: u128) -> fmt::Result {
+fn default_write_u128(mut writer: impl TokenWrite, value: u128) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_i8(mut writer: impl TokenWrite, value: i8) -> fmt::Result {
+fn default_write_i8(mut writer: impl TokenWrite, value: i8) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_i16(mut writer: impl TokenWrite, value: i16) -> fmt::Result {
+fn default_write_i16(mut writer: impl TokenWrite, value: i16) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_i32(mut writer: impl TokenWrite, value: i32) -> fmt::Result {
+fn default_write_i32(mut writer: impl TokenWrite, value: i32) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_i64(mut writer: impl TokenWrite, value: i64) -> fmt::Result {
+fn default_write_i64(mut writer: impl TokenWrite, value: i64) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_i128(mut writer: impl TokenWrite, value: i128) -> fmt::Result {
+fn default_write_i128(mut writer: impl TokenWrite, value: i128) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_f32(mut writer: impl TokenWrite, value: f32) -> fmt::Result {
+fn default_write_f32(mut writer: impl TokenWrite, value: f32) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_f64(mut writer: impl TokenWrite, value: f64) -> fmt::Result {
+fn default_write_f64(mut writer: impl TokenWrite, value: f64) -> fmt::Result {
     writer.write_number(value)
 }
 
 /**
 Write a number.
  */
-pub fn default_write_number<N: fmt::Display>(mut writer: impl TokenWrite, num: N) -> fmt::Result {
+fn default_write_number<N: fmt::Display>(mut writer: impl TokenWrite, num: N) -> fmt::Result {
     writer.write_token_fragment(&tags::NUMBER, num)
 }
 
 /**
 Write null or unit.
  */
-pub fn default_write_null(mut writer: impl TokenWrite) -> fmt::Result {
+fn default_write_null(mut writer: impl TokenWrite) -> fmt::Result {
     writer.write_atom("()")
 }
 
 /**
 Write a boolean.
  */
-pub fn default_write_bool(mut writer: impl TokenWrite, value: bool) -> fmt::Result {
+fn default_write_bool(mut writer: impl TokenWrite, value: bool) -> fmt::Result {
     writer.write_atom(value)
 }
 
 /**
 Write an atom, like `true` or `()`.
  */
-pub fn default_write_atom<A: fmt::Display>(mut writer: impl TokenWrite, atom: A) -> fmt::Result {
+fn default_write_atom<A: fmt::Display>(mut writer: impl TokenWrite, atom: A) -> fmt::Result {
     writer.write_token_fragment(&tags::ATOM, atom)
 }
 
 /**
 Write a type name.
  */
-pub fn default_write_type(mut writer: impl TokenWrite, ty: &str) -> fmt::Result {
+fn default_write_type(mut writer: impl TokenWrite, ty: &str) -> fmt::Result {
     writer.write_ident(ty)
 }
 
 /**
 Write a field name.
  */
-pub fn default_write_field(mut writer: impl TokenWrite, field: &str) -> fmt::Result {
+fn default_write_field(mut writer: impl TokenWrite, field: &str) -> fmt::Result {
     writer.write_ident(field)
 }
 
 /**
 Write an identifier.
  */
-pub fn default_write_ident(mut writer: impl TokenWrite, ident: &str) -> fmt::Result {
+fn default_write_ident(mut writer: impl TokenWrite, ident: &str) -> fmt::Result {
     writer.write_token_fragment(&tags::IDENT, ident)
 }
 
 /**
 Write a fragment of punctuation, like `:` or `,`.
  */
-pub fn default_write_punct(mut writer: impl TokenWrite, punct: &str) -> fmt::Result {
+fn default_write_punct(mut writer: impl TokenWrite, punct: &str) -> fmt::Result {
     writer.write_token_fragment(&tags::PUNCT, punct)
 }
 
 /**
 Write whitespace.
  */
-pub fn default_write_ws(mut writer: impl TokenWrite, ws: &str) -> fmt::Result {
+fn default_write_ws(mut writer: impl TokenWrite, ws: &str) -> fmt::Result {
     writer.write_token_fragment(&tags::WS, ws)
 }
 
@@ -460,21 +460,21 @@ Write an opening or closing quote.
 
 By default, a double quote (`"`) is used.
  */
-pub fn default_write_text_quote(mut writer: impl TokenWrite) -> fmt::Result {
+fn default_write_text_quote(mut writer: impl TokenWrite) -> fmt::Result {
     writer.write_token_fragment(&tags::TEXT, "\"")
 }
 
 /**
 Write a fragment of text.
  */
-pub fn default_write_text(mut writer: impl TokenWrite, text: &str) -> fmt::Result {
+fn default_write_text(mut writer: impl TokenWrite, text: &str) -> fmt::Result {
     writer.write_tagged_text(&tags::TEXT, text)
 }
 
 /**
 Write a fragment of tagged text.
  */
-pub fn default_write_tagged_text(
+fn default_write_tagged_text(
     mut writer: impl TokenWrite,
     tag: &sval::Tag,
     text: &str,
@@ -485,14 +485,14 @@ pub fn default_write_tagged_text(
 /**
 Write the start of a map.
  */
-pub fn default_write_map_begin(mut writer: impl TokenWrite) -> fmt::Result {
+fn default_write_map_begin(mut writer: impl TokenWrite) -> fmt::Result {
     writer.write_punct("{")
 }
 
 /**
 Write a separator between a map value and the next key.
  */
-pub fn default_write_map_key_begin(mut writer: impl TokenWrite, is_first: bool) -> fmt::Result {
+fn default_write_map_key_begin(mut writer: impl TokenWrite, is_first: bool) -> fmt::Result {
     if !is_first {
         writer.write_punct(",")?;
     }
@@ -503,7 +503,7 @@ pub fn default_write_map_key_begin(mut writer: impl TokenWrite, is_first: bool) 
 /**
 Write a separator between a map key and its value.
  */
-pub fn default_write_map_value_begin(mut writer: impl TokenWrite, is_first: bool) -> fmt::Result {
+fn default_write_map_value_begin(mut writer: impl TokenWrite, is_first: bool) -> fmt::Result {
     let _ = is_first;
 
     writer.write_punct(":")?;
@@ -513,7 +513,7 @@ pub fn default_write_map_value_begin(mut writer: impl TokenWrite, is_first: bool
 /**
 Write the end of a map.
  */
-pub fn default_write_map_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
+fn default_write_map_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
     if !is_empty {
         writer.write_ws(" ")?;
     }
@@ -524,7 +524,7 @@ pub fn default_write_map_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt
 /**
 Write the type of a record.
  */
-pub fn default_write_record_type(mut writer: impl TokenWrite, ty: &str) -> fmt::Result {
+fn default_write_record_type(mut writer: impl TokenWrite, ty: &str) -> fmt::Result {
     writer.write_type(ty)?;
     writer.write_ws(" ")
 }
@@ -532,41 +532,41 @@ pub fn default_write_record_type(mut writer: impl TokenWrite, ty: &str) -> fmt::
 /**
 Write the start of a record.
  */
-pub fn default_write_record_begin(mut writer: impl TokenWrite) -> fmt::Result {
-    writer.write_map_begin()
+fn default_write_record_begin(writer: impl TokenWrite) -> fmt::Result {
+    default_write_map_begin(writer)
 }
 
 /**
 Write a record field.
  */
-pub fn default_write_record_value_begin(
+fn default_write_record_value_begin(
     mut writer: impl TokenWrite,
     field: &str,
     is_first: bool,
 ) -> fmt::Result {
-    writer.write_map_key_begin(is_first)?;
+    default_write_map_key_begin(&mut writer, is_first)?;
     writer.write_field(field)?;
-    writer.write_map_value_begin(is_first)
+    default_write_map_value_begin(writer, is_first)
 }
 
 /**
 Write the end of a record.
  */
-pub fn default_write_record_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
-    writer.write_map_end(is_empty)
+fn default_write_record_end(writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
+    default_write_map_end(writer, is_empty)
 }
 
 /**
 Write the start of a sequence.
  */
-pub fn default_write_seq_begin(mut writer: impl TokenWrite) -> fmt::Result {
+fn default_write_seq_begin(mut writer: impl TokenWrite) -> fmt::Result {
     writer.write_punct("[")
 }
 
 /**
 Write a separator between sequence elements.
  */
-pub fn default_write_seq_value_begin(mut writer: impl TokenWrite, is_first: bool) -> fmt::Result {
+fn default_write_seq_value_begin(mut writer: impl TokenWrite, is_first: bool) -> fmt::Result {
     if !is_first {
         writer.write_punct(",")?;
         writer.write_ws(" ")?;
@@ -578,7 +578,7 @@ pub fn default_write_seq_value_begin(mut writer: impl TokenWrite, is_first: bool
 /**
 Write the end of a sequence.
  */
-pub fn default_write_seq_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
+fn default_write_seq_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
     let _ = is_empty;
 
     writer.write_punct("]")
@@ -587,52 +587,34 @@ pub fn default_write_seq_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt
 /**
 Write the type of a tuple.
  */
-pub fn default_write_tuple_type(mut writer: impl TokenWrite, ty: &str) -> fmt::Result {
+fn default_write_tuple_type(mut writer: impl TokenWrite, ty: &str) -> fmt::Result {
     writer.write_type(ty)
 }
 
 /**
 Write the start of a tuple.
  */
-pub fn default_write_tuple_begin(mut writer: impl TokenWrite) -> fmt::Result {
+fn default_write_tuple_begin(mut writer: impl TokenWrite) -> fmt::Result {
     writer.write_punct("(")
 }
 
 /**
 Write a separator between tuple values.
  */
-pub fn default_write_tuple_value_begin(mut writer: impl TokenWrite, is_first: bool) -> fmt::Result {
-    writer.write_seq_value_begin(is_first)
+fn default_write_tuple_value_begin(writer: impl TokenWrite, is_first: bool) -> fmt::Result {
+    default_write_seq_value_begin(writer, is_first)
 }
 
 /**
 Write the end of a tuple.
  */
-pub fn default_write_tuple_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
+fn default_write_tuple_end(mut writer: impl TokenWrite, is_empty: bool) -> fmt::Result {
     let _ = is_empty;
 
     writer.write_punct(")")
 }
 
-/**
-Write a [`fmt::Display`] as-is, without performing any escaping.
-*/
-pub fn write(input: impl fmt::Display, output: impl FnMut(&str) -> fmt::Result) -> fmt::Result {
-    struct Writer<F>(F);
-
-    impl<F: FnMut(&str) -> fmt::Result> fmt::Write for Writer<F> {
-        fn write_str(&mut self, s: &str) -> fmt::Result {
-            (self.0)(s)
-        }
-    }
-
-    write!(Writer(output), "{}", input)
-}
-
-/**
-Write a [`fmt::Display`], escaping using Rust's Debug formatting.
-*/
-pub fn write_escape_debug(
+fn write_escape_debug(
     input: impl fmt::Display,
     output: impl FnMut(&str) -> fmt::Result,
 ) -> fmt::Result {
