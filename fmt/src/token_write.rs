@@ -184,13 +184,6 @@ pub trait TokenWrite: Write {
     }
 
     /**
-    Write a fragment of tagged text.
-     */
-    fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
-        default_write_tagged_text(self, tag, text)
-    }
-
-    /**
     Write the start of a map.
      */
     fn write_map_begin(&mut self) -> fmt::Result {
@@ -468,18 +461,7 @@ fn default_write_text_quote(mut writer: impl TokenWrite) -> fmt::Result {
 Write a fragment of text.
  */
 fn default_write_text(mut writer: impl TokenWrite, text: &str) -> fmt::Result {
-    writer.write_tagged_text(&tags::TEXT, text)
-}
-
-/**
-Write a fragment of tagged text.
- */
-fn default_write_tagged_text(
-    mut writer: impl TokenWrite,
-    tag: &sval::Tag,
-    text: &str,
-) -> fmt::Result {
-    write_escape_debug(text, |text| writer.write_token_fragment(tag, text))
+    write_escape_debug(text, |text| writer.write_token_fragment(&tags::TEXT, text))
 }
 
 /**
@@ -753,10 +735,6 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
 
     fn write_text(&mut self, text: &str) -> fmt::Result {
         (**self).write_text(text)
-    }
-
-    fn write_tagged_text(&mut self, tag: &sval::Tag, text: &str) -> fmt::Result {
-        (**self).write_tagged_text(tag, text)
     }
 
     fn write_map_begin(&mut self) -> fmt::Result {

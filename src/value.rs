@@ -528,10 +528,6 @@ pub trait Value {
                 Ok(())
             }
 
-            fn tagged_text_fragment(&mut self, _: &Tag, fragment: &'sval str) -> Result {
-                self.text_fragment(fragment)
-            }
-
             fn text_fragment_computed(&mut self, _: &str) -> Result {
                 self.extracted = None;
                 self.seen_fragment = true;

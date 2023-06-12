@@ -4,7 +4,6 @@
 extern crate sval_derive;
 
 use std::fmt::{self, Display};
-use sval::{Stream, Tag};
 use sval_fmt::TokenWrite;
 
 fn assert_fmt(v: impl sval::Value + fmt::Debug) {
@@ -287,122 +286,6 @@ fn token_write() {
     assert!(writer.null);
 }
 
-struct NoEscapeWriter<W>(W);
-
-impl<W: fmt::Write> fmt::Write for NoEscapeWriter<W> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.0.write_str(s)
-    }
-}
-
-impl<W: fmt::Write> TokenWrite for NoEscapeWriter<W> {
-    fn write_text_quote(&mut self) -> fmt::Result {
-        Ok(())
-    }
-
-    fn write_tagged_text(&mut self, tag: &Tag, text: &str) -> fmt::Result {
-        self.write_token_fragment(tag, text)
-    }
-}
-
-struct CompactWriter<W>(W);
-
-impl<W: fmt::Write> fmt::Write for CompactWriter<W> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.0.write_str(s)
-    }
-}
-
-impl<W: fmt::Write> TokenWrite for CompactWriter<W> {
-    fn write_ws(&mut self, _: &str) -> fmt::Result {
-        Ok(())
-    }
-}
-
-#[test]
-fn stream_token_write_in_value() {
-    struct DefaultWriter<S>(S);
-
-    impl<'sval, S: Stream<'sval>> fmt::Write for DefaultWriter<S> {
-        fn write_str(&mut self, s: &str) -> fmt::Result {
-            self.0.text_fragment_computed(s).map_err(|_| fmt::Error)
-        }
-    }
-
-    impl<'sval, S: Stream<'sval>> TokenWrite for DefaultWriter<S> {
-        fn write_token_fragment<T: Display>(&mut self, tag: &Tag, token: T) -> fmt::Result {
-            sval::stream_tagged_display_fragments(&mut self.0, tag, token).map_err(|_| fmt::Error)
-        }
-    }
-
-    struct Template<V> {
-        pre: &'static str,
-        value: V,
-        post: &'static str,
-    }
-
-    impl<V: sval::Value> sval::Value for Template<V> {
-        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-            stream.text_begin(None)?;
-            stream.text_fragment(self.pre)?;
-            sval_fmt::stream_to_token_write(DefaultWriter(&mut *stream), &self.value)
-                .map_err(|_| sval::Error::new())?;
-            stream.text_fragment(self.post)?;
-            stream.text_end()
-        }
-    }
-
-    let template = Template {
-        pre: "before ",
-        value: MapStruct {
-            field_0: 42,
-            field_1: true,
-            field_2: "text \"in quotes\"",
-        },
-        post: " after",
-    };
-
-    sval_test::assert_tokens(&template, {
-        use sval_test::Token::*;
-
-        &[
-            TextBegin(None),
-            TextFragment("before "),
-            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "MapStruct".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "{".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_0".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::NUMBER, "42".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_1".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::ATOM, "true".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ",".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::IDENT, "field_2".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, ":".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "text ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "in quotes".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\\".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::TEXT, "\"".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::WS, " ".to_owned()),
-            TaggedTextFragmentComputed(sval_fmt::tags::PUNCT, "}".to_owned()),
-            TextFragment(" after"),
-            TextEnd,
-        ]
-    });
-}
-
 #[test]
 fn stream_token_write_compact() {
     struct Writer<W>(W);
@@ -447,8 +330,8 @@ fn stream_token_write_no_escaping() {
     }
 
     impl<W: fmt::Write> TokenWrite for Writer<W> {
-        fn write_tagged_text(&mut self, tag: &Tag, text: &str) -> fmt::Result {
-            self.write_token_fragment(tag, text)
+        fn write_text(&mut self, text: &str) -> fmt::Result {
+            self.0.write_str(text)
         }
 
         fn write_text_quote(&mut self) -> fmt::Result {

@@ -36,26 +36,6 @@ pub fn stream_display_fragments<'sval>(
     .map_err(|_| Error::new())
 }
 
-/**
-Stream a [`fmt::Display`] as text fragments into a [`Stream`] with the given [`Tag`], without calling [`Stream::text_begin`] or [`Stream::text_end`].
-
-This function can be used to stream a part of a larger value.
-*/
-pub fn stream_tagged_display_fragments<'sval>(
-    stream: &mut (impl Stream<'sval> + ?Sized),
-    tag: &Tag,
-    value: impl fmt::Display,
-) -> Result {
-    write!(
-        Writer(|fragment: &str| stream
-            .tagged_text_fragment_computed(tag, fragment)
-            .map_err(|_| fmt::Error)),
-        "{}",
-        value
-    )
-    .map_err(|_| Error::new())
-}
-
 struct Writer<F>(F);
 
 impl<F: FnMut(&str) -> fmt::Result> fmt::Write for Writer<F> {
@@ -118,7 +98,7 @@ mod tests {
     use super::*;
 
     struct TextLike(&'static str);
-    struct TaggedTextLike(&'static str);
+    struct TextLikeComputed(&'static str);
 
     impl Value for TextLike {
         fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
@@ -126,10 +106,10 @@ mod tests {
         }
     }
 
-    impl Value for TaggedTextLike {
+    impl Value for TextLikeComputed {
         fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
             stream.text_begin(Some(self.0.len()))?;
-            stream.tagged_text_fragment(&crate::tags::NUMBER, self.0)?;
+            stream.text_fragment_computed(self.0)?;
             stream.text_end()
         }
     }
@@ -138,12 +118,12 @@ mod tests {
     fn string_cast() {
         assert_eq!(Some("a string"), "a string".to_text());
         assert_eq!(Some("a string"), TextLike("a string").to_text());
-        assert_eq!(Some("123"), TaggedTextLike("123").to_text());
+        assert_eq!(None, TextLikeComputed("123").to_text());
     }
 
     #[test]
     fn string_tag() {
-        // Tags on text fragments aren't considered tags on the value
-        assert_eq!(None, TaggedTextLike("123").tag());
+        assert_eq!(None, TextLike("123").tag());
+        assert_eq!(None, TextLikeComputed("123").tag());
     }
 }

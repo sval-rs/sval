@@ -97,14 +97,6 @@ pub enum Token<'a> {
     */
     TextFragmentComputed(String),
     /**
-    [`sval::Stream::tagged_text_fragment`].
-     */
-    TaggedTextFragment(sval::Tag, &'a str),
-    /**
-    [`sval::Stream::tagged_text_fragment_computed`].
-     */
-    TaggedTextFragmentComputed(sval::Tag, String),
-    /**
     [`sval::Stream::text_end`].
     */
     TextEnd,
@@ -335,19 +327,6 @@ impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
 
     fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
         self.push(Token::TextFragment(fragment));
-        Ok(())
-    }
-
-    fn tagged_text_fragment(&mut self, tag: &sval::Tag, fragment: &'sval str) -> sval::Result {
-        self.push(Token::TaggedTextFragment(tag.clone(), fragment));
-        Ok(())
-    }
-
-    fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        self.push(Token::TaggedTextFragmentComputed(
-            tag.clone(),
-            fragment.to_owned(),
-        ));
         Ok(())
     }
 

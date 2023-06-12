@@ -15,7 +15,7 @@ pub trait Stream<'sval> {
     Recurse into a nested value, borrowed for some arbitrarily short lifetime.
     */
     fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
-        v.stream(self.computed())
+        v.stream(Computed::new_borrowed(self))
     }
 
     /**
@@ -44,22 +44,6 @@ pub trait Stream<'sval> {
     Stream a fragment of UTF8 text, borrowed for some arbitrarily short lifetime.
     */
     fn text_fragment_computed(&mut self, fragment: &str) -> Result;
-
-    /**
-    Stream a fragment of UTF8 text with a tag.
-    */
-    fn tagged_text_fragment(&mut self, tag: &Tag, fragment: &'sval str) -> Result {
-        self.tagged_text_fragment_computed(tag, fragment)
-    }
-
-    /**
-    Stream a fragment of UTF8 text with a tag, borrowed for some arbitrarily short lifetime.
-    */
-    fn tagged_text_fragment_computed(&mut self, tag: &Tag, fragment: &str) -> Result {
-        let _ = tag;
-
-        self.text_fragment_computed(fragment)
-    }
 
     /**
     Complete a UTF8 text string.
@@ -446,16 +430,6 @@ pub trait Stream<'sval> {
         self.seq_end()?;
         self.tagged_end(tag, label, index)
     }
-
-    /**
-    Adapt this stream to accept values for any lifetime.
-
-    This won't automatically require buffering data that doesn't satisfy this stream's
-    `'sval` lifetime.
-    */
-    fn computed(&mut self) -> &mut Computed<Self> {
-        Computed::new_borrowed(self)
-    }
 }
 
 macro_rules! impl_stream_forward {
@@ -559,16 +533,6 @@ macro_rules! impl_stream_forward {
             fn text_fragment_computed(&mut self, fragment: &str) -> Result {
                 let $bind = self;
                 ($($forward)*).text_fragment_computed(fragment)
-            }
-
-            fn tagged_text_fragment(&mut self, tag: &Tag, fragment: &'sval str) -> Result {
-                let $bind = self;
-                ($($forward)*).tagged_text_fragment(tag, fragment)
-            }
-
-            fn tagged_text_fragment_computed(&mut self, tag: &Tag, fragment: &str) -> Result {
-                let $bind = self;
-                ($($forward)*).tagged_text_fragment_computed(tag, fragment)
             }
 
             fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
@@ -744,10 +708,6 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.text_fragment_computed(fragment)
     }
 
-    fn tagged_text_fragment(&mut self, tag: &Tag, fragment: &'b str) -> Result {
-        self.0.tagged_text_fragment_computed(tag, fragment)
-    }
-
     fn binary_fragment(&mut self, fragment: &'b [u8]) -> Result {
         self.0.binary_fragment_computed(fragment)
     }
@@ -814,10 +774,6 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
 
     fn text_fragment_computed(&mut self, fragment: &str) -> Result {
         self.0.text_fragment_computed(fragment)
-    }
-
-    fn tagged_text_fragment_computed(&mut self, tag: &Tag, fragment: &str) -> Result {
-        self.0.tagged_text_fragment_computed(tag, fragment)
     }
 
     fn text_end(&mut self) -> Result {

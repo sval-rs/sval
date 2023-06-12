@@ -166,12 +166,6 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         }
     }
 
-    fn tagged_text_fragment_computed(&mut self, tag: &sval::Tag, fragment: &str) -> sval::Result {
-        self.out
-            .write_tagged_text(tag, fragment)
-            .map_err(|_| sval::Error::new())
-    }
-
     fn text_end(&mut self) -> sval::Result {
         if self.is_number {
             Ok(())
