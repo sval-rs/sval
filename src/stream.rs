@@ -690,7 +690,7 @@ A `Stream` that accepts values for any lifetime.
 This is the result of calling [`Stream::computed`].
 */
 #[repr(transparent)]
-pub struct Computed<S: ?Sized>(S);
+struct Computed<S: ?Sized>(S);
 
 impl<S: ?Sized> Computed<S> {
     fn new_borrowed<'a>(stream: &'a mut S) -> &'a mut Computed<S> {
