@@ -500,11 +500,11 @@ macro_rules! impl_stream {
             }
 
             fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
-                self.erase_stream().0.dispatch_text_fragment(&fragment)
+                self.erase_stream().0.dispatch_text_fragment(fragment)
             }
 
             fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-                self.erase_stream().0.dispatch_text_fragment_computed(&fragment)
+                self.erase_stream().0.dispatch_text_fragment_computed(fragment)
             }
 
             fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
@@ -516,11 +516,11 @@ macro_rules! impl_stream {
             }
 
             fn binary_fragment(&mut self, fragment: &'sval [u8]) -> sval::Result {
-                self.erase_stream().0.dispatch_binary_fragment(&fragment)
+                self.erase_stream().0.dispatch_binary_fragment(fragment)
             }
 
             fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
-                self.erase_stream().0.dispatch_binary_fragment_computed(fragment.as_ref())
+                self.erase_stream().0.dispatch_binary_fragment_computed(fragment)
             }
 
             fn map_begin(&mut self, num_entries_hint: Option<usize>) -> sval::Result {

@@ -14,8 +14,14 @@ path = "../../"
 path = "../"
 features = ["std"]
 
+[dependencies.sval_dynamic]
+path = "../../dynamic"
+
 [dependencies.sval_derive]
 path = "../../derive"
 
 [dependencies.sval_buffer]
 path = "../../buffer"
+
+[dependencies.sval_test]
+path = "../../test"

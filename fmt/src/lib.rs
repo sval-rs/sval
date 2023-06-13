@@ -6,7 +6,7 @@ that formats it using the same output that you'd get if you
 derived [`core::fmt::Debug`].
 */
 
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
 
 #[cfg(feature = "alloc")]
@@ -18,7 +18,10 @@ mod to_fmt;
 mod to_value;
 mod to_write;
 
-pub use self::{to_fmt::*, to_value::*, to_write::*, writer::*};
+pub mod tags;
+mod token_write;
+
+pub use self::{to_fmt::*, to_value::*, to_write::*, token_write::*};
 
 #[cfg(feature = "alloc")]
 mod to_string;

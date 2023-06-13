@@ -4,27 +4,44 @@ use crate::{
 };
 
 /**
-Stream a [`fmt::Display`] into a [`Stream`].
+Stream a [`fmt::Display`] as text into a [`Stream`].
+
+This function can be used to stream a value as text using its `Display` implementation.
 */
 pub fn stream_display<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: impl fmt::Display,
 ) -> Result {
-    struct Writer<S>(S);
-
-    impl<'a, S: Stream<'a>> fmt::Write for Writer<S> {
-        fn write_str(&mut self, s: &str) -> fmt::Result {
-            self.0.text_fragment_computed(s).map_err(|_| fmt::Error)?;
-
-            Ok(())
-        }
-    }
-
     stream.text_begin(None)?;
-
-    write!(Writer(&mut *stream), "{}", value).map_err(|_| Error::new())?;
-
+    stream_display_fragments(stream, value)?;
     stream.text_end()
+}
+
+/**
+Stream a [`fmt::Display`] as text fragments into a [`Stream`], without calling [`Stream::text_begin`] or [`Stream::text_end`].
+
+This function can be used to stream a part of a larger value.
+*/
+pub fn stream_display_fragments<'sval>(
+    stream: &mut (impl Stream<'sval> + ?Sized),
+    value: impl fmt::Display,
+) -> Result {
+    write!(
+        Writer(|fragment: &str| stream
+            .text_fragment_computed(fragment)
+            .map_err(|_| fmt::Error)),
+        "{}",
+        value
+    )
+    .map_err(|_| Error::new())
+}
+
+struct Writer<F>(F);
+
+impl<F: FnMut(&str) -> fmt::Result> fmt::Write for Writer<F> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        (self.0)(s).map_err(|_| fmt::Error)
+    }
 }
 
 impl Value for char {
@@ -80,8 +97,33 @@ mod alloc_support {
 mod tests {
     use super::*;
 
+    struct TextLike(&'static str);
+    struct TextLikeComputed(&'static str);
+
+    impl Value for TextLike {
+        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+            self.0.stream(stream)
+        }
+    }
+
+    impl Value for TextLikeComputed {
+        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+            stream.text_begin(Some(self.0.len()))?;
+            stream.text_fragment_computed(self.0)?;
+            stream.text_end()
+        }
+    }
+
     #[test]
     fn string_cast() {
         assert_eq!(Some("a string"), "a string".to_text());
+        assert_eq!(Some("a string"), TextLike("a string").to_text());
+        assert_eq!(None, TextLikeComputed("123").to_text());
+    }
+
+    #[test]
+    fn string_tag() {
+        assert_eq!(None, TextLike("123").tag());
+        assert_eq!(None, TextLikeComputed("123").tag());
     }
 }

@@ -15,7 +15,7 @@ pub trait Stream<'sval> {
     Recurse into a nested value, borrowed for some arbitrarily short lifetime.
     */
     fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
-        stream_computed(self, v)
+        v.stream(Computed::new_borrowed(self))
     }
 
     /**
@@ -684,246 +684,247 @@ mod alloc_support {
     impl_stream_forward!({ impl<'sval, 'a, S: ?Sized> Stream<'sval> for Box<S> where S: Stream<'sval> } => x => { **x });
 }
 
-pub(crate) fn stream_computed<'a, 'b>(
-    stream: &mut (impl Stream<'a> + ?Sized),
-    value: &'b (impl Value + ?Sized),
-) -> Result {
-    struct Computed<S>(S);
+/**
+A `Stream` that accepts values for any lifetime.
 
-    impl<'a, 'b, 'c, S: Stream<'a>> Stream<'b> for Computed<S> {
-        fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
-            self.0.value_computed(v)
-        }
+This is the result of calling [`Stream::computed`].
+*/
+#[repr(transparent)]
+struct Computed<S: ?Sized>(S);
 
-        fn text_fragment(&mut self, fragment: &'b str) -> Result {
-            self.0.text_fragment_computed(fragment)
-        }
+impl<S: ?Sized> Computed<S> {
+    fn new_borrowed<'a>(stream: &'a mut S) -> &'a mut Computed<S> {
+        // SAFETY: `&'a mut S` and `&'a mut Computed<S>` have the same ABI
+        unsafe { &mut *(stream as *mut _ as *mut Computed<S>) }
+    }
+}
 
-        fn binary_fragment(&mut self, fragment: &'b [u8]) -> Result {
-            self.0.binary_fragment_computed(fragment)
-        }
-
-        fn null(&mut self) -> Result {
-            self.0.null()
-        }
-
-        fn u8(&mut self, v: u8) -> Result {
-            self.0.u8(v)
-        }
-
-        fn u16(&mut self, v: u16) -> Result {
-            self.0.u16(v)
-        }
-
-        fn u32(&mut self, v: u32) -> Result {
-            self.0.u32(v)
-        }
-
-        fn u64(&mut self, v: u64) -> Result {
-            self.0.u64(v)
-        }
-
-        fn u128(&mut self, v: u128) -> Result {
-            self.0.u128(v)
-        }
-
-        fn i8(&mut self, v: i8) -> Result {
-            self.0.i8(v)
-        }
-
-        fn i16(&mut self, v: i16) -> Result {
-            self.0.i16(v)
-        }
-
-        fn i32(&mut self, v: i32) -> Result {
-            self.0.i32(v)
-        }
-
-        fn i64(&mut self, v: i64) -> Result {
-            self.0.i64(v)
-        }
-
-        fn i128(&mut self, v: i128) -> Result {
-            self.0.i128(v)
-        }
-
-        fn f32(&mut self, v: f32) -> Result {
-            self.0.f32(v)
-        }
-
-        fn f64(&mut self, v: f64) -> Result {
-            self.0.f64(v)
-        }
-
-        fn bool(&mut self, v: bool) -> Result {
-            self.0.bool(v)
-        }
-
-        fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-            self.0.text_begin(num_bytes_hint)
-        }
-
-        fn text_fragment_computed(&mut self, fragment: &str) -> Result {
-            self.0.text_fragment_computed(fragment)
-        }
-
-        fn text_end(&mut self) -> Result {
-            self.0.text_end()
-        }
-
-        fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-            self.0.binary_begin(num_bytes_hint)
-        }
-
-        fn binary_fragment_computed(&mut self, fragment: &[u8]) -> Result {
-            self.0.binary_fragment_computed(fragment)
-        }
-
-        fn binary_end(&mut self) -> Result {
-            self.0.binary_end()
-        }
-
-        fn map_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
-            self.0.map_begin(num_entries_hint)
-        }
-
-        fn map_key_begin(&mut self) -> Result {
-            self.0.map_key_begin()
-        }
-
-        fn map_key_end(&mut self) -> Result {
-            self.0.map_key_end()
-        }
-
-        fn map_value_begin(&mut self) -> Result {
-            self.0.map_value_begin()
-        }
-
-        fn map_value_end(&mut self) -> Result {
-            self.0.map_value_end()
-        }
-
-        fn map_end(&mut self) -> Result {
-            self.0.map_end()
-        }
-
-        fn seq_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
-            self.0.seq_begin(num_entries_hint)
-        }
-
-        fn seq_value_begin(&mut self) -> Result {
-            self.0.seq_value_begin()
-        }
-
-        fn seq_value_end(&mut self) -> Result {
-            self.0.seq_value_end()
-        }
-
-        fn seq_end(&mut self) -> Result {
-            self.0.seq_end()
-        }
-
-        fn tagged_begin(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-        ) -> Result {
-            self.0.tagged_begin(tag, label, index)
-        }
-
-        fn tagged_end(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-        ) -> Result {
-            self.0.tagged_end(tag, label, index)
-        }
-
-        fn tag(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-        ) -> Result {
-            self.0.tag(tag, label, index)
-        }
-
-        fn record_begin(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-            num_entries: Option<usize>,
-        ) -> Result {
-            self.0.record_begin(tag, label, index, num_entries)
-        }
-
-        fn record_value_begin(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
-            self.0.record_value_begin(tag, label)
-        }
-
-        fn record_value_end(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
-            self.0.record_value_end(tag, label)
-        }
-
-        fn record_end(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-        ) -> Result {
-            self.0.record_end(tag, label, index)
-        }
-
-        fn tuple_begin(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-            num_entries: Option<usize>,
-        ) -> Result {
-            self.0.tuple_begin(tag, label, index, num_entries)
-        }
-
-        fn tuple_value_begin(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
-            self.0.tuple_value_begin(tag, index)
-        }
-
-        fn tuple_value_end(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
-            self.0.tuple_value_end(tag, index)
-        }
-
-        fn tuple_end(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-        ) -> Result {
-            self.0.tuple_end(tag, label, index)
-        }
-
-        fn enum_begin(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-        ) -> Result {
-            self.0.enum_begin(tag, label, index)
-        }
-
-        fn enum_end(
-            &mut self,
-            tag: Option<&Tag>,
-            label: Option<&Label>,
-            index: Option<&Index>,
-        ) -> Result {
-            self.0.enum_end(tag, label, index)
-        }
+impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
+    fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
+        self.0.value_computed(v)
     }
 
-    value.stream(&mut Computed(stream))
+    fn text_fragment(&mut self, fragment: &'b str) -> Result {
+        self.0.text_fragment_computed(fragment)
+    }
+
+    fn binary_fragment(&mut self, fragment: &'b [u8]) -> Result {
+        self.0.binary_fragment_computed(fragment)
+    }
+
+    fn null(&mut self) -> Result {
+        self.0.null()
+    }
+
+    fn u8(&mut self, v: u8) -> Result {
+        self.0.u8(v)
+    }
+
+    fn u16(&mut self, v: u16) -> Result {
+        self.0.u16(v)
+    }
+
+    fn u32(&mut self, v: u32) -> Result {
+        self.0.u32(v)
+    }
+
+    fn u64(&mut self, v: u64) -> Result {
+        self.0.u64(v)
+    }
+
+    fn u128(&mut self, v: u128) -> Result {
+        self.0.u128(v)
+    }
+
+    fn i8(&mut self, v: i8) -> Result {
+        self.0.i8(v)
+    }
+
+    fn i16(&mut self, v: i16) -> Result {
+        self.0.i16(v)
+    }
+
+    fn i32(&mut self, v: i32) -> Result {
+        self.0.i32(v)
+    }
+
+    fn i64(&mut self, v: i64) -> Result {
+        self.0.i64(v)
+    }
+
+    fn i128(&mut self, v: i128) -> Result {
+        self.0.i128(v)
+    }
+
+    fn f32(&mut self, v: f32) -> Result {
+        self.0.f32(v)
+    }
+
+    fn f64(&mut self, v: f64) -> Result {
+        self.0.f64(v)
+    }
+
+    fn bool(&mut self, v: bool) -> Result {
+        self.0.bool(v)
+    }
+
+    fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
+        self.0.text_begin(num_bytes_hint)
+    }
+
+    fn text_fragment_computed(&mut self, fragment: &str) -> Result {
+        self.0.text_fragment_computed(fragment)
+    }
+
+    fn text_end(&mut self) -> Result {
+        self.0.text_end()
+    }
+
+    fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
+        self.0.binary_begin(num_bytes_hint)
+    }
+
+    fn binary_fragment_computed(&mut self, fragment: &[u8]) -> Result {
+        self.0.binary_fragment_computed(fragment)
+    }
+
+    fn binary_end(&mut self) -> Result {
+        self.0.binary_end()
+    }
+
+    fn map_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
+        self.0.map_begin(num_entries_hint)
+    }
+
+    fn map_key_begin(&mut self) -> Result {
+        self.0.map_key_begin()
+    }
+
+    fn map_key_end(&mut self) -> Result {
+        self.0.map_key_end()
+    }
+
+    fn map_value_begin(&mut self) -> Result {
+        self.0.map_value_begin()
+    }
+
+    fn map_value_end(&mut self) -> Result {
+        self.0.map_value_end()
+    }
+
+    fn map_end(&mut self) -> Result {
+        self.0.map_end()
+    }
+
+    fn seq_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
+        self.0.seq_begin(num_entries_hint)
+    }
+
+    fn seq_value_begin(&mut self) -> Result {
+        self.0.seq_value_begin()
+    }
+
+    fn seq_value_end(&mut self) -> Result {
+        self.0.seq_value_end()
+    }
+
+    fn seq_end(&mut self) -> Result {
+        self.0.seq_end()
+    }
+
+    fn tagged_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.tagged_begin(tag, label, index)
+    }
+
+    fn tagged_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.tagged_end(tag, label, index)
+    }
+
+    fn tag(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
+        self.0.tag(tag, label, index)
+    }
+
+    fn record_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+        num_entries: Option<usize>,
+    ) -> Result {
+        self.0.record_begin(tag, label, index, num_entries)
+    }
+
+    fn record_value_begin(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
+        self.0.record_value_begin(tag, label)
+    }
+
+    fn record_value_end(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
+        self.0.record_value_end(tag, label)
+    }
+
+    fn record_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.record_end(tag, label, index)
+    }
+
+    fn tuple_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+        num_entries: Option<usize>,
+    ) -> Result {
+        self.0.tuple_begin(tag, label, index, num_entries)
+    }
+
+    fn tuple_value_begin(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
+        self.0.tuple_value_begin(tag, index)
+    }
+
+    fn tuple_value_end(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
+        self.0.tuple_value_end(tag, index)
+    }
+
+    fn tuple_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.tuple_end(tag, label, index)
+    }
+
+    fn enum_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.enum_begin(tag, label, index)
+    }
+
+    fn enum_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.enum_end(tag, label, index)
+    }
 }
 
 #[cfg(test)]

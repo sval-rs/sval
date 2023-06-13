@@ -5,6 +5,7 @@ Test utilities for `sval`.
 /**
 Assert that a value streams to exactly the sequence of tokens provided.
 */
+#[track_caller]
 pub fn assert_tokens<'sval>(value: &'sval (impl sval::Value + ?Sized), tokens: &[Token<'sval>]) {
     let mut stream = TokenBuf(Vec::new());
 

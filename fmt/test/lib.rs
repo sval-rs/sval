@@ -3,7 +3,8 @@
 #[macro_use]
 extern crate sval_derive;
 
-use std::fmt;
+use std::fmt::{self, Display};
+use sval_fmt::TokenWrite;
 
 fn assert_fmt(v: impl sval::Value + fmt::Debug) {
     let expected = format!("{:?}", v);
@@ -56,6 +57,8 @@ fn debug_retains_flags() {
 #[test]
 fn debug_primitive() {
     assert_fmt(42i32);
+    assert_fmt(true);
+    assert_fmt("a string");
 }
 
 #[test]
@@ -240,23 +243,23 @@ fn token_write() {
         }
     }
 
-    impl sval_fmt::TokenWrite for Writer {
-        fn write_null(&mut self) -> core::fmt::Result {
+    impl TokenWrite for Writer {
+        fn write_null(&mut self) -> fmt::Result {
             self.null = true;
             Ok(())
         }
 
-        fn write_text(&mut self, _: &str) -> core::fmt::Result {
+        fn write_text(&mut self, _: &str) -> fmt::Result {
             self.text = true;
             Ok(())
         }
 
-        fn write_number<N: fmt::Display>(&mut self, _: N) -> fmt::Result {
+        fn write_number<N: Display>(&mut self, _: N) -> fmt::Result {
             self.number = true;
             Ok(())
         }
 
-        fn write_bool(&mut self, _: bool) -> core::fmt::Result {
+        fn write_bool(&mut self, _: bool) -> fmt::Result {
             self.bool = true;
             Ok(())
         }
@@ -281,6 +284,239 @@ fn token_write() {
     let mut writer = Writer::default();
     sval_fmt::stream_to_token_write(&mut writer, ()).unwrap();
     assert!(writer.null);
+}
+
+#[test]
+fn stream_token_write_compact() {
+    struct Writer<W>(W);
+
+    impl<W: fmt::Write> fmt::Write for Writer<W> {
+        fn write_str(&mut self, s: &str) -> fmt::Result {
+            self.0.write_str(s)
+        }
+    }
+
+    impl<W: fmt::Write> TokenWrite for Writer<W> {
+        fn write_ws(&mut self, _: &str) -> fmt::Result {
+            Ok(())
+        }
+    }
+
+    let mut buf = String::new();
+    sval_fmt::stream_to_token_write(
+        Writer(&mut buf),
+        MapStruct {
+            field_0: 42,
+            field_1: true,
+            field_2: "text \"in quotes\"",
+        },
+    )
+    .unwrap();
+
+    assert_eq!(
+        r#"MapStruct{field_0:42,field_1:true,field_2:"text \"in quotes\""}"#,
+        buf
+    );
+}
+
+#[test]
+fn stream_token_write_no_escaping() {
+    struct Writer<W>(W);
+
+    impl<W: fmt::Write> fmt::Write for Writer<W> {
+        fn write_str(&mut self, s: &str) -> fmt::Result {
+            self.0.write_str(s)
+        }
+    }
+
+    impl<W: fmt::Write> TokenWrite for Writer<W> {
+        fn write_text(&mut self, text: &str) -> fmt::Result {
+            self.0.write_str(text)
+        }
+
+        fn write_text_quote(&mut self) -> fmt::Result {
+            Ok(())
+        }
+    }
+
+    let mut buf = String::new();
+    sval_fmt::stream_to_token_write(
+        Writer(&mut buf),
+        MapStruct {
+            field_0: 42,
+            field_1: true,
+            field_2: "text \"in quotes\"",
+        },
+    )
+    .unwrap();
+
+    assert_eq!(
+        r#"MapStruct { field_0: 42, field_1: true, field_2: text "in quotes" }"#,
+        buf
+    );
+}
+
+#[test]
+fn stream_token_write_indented() {
+    struct Writer<W> {
+        inner: W,
+        indent: usize,
+    }
+
+    impl<W: fmt::Write> Writer<W> {
+        fn write_indent(&mut self) -> fmt::Result {
+            for _ in 0..self.indent {
+                self.write_ws(" ")?;
+            }
+
+            Ok(())
+        }
+    }
+
+    impl<W: fmt::Write> fmt::Write for Writer<W> {
+        fn write_str(&mut self, s: &str) -> fmt::Result {
+            self.inner.write_str(s)
+        }
+    }
+
+    impl<W: fmt::Write> TokenWrite for Writer<W> {
+        fn write_map_begin(&mut self) -> fmt::Result {
+            self.indent += 4;
+
+            self.write_punct("{")
+        }
+
+        fn write_map_key_begin(&mut self, is_first: bool) -> fmt::Result {
+            if !is_first {
+                self.write_punct(",")?;
+            }
+
+            self.write_ws("\n")?;
+            self.write_indent()
+        }
+
+        fn write_map_end(&mut self, is_empty: bool) -> fmt::Result {
+            self.indent -= 4;
+
+            if !is_empty {
+                self.write_punct(",")?;
+                self.write_ws("\n")?;
+                self.write_indent()?;
+            }
+
+            self.write_punct("}")
+        }
+
+        fn write_seq_begin(&mut self) -> fmt::Result {
+            self.write_punct("[")?;
+
+            self.indent += 4;
+
+            Ok(())
+        }
+
+        fn write_seq_value_begin(&mut self, is_first: bool) -> fmt::Result {
+            if !is_first {
+                self.write_punct(",")?;
+            }
+
+            self.write_ws("\n")?;
+            self.write_indent()
+        }
+
+        fn write_seq_end(&mut self, is_empty: bool) -> fmt::Result {
+            self.indent -= 4;
+
+            if !is_empty {
+                self.write_punct(",")?;
+                self.write_ws("\n")?;
+                self.write_indent()?;
+            }
+
+            self.write_punct("]")
+        }
+
+        fn write_record_begin(&mut self) -> fmt::Result {
+            self.indent += 4;
+
+            self.write_punct("{")
+        }
+
+        fn write_record_value_begin(&mut self, field: &str, is_first: bool) -> fmt::Result {
+            if !is_first {
+                self.write_punct(",")?;
+            }
+
+            self.write_ws("\n")?;
+            self.write_indent()?;
+
+            self.write_ident(field)?;
+            self.write_punct(":")?;
+            self.write_ws(" ")
+        }
+
+        fn write_record_end(&mut self, is_empty: bool) -> fmt::Result {
+            self.indent -= 4;
+
+            if !is_empty {
+                self.write_punct(",")?;
+                self.write_ws("\n")?;
+                self.write_indent()?;
+            }
+
+            self.write_punct("}")
+        }
+
+        fn write_tuple_begin(&mut self) -> fmt::Result {
+            self.indent += 4;
+
+            self.write_punct("(")
+        }
+
+        fn write_tuple_value_begin(&mut self, is_first: bool) -> fmt::Result {
+            if !is_first {
+                self.write_punct(",")?;
+            }
+
+            self.write_ws("\n")?;
+            self.write_indent()
+        }
+
+        fn write_tuple_end(&mut self, is_empty: bool) -> fmt::Result {
+            self.indent -= 4;
+
+            if !is_empty {
+                self.write_punct(",")?;
+                self.write_ws("\n")?;
+                self.write_indent()?;
+            }
+
+            self.write_punct(")")
+        }
+    }
+
+    let mut buf = String::new();
+    sval_fmt::stream_to_token_write(
+        Writer {
+            inner: &mut buf,
+            indent: 0,
+        },
+        MapStruct {
+            field_0: 42,
+            field_1: true,
+            field_2: "text \"in quotes\"",
+        },
+    )
+    .unwrap();
+
+    assert_eq!(
+        r#"MapStruct {
+    field_0: 42,
+    field_1: true,
+    field_2: "text \"in quotes\"",
+}"#,
+        buf
+    );
 }
 
 #[test]

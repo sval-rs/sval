@@ -13,14 +13,18 @@ In no-std environments, this buffer only supports a single
 borrowed text fragment. Other methods will fail.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TextBuf<'sval>(FragmentBuf<'sval, str>);
+pub struct TextBuf<'sval> {
+    buf: FragmentBuf<'sval, str>,
+}
 
 impl<'sval> TextBuf<'sval> {
     /**
     Create a new empty text buffer.
     */
     pub fn new() -> Self {
-        TextBuf(FragmentBuf::new(""))
+        TextBuf {
+            buf: FragmentBuf::new(""),
+        }
     }
 
     /**
@@ -122,7 +126,7 @@ impl<'sval> TextBuf<'sval> {
     Push a borrowed text fragment onto the buffer.
     */
     pub fn push_fragment(&mut self, fragment: &'sval str) -> Result<(), Error> {
-        self.0.push(fragment)
+        self.buf.push(fragment)
     }
 
     /**
@@ -132,26 +136,28 @@ impl<'sval> TextBuf<'sval> {
     buffer the fragment. In no-std environments this method will fail.
     */
     pub fn push_fragment_computed(&mut self, fragment: &str) -> Result<(), Error> {
-        self.0.push_computed(fragment)
+        self.buf.push_computed(fragment)
     }
 
     /**
     Try get the contents of the buffer as a string borrowed for the `'sval` lifetime.
     */
     pub fn as_borrowed_str(&self) -> Option<&'sval str> {
-        self.0.as_borrowed_inner()
+        self.buf.as_borrowed_inner()
     }
 
     /**
     Get the contents of the buffer as a string.
     */
     pub fn as_str(&self) -> &str {
-        self.0.as_inner()
+        self.buf.as_inner()
     }
 
     #[cfg(feature = "alloc")]
     pub(crate) fn into_owned_in_place(&mut self) -> &mut TextBuf<'static> {
-        crate::assert_static(self.0.into_owned_in_place());
+        let TextBuf { ref mut buf } = self;
+
+        crate::assert_static(buf.into_owned_in_place());
 
         // SAFETY: `self` no longer contains any data borrowed for `'sval`
         unsafe { mem::transmute::<&mut TextBuf<'sval>, &mut TextBuf<'static>>(self) }
@@ -166,7 +172,9 @@ impl<'sval> Default for TextBuf<'sval> {
 
 impl<'sval> From<&'sval str> for TextBuf<'sval> {
     fn from(fragment: &'sval str) -> Self {
-        TextBuf(FragmentBuf::new(fragment))
+        TextBuf {
+            buf: FragmentBuf::new(fragment),
+        }
     }
 }
 
@@ -186,7 +194,13 @@ impl<'sval> sval_ref::ValueRef<'sval> for TextBuf<'sval> {
     fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
         match self.as_borrowed_str() {
             Some(v) => stream.value(v),
-            None => stream.value_computed(self.as_str()),
+            None => {
+                let v = self.as_str();
+
+                stream.text_begin(Some(v.len()))?;
+                stream.text_fragment_computed(v)?;
+                stream.text_end()
+            }
         }
     }
 }
@@ -198,14 +212,18 @@ In no-std environments, this buffer only supports a single
 borrowed binary fragment. Other methods will fail.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BinaryBuf<'sval>(FragmentBuf<'sval, [u8]>);
+pub struct BinaryBuf<'sval> {
+    buf: FragmentBuf<'sval, [u8]>,
+}
 
 impl<'sval> BinaryBuf<'sval> {
     /**
     Create a new empty binary buffer.
     */
     pub fn new() -> Self {
-        BinaryBuf(FragmentBuf::new(&[]))
+        BinaryBuf {
+            buf: FragmentBuf::new(&[]),
+        }
     }
 
     /**
@@ -271,6 +289,10 @@ impl<'sval> BinaryBuf<'sval> {
                 self.fail(Error::unsupported("binary", "boolean"))
             }
 
+            fn u8(&mut self, value: u8) -> sval::Result {
+                self.try_catch(|buf| buf.push_fragment_computed(&[value]))
+            }
+
             fn i64(&mut self, _: i64) -> sval::Result {
                 self.fail(Error::unsupported("binary", "integer"))
             }
@@ -279,20 +301,24 @@ impl<'sval> BinaryBuf<'sval> {
                 self.fail(Error::unsupported("binary", "floating point"))
             }
 
+            fn map_begin(&mut self, _: Option<usize>) -> sval::Result {
+                self.fail(Error::unsupported("binary", "map"))
+            }
+
             fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
 
             fn seq_value_begin(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
 
             fn seq_value_end(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
 
             fn seq_end(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "sequence"))
+                Ok(())
             }
         }
 
@@ -319,7 +345,7 @@ impl<'sval> BinaryBuf<'sval> {
     Push a borrowed binary fragment onto the buffer.
     */
     pub fn push_fragment(&mut self, fragment: &'sval [u8]) -> Result<(), Error> {
-        self.0.push(fragment)
+        self.buf.push(fragment)
     }
 
     /**
@@ -329,26 +355,28 @@ impl<'sval> BinaryBuf<'sval> {
     buffer the fragment. In no-std environments this method will fail.
     */
     pub fn push_fragment_computed(&mut self, fragment: &[u8]) -> Result<(), Error> {
-        self.0.push_computed(fragment)
+        self.buf.push_computed(fragment)
     }
 
     /**
     Try get the contents of the buffer as a slice borrowed for the `'sval` lifetime.
     */
     pub fn as_borrowed_slice(&self) -> Option<&'sval [u8]> {
-        self.0.as_borrowed_inner()
+        self.buf.as_borrowed_inner()
     }
 
     /**
     Get the contents of the buffer as a slice.
     */
     pub fn as_slice(&self) -> &[u8] {
-        self.0.as_inner()
+        self.buf.as_inner()
     }
 
     #[cfg(feature = "alloc")]
     pub(crate) fn into_owned_in_place(&mut self) -> &mut BinaryBuf<'static> {
-        crate::assert_static(self.0.into_owned_in_place());
+        let BinaryBuf { ref mut buf } = self;
+
+        crate::assert_static(buf.into_owned_in_place());
 
         // SAFETY: `self` no longer contains any data borrowed for `'sval`
         unsafe { mem::transmute::<&mut BinaryBuf<'sval>, &mut BinaryBuf<'static>>(self) }
@@ -363,13 +391,17 @@ impl<'sval> Default for BinaryBuf<'sval> {
 
 impl<'sval> From<&'sval [u8]> for BinaryBuf<'sval> {
     fn from(fragment: &'sval [u8]) -> Self {
-        BinaryBuf(FragmentBuf::new(fragment))
+        BinaryBuf {
+            buf: FragmentBuf::new(fragment),
+        }
     }
 }
 
 impl<'sval, const N: usize> From<&'sval [u8; N]> for BinaryBuf<'sval> {
     fn from(fragment: &'sval [u8; N]) -> Self {
-        BinaryBuf(FragmentBuf::new(fragment))
+        BinaryBuf {
+            buf: FragmentBuf::new(fragment),
+        }
     }
 }
 
@@ -582,6 +614,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sval_ref::ValueRef;
 
     #[test]
     fn text_buf_empty() {
@@ -686,6 +719,30 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_text_buf() {
+        let buf = TextBuf::collect("a string").unwrap();
+
+        assert_eq!(Some("a string"), buf.as_borrowed_str());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_binary_buf() {
+        let buf = BinaryBuf::collect(sval::BinarySlice::new(b"a string")).unwrap();
+
+        assert_eq!(Some(b"a string" as &[u8]), buf.as_borrowed_slice());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_binary_buf_seq() {
+        let buf = BinaryBuf::collect(b"a string").unwrap();
+
+        assert_eq!(b"a string" as &[u8], buf.as_slice());
+    }
+
+    #[test]
     fn stream_text_buf() {
         let mut buf = TextBuf::new();
         buf.push_fragment("abc").unwrap();
@@ -698,14 +755,89 @@ mod tests {
     }
 
     #[test]
-    fn stream_binary_buf() {
+    #[cfg(feature = "alloc")]
+    fn stream_ref_text_buf_computed() {
+        let mut buf = TextBuf::new();
+        buf.push_fragment("123").unwrap();
+        buf.push_fragment("()").unwrap();
+        buf.push_fragment("data").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
+            use sval_test::Token::*;
+
+            &[
+                TextBegin(Some(9)),
+                TextFragmentComputed("123()data".to_owned()),
+                TextEnd,
+            ]
+        });
+    }
+
+    #[test]
+    fn stream_ref_text_buf_borrowed() {
+        let mut buf = TextBuf::new();
+        buf.push_fragment("123").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
+            use sval_test::Token::*;
+
+            &[TextBegin(Some(3)), TextFragment("123"), TextEnd]
+        });
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn stream_binary_buf_computed() {
         let mut buf = BinaryBuf::new();
         buf.push_fragment(b"abc").unwrap();
+        buf.push_fragment_computed(b"def").unwrap();
 
         sval_test::assert_tokens(&buf, {
             use sval_test::Token::*;
 
+            &[BinaryBegin(Some(6)), BinaryFragment(b"abcdef"), BinaryEnd]
+        });
+    }
+
+    #[test]
+    fn stream_ref_binary_buf_borrowed() {
+        let mut buf = BinaryBuf::new();
+        buf.push_fragment(b"abc").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
+            use sval_test::Token::*;
+
             &[BinaryBegin(Some(3)), BinaryFragment(b"abc"), BinaryEnd]
+        });
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn stream_ref_binary_buf_computed() {
+        let mut buf = BinaryBuf::new();
+        buf.push_fragment(b"abc").unwrap();
+        buf.push_fragment_computed(b"def").unwrap();
+
+        let mut tokens = sval_test::TokenBuf::new();
+        buf.stream_ref(&mut tokens).unwrap();
+
+        assert_eq!(tokens.as_tokens(), {
+            use sval_test::Token::*;
+
+            &[
+                BinaryBegin(Some(6)),
+                BinaryFragmentComputed(b"abcdef".to_vec()),
+                BinaryEnd,
+            ]
         });
     }
 }
