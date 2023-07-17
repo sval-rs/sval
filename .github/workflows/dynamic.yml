@@ -23,6 +23,10 @@ jobs:
         working-directory: ./dynamic
         run: cargo hack test --feature-powerset
 
+      - name: Minimal Versions
+        working-directory: ./dynamic
+        run: cargo hack test --feature-powerset -Z minimal-versions
+
   embedded:
     name: Build (embedded)
     runs-on: ubuntu-latest

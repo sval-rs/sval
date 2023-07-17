@@ -23,6 +23,10 @@ jobs:
         working-directory: ./buffer
         run: cargo hack test --feature-powerset
 
+      - name: Minimal Versions
+        working-directory: ./buffer
+        run: cargo hack test --feature-powerset -Z minimal-versions
+
   bench:
     name: Bench
     runs-on: ubuntu-latest

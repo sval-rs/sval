@@ -23,6 +23,10 @@ jobs:
         working-directory: ./json
         run: cargo hack test --feature-powerset
 
+      - name: Minimal Versions
+        working-directory: ./json
+        run: cargo hack test --feature-powerset -Z minimal-versions
+
       - name: Powerset (Tests)
         working-directory: ./json/test
         run: cargo hack test --feature-powerset

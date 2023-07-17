@@ -22,3 +22,7 @@ jobs:
       - name: Powerset
         working-directory: ./test
         run: cargo hack test --feature-powerset
+
+      - name: Minimal Versions
+        working-directory: ./test
+        run: cargo hack test --feature-powerset -Z minimal-versions

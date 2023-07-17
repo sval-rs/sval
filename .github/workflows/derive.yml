@@ -23,6 +23,10 @@ jobs:
         working-directory: ./derive
         run: cargo hack test --feature-powerset
 
+      - name: Minimal Versions
+        working-directory: ./derive
+        run: cargo hack test --feature-powerset -Z minimal-versions
+
       - name: Powerset (Tests)
         working-directory: ./derive/test
         run: cargo hack test --feature-powerset
