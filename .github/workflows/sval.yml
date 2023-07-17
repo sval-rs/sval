@@ -16,10 +16,6 @@ jobs:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-        rust:
-          - stable
-          - beta
-          - nightly
     steps:
       - name: Checkout sources
         uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
@@ -32,6 +28,9 @@ jobs:
 
       - name: Powerset
         run: cargo hack test --feature-powerset
+
+      - name: Minimal Versions
+        run: cargo hack test --feature-powerset -Z minimal-versions
 
       - name: All
         run: cargo test --all
