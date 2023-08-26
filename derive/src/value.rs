@@ -438,6 +438,8 @@ fn stream_tuple(
     let mut stream_field = Vec::new();
     let mut field_count = 0usize;
 
+    let mut next_index = 0;
+
     let mut labeled_field_count = 0;
     for field in &fields.unnamed {
         if attr::unnamed_field(attr::Skip, &field.attrs).unwrap_or(false) {
@@ -448,8 +450,10 @@ fn stream_tuple(
         let ident = Ident::new(&format!("field{}", field_count), field.span());
 
         let tag = quote_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
-        let index =
-            quote_index(attr::unnamed_field(attr::Index, &field.attrs).unwrap_or(field_count));
+
+        let index = attr::unnamed_field(attr::Index, &field.attrs).unwrap_or(next_index);
+        next_index = index + 1;
+        let index = quote_index(index);
 
         if let Some(label) = attr::unnamed_field(attr::Label, &field.attrs).map(quote_label) {
             stream_field.push(quote!({

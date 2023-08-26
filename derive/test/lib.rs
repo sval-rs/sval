@@ -166,6 +166,27 @@ mod derive_tuple {
     }
 
     #[test]
+    fn indexed() {
+        #[derive(Value)]
+        struct Tuple(#[sval(index = 1)] i32, i32);
+
+        assert_tokens(&Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(2)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleValueBegin(None, sval::Index::new(2)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(2)),
+                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn tagged() {
         const CONTAINER: sval::Tag = sval::Tag::new("container");
         const FIELD: sval::Tag = sval::Tag::new("field");
