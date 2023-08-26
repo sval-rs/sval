@@ -430,6 +430,59 @@ pub trait Stream<'sval> {
         self.seq_end()?;
         self.tagged_end(tag, label, index)
     }
+
+    /**
+    Begin a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+        num_entries: Option<usize>,
+    ) -> Result {
+        self.record_begin(tag, label, index, num_entries)
+    }
+
+    /**
+    Begin a field in a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_value_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        let _ = index;
+
+        self.record_value_begin(tag, label)
+    }
+
+    /**
+    Complete a field in a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_value_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        let _ = index;
+
+        self.record_value_end(tag, label)
+    }
+
+    /**
+    Complete a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.record_end(tag, label, index)
+    }
 }
 
 macro_rules! impl_stream_forward {
@@ -658,6 +711,26 @@ macro_rules! impl_stream_forward {
             fn tuple_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).tuple_end(tag, label, index)
+            }
+
+            fn record_tuple_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>, num_entries: Option<usize>) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_begin(tag, label, index, num_entries)
+            }
+
+            fn record_tuple_value_begin(&mut self, tag: Option<&Tag>, label: &Label, index: &Index) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_value_begin(tag, label, index)
+            }
+
+            fn record_tuple_value_end(&mut self, tag: Option<&Tag>, label: &Label, index: &Index) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_value_end(tag, label, index)
+            }
+
+            fn record_tuple_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_end(tag, label, index)
             }
 
             fn enum_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
@@ -906,6 +979,43 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         index: Option<&Index>,
     ) -> Result {
         self.0.tuple_end(tag, label, index)
+    }
+
+    fn record_tuple_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+        num_entries: Option<usize>,
+    ) -> Result {
+        self.0.record_tuple_begin(tag, label, index, num_entries)
+    }
+
+    fn record_tuple_value_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        self.0.record_tuple_value_begin(tag, label, index)
+    }
+
+    fn record_tuple_value_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        self.0.record_tuple_value_end(tag, label, index)
+    }
+
+    fn record_tuple_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.record_tuple_end(tag, label, index)
     }
 
     fn enum_begin(

@@ -5,6 +5,7 @@ extern crate sval_derive;
 pub struct Record {
     #[sval(index = 1)]
     a: i32,
+    b: bool,
 }
 
 fn main() {}

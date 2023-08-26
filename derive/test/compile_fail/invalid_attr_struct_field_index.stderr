@@ -1,7 +1,0 @@
-error: proc-macro derive panicked
- --> compile_fail/invalid_attr_struct_field_index.rs:4:10
-  |
-4 | #[derive(Value)]
-  |          ^^^^^
-  |
-  = help: message: unsupported attribute `index` on named field

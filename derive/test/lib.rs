@@ -27,6 +27,27 @@ mod derive_record {
     }
 
     #[test]
+    fn indexed() {
+        #[derive(Value)]
+        struct RecordTuple {
+            #[sval(index = 1)]
+            a: i32,
+        }
+
+        assert_tokens(&RecordTuple { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(1)),
+                I32(42),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(1)),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn tagged() {
         const CONTAINER: sval::Tag = sval::Tag::new("container");
         const FIELD: sval::Tag = sval::Tag::new("field");
@@ -119,6 +140,27 @@ mod derive_tuple {
                 I32(43),
                 TupleValueEnd(None, sval::Index::new(1)),
                 TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn labeled() {
+        #[derive(Value)]
+        struct RecordTuple(#[sval(label = "A")] i32, #[sval(label = "B")] i32);
+
+        assert_tokens(&RecordTuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(2)),
+                RecordTupleValueBegin(None, sval::Label::new("A"), sval::Index::new(0)),
+                I32(42),
+                RecordTupleValueEnd(None, sval::Label::new("A"), sval::Index::new(0)),
+                RecordTupleValueBegin(None, sval::Label::new("B"), sval::Index::new(1)),
+                I32(43),
+                RecordTupleValueEnd(None, sval::Label::new("B"), sval::Index::new(1)),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
             ]
         })
     }

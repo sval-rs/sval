@@ -1,0 +1,9 @@
+error: proc-macro derive panicked
+ --> compile_fail/invalid_attr_tuple_field_partially_labeled.rs:4:10
+  |
+4 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: assertion failed: `(left == right)`
+            left: `2`,
+           right: `1`: if any fields have a label then all fields need one

@@ -141,6 +141,35 @@ mod private {
             index: Option<&sval::Index>,
         ) -> sval::Result;
 
+        fn dispatch_record_tuple_begin(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+            num_entries: Option<usize>,
+        ) -> sval::Result;
+
+        fn dispatch_record_tuple_value_begin(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: &sval::Label,
+            index: &sval::Index,
+        ) -> sval::Result;
+
+        fn dispatch_record_tuple_value_end(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: &sval::Label,
+            index: &sval::Index,
+        ) -> sval::Result;
+
+        fn dispatch_record_tuple_end(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+        ) -> sval::Result;
+
         fn dispatch_enum_begin(
             &mut self,
             tag: Option<&sval::Tag>,
@@ -409,6 +438,43 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.tuple_end(tag, label, index)
     }
 
+    fn dispatch_record_tuple_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> sval::Result {
+        self.record_tuple_begin(tag, label, index, num_entries)
+    }
+
+    fn dispatch_record_tuple_value_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        index: &sval::Index,
+    ) -> sval::Result {
+        self.record_tuple_value_begin(tag, label, index)
+    }
+
+    fn dispatch_record_tuple_value_end(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        index: &sval::Index,
+    ) -> sval::Result {
+        self.record_tuple_value_end(tag, label, index)
+    }
+
+    fn dispatch_record_tuple_end(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> sval::Result {
+        self.record_tuple_end(tag, label, index)
+    }
+
     fn dispatch_enum_begin(
         &mut self,
         tag: Option<&sval::Tag>,
@@ -610,6 +676,43 @@ macro_rules! impl_stream {
 
             fn tuple_end(&mut self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>) -> sval::Result {
                 self.erase_stream().0.dispatch_tuple_end(tag, label, index)
+            }
+
+            fn record_tuple_begin(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: Option<&sval::Label>,
+                index: Option<&sval::Index>,
+                num_entries: Option<usize>,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_begin(tag, label, index, num_entries)
+            }
+
+            fn record_tuple_value_begin(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: &sval::Label,
+                index: &sval::Index,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_value_begin(tag, label, index)
+            }
+
+            fn record_tuple_value_end(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: &sval::Label,
+                index: &sval::Index,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_value_end(tag, label, index)
+            }
+
+            fn record_tuple_end(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: Option<&sval::Label>,
+                index: Option<&sval::Index>,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_end(tag, label, index)
             }
 
             fn enum_begin(&mut self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>) -> sval::Result {

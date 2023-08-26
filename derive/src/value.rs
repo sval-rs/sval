@@ -347,6 +347,7 @@ fn stream_record(
     let mut field_binding = Vec::new();
     let mut stream_field = Vec::new();
 
+    let mut indexed_field_count = 0;
     for field in &fields.named {
         let ident = &field.ident;
 
@@ -356,29 +357,57 @@ fn stream_record(
         }
 
         let tag = quote_tag(attr::named_field(attr::Tag, &field.attrs).as_ref());
-        let label = attr::named_field(attr::Label, &field.attrs)
-            .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string());
-        let label = quote!(&sval::Label::new(#label));
+        let label = quote_label(
+            attr::named_field(attr::Label, &field.attrs)
+                .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string()),
+        );
 
-        stream_field.push(quote!({
+        if let Some(index) = attr::named_field(attr::Index, &field.attrs).map(quote_index) {
+            stream_field.push(quote!({
+                stream.record_tuple_value_begin(#tag, #label, #index)?;
+                stream.value(#ident)?;
+                stream.record_tuple_value_end(#tag, #label, #index)?;
+            }));
+
+            indexed_field_count += 1;
+        } else {
+            stream_field.push(quote!({
                 stream.record_value_begin(#tag, #label)?;
                 stream.value(#ident)?;
                 stream.record_value_end(#tag, #label)?;
-        }));
+            }));
+        }
 
         field_binding.push(quote!(ref #ident));
         field_count += 1;
     }
 
-    quote!(#path { #(#field_binding,)* } => {
-        stream.record_begin(#tag, #label, #index, Some(#field_count))?;
+    if indexed_field_count != 0 {
+        assert_eq!(
+            field_count, indexed_field_count,
+            "if any fields have an index then all fields need one"
+        );
 
-        #(
-            #stream_field
-        )*
+        quote!(#path { #(#field_binding,)* } => {
+            stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
-        stream.record_end(#tag, #label, #index)?;
-    })
+            #(
+                #stream_field
+            )*
+
+            stream.record_tuple_end(#tag, #label, #index)?;
+        })
+    } else {
+        quote!(#path { #(#field_binding,)* } => {
+            stream.record_begin(#tag, #label, #index, Some(#field_count))?;
+
+            #(
+                #stream_field
+            )*
+
+            stream.record_end(#tag, #label, #index)?;
+        })
+    }
 }
 
 fn stream_newtype(
@@ -409,36 +438,65 @@ fn stream_tuple(
     let mut stream_field = Vec::new();
     let mut field_count = 0usize;
 
+    let mut labeled_field_count = 0;
     for field in &fields.unnamed {
         if attr::unnamed_field(attr::Skip, &field.attrs).unwrap_or(false) {
             field_binding.push(quote!(_));
             continue;
         }
 
-        let tag = quote_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
-        let index = attr::unnamed_field(attr::Index, &field.attrs).unwrap_or(field_count);
-
         let ident = Ident::new(&format!("field{}", field_count), field.span());
 
-        stream_field.push(quote!({
-                stream.tuple_value_begin(#tag, &sval::Index::new(#index))?;
+        let tag = quote_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
+        let index =
+            quote_index(attr::unnamed_field(attr::Index, &field.attrs).unwrap_or(field_count));
+
+        if let Some(label) = attr::unnamed_field(attr::Label, &field.attrs).map(quote_label) {
+            stream_field.push(quote!({
+                stream.record_tuple_value_begin(#tag, #label, #index)?;
                 stream.value(#ident)?;
-                stream.tuple_value_end(#tag, &sval::Index::new(#index))?;
-        }));
+                stream.record_tuple_value_end(#tag, #label, #index)?;
+            }));
+
+            labeled_field_count += 1;
+        } else {
+            stream_field.push(quote!({
+                stream.tuple_value_begin(#tag, #index)?;
+                stream.value(#ident)?;
+                stream.tuple_value_end(#tag, #index)?;
+            }));
+        }
 
         field_binding.push(quote!(ref #ident));
         field_count += 1;
     }
 
-    quote!(#path(#(#field_binding,)*) => {
-        stream.tuple_begin(#tag, #label, #index, Some(#field_count))?;
+    if labeled_field_count != 0 {
+        assert_eq!(
+            field_count, labeled_field_count,
+            "if any fields have a label then all fields need one"
+        );
 
-        #(
-            #stream_field
-        )*
+        quote!(#path(#(#field_binding,)*) => {
+            stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
-        stream.tuple_end(#tag, #label, #index)?;
-    })
+            #(
+                #stream_field
+            )*
+
+            stream.record_tuple_end(#tag, #label, #index)?;
+        })
+    } else {
+        quote!(#path(#(#field_binding,)*) => {
+            stream.tuple_begin(#tag, #label, #index, Some(#field_count))?;
+
+            #(
+                #stream_field
+            )*
+
+            stream.tuple_end(#tag, #label, #index)?;
+        })
+    }
 }
 
 fn stream_tag(
@@ -493,4 +551,12 @@ fn label_or_ident<'a>(label: Option<&'a str>, ident: &'_ Ident) -> Cow<'a, str> 
     label
         .map(Cow::Borrowed)
         .unwrap_or_else(|| Cow::Owned(ident.to_string()))
+}
+
+fn quote_label(label: String) -> proc_macro2::TokenStream {
+    quote!(&sval::Label::new(#label))
+}
+
+fn quote_index(index: usize) -> proc_macro2::TokenStream {
+    quote!(&sval::Index::new(#index))
 }
