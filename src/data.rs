@@ -10,6 +10,7 @@ pub mod tags;
 use crate::{
     std::{
         borrow::Borrow,
+        cmp::Ordering,
         fmt,
         hash::{Hash, Hasher},
         marker::PhantomData,
@@ -235,22 +236,43 @@ impl fmt::Debug for Tag {
 /**
 The index of a value in its parent context.
 */
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Index(usize);
+#[derive(Clone)]
+pub struct Index(usize, IndexHint);
+
+#[derive(Clone, Copy)]
+enum IndexHint {
+    /**
+    No specific hint; the index may be for any purpose.
+    */
+    None,
+    /**
+    The index is a zero-based value.
+    */
+    ZeroBased,
+}
 
 impl Index {
     /**
     Create a new index from a numeric value.
     */
     pub const fn new(index: usize) -> Self {
-        Index(index)
+        Index(index, IndexHint::None)
     }
 
     /**
-    Create a new index from a 32bit numeric value.
+    Create a new None index from a 32bit numeric value.
     */
     pub const fn new_u32(index: u32) -> Self {
-        Index(index as usize)
+        Index(index as usize, IndexHint::None)
+    }
+
+    /**
+    Hint that this index is a zero-based value.
+
+    Streams may use this hint when mapping the index into a different scheme.
+    */
+    pub const fn hint_zero_based(self) -> Self {
+        Index(self.0, IndexHint::ZeroBased)
     }
 
     /**
@@ -270,11 +292,44 @@ impl Index {
             None
         }
     }
+
+    /**
+    Whether the index is carrying a hint that it's a zero-based value.
+    */
+    pub const fn is_zero_based(&self) -> bool {
+        matches!(self.1, IndexHint::ZeroBased)
+    }
 }
 
 impl fmt::Debug for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("Index").field(&self.0).finish()
+    }
+}
+
+impl PartialEq for Index {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Eq for Index {}
+
+impl PartialOrd for Index {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Hash for Index {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
+
+impl Ord for Index {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
     }
 }
 
@@ -410,6 +465,11 @@ mod tests {
         }
 
         assert_eq!(1, small.to_u32().unwrap());
+    }
+
+    #[test]
+    fn index_hint_zero_based() {
+        todo!()
     }
 
     #[test]

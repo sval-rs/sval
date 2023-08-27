@@ -10,7 +10,7 @@ use syn::{
 pub(crate) fn derive(input: DeriveInput) -> TokenStream {
     let tag = attr::container(attr::Tag, &input.attrs);
     let label = attr::container(attr::Label, &input.attrs);
-    let index = attr::container(attr::Index, &input.attrs);
+    let index = IndexAllocator::index_of(attr::container(attr::Index, &input.attrs));
 
     match &input.data {
         Data::Struct(DataStruct {
@@ -74,7 +74,7 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
 fn derive_struct<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
-    index: Option<usize>,
+    index: Option<Index>,
     ident: &Ident,
     generics: &Generics,
     fields: &FieldsNamed,
@@ -88,7 +88,7 @@ fn derive_struct<'a>(
 
     let match_arm = stream_record(quote!(#ident), tag, &label, index, fields);
 
-    let tag = quote_tag_owned(tag);
+    let tag = quote_optional_tag_owned(tag);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -114,7 +114,7 @@ fn derive_struct<'a>(
 fn derive_unit_struct<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
-    index: Option<usize>,
+    index: Option<Index>,
     ident: &Ident,
     generics: &Generics,
 ) -> TokenStream {
@@ -127,7 +127,7 @@ fn derive_unit_struct<'a>(
 
     let match_arm = stream_tag(quote!(_), tag, &label, index);
 
-    let tag = quote_tag_owned(tag);
+    let tag = quote_optional_tag_owned(tag);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -153,7 +153,7 @@ fn derive_unit_struct<'a>(
 fn derive_newtype<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
-    index: Option<usize>,
+    index: Option<Index>,
     ident: &Ident,
     generics: &Generics,
     field: &Field,
@@ -169,7 +169,7 @@ fn derive_newtype<'a>(
 
     let match_arm = stream_newtype(quote!(#ident), tag, &label, index);
 
-    let tag = quote_tag_owned(tag);
+    let tag = quote_optional_tag_owned(tag);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -195,7 +195,7 @@ fn derive_newtype<'a>(
 fn derive_tuple<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
-    index: Option<usize>,
+    index: Option<Index>,
     ident: &Ident,
     generics: &Generics,
     fields: &FieldsUnnamed,
@@ -209,7 +209,7 @@ fn derive_tuple<'a>(
 
     let match_arm = stream_tuple(quote!(#ident), tag, &label, index, fields);
 
-    let tag = quote_tag_owned(tag);
+    let tag = quote_optional_tag_owned(tag);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -235,7 +235,7 @@ fn derive_tuple<'a>(
 fn derive_enum<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
-    index: Option<usize>,
+    index: Option<Index>,
     ident: &Ident,
     generics: &Generics,
     variants: impl Iterator<Item = &'a Variant> + 'a,
@@ -247,16 +247,19 @@ fn derive_enum<'a>(
 
     let label = label_or_ident(label, ident);
 
-    let (enum_tag, enum_label, enum_index) = quote_tag_label_index(tag, &label, index);
+    let enum_tag = quote_optional_tag(tag);
+    let enum_label = quote_optional_label(Some(&label));
+    let enum_index = quote_optional_index(index);
 
     let mut variant_match_arms = Vec::new();
+    let mut index_allocator = IndexAllocator::new();
 
     for variant in variants {
         let tag = attr::container(attr::Tag, &variant.attrs);
         let label = attr::container(attr::Label, &variant.attrs)
             .unwrap_or_else(|| variant.ident.to_string());
-        let index = attr::container(attr::Index, &variant.attrs)
-            .unwrap_or_else(|| variant_match_arms.len());
+
+        let index = index_allocator.next_index(attr::container(attr::Index, &variant.attrs));
 
         let variant_ident = &variant.ident;
 
@@ -290,7 +293,7 @@ fn derive_enum<'a>(
         });
     }
 
-    let tag = quote_tag_owned(tag);
+    let tag = quote_optional_tag_owned(tag);
 
     TokenStream::from(quote! {
         const _: () = {
@@ -338,16 +341,18 @@ fn stream_record(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,
-    index: Option<usize>,
+    index: Option<Index>,
     fields: &FieldsNamed,
 ) -> proc_macro2::TokenStream {
-    let (tag, label, index) = quote_tag_label_index(tag, label, index);
+    let tag = quote_optional_tag(tag);
+    let label = quote_optional_label(Some(label));
+    let index = quote_optional_index(index);
 
     let mut field_count = 0usize;
     let mut field_binding = Vec::new();
     let mut stream_field = Vec::new();
 
-    let mut indexed_field_count = 0;
+    let mut index_allocator = IndexAllocator::new();
     for field in &fields.named {
         let ident = &field.ident;
 
@@ -356,38 +361,38 @@ fn stream_record(
             continue;
         }
 
-        let tag = quote_tag(attr::named_field(attr::Tag, &field.attrs).as_ref());
+        let tag = quote_optional_tag(attr::named_field(attr::Tag, &field.attrs).as_ref());
         let label = quote_label(
-            attr::named_field(attr::Label, &field.attrs)
+            &attr::named_field(attr::Label, &field.attrs)
                 .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string()),
         );
+        let index =
+            index_allocator.next_optional_index(attr::named_field(attr::Index, &field.attrs));
 
-        if let Some(index) = attr::named_field(attr::Index, &field.attrs).map(quote_index) {
-            stream_field.push(quote!({
-                stream.record_tuple_value_begin(#tag, #label, #index)?;
-                stream.value(#ident)?;
-                stream.record_tuple_value_end(#tag, #label, #index)?;
-            }));
+        match index {
+            Some(index) => {
+                let index = quote_index(index);
 
-            indexed_field_count += 1;
-        } else {
-            stream_field.push(quote!({
-                stream.record_value_begin(#tag, #label)?;
-                stream.value(#ident)?;
-                stream.record_value_end(#tag, #label)?;
-            }));
+                stream_field.push(quote!({
+                    stream.record_tuple_value_begin(#tag, #label, #index)?;
+                    stream.value(#ident)?;
+                    stream.record_tuple_value_end(#tag, #label, #index)?;
+                }));
+            }
+            None => {
+                stream_field.push(quote!({
+                    stream.record_value_begin(#tag, #label)?;
+                    stream.value(#ident)?;
+                    stream.record_value_end(#tag, #label)?;
+                }));
+            }
         }
 
         field_binding.push(quote!(ref #ident));
         field_count += 1;
     }
 
-    if indexed_field_count != 0 {
-        assert_eq!(
-            field_count, indexed_field_count,
-            "if any fields have an index then all fields need one"
-        );
-
+    if index_allocator.explicit {
         quote!(#path { #(#field_binding,)* } => {
             stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
@@ -414,9 +419,11 @@ fn stream_newtype(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,
-    index: Option<usize>,
+    index: Option<Index>,
 ) -> proc_macro2::TokenStream {
-    let (tag, label, index) = quote_tag_label_index(tag, label, index);
+    let tag = quote_optional_tag(tag);
+    let label = quote_optional_label(Some(label));
+    let index = quote_optional_index(index);
 
     quote!(#path(ref field0) => {
         stream.tagged_begin(#tag, #label, #index)?;
@@ -429,18 +436,19 @@ fn stream_tuple(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,
-    index: Option<usize>,
+    index: Option<Index>,
     fields: &FieldsUnnamed,
 ) -> proc_macro2::TokenStream {
-    let (tag, label, index) = quote_tag_label_index(tag, label, index);
+    let tag = quote_optional_tag(tag);
+    let label = quote_optional_label(Some(label));
+    let index = quote_optional_index(index);
 
     let mut field_binding = Vec::new();
     let mut stream_field = Vec::new();
     let mut field_count = 0usize;
 
-    let mut next_index = 0;
-
     let mut labeled_field_count = 0;
+    let mut index_allocator = IndexAllocator::new();
     for field in &fields.unnamed {
         if attr::unnamed_field(attr::Skip, &field.attrs).unwrap_or(false) {
             field_binding.push(quote!(_));
@@ -449,13 +457,12 @@ fn stream_tuple(
 
         let ident = Ident::new(&format!("field{}", field_count), field.span());
 
-        let tag = quote_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
+        let tag = quote_optional_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
+        let index =
+            quote_index(index_allocator.next_index(attr::unnamed_field(attr::Index, &field.attrs)));
 
-        let index = attr::unnamed_field(attr::Index, &field.attrs).unwrap_or(next_index);
-        next_index = index + 1;
-        let index = quote_index(index);
-
-        if let Some(label) = attr::unnamed_field(attr::Label, &field.attrs).map(quote_label) {
+        if let Some(label) = attr::unnamed_field(attr::Label, &field.attrs).map(|s| quote_label(&s))
+        {
             stream_field.push(quote!({
                 stream.record_tuple_value_begin(#tag, #label, #index)?;
                 stream.value(#ident)?;
@@ -507,44 +514,25 @@ fn stream_tag(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,
-    index: Option<usize>,
+    index: Option<Index>,
 ) -> proc_macro2::TokenStream {
-    let (tag, label, index) = quote_tag_label_index(tag, label, index);
+    let tag = quote_optional_tag(tag);
+    let label = quote_optional_label(Some(label));
+    let index = quote_optional_index(index);
 
     quote!(#path => {
         stream.tag(#tag, #label, #index)?;
     })
 }
 
-fn quote_tag_label_index(
-    tag: Option<&Path>,
-    label: &str,
-    index: Option<usize>,
-) -> (
-    proc_macro2::TokenStream,
-    proc_macro2::TokenStream,
-    proc_macro2::TokenStream,
-) {
-    let tag = quote_tag(tag);
-
-    let label = quote!(Some(&sval::Label::new(#label)));
-
-    let index = match index {
-        Some(index) => quote!(Some(&sval::Index::new(#index))),
-        None => quote!(None),
-    };
-
-    (tag, label, index)
-}
-
-fn quote_tag(tag: Option<&Path>) -> proc_macro2::TokenStream {
+fn quote_optional_tag(tag: Option<&Path>) -> proc_macro2::TokenStream {
     match tag {
         Some(tag) => quote!(Some(&#tag)),
         None => quote!(None),
     }
 }
 
-fn quote_tag_owned(tag: Option<&Path>) -> proc_macro2::TokenStream {
+fn quote_optional_tag_owned(tag: Option<&Path>) -> proc_macro2::TokenStream {
     match tag {
         Some(tag) => quote!(Some(#tag)),
         None => quote!(None),
@@ -557,10 +545,85 @@ fn label_or_ident<'a>(label: Option<&'a str>, ident: &'_ Ident) -> Cow<'a, str> 
         .unwrap_or_else(|| Cow::Owned(ident.to_string()))
 }
 
-fn quote_label(label: String) -> proc_macro2::TokenStream {
+fn quote_label(label: &str) -> proc_macro2::TokenStream {
     quote!(&sval::Label::new(#label))
 }
 
-fn quote_index(index: usize) -> proc_macro2::TokenStream {
-    quote!(&sval::Index::new(#index))
+fn quote_optional_label(label: Option<&str>) -> proc_macro2::TokenStream {
+    match label {
+        Some(label) => {
+            let label = quote_label(label);
+            quote!(Some(#label))
+        }
+        None => quote!(None),
+    }
+}
+
+fn quote_index(index: Index) -> proc_macro2::TokenStream {
+    match index {
+        Index::Explicit(index) => quote!(&sval::Index::new(#index)),
+        Index::Implicit(index) => quote!(&sval::Index::new(#index).hint_zero_based()),
+    }
+}
+
+fn quote_optional_index(index: Option<Index>) -> proc_macro2::TokenStream {
+    match index {
+        Some(index) => {
+            let index = quote_index(index);
+            quote!(Some(#index))
+        }
+        None => quote!(None),
+    }
+}
+
+struct IndexAllocator {
+    next_index: usize,
+    explicit: bool,
+}
+
+impl IndexAllocator {
+    fn new() -> Self {
+        IndexAllocator {
+            next_index: 0,
+            explicit: false,
+        }
+    }
+
+    fn index_of(explicit: Option<usize>) -> Option<Index> {
+        explicit.map(Index::Explicit)
+    }
+
+    fn next_index(&mut self, explicit: Option<usize>) -> Index {
+        if let Some(index) = explicit {
+            self.explicit = true;
+            self.next_index = index + 1;
+
+            Index::Explicit(index)
+        } else {
+            let index = self.next_index;
+            self.next_index += 1;
+
+            if self.explicit {
+                Index::Explicit(index)
+            } else {
+                Index::Implicit(index)
+            }
+        }
+    }
+
+    fn next_optional_index(&mut self, explicit: Option<usize>) -> Option<Index> {
+        if let Some(index) = explicit {
+            Some(self.next_index(Some(index)))
+        } else if self.explicit {
+            Some(self.next_index(None))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Index {
+    Implicit(usize),
+    Explicit(usize),
 }
