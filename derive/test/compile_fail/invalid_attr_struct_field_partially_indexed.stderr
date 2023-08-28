@@ -4,6 +4,4 @@ error: proc-macro derive panicked
 4 | #[derive(Value)]
   |          ^^^^^
   |
-  = help: message: assertion `left == right` failed: if any fields have an index then all fields need one
-            left: 2
-           right: 1
+  = help: message: if any fields have an `index` specified then all fields need one

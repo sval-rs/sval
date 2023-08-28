@@ -225,6 +225,15 @@ impl Tag {
             data,
         }
     }
+
+    // NOTE: This method is only private to avoid exposing it prematurely
+    // There's no real reason we shouldn't
+    const fn cloned(&self) -> Tag {
+        Tag {
+            id: self.id,
+            data: self.data,
+        }
+    }
 }
 
 impl fmt::Debug for Tag {
@@ -237,42 +246,30 @@ impl fmt::Debug for Tag {
 The index of a value in its parent context.
 */
 #[derive(Clone)]
-pub struct Index(usize, IndexHint);
-
-#[derive(Clone, Copy)]
-enum IndexHint {
-    /**
-    No specific hint; the index may be for any purpose.
-    */
-    None,
-    /**
-    The index is a zero-based value.
-    */
-    ZeroBased,
-}
+pub struct Index(usize, Option<Tag>);
 
 impl Index {
     /**
     Create a new index from a numeric value.
     */
     pub const fn new(index: usize) -> Self {
-        Index(index, IndexHint::None)
+        Index(index, None)
     }
 
     /**
     Create a new None index from a 32bit numeric value.
     */
     pub const fn new_u32(index: u32) -> Self {
-        Index(index as usize, IndexHint::None)
+        Index(index as usize, None)
     }
 
     /**
-    Hint that this index is a zero-based value.
+    Associate a tag with this index.
 
-    Streams may use this hint when mapping the index into a different scheme.
+    Streams may use the tag when interpreting the index value.
     */
-    pub const fn hint_zero_based(self) -> Self {
-        Index(self.0, IndexHint::ZeroBased)
+    pub const fn with_tag(self, tag: &Tag) -> Self {
+        Index(self.0, Some(tag.cloned()))
     }
 
     /**
@@ -294,10 +291,12 @@ impl Index {
     }
 
     /**
-    Whether the index is carrying a hint that it's a zero-based value.
+    Get a tag associated with the index.
+
+    Streams may use the tag when interpreting the index value.
     */
-    pub const fn is_zero_based(&self) -> bool {
-        matches!(self.1, IndexHint::ZeroBased)
+    pub const fn tag(&self) -> Option<&Tag> {
+        self.1.as_ref()
     }
 }
 
@@ -468,8 +467,10 @@ mod tests {
     }
 
     #[test]
-    fn index_hint_zero_based() {
-        todo!()
+    fn index_tag() {
+        let index = Index::new(1).with_tag(&tags::VALUE_OFFSET);
+
+        assert_eq!(Some(&tags::VALUE_OFFSET), index.tag());
     }
 
     #[test]

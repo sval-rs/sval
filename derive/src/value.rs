@@ -366,8 +366,15 @@ fn stream_record(
             &attr::named_field(attr::Label, &field.attrs)
                 .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string()),
         );
-        let index =
-            index_allocator.next_optional_index(attr::named_field(attr::Index, &field.attrs));
+
+        let index = attr::named_field(attr::Index, &field.attrs);
+
+        assert!(
+            index.is_some() || !index_allocator.explicit,
+            "if any fields have an `index` specified then all fields need one"
+        );
+
+        let index = index_allocator.next_optional_index(index);
 
         match index {
             Some(index) => {
@@ -562,7 +569,9 @@ fn quote_optional_label(label: Option<&str>) -> proc_macro2::TokenStream {
 fn quote_index(index: Index) -> proc_macro2::TokenStream {
     match index {
         Index::Explicit(index) => quote!(&sval::Index::new(#index)),
-        Index::Implicit(index) => quote!(&sval::Index::new(#index).hint_zero_based()),
+        Index::Implicit(index) => {
+            quote!(&sval::Index::new(#index).with_tag(&sval::tags::VALUE_OFFSET))
+        }
     }
 }
 

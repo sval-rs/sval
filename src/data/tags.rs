@@ -73,3 +73,10 @@ Any datatype that accepts a size hint.
 - `tuple`
 */
 pub const CONSTANT_SIZE: Tag = Tag::new("CONSTANT_SIZE");
+
+/**
+A tag for indexes that are zero-based offsets into a larger structure.
+
+`sval` uses this tag by default for indexes on tuple values and enum variants.
+*/
+pub const VALUE_OFFSET: Tag = Tag::new("VALUE_OFFSET");

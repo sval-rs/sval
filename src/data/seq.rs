@@ -40,9 +40,9 @@ macro_rules! tuple {
                     stream.tuple_begin(None, None, None, Some($len))?;
 
                     $(
-                        stream.tuple_value_begin(None, &Index::new($i).hint_zero_based())?;
+                        stream.tuple_value_begin(None, &Index::new($i).with_tag(&tags::VALUE_OFFSET))?;
                         stream.value(&self.$i)?;
-                        stream.tuple_value_end(None, &Index::new($i).hint_zero_based())?;
+                        stream.tuple_value_end(None, &Index::new($i).with_tag(&tags::VALUE_OFFSET))?;
                     )+
 
                     stream.tuple_end(None, None, None)

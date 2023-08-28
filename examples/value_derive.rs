@@ -10,16 +10,21 @@ extern crate sval_derive;
 pub mod stream;
 
 #[derive(Value)]
-pub struct MyData<'a> {
+pub struct MyRecord<'a> {
     id: u64,
     title: &'a str,
 }
 
+#[derive(Value)]
+pub struct MyTuple<'a>(u64, &'a str);
+
 fn main() -> sval::Result {
-    stream(MyData {
+    stream(MyRecord {
         id: 547,
         title: "Some data",
     })?;
+
+    stream(MyTuple(547, "Some data"))?;
 
     Ok(())
 }
