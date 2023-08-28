@@ -264,9 +264,10 @@ impl Index {
     }
 
     /**
-    Associate a tag with this index.
+    Associate a tag as a hint with this index.
 
-    Streams may use the tag when interpreting the index value.
+    Tags don't contribute to equality or ordering of indexes but streams may
+    use the them when interpreting the index value.
     */
     pub const fn with_tag(self, tag: &Tag) -> Self {
         Index(self.0, Some(tag.cloned()))
@@ -291,7 +292,7 @@ impl Index {
     }
 
     /**
-    Get a tag associated with the index.
+    Get the tag hint associated with the index, if present.
 
     Streams may use the tag when interpreting the index value.
     */
@@ -302,7 +303,10 @@ impl Index {
 
 impl fmt::Debug for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Index").field(&self.0).finish()
+        f.debug_struct("Index")
+            .field("value", &self.0)
+            .field("tag", &self.1)
+            .finish()
     }
 }
 

@@ -366,60 +366,28 @@ fn stream_record(
             &attr::named_field(attr::Label, &field.attrs)
                 .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string()),
         );
+        let index =
+            quote_index(index_allocator.next_index(attr::unnamed_field(attr::Index, &field.attrs)));
 
-        let index = attr::named_field(attr::Index, &field.attrs);
-
-        assert!(
-            index.is_some() || !index_allocator.explicit,
-            "if any fields have an `index` specified then all fields need one"
-        );
-
-        let index = index_allocator.next_optional_index(index);
-
-        match index {
-            Some(index) => {
-                let index = quote_index(index);
-
-                stream_field.push(quote!({
-                    stream.record_tuple_value_begin(#tag, #label, #index)?;
-                    stream.value(#ident)?;
-                    stream.record_tuple_value_end(#tag, #label, #index)?;
-                }));
-            }
-            None => {
-                stream_field.push(quote!({
-                    stream.record_value_begin(#tag, #label)?;
-                    stream.value(#ident)?;
-                    stream.record_value_end(#tag, #label)?;
-                }));
-            }
-        }
+        stream_field.push(quote!({
+            stream.record_tuple_value_begin(#tag, #label, #index)?;
+            stream.value(#ident)?;
+            stream.record_tuple_value_end(#tag, #label, #index)?;
+        }));
 
         field_binding.push(quote!(ref #ident));
         field_count += 1;
     }
 
-    if index_allocator.explicit {
-        quote!(#path { #(#field_binding,)* } => {
-            stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
+    quote!(#path { #(#field_binding,)* } => {
+        stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
-            #(
-                #stream_field
-            )*
+        #(
+            #stream_field
+        )*
 
-            stream.record_tuple_end(#tag, #label, #index)?;
-        })
-    } else {
-        quote!(#path { #(#field_binding,)* } => {
-            stream.record_begin(#tag, #label, #index, Some(#field_count))?;
-
-            #(
-                #stream_field
-            )*
-
-            stream.record_end(#tag, #label, #index)?;
-        })
-    }
+        stream.record_tuple_end(#tag, #label, #index)?;
+    })
 }
 
 fn stream_newtype(
@@ -617,16 +585,6 @@ impl IndexAllocator {
             } else {
                 Index::Implicit(index)
             }
-        }
-    }
-
-    fn next_optional_index(&mut self, explicit: Option<usize>) -> Option<Index> {
-        if let Some(index) = explicit {
-            Some(self.next_index(Some(index)))
-        } else if self.explicit {
-            Some(self.next_index(None))
-        } else {
-            None
         }
     }
 }

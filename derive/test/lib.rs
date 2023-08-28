@@ -17,11 +17,11 @@ mod derive_record {
             use sval_test::Token::*;
 
             &[
-                RecordBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
-                RecordValueBegin(None, sval::Label::new("a")),
+                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
                 I32(42),
-                RecordValueEnd(None, sval::Label::new("a")),
-                RecordEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
             ]
         })
     }
@@ -32,16 +32,20 @@ mod derive_record {
         struct RecordTuple {
             #[sval(index = 1)]
             a: i32,
+            b: i32,
         }
 
-        assert_tokens(&RecordTuple { a: 42 }, {
+        assert_tokens(&RecordTuple { a: 42, b: 57 }, {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(2)),
                 RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(1)),
                 I32(42),
                 RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(1)),
+                RecordTupleValueBegin(None, sval::Label::new("b"), sval::Index::new(2)),
+                I32(57),
+                RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(2)),
                 RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
             ]
         })
@@ -63,16 +67,16 @@ mod derive_record {
             use sval_test::Token::*;
 
             &[
-                RecordBegin(
+                RecordTupleBegin(
                     Some(CONTAINER),
                     Some(sval::Label::new("record")),
                     Some(sval::Index::new(0)),
                     Some(1),
                 ),
-                RecordValueBegin(Some(FIELD), sval::Label::new("field0")),
+                RecordTupleValueBegin(Some(FIELD), sval::Label::new("field0"), sval::Index::new(0)),
                 I32(42),
-                RecordValueEnd(Some(FIELD), sval::Label::new("field0")),
-                RecordEnd(
+                RecordTupleValueEnd(Some(FIELD), sval::Label::new("field0"), sval::Index::new(0)),
+                RecordTupleEnd(
                     Some(CONTAINER),
                     Some(sval::Label::new("record")),
                     Some(sval::Index::new(0)),
@@ -90,8 +94,8 @@ mod derive_record {
             use sval_test::Token::*;
 
             &[
-                RecordBegin(None, Some(sval::Label::new("Record")), None, Some(0)),
-                RecordEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
             ]
         })
     }
@@ -110,11 +114,11 @@ mod derive_record {
             use sval_test::Token::*;
 
             &[
-                RecordBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
-                RecordValueBegin(None, sval::Label::new("a")),
+                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
                 I32(42),
-                RecordValueEnd(None, sval::Label::new("a")),
-                RecordEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
             ]
         })
     }
@@ -356,16 +360,16 @@ mod derive_enum {
 
             &[
                 EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                RecordBegin(
+                RecordTupleBegin(
                     None,
                     Some(sval::Label::new("Record")),
                     Some(sval::Index::new(2)),
                     Some(1),
                 ),
-                RecordValueBegin(None, sval::Label::new("a")),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
                 I32(42),
-                RecordValueEnd(None, sval::Label::new("a")),
-                RecordEnd(
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(
                     None,
                     Some(sval::Label::new("Record")),
                     Some(sval::Index::new(2)),
@@ -485,16 +489,16 @@ mod derive_enum {
                     Some(sval::Label::new("enum")),
                     Some(sval::Index::new(0)),
                 ),
-                RecordBegin(
+                RecordTupleBegin(
                     Some(VARIANT),
                     Some(sval::Label::new("record")),
                     Some(sval::Index::new(3)),
                     Some(1),
                 ),
-                RecordValueBegin(Some(FIELD), sval::Label::new("field")),
+                RecordTupleValueBegin(Some(FIELD), sval::Label::new("field"), sval::Index::new(0)),
                 I32(42),
-                RecordValueEnd(Some(FIELD), sval::Label::new("field")),
-                RecordEnd(
+                RecordTupleValueEnd(Some(FIELD), sval::Label::new("field"), sval::Index::new(0)),
+                RecordTupleEnd(
                     Some(VARIANT),
                     Some(sval::Label::new("record")),
                     Some(sval::Index::new(3)),
@@ -560,16 +564,16 @@ mod derive_enum {
 
             &[
                 EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                RecordBegin(
+                RecordTupleBegin(
                     None,
                     Some(sval::Label::new("Record")),
                     Some(sval::Index::new(0)),
                     Some(1),
                 ),
-                RecordValueBegin(None, sval::Label::new("a")),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
                 I32(42),
-                RecordValueEnd(None, sval::Label::new("a")),
-                RecordEnd(
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(
                     None,
                     Some(sval::Label::new("Record")),
                     Some(sval::Index::new(0)),
