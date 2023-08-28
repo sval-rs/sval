@@ -86,7 +86,7 @@ fn derive_struct<'a>(
 
     let label = label_or_ident(label, ident);
 
-    let match_arm = stream_record(quote!(#ident), tag, &label, index, fields);
+    let match_arm = stream_record_tuple(quote!(#ident), tag, &label, index, fields);
 
     let tag = quote_optional_tag_owned(tag);
 
@@ -264,7 +264,7 @@ fn derive_enum<'a>(
         let variant_ident = &variant.ident;
 
         variant_match_arms.push(match variant.fields {
-            Fields::Named(ref fields) => stream_record(
+            Fields::Named(ref fields) => stream_record_tuple(
                 quote!(#ident :: #variant_ident),
                 tag.as_ref(),
                 &label,
@@ -337,7 +337,7 @@ fn derive_void<'a>(ident: &Ident, generics: &Generics) -> TokenStream {
     })
 }
 
-fn stream_record(
+fn stream_record_tuple(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,

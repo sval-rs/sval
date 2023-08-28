@@ -305,7 +305,7 @@ impl fmt::Debug for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Index")
             .field("value", &self.0)
-            .field("tag", &self.1)
+            .field("<tag>", &self.1)
             .finish()
     }
 }
