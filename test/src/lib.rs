@@ -305,8 +305,8 @@ impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
         Ok(())
     }
 
-    fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-        self.push(Token::TextBegin(num_bytes_hint));
+    fn text_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+        self.push(Token::TextBegin(num_bytes));
         Ok(())
     }
 
@@ -355,8 +355,8 @@ impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
         Ok(())
     }
 
-    fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-        self.push(Token::BinaryBegin(num_bytes_hint));
+    fn binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+        self.push(Token::BinaryBegin(num_bytes));
         Ok(())
     }
 

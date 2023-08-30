@@ -94,7 +94,7 @@ extern crate core;
 mod std {
     pub use crate::{
         alloc::{borrow, boxed, collections, string, vec},
-        core::{convert, cmp, fmt, hash, marker, mem, ops, result, str, write},
+        core::{cmp, convert, fmt, hash, marker, mem, ops, result, str, write},
     };
 }
 

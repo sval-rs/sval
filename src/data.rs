@@ -292,6 +292,17 @@ impl Index {
     }
 
     /**
+      Try get the index as a 64-bit numeric value.
+    */
+    pub const fn to_u64(&self) -> Option<u64> {
+        if self.0 <= u64::MAX as usize {
+            Some(self.0 as u64)
+        } else {
+            None
+        }
+    }
+
+    /**
     Get the tag hint associated with the index, if present.
 
     Streams may use the tag when interpreting the index value.

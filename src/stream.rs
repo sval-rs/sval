@@ -31,7 +31,7 @@ pub trait Stream<'sval> {
     /**
     Start a UTF8 text string.
     */
-    fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result;
+    fn text_begin(&mut self, num_bytes: Option<usize>) -> Result;
 
     /**
     Stream a fragment of UTF8 text.
@@ -53,8 +53,8 @@ pub trait Stream<'sval> {
     /**
     Start a bitstring.
     */
-    fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-        self.seq_begin(num_bytes_hint)
+    fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
+        self.seq_begin(num_bytes)
     }
 
     /**
@@ -568,9 +568,9 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).bool(value)
             }
 
-            fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
+            fn text_begin(&mut self, num_bytes: Option<usize>) -> Result {
                 let $bind = self;
-                ($($forward)*).text_begin(num_bytes_hint)
+                ($($forward)*).text_begin(num_bytes)
             }
 
             fn text_end(&mut self) -> Result {
@@ -588,9 +588,9 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).text_fragment_computed(fragment)
             }
 
-            fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
+            fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
                 let $bind = self;
-                ($($forward)*).binary_begin(num_bytes_hint)
+                ($($forward)*).binary_begin(num_bytes)
             }
 
             fn binary_end(&mut self) -> Result {
@@ -841,8 +841,8 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.bool(v)
     }
 
-    fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-        self.0.text_begin(num_bytes_hint)
+    fn text_begin(&mut self, num_bytes: Option<usize>) -> Result {
+        self.0.text_begin(num_bytes)
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> Result {
@@ -853,8 +853,8 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.text_end()
     }
 
-    fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-        self.0.binary_begin(num_bytes_hint)
+    fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
+        self.0.binary_begin(num_bytes)
     }
 
     fn binary_fragment_computed(&mut self, fragment: &[u8]) -> Result {

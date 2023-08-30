@@ -30,7 +30,7 @@ mod private {
 
         fn dispatch_bool(&mut self, value: bool) -> sval::Result;
 
-        fn dispatch_text_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result;
+        fn dispatch_text_begin(&mut self, num_bytes: Option<usize>) -> sval::Result;
 
         fn dispatch_text_end(&mut self) -> sval::Result;
 
@@ -38,7 +38,7 @@ mod private {
 
         fn dispatch_text_fragment_computed(&mut self, fragment: &str) -> sval::Result;
 
-        fn dispatch_binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result;
+        fn dispatch_binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result;
 
         fn dispatch_binary_end(&mut self) -> sval::Result;
 
@@ -269,8 +269,8 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.bool(value)
     }
 
-    fn dispatch_text_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-        self.text_begin(num_bytes_hint)
+    fn dispatch_text_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+        self.text_begin(num_bytes)
     }
 
     fn dispatch_text_end(&mut self) -> sval::Result {
@@ -285,8 +285,8 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.text_fragment_computed(fragment)
     }
 
-    fn dispatch_binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-        self.binary_begin(num_bytes_hint)
+    fn dispatch_binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+        self.binary_begin(num_bytes)
     }
 
     fn dispatch_binary_end(&mut self) -> sval::Result {
@@ -557,8 +557,8 @@ macro_rules! impl_stream {
                 self.erase_stream().0.dispatch_bool(value)
             }
 
-            fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-                self.erase_stream().0.dispatch_text_begin(num_bytes_hint)
+            fn text_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+                self.erase_stream().0.dispatch_text_begin(num_bytes)
             }
 
             fn text_end(&mut self) -> sval::Result {
@@ -573,8 +573,8 @@ macro_rules! impl_stream {
                 self.erase_stream().0.dispatch_text_fragment_computed(fragment)
             }
 
-            fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-                self.erase_stream().0.dispatch_binary_begin(num_bytes_hint)
+            fn binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+                self.erase_stream().0.dispatch_binary_begin(num_bytes)
             }
 
             fn binary_end(&mut self) -> sval::Result {
