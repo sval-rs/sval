@@ -174,8 +174,8 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         }
     }
 
-    fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-        self.seq_begin(num_bytes_hint)
+    fn binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+        self.seq_begin(num_bytes)
     }
 
     fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {

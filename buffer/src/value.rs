@@ -1012,6 +1012,90 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
             self.fail(Error::no_alloc("buffered value"))
         }
     }
+
+    fn record_tuple_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> sval::Result {
+        #[cfg(feature = "alloc")]
+        {
+            self.push_begin(ValueKind::RecordTuple {
+                len: 0,
+                tag: tag.cloned(),
+                index: index.cloned(),
+                label: label.map(|label| label.to_owned()),
+                num_entries,
+            });
+
+            Ok(())
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let _ = (tag, label, index, num_entries);
+            self.fail(Error::no_alloc("buffered value"))
+        }
+    }
+
+    fn record_tuple_value_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        index: &sval::Index,
+    ) -> sval::Result {
+        #[cfg(feature = "alloc")]
+        {
+            self.push_begin(ValueKind::RecordTupleValue {
+                len: 0,
+                tag: tag.cloned(),
+                label: label.to_owned(),
+                index: index.clone(),
+            });
+
+            Ok(())
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let _ = tag;
+            let _ = label;
+            let _ = index;
+            self.fail(Error::no_alloc("buffered value"))
+        }
+    }
+
+    fn record_tuple_value_end(
+        &mut self,
+        _: Option<&sval::Tag>,
+        _: &sval::Label,
+        _: &sval::Index,
+    ) -> sval::Result {
+        #[cfg(feature = "alloc")]
+        {
+            self.try_catch(|buf| buf.push_end())
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            self.fail(Error::no_alloc("buffered value"))
+        }
+    }
+
+    fn record_tuple_end(
+        &mut self,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+    ) -> sval::Result {
+        #[cfg(feature = "alloc")]
+        {
+            self.try_catch(|buf| buf.push_end())
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            self.fail(Error::no_alloc("buffered value"))
+        }
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -1123,6 +1207,19 @@ mod alloc_support {
             tag: Option<sval::Tag>,
             index: sval::Index,
         },
+        RecordTuple {
+            len: usize,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label<'static>>,
+            index: Option<sval::Index>,
+            num_entries: Option<usize>,
+        },
+        RecordTupleValue {
+            len: usize,
+            tag: Option<sval::Tag>,
+            label: sval::Label<'static>,
+            index: sval::Index,
+        },
     }
 
     impl<'sval> ValueBuf<'sval> {
@@ -1155,6 +1252,8 @@ mod alloc_support {
                 ValueKind::RecordValue { len, .. } => len,
                 ValueKind::Tuple { len, .. } => len,
                 ValueKind::TupleValue { len, .. } => len,
+                ValueKind::RecordTuple { len, .. } => len,
+                ValueKind::RecordTupleValue { len, .. } => len,
                 ValueKind::Null
                 | ValueKind::Bool(_)
                 | ValueKind::U8(_)
@@ -1309,6 +1408,30 @@ mod alloc_support {
                 ValueKind::TupleValue { len, tag, index } => {
                     crate::assert_static(len);
                     crate::assert_static(tag);
+                    crate::assert_static(index)
+                }
+                ValueKind::RecordTuple {
+                    len,
+                    tag,
+                    label,
+                    index,
+                    num_entries,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(label);
+                    crate::assert_static(index);
+                    crate::assert_static(num_entries)
+                }
+                ValueKind::RecordTupleValue {
+                    len,
+                    tag,
+                    label,
+                    index,
+                } => {
+                    crate::assert_static(len);
+                    crate::assert_static(tag);
+                    crate::assert_static(label);
                     crate::assert_static(index)
                 }
             }
@@ -1490,6 +1613,36 @@ mod alloc_support {
                             stream.tuple_value_begin(tag.as_ref(), index)?;
                             sval_ref::stream_ref(stream, body)?;
                             stream.tuple_value_end(tag.as_ref(), index)
+                        })?;
+                    }
+                    ValueKind::RecordTuple {
+                        len,
+                        tag,
+                        label,
+                        index,
+                        num_entries,
+                    } => {
+                        stream_value(stream, &mut i, *len, self, |stream, body| {
+                            stream.record_tuple_begin(
+                                tag.as_ref(),
+                                label.as_ref(),
+                                index.as_ref(),
+                                *num_entries,
+                            )?;
+                            sval_ref::stream_ref(stream, body)?;
+                            stream.record_tuple_end(tag.as_ref(), label.as_ref(), index.as_ref())
+                        })?;
+                    }
+                    ValueKind::RecordTupleValue {
+                        len,
+                        tag,
+                        label,
+                        index,
+                    } => {
+                        stream_value(stream, &mut i, *len, self, |stream, body| {
+                            stream.record_tuple_value_begin(tag.as_ref(), label, index)?;
+                            sval_ref::stream_ref(stream, body)?;
+                            stream.record_tuple_value_end(tag.as_ref(), label, index)
                         })?;
                     }
                 }
@@ -1938,6 +2091,80 @@ mod alloc_support {
                     kind: ValueKind::TupleValue {
                         len: 1,
                         tag: None,
+                        index: sval::Index::new(1),
+                    },
+                },
+                ValuePart {
+                    kind: ValueKind::Bool(true),
+                },
+            ];
+
+            assert_eq!(expected, value.parts);
+        }
+
+        #[test]
+        fn buffer_record_tuple() {
+            let mut value = ValueBuf::new();
+
+            value
+                .record_tuple_begin(
+                    Some(&sval::Tag::new("test")),
+                    Some(&sval::Label::new("A")),
+                    Some(&sval::Index::new(1)),
+                    Some(2),
+                )
+                .unwrap();
+
+            value
+                .record_tuple_value_begin(None, &sval::Label::new("a"), &sval::Index::new(0))
+                .unwrap();
+            value.bool(false).unwrap();
+            value
+                .record_tuple_value_end(None, &sval::Label::new("a"), &sval::Index::new(0))
+                .unwrap();
+
+            value
+                .record_tuple_value_begin(None, &sval::Label::new("b"), &sval::Index::new(1))
+                .unwrap();
+            value.bool(true).unwrap();
+            value
+                .record_tuple_value_end(None, &sval::Label::new("b"), &sval::Index::new(1))
+                .unwrap();
+
+            value
+                .record_tuple_end(
+                    Some(&sval::Tag::new("test")),
+                    Some(&sval::Label::new("A")),
+                    Some(&sval::Index::new(1)),
+                )
+                .unwrap();
+
+            let expected = vec![
+                ValuePart {
+                    kind: ValueKind::RecordTuple {
+                        len: 4,
+                        tag: Some(sval::Tag::new("test")),
+                        label: Some(sval::Label::new("A")),
+                        index: Some(sval::Index::new(1)),
+                        num_entries: Some(2),
+                    },
+                },
+                ValuePart {
+                    kind: ValueKind::RecordTupleValue {
+                        len: 1,
+                        tag: None,
+                        label: sval::Label::new("a"),
+                        index: sval::Index::new(0),
+                    },
+                },
+                ValuePart {
+                    kind: ValueKind::Bool(false),
+                },
+                ValuePart {
+                    kind: ValueKind::RecordTupleValue {
+                        len: 1,
+                        tag: None,
+                        label: sval::Label::new("b"),
                         index: sval::Index::new(1),
                     },
                 },

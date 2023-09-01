@@ -31,7 +31,7 @@ pub trait Stream<'sval> {
     /**
     Start a UTF8 text string.
     */
-    fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result;
+    fn text_begin(&mut self, num_bytes: Option<usize>) -> Result;
 
     /**
     Stream a fragment of UTF8 text.
@@ -53,8 +53,8 @@ pub trait Stream<'sval> {
     /**
     Start a bitstring.
     */
-    fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-        self.seq_begin(num_bytes_hint)
+    fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
+        self.seq_begin(num_bytes)
     }
 
     /**
@@ -430,6 +430,59 @@ pub trait Stream<'sval> {
         self.seq_end()?;
         self.tagged_end(tag, label, index)
     }
+
+    /**
+    Begin a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+        num_entries: Option<usize>,
+    ) -> Result {
+        self.record_begin(tag, label, index, num_entries)
+    }
+
+    /**
+    Begin a field in a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_value_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        let _ = index;
+
+        self.record_value_begin(tag, label)
+    }
+
+    /**
+    Complete a field in a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_value_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        let _ = index;
+
+        self.record_value_end(tag, label)
+    }
+
+    /**
+    Complete a type that may be treated as either a record or a tuple.
+    */
+    fn record_tuple_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.record_end(tag, label, index)
+    }
 }
 
 macro_rules! impl_stream_forward {
@@ -515,9 +568,9 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).bool(value)
             }
 
-            fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
+            fn text_begin(&mut self, num_bytes: Option<usize>) -> Result {
                 let $bind = self;
-                ($($forward)*).text_begin(num_bytes_hint)
+                ($($forward)*).text_begin(num_bytes)
             }
 
             fn text_end(&mut self) -> Result {
@@ -535,9 +588,9 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).text_fragment_computed(fragment)
             }
 
-            fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
+            fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
                 let $bind = self;
-                ($($forward)*).binary_begin(num_bytes_hint)
+                ($($forward)*).binary_begin(num_bytes)
             }
 
             fn binary_end(&mut self) -> Result {
@@ -660,6 +713,26 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).tuple_end(tag, label, index)
             }
 
+            fn record_tuple_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>, num_entries: Option<usize>) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_begin(tag, label, index, num_entries)
+            }
+
+            fn record_tuple_value_begin(&mut self, tag: Option<&Tag>, label: &Label, index: &Index) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_value_begin(tag, label, index)
+            }
+
+            fn record_tuple_value_end(&mut self, tag: Option<&Tag>, label: &Label, index: &Index) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_value_end(tag, label, index)
+            }
+
+            fn record_tuple_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
+                let $bind = self;
+                ($($forward)*).record_tuple_end(tag, label, index)
+            }
+
             fn enum_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).enum_begin(tag, label, index)
@@ -768,8 +841,8 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.bool(v)
     }
 
-    fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-        self.0.text_begin(num_bytes_hint)
+    fn text_begin(&mut self, num_bytes: Option<usize>) -> Result {
+        self.0.text_begin(num_bytes)
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> Result {
@@ -780,8 +853,8 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.text_end()
     }
 
-    fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> Result {
-        self.0.binary_begin(num_bytes_hint)
+    fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
+        self.0.binary_begin(num_bytes)
     }
 
     fn binary_fragment_computed(&mut self, fragment: &[u8]) -> Result {
@@ -906,6 +979,43 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         index: Option<&Index>,
     ) -> Result {
         self.0.tuple_end(tag, label, index)
+    }
+
+    fn record_tuple_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+        num_entries: Option<usize>,
+    ) -> Result {
+        self.0.record_tuple_begin(tag, label, index, num_entries)
+    }
+
+    fn record_tuple_value_begin(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        self.0.record_tuple_value_begin(tag, label, index)
+    }
+
+    fn record_tuple_value_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: &Label,
+        index: &Index,
+    ) -> Result {
+        self.0.record_tuple_value_end(tag, label, index)
+    }
+
+    fn record_tuple_end(
+        &mut self,
+        tag: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> Result {
+        self.0.record_tuple_end(tag, label, index)
     }
 
     fn enum_begin(

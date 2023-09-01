@@ -30,7 +30,7 @@ mod private {
 
         fn dispatch_bool(&mut self, value: bool) -> sval::Result;
 
-        fn dispatch_text_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result;
+        fn dispatch_text_begin(&mut self, num_bytes: Option<usize>) -> sval::Result;
 
         fn dispatch_text_end(&mut self) -> sval::Result;
 
@@ -38,7 +38,7 @@ mod private {
 
         fn dispatch_text_fragment_computed(&mut self, fragment: &str) -> sval::Result;
 
-        fn dispatch_binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result;
+        fn dispatch_binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result;
 
         fn dispatch_binary_end(&mut self) -> sval::Result;
 
@@ -135,6 +135,35 @@ mod private {
         ) -> sval::Result;
 
         fn dispatch_tuple_end(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+        ) -> sval::Result;
+
+        fn dispatch_record_tuple_begin(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+            num_entries: Option<usize>,
+        ) -> sval::Result;
+
+        fn dispatch_record_tuple_value_begin(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: &sval::Label,
+            index: &sval::Index,
+        ) -> sval::Result;
+
+        fn dispatch_record_tuple_value_end(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            label: &sval::Label,
+            index: &sval::Index,
+        ) -> sval::Result;
+
+        fn dispatch_record_tuple_end(
             &mut self,
             tag: Option<&sval::Tag>,
             label: Option<&sval::Label>,
@@ -240,8 +269,8 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.bool(value)
     }
 
-    fn dispatch_text_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-        self.text_begin(num_bytes_hint)
+    fn dispatch_text_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+        self.text_begin(num_bytes)
     }
 
     fn dispatch_text_end(&mut self) -> sval::Result {
@@ -256,8 +285,8 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.text_fragment_computed(fragment)
     }
 
-    fn dispatch_binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-        self.binary_begin(num_bytes_hint)
+    fn dispatch_binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+        self.binary_begin(num_bytes)
     }
 
     fn dispatch_binary_end(&mut self) -> sval::Result {
@@ -409,6 +438,43 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.tuple_end(tag, label, index)
     }
 
+    fn dispatch_record_tuple_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> sval::Result {
+        self.record_tuple_begin(tag, label, index, num_entries)
+    }
+
+    fn dispatch_record_tuple_value_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        index: &sval::Index,
+    ) -> sval::Result {
+        self.record_tuple_value_begin(tag, label, index)
+    }
+
+    fn dispatch_record_tuple_value_end(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        index: &sval::Index,
+    ) -> sval::Result {
+        self.record_tuple_value_end(tag, label, index)
+    }
+
+    fn dispatch_record_tuple_end(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> sval::Result {
+        self.record_tuple_end(tag, label, index)
+    }
+
     fn dispatch_enum_begin(
         &mut self,
         tag: Option<&sval::Tag>,
@@ -491,8 +557,8 @@ macro_rules! impl_stream {
                 self.erase_stream().0.dispatch_bool(value)
             }
 
-            fn text_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-                self.erase_stream().0.dispatch_text_begin(num_bytes_hint)
+            fn text_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+                self.erase_stream().0.dispatch_text_begin(num_bytes)
             }
 
             fn text_end(&mut self) -> sval::Result {
@@ -507,8 +573,8 @@ macro_rules! impl_stream {
                 self.erase_stream().0.dispatch_text_fragment_computed(fragment)
             }
 
-            fn binary_begin(&mut self, num_bytes_hint: Option<usize>) -> sval::Result {
-                self.erase_stream().0.dispatch_binary_begin(num_bytes_hint)
+            fn binary_begin(&mut self, num_bytes: Option<usize>) -> sval::Result {
+                self.erase_stream().0.dispatch_binary_begin(num_bytes)
             }
 
             fn binary_end(&mut self) -> sval::Result {
@@ -610,6 +676,43 @@ macro_rules! impl_stream {
 
             fn tuple_end(&mut self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>) -> sval::Result {
                 self.erase_stream().0.dispatch_tuple_end(tag, label, index)
+            }
+
+            fn record_tuple_begin(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: Option<&sval::Label>,
+                index: Option<&sval::Index>,
+                num_entries: Option<usize>,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_begin(tag, label, index, num_entries)
+            }
+
+            fn record_tuple_value_begin(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: &sval::Label,
+                index: &sval::Index,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_value_begin(tag, label, index)
+            }
+
+            fn record_tuple_value_end(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: &sval::Label,
+                index: &sval::Index,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_value_end(tag, label, index)
+            }
+
+            fn record_tuple_end(
+                &mut self,
+                tag: Option<&sval::Tag>,
+                label: Option<&sval::Label>,
+                index: Option<&sval::Index>,
+            ) -> sval::Result {
+                self.erase_stream().0.dispatch_record_tuple_end(tag, label, index)
             }
 
             fn enum_begin(&mut self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>) -> sval::Result {

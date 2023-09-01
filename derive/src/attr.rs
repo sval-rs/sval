@@ -11,7 +11,12 @@ pub(crate) fn container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Op
 Get an attribute that is applicable to a named struct field.
 */
 pub(crate) fn named_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    get("named field", &[&Tag, &Label, &Skip], request, attrs)
+    get(
+        "named field",
+        &[&Tag, &Label, &Index, &Skip],
+        request,
+        attrs,
+    )
 }
 
 /**
@@ -21,7 +26,12 @@ pub(crate) fn unnamed_field<T: SvalAttribute>(
     request: T,
     attrs: &[Attribute],
 ) -> Option<T::Result> {
-    get("unnamed field", &[&Tag, &Index, &Skip], request, attrs)
+    get(
+        "unnamed field",
+        &[&Tag, &Index, &Label, &Skip],
+        request,
+        attrs,
+    )
 }
 
 /**

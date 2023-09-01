@@ -10,6 +10,7 @@ pub mod tags;
 use crate::{
     std::{
         borrow::Borrow,
+        cmp::Ordering,
         fmt,
         hash::{Hash, Hasher},
         marker::PhantomData,
@@ -224,6 +225,15 @@ impl Tag {
             data,
         }
     }
+
+    // NOTE: This method is only private to avoid exposing it prematurely
+    // There's no real reason we shouldn't
+    const fn cloned(&self) -> Tag {
+        Tag {
+            id: self.id,
+            data: self.data,
+        }
+    }
 }
 
 impl fmt::Debug for Tag {
@@ -235,22 +245,32 @@ impl fmt::Debug for Tag {
 /**
 The index of a value in its parent context.
 */
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Index(usize);
+#[derive(Clone)]
+pub struct Index(usize, Option<Tag>);
 
 impl Index {
     /**
     Create a new index from a numeric value.
     */
     pub const fn new(index: usize) -> Self {
-        Index(index)
+        Index(index, None)
     }
 
     /**
-    Create a new index from a 32bit numeric value.
+    Create a new None index from a 32bit numeric value.
     */
     pub const fn new_u32(index: u32) -> Self {
-        Index(index as usize)
+        Index(index as usize, None)
+    }
+
+    /**
+    Associate a tag as a hint with this index.
+
+    Tags don't contribute to equality or ordering of indexes but streams may
+    use the them when interpreting the index value.
+    */
+    pub const fn with_tag(self, tag: &Tag) -> Self {
+        Index(self.0, Some(tag.cloned()))
     }
 
     /**
@@ -270,11 +290,60 @@ impl Index {
             None
         }
     }
+
+    /**
+      Try get the index as a 64-bit numeric value.
+    */
+    pub const fn to_u64(&self) -> Option<u64> {
+        if self.0 <= u64::MAX as usize {
+            Some(self.0 as u64)
+        } else {
+            None
+        }
+    }
+
+    /**
+    Get the tag hint associated with the index, if present.
+
+    Streams may use the tag when interpreting the index value.
+    */
+    pub const fn tag(&self) -> Option<&Tag> {
+        self.1.as_ref()
+    }
 }
 
 impl fmt::Debug for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Index").field(&self.0).finish()
+        f.debug_struct("Index")
+            .field("value", &self.0)
+            .field("<tag>", &self.1)
+            .finish()
+    }
+}
+
+impl PartialEq for Index {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Eq for Index {}
+
+impl PartialOrd for Index {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Hash for Index {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
+
+impl Ord for Index {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
     }
 }
 
@@ -410,6 +479,13 @@ mod tests {
         }
 
         assert_eq!(1, small.to_u32().unwrap());
+    }
+
+    #[test]
+    fn index_tag() {
+        let index = Index::new(1).with_tag(&tags::VALUE_OFFSET);
+
+        assert_eq!(Some(&tags::VALUE_OFFSET), index.tag());
     }
 
     #[test]
