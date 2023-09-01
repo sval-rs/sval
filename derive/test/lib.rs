@@ -607,6 +607,66 @@ mod derive_enum {
     }
 
     #[test]
+    fn discriminant() {
+        #[derive(Value)]
+        #[repr(i32)]
+        enum Enum {
+            A = 3,
+            #[sval(index = 2)]
+            B = 4,
+            C(i32) = -1,
+        }
+
+        assert_tokens(&Enum::A, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    None,
+                    Some(sval::Label::new("A")),
+                    Some(sval::Index::new_i32(3)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::B, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    None,
+                    Some(sval::Label::new("B")),
+                    Some(sval::Index::new_i32(2)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+
+        assert_tokens(&Enum::C(42), {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                TaggedBegin(
+                    None,
+                    Some(sval::Label::new("C")),
+                    Some(sval::Index::new_i32(3)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    None,
+                    Some(sval::Label::new("C")),
+                    Some(sval::Index::new_i32(3)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+    }
+
+    #[test]
     fn empty() {
         #![allow(dead_code)]
 

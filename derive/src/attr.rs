@@ -1,4 +1,4 @@
-use syn::{spanned::Spanned, Attribute, Lit, LitBool, Path};
+use syn::{spanned::Spanned, Attribute, Expr, Lit, LitBool, Path};
 
 /**
 Get an attribute that is applicable to a container.
@@ -151,6 +151,14 @@ pub(crate) trait RawAttribute {
 
 pub(crate) trait SvalAttribute: RawAttribute {
     type Result: 'static;
+
+    fn from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+        if let Expr::Lit(lit) = expr {
+            Some(self.from_lit(&lit.lit))
+        } else {
+            None
+        }
+    }
 
     fn from_lit(&self, lit: &Lit) -> Self::Result;
 }

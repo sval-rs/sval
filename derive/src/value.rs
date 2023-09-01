@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use crate::attr::SvalAttribute;
 use crate::{attr, bound};
 use proc_macro::TokenStream;
 use syn::{
@@ -259,7 +260,15 @@ fn derive_enum<'a>(
         let label = attr::container(attr::Label, &variant.attrs)
             .unwrap_or_else(|| variant.ident.to_string());
 
-        let index = index_allocator.next_index(attr::container(attr::Index, &variant.attrs));
+        // If there's a discrimant, use it as the index
+        let index = index_allocator.next_index(
+            attr::container(attr::Index, &variant.attrs).or_else(|| {
+                variant
+                    .discriminant
+                    .as_ref()
+                    .and_then(|(_, discriminant)| attr::Index.from_expr(discriminant))
+            }),
+        );
 
         let variant_ident = &variant.ident;
 
