@@ -260,7 +260,7 @@ fn derive_enum<'a>(
         let label = attr::container(attr::Label, &variant.attrs)
             .unwrap_or_else(|| variant.ident.to_string());
 
-        // If there's a discrimant, use it as the index
+        // If there's a discriminant, use it as the index
         let index = index_allocator.next_index(
             attr::container(attr::Index, &variant.attrs).or_else(|| {
                 variant
