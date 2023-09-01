@@ -414,16 +414,16 @@ mod derive_enum {
         #[derive(Value)]
         #[sval(tag = "CONTAINER", label = "enum", index = 0)]
         enum Enum {
-            #[sval(tag = "VARIANT", label = "tag", index = 1)]
+            #[sval(tag = "VARIANT", label = "tag", index = -1)]
             Tag,
-            #[sval(tag = "VARIANT", label = "tagged", index = 2)]
+            #[sval(tag = "VARIANT", label = "tagged", index = -2)]
             Tagged(i32),
-            #[sval(tag = "VARIANT", label = "record", index = 3)]
+            #[sval(tag = "VARIANT", label = "record", index = -3)]
             Record {
                 #[sval(tag = "FIELD", label = "field")]
                 a: i32,
             },
-            #[sval(tag = "VARIANT", label = "tuple", index = 4)]
+            #[sval(tag = "VARIANT", label = "tuple", index = -4)]
             Tuple(
                 #[sval(tag = "FIELD", index = 1)] i32,
                 #[sval(tag = "FIELD", index = 2)] i32,
@@ -442,7 +442,7 @@ mod derive_enum {
                 Tag(
                     Some(VARIANT),
                     Some(sval::Label::new("tag")),
-                    Some(sval::Index::new(1)),
+                    Some(sval::Index::new_isize(-1)),
                 ),
                 EnumEnd(
                     Some(CONTAINER),
@@ -464,13 +464,13 @@ mod derive_enum {
                 TaggedBegin(
                     Some(VARIANT),
                     Some(sval::Label::new("tagged")),
-                    Some(sval::Index::new(2)),
+                    Some(sval::Index::new_isize(-2)),
                 ),
                 I32(42),
                 TaggedEnd(
                     Some(VARIANT),
                     Some(sval::Label::new("tagged")),
-                    Some(sval::Index::new(2)),
+                    Some(sval::Index::new_isize(-2)),
                 ),
                 EnumEnd(
                     Some(CONTAINER),
@@ -492,7 +492,7 @@ mod derive_enum {
                 RecordTupleBegin(
                     Some(VARIANT),
                     Some(sval::Label::new("record")),
-                    Some(sval::Index::new(3)),
+                    Some(sval::Index::new_isize(-3)),
                     Some(1),
                 ),
                 RecordTupleValueBegin(Some(FIELD), sval::Label::new("field"), sval::Index::new(0)),
@@ -501,7 +501,7 @@ mod derive_enum {
                 RecordTupleEnd(
                     Some(VARIANT),
                     Some(sval::Label::new("record")),
-                    Some(sval::Index::new(3)),
+                    Some(sval::Index::new_isize(-3)),
                 ),
                 EnumEnd(
                     Some(CONTAINER),
@@ -523,7 +523,7 @@ mod derive_enum {
                 TupleBegin(
                     Some(VARIANT),
                     Some(sval::Label::new("tuple")),
-                    Some(sval::Index::new(4)),
+                    Some(sval::Index::new_isize(-4)),
                     Some(2),
                 ),
                 TupleValueBegin(Some(FIELD), sval::Index::new(1)),
@@ -535,7 +535,7 @@ mod derive_enum {
                 TupleEnd(
                     Some(VARIANT),
                     Some(sval::Label::new("tuple")),
-                    Some(sval::Index::new(4)),
+                    Some(sval::Index::new_isize(-4)),
                 ),
                 EnumEnd(
                     Some(CONTAINER),

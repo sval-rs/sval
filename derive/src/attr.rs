@@ -102,7 +102,7 @@ to use for the annotated item.
 pub(crate) struct Index;
 
 impl SvalAttribute for Index {
-    type Result = usize;
+    type Result = isize;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
         if let Lit::Int(ref n) = lit {

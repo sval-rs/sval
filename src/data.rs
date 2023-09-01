@@ -246,21 +246,85 @@ impl fmt::Debug for Tag {
 The index of a value in its parent context.
 */
 #[derive(Clone)]
-pub struct Index(usize, Option<Tag>);
+pub struct Index(i128, Option<Tag>);
+
+impl From<i32> for Index {
+    fn from(index: i32) -> Self {
+        Index::new_i32(index)
+    }
+}
+
+impl From<i64> for Index {
+    fn from(index: i64) -> Self {
+        Index::new_i64(index)
+    }
+}
+
+impl From<isize> for Index {
+    fn from(index: isize) -> Self {
+        Index::new_isize(index)
+    }
+}
+
+impl From<u32> for Index {
+    fn from(index: u32) -> Self {
+        Index::new_u32(index)
+    }
+}
+
+impl From<u64> for Index {
+    fn from(index: u64) -> Self {
+        Index::new_u64(index)
+    }
+}
+
+impl From<usize> for Index {
+    fn from(index: usize) -> Self {
+        Index::new(index)
+    }
+}
 
 impl Index {
     /**
     Create a new index from a numeric value.
     */
     pub const fn new(index: usize) -> Self {
-        Index(index, None)
+        Index(index as i128, None)
     }
 
     /**
     Create a new None index from a 32bit numeric value.
     */
     pub const fn new_u32(index: u32) -> Self {
-        Index(index as usize, None)
+        Index(index as i128, None)
+    }
+
+    /**
+    Create a new None index from a 64bit numeric value.
+     */
+    pub const fn new_u64(index: u64) -> Self {
+        Index(index as i128, None)
+    }
+
+    /**
+    Create a new None index from a signed 32bit numeric value.
+     */
+    pub const fn new_i32(index: i32) -> Self {
+        Index(index as i128, None)
+    }
+
+    /**
+    Create a new None index from a signed 64bit numeric value.
+     */
+    pub const fn new_i64(index: i64) -> Self {
+        Index(index as i128, None)
+    }
+
+    /**
+    Create a new None index from a signed numeric value.
+     */
+    pub const fn new_isize(index: isize) -> Self {
+        Index(index as i128, None)
     }
 
     /**
@@ -277,14 +341,18 @@ impl Index {
     Try get the index as a numeric value.
     */
     pub const fn to_usize(&self) -> Option<usize> {
-        Some(self.0)
+        if self.0 >= usize::MIN as i128 && self.0 <= usize::MAX as i128 {
+            Some(self.0 as usize)
+        } else {
+            None
+        }
     }
 
     /**
     Try get the index as a 32-bit numeric value.
     */
     pub const fn to_u32(&self) -> Option<u32> {
-        if self.0 <= u32::MAX as usize {
+        if self.0 >= u32::MIN as i128 && self.0 <= u32::MAX as i128 {
             Some(self.0 as u32)
         } else {
             None
@@ -292,11 +360,44 @@ impl Index {
     }
 
     /**
-      Try get the index as a 64-bit numeric value.
+    Try get the index as a 64-bit numeric value.
     */
     pub const fn to_u64(&self) -> Option<u64> {
-        if self.0 <= u64::MAX as usize {
+        if self.0 >= u64::MIN as i128 && self.0 <= u64::MAX as i128 {
             Some(self.0 as u64)
+        } else {
+            None
+        }
+    }
+
+    /**
+    Try get the index as a signed numeric value.
+     */
+    pub const fn to_isize(&self) -> Option<isize> {
+        if self.0 >= isize::MIN as i128 && self.0 <= isize::MAX as i128 {
+            Some(self.0 as isize)
+        } else {
+            None
+        }
+    }
+
+    /**
+    Try get the index as a signed 32-bit numeric value.
+     */
+    pub const fn to_i32(&self) -> Option<i32> {
+        if self.0 >= i32::MIN as i128 && self.0 <= i32::MAX as i128 {
+            Some(self.0 as i32)
+        } else {
+            None
+        }
+    }
+
+    /**
+    Try get the index as a signed 64-bit numeric value.
+     */
+    pub const fn to_i64(&self) -> Option<i64> {
+        if self.0 >= i64::MIN as i128 && self.0 <= i64::MAX as i128 {
+            Some(self.0 as i64)
         } else {
             None
         }
@@ -470,15 +571,38 @@ mod tests {
     }
 
     #[test]
-    fn index() {
-        let small = Index::new(1);
-        let large = Index::new(usize::MAX);
+    fn index_convert() {
+        for (index, to_i32, to_i64, to_u32, to_u64) in [
+            (
+                Index::from(0),
+                Some(0i32),
+                Some(0i64),
+                Some(0u32),
+                Some(0u64),
+            ),
+            (
+                Index::from(i32::MIN),
+                Some(i32::MIN),
+                Some(i32::MIN as i64),
+                None,
+                None,
+            ),
+            (Index::from(i64::MIN), None, Some(i64::MIN), None, None),
+            (
+                Index::from(u32::MAX),
+                None,
+                Some(u32::MAX as i64),
+                Some(u32::MAX),
+                Some(u32::MAX as u64),
+            ),
+            (Index::from(u64::MAX), None, None, None, Some(u64::MAX)),
+        ] {
+            assert_eq!(to_i32, index.to_i32(), "{:?}", index);
+            assert_eq!(to_i64, index.to_i64(), "{:?}", index);
 
-        if usize::MAX > (u32::MAX as usize) {
-            assert!(large.to_u32().is_none());
+            assert_eq!(to_u32, index.to_u32(), "{:?}", index);
+            assert_eq!(to_u64, index.to_u64(), "{:?}", index);
         }
-
-        assert_eq!(1, small.to_u32().unwrap());
     }
 
     #[test]
