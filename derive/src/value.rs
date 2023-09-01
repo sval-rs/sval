@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
-use crate::attr::SvalAttribute;
-use crate::{attr, bound};
+use crate::{attr::{self, SvalAttribute}, bound};
 use proc_macro::TokenStream;
 use syn::{
     spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Field, Fields, FieldsNamed,
