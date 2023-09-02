@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{attr, bound};
+use crate::{attr::{self, SvalAttribute}, bound};
 use proc_macro::TokenStream;
 use syn::{
     spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Field, Fields, FieldsNamed,
@@ -259,7 +259,15 @@ fn derive_enum<'a>(
         let label = attr::container(attr::Label, &variant.attrs)
             .unwrap_or_else(|| variant.ident.to_string());
 
-        let index = index_allocator.next_index(attr::container(attr::Index, &variant.attrs));
+        // If there's a discriminant, use it as the index
+        let index = index_allocator.next_index(
+            attr::container(attr::Index, &variant.attrs).or_else(|| {
+                variant
+                    .discriminant
+                    .as_ref()
+                    .and_then(|(_, discriminant)| attr::Index.from_expr(discriminant))
+            }),
+        );
 
         let variant_ident = &variant.ident;
 
@@ -536,9 +544,9 @@ fn quote_optional_label(label: Option<&str>) -> proc_macro2::TokenStream {
 
 fn quote_index(index: Index) -> proc_macro2::TokenStream {
     match index {
-        Index::Explicit(index) => quote!(&sval::Index::new(#index)),
+        Index::Explicit(index) => quote!(&sval::Index::from(#index)),
         Index::Implicit(index) => {
-            quote!(&sval::Index::new(#index).with_tag(&sval::tags::VALUE_OFFSET))
+            quote!(&sval::Index::from(#index).with_tag(&sval::tags::VALUE_OFFSET))
         }
     }
 }
@@ -554,7 +562,7 @@ fn quote_optional_index(index: Option<Index>) -> proc_macro2::TokenStream {
 }
 
 struct IndexAllocator {
-    next_index: usize,
+    next_index: isize,
     explicit: bool,
 }
 
@@ -566,11 +574,11 @@ impl IndexAllocator {
         }
     }
 
-    fn index_of(explicit: Option<usize>) -> Option<Index> {
+    fn index_of(explicit: Option<isize>) -> Option<Index> {
         explicit.map(Index::Explicit)
     }
 
-    fn next_index(&mut self, explicit: Option<usize>) -> Index {
+    fn next_index(&mut self, explicit: Option<isize>) -> Index {
         if let Some(index) = explicit {
             self.explicit = true;
             self.next_index = index + 1;
@@ -591,6 +599,6 @@ impl IndexAllocator {
 
 #[derive(Debug, Clone, Copy)]
 enum Index {
-    Implicit(usize),
-    Explicit(usize),
+    Implicit(isize),
+    Explicit(isize),
 }

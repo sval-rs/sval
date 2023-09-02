@@ -1,4 +1,4 @@
-use syn::{spanned::Spanned, Attribute, Lit, LitBool, Path};
+use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, LitBool, Path, UnOp};
 
 /**
 Get an attribute that is applicable to a container.
@@ -102,7 +102,26 @@ to use for the annotated item.
 pub(crate) struct Index;
 
 impl SvalAttribute for Index {
-    type Result = usize;
+    type Result = isize;
+
+    fn from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+        match expr {
+            // Take `-` into account
+            Expr::Unary(ExprUnary {
+                op: UnOp::Neg(_),
+                expr,
+                ..
+            }) => {
+                if let Expr::Lit(ref lit) = **expr {
+                    Some(-(self.from_lit(&lit.lit)))
+                } else {
+                    None
+                }
+            }
+            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            _ => None,
+        }
+    }
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
         if let Lit::Int(ref n) = lit {
@@ -151,6 +170,14 @@ pub(crate) trait RawAttribute {
 
 pub(crate) trait SvalAttribute: RawAttribute {
     type Result: 'static;
+
+    fn from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+        if let Expr::Lit(lit) = expr {
+            Some(self.from_lit(&lit.lit))
+        } else {
+            None
+        }
+    }
 
     fn from_lit(&self, lit: &Lit) -> Self::Result;
 }
