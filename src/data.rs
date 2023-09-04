@@ -422,6 +422,12 @@ impl fmt::Debug for Index {
     }
 }
 
+impl fmt::Display for Index {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
 impl PartialEq for Index {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0

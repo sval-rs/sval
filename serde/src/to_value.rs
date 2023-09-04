@@ -9,7 +9,7 @@ pub fn stream<'sval>(
     stream: &mut (impl sval::Stream<'sval> + ?Sized),
     value: impl serde::Serialize,
 ) -> sval::Result {
-    stream.value_computed(&ToValue(value))
+    stream.value_computed(&ToValue::new(value))
 }
 
 /**

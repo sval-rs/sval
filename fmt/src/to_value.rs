@@ -7,7 +7,7 @@ pub fn stream_debug<'sval>(
     stream: &mut (impl sval::Stream<'sval> + ?Sized),
     value: impl fmt::Debug,
 ) -> sval::Result {
-    stream.value_computed(&DebugToValue(value))
+    stream.value_computed(&DebugToValue::new(value))
 }
 
 /**
@@ -17,7 +17,7 @@ pub fn stream_display<'sval>(
     stream: &mut (impl sval::Stream<'sval> + ?Sized),
     value: impl fmt::Display,
 ) -> sval::Result {
-    stream.value_computed(&DisplayToValue(value))
+    stream.value_computed(&DisplayToValue::new(value))
 }
 
 /**
@@ -26,7 +26,7 @@ Adapt a [`fmt::Debug`] into an [`sval::Value`].
 #[repr(transparent)]
 pub struct DebugToValue<V: ?Sized>(V);
 
-impl<V: sval::Value> DebugToValue<V> {
+impl<V: fmt::Debug> DebugToValue<V> {
     /**
     Adapt a [`fmt::Debug`] into an [`sval::Value`].
     */
@@ -35,7 +35,7 @@ impl<V: sval::Value> DebugToValue<V> {
     }
 }
 
-impl<V: sval::Value + ?Sized> DebugToValue<V> {
+impl<V: fmt::Debug + ?Sized> DebugToValue<V> {
     /**
     Adapt a reference to a [`fmt::Debug`] into an [`sval::Value`].
     */
@@ -51,7 +51,7 @@ Adapt a [`fmt::Display`] into an [`sval::Value`].
 #[repr(transparent)]
 pub struct DisplayToValue<V: ?Sized>(V);
 
-impl<V: sval::Value> DisplayToValue<V> {
+impl<V: fmt::Display> DisplayToValue<V> {
     /**
     Adapt a [`fmt::Display`] into an [`sval::Value`].
     */
@@ -60,7 +60,7 @@ impl<V: sval::Value> DisplayToValue<V> {
     }
 }
 
-impl<V: sval::Value + ?Sized> DisplayToValue<V> {
+impl<V: fmt::Display + ?Sized> DisplayToValue<V> {
     /**
     Adapt a reference to a [`fmt::Display`] into an [`sval::Value`].
     */

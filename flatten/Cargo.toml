@@ -1,0 +1,23 @@
+[package]
+name = "sval_flatten"
+version = "0.0.0"
+description = "Value flattening for sval"
+edition = "2021"
+
+[dependencies.sval]
+path = "../"
+features = ["alloc"]
+
+[dependencies.sval_fmt]
+path = "../fmt"
+features = ["alloc"]
+
+[dependencies.sval_buffer]
+path = "../buffer"
+features = ["alloc"]
+
+[dev-dependencies.sval_test]
+path = "../test"
+
+[dev-dependencies.sval_derive_macros]
+path = "../derive_macros"

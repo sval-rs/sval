@@ -15,7 +15,7 @@ pub fn serialize<S: serde::Serializer>(
     serializer: S,
     value: impl sval::Value,
 ) -> Result<S::Ok, S::Error> {
-    ToSerialize(value).serialize(serializer)
+    ToSerialize::new(value).serialize(serializer)
 }
 
 /**
