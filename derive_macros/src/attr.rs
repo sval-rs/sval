@@ -4,16 +4,9 @@ use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, LitBool, Path, UnOp
 Get an attribute that is applicable to a container.
 */
 pub(crate) fn container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    get("container", &[&Tag, &Label, &Index], request, attrs)
-}
-
-/**
-Get an attribute that is applicable to a named struct field.
-*/
-pub(crate) fn named_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
     get(
-        "named field",
-        &[&Tag, &Label, &Index, &Skip],
+        "container",
+        &[&Tag, &Label, &Index, &Unlabeled, &Unindexed],
         request,
         attrs,
     )
@@ -22,10 +15,7 @@ pub(crate) fn named_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> 
 /**
 Get an attribute that is applicable to an unnamed tuple field.
 */
-pub(crate) fn unnamed_field<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
+pub(crate) fn field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
     get(
         "unnamed field",
         &[&Tag, &Index, &Label, &Skip],
@@ -161,6 +151,56 @@ impl SvalAttribute for Skip {
 impl RawAttribute for Skip {
     fn key(&self) -> &str {
         "skip"
+    }
+}
+
+/**
+The `unlabeled` attribute.
+
+This attribute signals that an item should be unlabeled.
+*/
+pub(crate) struct Unlabeled;
+
+impl SvalAttribute for Unlabeled {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for Unlabeled {
+    fn key(&self) -> &str {
+        "unlabeled"
+    }
+}
+
+/**
+The `unindexed` attribute.
+
+This attribute signals that an item should be unindexed.
+*/
+pub(crate) struct Unindexed;
+
+impl SvalAttribute for Unindexed {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for Unindexed {
+    fn key(&self) -> &str {
+        "unindexed"
     }
 }
 

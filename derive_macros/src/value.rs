@@ -14,6 +14,8 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
     let tag = attr::container(attr::Tag, &input.attrs);
     let label = attr::container(attr::Label, &input.attrs);
     let index = IndexAllocator::index_of(attr::container(attr::Index, &input.attrs));
+    let unlabeled = attr::container(attr::Unlabeled, &input.attrs).unwrap_or(false);
+    let unindexed = attr::container(attr::Unindexed, &input.attrs).unwrap_or(false);
 
     match &input.data {
         Data::Struct(DataStruct {
@@ -33,6 +35,8 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
             tag.as_ref(),
             label.as_deref(),
             index,
+            unlabeled,
+            unindexed,
             &input.ident,
             &input.generics,
             fields,
@@ -55,6 +59,8 @@ pub(crate) fn derive(input: DeriveInput) -> TokenStream {
             tag.as_ref(),
             label.as_deref(),
             index,
+            unlabeled,
+            unindexed,
             &input.ident,
             &input.generics,
             fields,
@@ -78,6 +84,8 @@ fn derive_struct<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
     index: Option<Index>,
+    unlabeled: bool,
+    unindexed: bool,
     ident: &Ident,
     generics: &Generics,
     fields: &FieldsNamed,
@@ -89,7 +97,16 @@ fn derive_struct<'a>(
 
     let label = label_or_ident(label, ident);
 
-    let match_arm = stream_record_tuple(quote!(#ident), tag, &label, index, fields.named.iter());
+    let match_arm = stream_record_tuple(
+        quote!(#ident),
+        tag,
+        &label,
+        index,
+        fields.named.iter(),
+        RecordTupleTarget::named_fields(),
+        unlabeled,
+        unindexed,
+    );
 
     let tag = quote_optional_tag_owned(tag);
 
@@ -199,6 +216,8 @@ fn derive_tuple<'a>(
     tag: Option<&Path>,
     label: Option<&str>,
     index: Option<Index>,
+    unlabeled: bool,
+    unindexed: bool,
     ident: &Ident,
     generics: &Generics,
     fields: &FieldsUnnamed,
@@ -210,7 +229,16 @@ fn derive_tuple<'a>(
 
     let label = label_or_ident(label, ident);
 
-    let match_arm = stream_tuple(quote!(#ident), tag, &label, index, fields.unnamed.iter());
+    let match_arm = stream_record_tuple(
+        quote!(#ident),
+        tag,
+        &label,
+        index,
+        fields.unnamed.iter(),
+        RecordTupleTarget::unnamed_fields(),
+        unlabeled,
+        unindexed,
+    );
 
     let tag = quote_optional_tag_owned(tag);
 
@@ -261,6 +289,8 @@ fn derive_enum<'a>(
         let tag = attr::container(attr::Tag, &variant.attrs);
         let label = attr::container(attr::Label, &variant.attrs)
             .unwrap_or_else(|| variant.ident.to_string());
+        let unlabeled = attr::container(attr::Unlabeled, &variant.attrs).unwrap_or(false);
+        let unindexed = attr::container(attr::Unindexed, &variant.attrs).unwrap_or(false);
 
         // If there's a discriminant, use it as the index
         let index = index_allocator.next_index(
@@ -281,6 +311,9 @@ fn derive_enum<'a>(
                 &label,
                 Some(index),
                 fields.named.iter(),
+                RecordTupleTarget::named_fields(),
+                unlabeled,
+                unindexed,
             ),
             Fields::Unnamed(ref fields) if fields.unnamed.len() == 1 => stream_newtype(
                 quote!(#ident :: #variant_ident),
@@ -288,12 +321,15 @@ fn derive_enum<'a>(
                 &label,
                 Some(index),
             ),
-            Fields::Unnamed(ref fields) => stream_tuple(
+            Fields::Unnamed(ref fields) => stream_record_tuple(
                 quote!(#ident :: #variant_ident),
                 tag.as_ref(),
                 &label,
                 Some(index),
                 fields.unnamed.iter(),
+                RecordTupleTarget::unnamed_fields(),
+                unlabeled,
+                unindexed,
             ),
             Fields::Unit => stream_tag(
                 quote!(#ident :: #variant_ident),
@@ -348,68 +384,32 @@ fn derive_void<'a>(ident: &Ident, generics: &Generics) -> TokenStream {
     })
 }
 
+enum RecordTupleTarget {
+    RecordTuple,
+    Record,
+    Tuple,
+    Seq,
+}
+
+impl RecordTupleTarget {
+    fn named_fields() -> Self {
+        RecordTupleTarget::RecordTuple
+    }
+
+    fn unnamed_fields() -> Self {
+        RecordTupleTarget::Tuple
+    }
+}
+
 fn stream_record_tuple<'a>(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,
     index: Option<Index>,
     fields: impl Iterator<Item = &'a Field>,
-) -> proc_macro2::TokenStream {
-    let tag = quote_optional_tag(tag);
-    let label = quote_optional_label(Some(label));
-    let index = quote_optional_index(index);
-
-    let mut field_count = 0usize;
-    let mut field_binding = Vec::new();
-    let mut stream_field = Vec::new();
-
-    let mut index_allocator = IndexAllocator::new();
-
-    for (i, field) in fields.enumerate() {
-        let i = syn::Index::from(i);
-
-        if attr::named_field(attr::Skip, &field.attrs).unwrap_or(false) {
-            field_binding.push(quote_field_skip(&i, field));
-            continue;
-        }
-
-        let (ident, binding) = quote_field(&i, field);
-
-        let tag = quote_optional_tag(attr::named_field(attr::Tag, &field.attrs).as_ref());
-        let label = quote_label(
-            &attr::named_field(attr::Label, &field.attrs)
-                .unwrap_or_else(|| field.ident.as_ref().unwrap().to_string()),
-        );
-        let index =
-            quote_index(index_allocator.next_index(attr::unnamed_field(attr::Index, &field.attrs)));
-
-        stream_field.push(quote!({
-            stream.record_tuple_value_begin(#tag, #label, #index)?;
-            stream.value(#ident)?;
-            stream.record_tuple_value_end(#tag, #label, #index)?;
-        }));
-
-        field_binding.push(binding);
-        field_count += 1;
-    }
-
-    quote!(#path { #(#field_binding,)* } => {
-        stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
-
-        #(
-            #stream_field
-        )*
-
-        stream.record_tuple_end(#tag, #label, #index)?;
-    })
-}
-
-fn stream_tuple<'a>(
-    path: proc_macro2::TokenStream,
-    tag: Option<&Path>,
-    label: &str,
-    index: Option<Index>,
-    fields: impl Iterator<Item = &'a Field>,
+    mut target: RecordTupleTarget,
+    unlabeled: bool,
+    unindexed: bool,
 ) -> proc_macro2::TokenStream {
     let tag = quote_optional_tag(tag);
     let label = quote_optional_label(Some(label));
@@ -420,69 +420,139 @@ fn stream_tuple<'a>(
 
     let mut field_count = 0usize;
     let mut labeled_field_count = 0;
+    let mut indexed_field_count = 0;
 
     let mut index_allocator = IndexAllocator::new();
 
     for (i, field) in fields.enumerate() {
         let i = syn::Index::from(i);
 
-        if attr::unnamed_field(attr::Skip, &field.attrs).unwrap_or(false) {
+        if attr::field(attr::Skip, &field.attrs).unwrap_or(false) {
             field_binding.push(quote_field_skip(&i, field));
             continue;
         }
 
-        let (ident, binding) = quote_field(&i, field);
+        let (ident, binding) = get_field(&i, field);
 
-        let tag = quote_optional_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
-        let index =
-            quote_index(index_allocator.next_index(attr::unnamed_field(attr::Index, &field.attrs)));
+        let tag = quote_optional_tag(attr::field(attr::Tag, &field.attrs).as_ref());
 
-        if let Some(label) = attr::unnamed_field(attr::Label, &field.attrs).map(|s| quote_label(&s))
-        {
-            stream_field.push(quote!({
-                stream.record_tuple_value_begin(#tag, #label, #index)?;
-                stream.value(#ident)?;
-                stream.record_tuple_value_end(#tag, #label, #index)?;
-            }));
-
-            labeled_field_count += 1;
+        let label = if unlabeled {
+            None
         } else {
-            stream_field.push(quote!({
-                stream.tuple_value_begin(#tag, #index)?;
-                stream.value(#ident)?;
-                stream.tuple_value_end(#tag, #index)?;
-            }));
+            get_label(attr::field(attr::Label, &field.attrs), field.ident.as_ref())
+        };
+
+        let index = if unindexed {
+            None
+        } else {
+            Some(quote_index(
+                index_allocator.next_index(attr::field(attr::Index, &field.attrs)),
+            ))
+        };
+
+        match (&label, &index) {
+            (Some(label), Some(index)) => {
+                stream_field.push(quote!({
+                    stream.record_tuple_value_begin(#tag, #label, #index)?;
+                    stream.value(#ident)?;
+                    stream.record_tuple_value_end(#tag, #label, #index)?;
+                }));
+
+                target = RecordTupleTarget::RecordTuple;
+                labeled_field_count += 1;
+                indexed_field_count += 1;
+            }
+            (None, Some(index)) => {
+                stream_field.push(quote!({
+                    stream.tuple_value_begin(#tag, #index)?;
+                    stream.value(#ident)?;
+                    stream.tuple_value_end(#tag, #index)?;
+                }));
+
+                target = RecordTupleTarget::Tuple;
+                indexed_field_count += 1;
+            }
+            (Some(label), None) => {
+                stream_field.push(quote!({
+                    stream.record_value_begin(#tag, #label, #index)?;
+                    stream.value(#ident)?;
+                    stream.record_value_end(#tag, #label, #index)?;
+                }));
+
+                target = RecordTupleTarget::Record;
+                labeled_field_count += 1;
+            }
+            (None, None) => {
+                stream_field.push(quote!({
+                    stream.seq_value_begin()?;
+                    stream.value(#ident)?;
+                    stream.seq_value_end()?;
+                }));
+
+                target = RecordTupleTarget::Seq;
+            }
         }
 
         field_binding.push(binding);
         field_count += 1;
     }
 
-    if labeled_field_count != 0 {
-        assert_eq!(
-            field_count, labeled_field_count,
-            "if any fields have a label then all fields need one"
-        );
+    assert!(
+        labeled_field_count == 0 || labeled_field_count == field_count,
+        "if any fields have a label then all fields need one"
+    );
+    assert!(
+        indexed_field_count == 0 || indexed_field_count == field_count,
+        "if any fields have an index then all fields need one"
+    );
 
-        quote!(#path { #(#field_binding,)* } => {
-            stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
+    match target {
+        RecordTupleTarget::RecordTuple => {
+            quote!(#path { #(#field_binding,)* } => {
+                stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
-            #(
-                #stream_field
-            )*
+                #(
+                    #stream_field
+                )*
 
-            stream.record_tuple_end(#tag, #label, #index)?;
-        })
-    } else {
-        quote!(#path { #(#field_binding,)* } => {
-            stream.tuple_begin(#tag, #label, #index, Some(#field_count))?;
+                stream.record_tuple_end(#tag, #label, #index)?;
+            })
+        }
+        RecordTupleTarget::Tuple => {
+            quote!(#path { #(#field_binding,)* } => {
+                stream.tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
-            #(
-                #stream_field
-            )*
+                #(
+                    #stream_field
+                )*
 
-            stream.tuple_end(#tag, #label, #index)?;
-        })
+                stream.tuple_end(#tag, #label, #index)?;
+            })
+        }
+        RecordTupleTarget::Record => {
+            quote!(#path { #(#field_binding,)* } => {
+                stream.record_begin(#tag, #label, #index, Some(#field_count))?;
+
+                #(
+                    #stream_field
+                )*
+
+                stream.record_end(#tag, #label, #index)?;
+            })
+        }
+        RecordTupleTarget::Seq => {
+            quote!(#path { #(#field_binding,)* } => {
+                stream.tagged_begin(#tag, #label, #index)?;
+                stream.seq_begin(Some(#field_count))?;
+
+                #(
+                    #stream_field
+                )*
+
+                stream.seq_end()?;
+                stream.tagged_end(#tag, #label, #index)?;
+            })
+        }
     }
 }
 
@@ -571,7 +641,7 @@ fn quote_optional_index(index: Option<Index>) -> proc_macro2::TokenStream {
     }
 }
 
-fn quote_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenStream) {
+fn get_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenStream) {
     let ident = Ident::new(&format!("field{}", index.index), field.span());
 
     if let Some(ref field) = field.ident {
@@ -583,6 +653,12 @@ fn quote_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenS
 
         (ident, tokens)
     }
+}
+
+fn get_label(explicit: Option<String>, ident: Option<&Ident>) -> Option<proc_macro2::TokenStream> {
+    explicit
+        .or_else(|| ident.map(|ident| ident.to_string()))
+        .map(|label| quote_label(&label))
 }
 
 fn quote_field_skip(index: &syn::Index, field: &Field) -> proc_macro2::TokenStream {

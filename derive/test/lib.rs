@@ -9,19 +9,19 @@ mod derive_record {
     #[test]
     fn basic() {
         #[derive(Value)]
-        struct Record {
+        struct RecordTuple {
             a: i32,
         }
 
-        assert_tokens(&Record { a: 42 }, {
+        assert_tokens(&RecordTuple { a: 42 }, {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
                 RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
                 I32(42),
                 RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
             ]
         })
     }
@@ -48,6 +48,54 @@ mod derive_record {
                 RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(2)),
                 RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
             ]
+        })
+    }
+
+    #[test]
+    fn unlabeled() {
+        #[derive(Value)]
+        #[sval(unlabeled)]
+        struct Tuple {
+            a: i32,
+            b: i32,
+        }
+
+        assert_tokens(&Tuple { a: 42, b: 57 }, {
+            use sval_test::Token::*;
+
+            &[]
+        })
+    }
+
+    #[test]
+    fn unindexed() {
+        #[derive(Value)]
+        #[sval(unindexed)]
+        struct Record {
+            a: i32,
+            b: i32,
+        }
+
+        assert_tokens(&Record { a: 42, b: 57 }, {
+            use sval_test::Token::*;
+
+            &[]
+        })
+    }
+
+    #[test]
+    fn unlabeled_unindexed() {
+        #[derive(Value)]
+        #[sval(unlabeled, unindexed)]
+        struct Seq {
+            a: i32,
+            b: i32,
+        }
+
+        assert_tokens(&Seq { a: 42, b: 57 }, {
+            use sval_test::Token::*;
+
+            &[]
         })
     }
 
@@ -187,6 +235,19 @@ mod derive_tuple {
                 TupleValueEnd(None, sval::Index::new(2)),
                 TupleEnd(None, Some(sval::Label::new("Tuple")), None),
             ]
+        })
+    }
+
+    #[test]
+    fn unindexed() {
+        #[derive(Value)]
+        #[sval(unindexed)]
+        struct Seq(i32, i32);
+
+        assert_tokens(&Seq(42, 43), {
+            use sval_test::Token::*;
+
+            &[]
         })
     }
 
