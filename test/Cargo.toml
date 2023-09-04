@@ -16,6 +16,11 @@ version = "2.6.1"
 path = "../"
 features = ["std"]
 
+[dependencies.sval_fmt]
+version = "2.6.1"
+path = "../fmt"
+features = ["std"]
+
 [dev-dependencies.sval_dynamic]
 version = "2.6.1"
 path = "../dynamic"

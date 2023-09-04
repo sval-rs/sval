@@ -102,7 +102,8 @@ mod std {
 extern crate core as std;
 
 #[cfg(feature = "derive")]
-pub use sval_derive::*;
+#[doc(inline)]
+pub use sval_derive_macros::*;
 
 mod data;
 mod result;

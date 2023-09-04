@@ -5,7 +5,7 @@ This example implements the `Value` trait automatically using Rust's `#[derive]`
 */
 
 #[macro_use]
-extern crate sval_derive;
+extern crate sval_derive_macros;
 
 pub mod stream;
 

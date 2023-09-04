@@ -16,6 +16,7 @@ features = ["std"]
 
 [workspace]
 members = [
+    "derive_macros",
     "derive",
     "derive/test",
     "dynamic",
@@ -34,15 +35,15 @@ members = [
 std = ["alloc"]
 alloc = []
 
-derive = ["dep:sval_derive"]
+derive = ["dep:sval_derive_macros"]
 
-[dependencies.sval_derive]
+[dependencies.sval_derive_macros]
 version = "2.6.1"
-path = "derive"
+path = "derive_macros"
 optional = true
 
-[dev-dependencies.sval_derive]
-path = "derive"
+[dev-dependencies.sval_derive_macros]
+path = "derive_macros"
 
 [dev-dependencies.humantime]
 version = "2"

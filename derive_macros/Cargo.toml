@@ -1,16 +1,25 @@
 [package]
-name = "sval_derive"
+name = "sval_derive_macros"
 version = "2.6.1"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 documentation = "https://docs.rs/sval_derive"
-description = "Derive support for sval"
+description = "Minimal derive support for `sval`"
 repository = "https://github.com/sval-rs/sval"
 readme = "README.md"
 keywords = ["serialization", "no_std"]
 categories = ["encoding", "no-std"]
 
-[dependencies.sval_derive_macros]
-version = "2.6.1"
-path = "../derive_macros"
+[lib]
+proc-macro = true
+
+[dependencies.syn]
+version = "2"
+features = ["derive", "parsing", "extra-traits"]
+
+[dependencies.quote]
+version = "1"
+
+[dependencies.proc-macro2]
+version = "1"
