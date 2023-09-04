@@ -8,7 +8,7 @@ as seconds since the Unix Epoch.
 */
 
 #[macro_use]
-extern crate sval_derive;
+extern crate sval_derive_macros;
 
 pub const UNIX_TIMESTAMP: sval::Tag = sval::Tag::new("unixts");
 

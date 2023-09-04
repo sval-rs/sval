@@ -6,12 +6,25 @@ Test utilities for `sval`.
 Assert that a value streams to exactly the sequence of tokens provided.
 */
 #[track_caller]
-pub fn assert_tokens<'sval>(value: &'sval (impl sval::Value + ?Sized), tokens: &[Token<'sval>]) {
-    let mut stream = TokenBuf(Vec::new());
+pub fn assert_tokens<'sval, V: sval::Value + ?Sized>(value: &'sval V, tokens: &[Token<'sval>]) {
+    let mut stream = TokenBuf::new();
 
-    value.stream(&mut stream).expect("infallible stream");
+    match value.stream(&mut stream) {
+        Ok(()) => assert_eq!(tokens, stream.as_tokens()),
+        Err(_) => stream.fail::<V>(),
+    }
+}
 
-    assert_eq!(tokens, &stream.0);
+/**
+Assert that a value streams without failing.
+*/
+#[track_caller]
+pub fn assert_valid<V: sval::Value>(value: V) {
+    let mut stream = TokenBuf::new();
+
+    if let Err(_) = value.stream(&mut stream) {
+        stream.fail::<V>();
+    }
 }
 
 /**
@@ -265,6 +278,112 @@ pub enum Token<'a> {
     ),
 }
 
+// Avoid exposing `sval_buffer`-like functionality here
+// Use `sval_buffer` instead
+struct AsValue<'a, 'b>(&'a TokenBuf<'b>);
+
+impl<'a, 'b> sval::Value for AsValue<'a, 'b> {
+    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+        for token in &self.0.tokens {
+            match token {
+                Token::U8(v) => stream.u8(*v)?,
+                Token::U16(v) => stream.u16(*v)?,
+                Token::U32(v) => stream.u32(*v)?,
+                Token::U64(v) => stream.u64(*v)?,
+                Token::U128(v) => stream.u128(*v)?,
+                Token::I8(v) => stream.i8(*v)?,
+                Token::I16(v) => stream.i16(*v)?,
+                Token::I32(v) => stream.i32(*v)?,
+                Token::I64(v) => stream.i64(*v)?,
+                Token::I128(v) => stream.i128(*v)?,
+                Token::F32(v) => stream.f32(*v)?,
+                Token::F64(v) => stream.f64(*v)?,
+                Token::Bool(v) => stream.bool(*v)?,
+                Token::Null => stream.null()?,
+                Token::Tag(tag, label, index) => {
+                    stream.tag(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::TextBegin(num_bytes) => stream.text_begin(*num_bytes)?,
+                Token::TextFragment(v) => stream.text_fragment(*v)?,
+                Token::TextFragmentComputed(v) => stream.text_fragment_computed(&**v)?,
+                Token::TextEnd => stream.text_end()?,
+                Token::BinaryBegin(num_bytes) => stream.binary_begin(*num_bytes)?,
+                Token::BinaryFragment(v) => stream.binary_fragment(*v)?,
+                Token::BinaryFragmentComputed(v) => stream.binary_fragment_computed(&**v)?,
+                Token::BinaryEnd => stream.binary_end()?,
+                Token::MapBegin(num_entries) => stream.map_begin(*num_entries)?,
+                Token::MapKeyBegin => stream.map_key_begin()?,
+                Token::MapKeyEnd => stream.map_key_end()?,
+                Token::MapValueBegin => stream.map_value_begin()?,
+                Token::MapValueEnd => stream.map_value_end()?,
+                Token::MapEnd => stream.map_end()?,
+                Token::SeqBegin(num_entries) => stream.seq_begin(*num_entries)?,
+                Token::SeqValueBegin => stream.seq_value_begin()?,
+                Token::SeqValueEnd => stream.seq_value_end()?,
+                Token::SeqEnd => stream.seq_end()?,
+                Token::EnumBegin(tag, label, index) => {
+                    stream.enum_begin(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::EnumEnd(tag, label, index) => {
+                    stream.enum_end(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::TaggedBegin(tag, label, index) => {
+                    stream.tagged_begin(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::TaggedEnd(tag, label, index) => {
+                    stream.tagged_end(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::RecordBegin(tag, label, index, num_entries) => stream.record_begin(
+                    tag.as_ref(),
+                    label.as_ref(),
+                    index.as_ref(),
+                    *num_entries,
+                )?,
+                Token::RecordValueBegin(tag, label) => {
+                    stream.record_value_begin(tag.as_ref(), label)?
+                }
+                Token::RecordValueEnd(tag, label) => {
+                    stream.record_value_end(tag.as_ref(), label)?
+                }
+                Token::RecordEnd(tag, label, index) => {
+                    stream.record_end(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::TupleBegin(tag, label, index, num_entries) => stream.tuple_begin(
+                    tag.as_ref(),
+                    label.as_ref(),
+                    index.as_ref(),
+                    *num_entries,
+                )?,
+                Token::TupleValueBegin(tag, index) => {
+                    stream.tuple_value_begin(tag.as_ref(), index)?
+                }
+                Token::TupleValueEnd(tag, index) => stream.tuple_value_end(tag.as_ref(), index)?,
+                Token::TupleEnd(tag, label, index) => {
+                    stream.tuple_end(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::RecordTupleBegin(tag, label, index, num_entries) => stream
+                    .record_tuple_begin(
+                        tag.as_ref(),
+                        label.as_ref(),
+                        index.as_ref(),
+                        *num_entries,
+                    )?,
+                Token::RecordTupleValueBegin(tag, label, index) => {
+                    stream.record_tuple_value_begin(tag.as_ref(), label, index)?
+                }
+                Token::RecordTupleValueEnd(tag, label, index) => {
+                    stream.record_tuple_value_end(tag.as_ref(), label, index)?
+                }
+                Token::RecordTupleEnd(tag, label, index) => {
+                    stream.record_tuple_end(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /**
 A buffer for collecting test tokens.
 
@@ -272,25 +391,37 @@ This type shouldn't be used as a general-purpose buffer.
 See the `sval-buffer` library for that.
 */
 #[derive(Default, PartialEq, Debug)]
-pub struct TokenBuf<'a>(Vec<Token<'a>>);
+pub struct TokenBuf<'a> {
+    tokens: Vec<Token<'a>>,
+}
 
 impl<'a> TokenBuf<'a> {
     /**
     Create a new, empty token buffer.
     */
     pub fn new() -> Self {
-        TokenBuf(Vec::new())
+        TokenBuf { tokens: Vec::new() }
     }
 
     /**
     Get the underlying tokens in this buffer.
     */
     pub fn as_tokens(&self) -> &[Token<'a>] {
-        &self.0
+        &self.tokens
     }
 
     fn push(&mut self, token: Token<'a>) {
-        self.0.push(token);
+        self.tokens.push(token);
+    }
+
+    #[track_caller]
+    fn fail<T: ?Sized>(&self) {
+        panic!(
+            "the `impl sval::Value for {}` is invalid\nstreamed to:\n  `{}`\nraw:\n  `{:?}`",
+            std::any::type_name::<T>(),
+            sval_fmt::stream_to_string(AsValue(self)),
+            self.tokens
+        );
     }
 }
 
@@ -929,5 +1060,47 @@ mod tests {
                 Token::TaggedEnd(Some(sval::tags::NUMBER), None, None),
             ],
         );
+    }
+
+    #[test]
+    fn stream_invalid() {
+        #[derive(Debug)]
+        enum KaboomMaybe {
+            Nah,
+            Kaboom,
+        }
+
+        impl sval::Value for KaboomMaybe {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                match self {
+                    KaboomMaybe::Nah => stream.bool(true),
+                    KaboomMaybe::Kaboom => sval::error(),
+                }
+            }
+        }
+
+        let map = {
+            let mut map = BTreeMap::new();
+
+            map.insert(1, KaboomMaybe::Nah);
+            map.insert(2, KaboomMaybe::Nah);
+            map.insert(3, KaboomMaybe::Kaboom);
+            map.insert(4, KaboomMaybe::Nah);
+
+            map
+        };
+
+        let e = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            assert_valid(&map);
+        }))
+        .unwrap_err();
+
+        assert!(e
+            .downcast_ref::<String>()
+            .unwrap()
+            .contains("{ 1: true, 2: true, 3: "));
     }
 }
