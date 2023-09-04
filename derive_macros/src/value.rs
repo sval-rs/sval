@@ -89,7 +89,7 @@ fn derive_struct<'a>(
 
     let label = label_or_ident(label, ident);
 
-    let match_arm = stream_record_tuple(quote!(#ident), tag, &label, index, fields);
+    let match_arm = stream_record_tuple(quote!(#ident), tag, &label, index, fields.named.iter());
 
     let tag = quote_optional_tag_owned(tag);
 
@@ -210,7 +210,7 @@ fn derive_tuple<'a>(
 
     let label = label_or_ident(label, ident);
 
-    let match_arm = stream_tuple(quote!(#ident), tag, &label, index, fields);
+    let match_arm = stream_tuple(quote!(#ident), tag, &label, index, fields.unnamed.iter());
 
     let tag = quote_optional_tag_owned(tag);
 
@@ -280,7 +280,7 @@ fn derive_enum<'a>(
                 tag.as_ref(),
                 &label,
                 Some(index),
-                fields,
+                fields.named.iter(),
             ),
             Fields::Unnamed(ref fields) if fields.unnamed.len() == 1 => stream_newtype(
                 quote!(#ident :: #variant_ident),
@@ -293,7 +293,7 @@ fn derive_enum<'a>(
                 tag.as_ref(),
                 &label,
                 Some(index),
-                fields,
+                fields.unnamed.iter(),
             ),
             Fields::Unit => stream_tag(
                 quote!(#ident :: #variant_ident),
@@ -348,12 +348,12 @@ fn derive_void<'a>(ident: &Ident, generics: &Generics) -> TokenStream {
     })
 }
 
-fn stream_record_tuple(
+fn stream_record_tuple<'a>(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,
     index: Option<Index>,
-    fields: &FieldsNamed,
+    fields: impl Iterator<Item = &'a Field>,
 ) -> proc_macro2::TokenStream {
     let tag = quote_optional_tag(tag);
     let label = quote_optional_label(Some(label));
@@ -364,13 +364,16 @@ fn stream_record_tuple(
     let mut stream_field = Vec::new();
 
     let mut index_allocator = IndexAllocator::new();
-    for field in &fields.named {
-        let ident = &field.ident;
+
+    for (i, field) in fields.enumerate() {
+        let i = syn::Index::from(i);
 
         if attr::named_field(attr::Skip, &field.attrs).unwrap_or(false) {
-            field_binding.push(quote!(#ident: _));
+            field_binding.push(quote_field_skip(&i, field));
             continue;
         }
+
+        let (ident, binding) = quote_field(&i, field);
 
         let tag = quote_optional_tag(attr::named_field(attr::Tag, &field.attrs).as_ref());
         let label = quote_label(
@@ -386,7 +389,7 @@ fn stream_record_tuple(
             stream.record_tuple_value_end(#tag, #label, #index)?;
         }));
 
-        field_binding.push(quote!(ref #ident));
+        field_binding.push(binding);
         field_count += 1;
     }
 
@@ -401,29 +404,12 @@ fn stream_record_tuple(
     })
 }
 
-fn stream_newtype(
+fn stream_tuple<'a>(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
     label: &str,
     index: Option<Index>,
-) -> proc_macro2::TokenStream {
-    let tag = quote_optional_tag(tag);
-    let label = quote_optional_label(Some(label));
-    let index = quote_optional_index(index);
-
-    quote!(#path(ref field0) => {
-        stream.tagged_begin(#tag, #label, #index)?;
-        stream.value(field0)?;
-        stream.tagged_end(#tag, #label, #index)?;
-    })
-}
-
-fn stream_tuple(
-    path: proc_macro2::TokenStream,
-    tag: Option<&Path>,
-    label: &str,
-    index: Option<Index>,
-    fields: &FieldsUnnamed,
+    fields: impl Iterator<Item = &'a Field>,
 ) -> proc_macro2::TokenStream {
     let tag = quote_optional_tag(tag);
     let label = quote_optional_label(Some(label));
@@ -431,17 +417,21 @@ fn stream_tuple(
 
     let mut field_binding = Vec::new();
     let mut stream_field = Vec::new();
-    let mut field_count = 0usize;
 
+    let mut field_count = 0usize;
     let mut labeled_field_count = 0;
+
     let mut index_allocator = IndexAllocator::new();
-    for field in &fields.unnamed {
+
+    for (i, field) in fields.enumerate() {
+        let i = syn::Index::from(i);
+
         if attr::unnamed_field(attr::Skip, &field.attrs).unwrap_or(false) {
-            field_binding.push(quote!(_));
+            field_binding.push(quote_field_skip(&i, field));
             continue;
         }
 
-        let ident = Ident::new(&format!("field{}", field_count), field.span());
+        let (ident, binding) = quote_field(&i, field);
 
         let tag = quote_optional_tag(attr::unnamed_field(attr::Tag, &field.attrs).as_ref());
         let index =
@@ -464,7 +454,7 @@ fn stream_tuple(
             }));
         }
 
-        field_binding.push(quote!(ref #ident));
+        field_binding.push(binding);
         field_count += 1;
     }
 
@@ -474,7 +464,7 @@ fn stream_tuple(
             "if any fields have a label then all fields need one"
         );
 
-        quote!(#path(#(#field_binding,)*) => {
+        quote!(#path { #(#field_binding,)* } => {
             stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
             #(
@@ -484,7 +474,7 @@ fn stream_tuple(
             stream.record_tuple_end(#tag, #label, #index)?;
         })
     } else {
-        quote!(#path(#(#field_binding,)*) => {
+        quote!(#path { #(#field_binding,)* } => {
             stream.tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
             #(
@@ -494,6 +484,23 @@ fn stream_tuple(
             stream.tuple_end(#tag, #label, #index)?;
         })
     }
+}
+
+fn stream_newtype(
+    path: proc_macro2::TokenStream,
+    tag: Option<&Path>,
+    label: &str,
+    index: Option<Index>,
+) -> proc_macro2::TokenStream {
+    let tag = quote_optional_tag(tag);
+    let label = quote_optional_label(Some(label));
+    let index = quote_optional_index(index);
+
+    quote!(#path(ref field0) => {
+        stream.tagged_begin(#tag, #label, #index)?;
+        stream.value(field0)?;
+        stream.tagged_end(#tag, #label, #index)?;
+    })
 }
 
 fn stream_tag(
@@ -561,6 +568,28 @@ fn quote_optional_index(index: Option<Index>) -> proc_macro2::TokenStream {
             quote!(Some(#index))
         }
         None => quote!(None),
+    }
+}
+
+fn quote_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenStream) {
+    let ident = Ident::new(&format!("field{}", index.index), field.span());
+
+    if let Some(ref field) = field.ident {
+        let tokens = quote!(#field: ref #ident);
+
+        (ident, tokens)
+    } else {
+        let tokens = quote!(#index: ref #ident);
+
+        (ident, tokens)
+    }
+}
+
+fn quote_field_skip(index: &syn::Index, field: &Field) -> proc_macro2::TokenStream {
+    if let Some(ref field) = field.ident {
+        quote!(#field: _)
+    } else {
+        quote!(#index: _)
     }
 }
 
