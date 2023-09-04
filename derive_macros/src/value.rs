@@ -13,7 +13,7 @@ use syn::{
 pub(crate) fn derive(input: DeriveInput) -> TokenStream {
     let tag = attr::container(attr::Tag, &input.attrs);
     let label = attr::container(attr::Label, &input.attrs);
-    let index = IndexAllocator::index_of(attr::container(attr::Index, &input.attrs));
+    let index = IndexAllocator::const_index_of(attr::container(attr::Index, &input.attrs));
     let unlabeled = attr::container(attr::Unlabeled, &input.attrs).unwrap_or(false);
     let unindexed = attr::container(attr::Unindexed, &input.attrs).unwrap_or(false);
 
@@ -293,7 +293,7 @@ fn derive_enum<'a>(
         let unindexed = attr::container(attr::Unindexed, &variant.attrs).unwrap_or(false);
 
         // If there's a discriminant, use it as the index
-        let index = index_allocator.next_index(
+        let index = index_allocator.next_const_index(
             attr::container(attr::Index, &variant.attrs).or_else(|| {
                 variant
                     .discriminant
@@ -422,6 +422,9 @@ fn stream_record_tuple<'a>(
     let mut labeled_field_count = 0;
     let mut indexed_field_count = 0;
 
+    let index_ident = Ident::new("__sval_index", proc_macro2::Span::call_site());
+    let label_ident = Ident::new("__sval_label", proc_macro2::Span::call_site());
+
     let mut index_allocator = IndexAllocator::new();
 
     for (i, field) in fields.enumerate() {
@@ -445,17 +448,21 @@ fn stream_record_tuple<'a>(
         let index = if unindexed {
             None
         } else {
-            Some(quote_index(
-                index_allocator.next_index(attr::field(attr::Index, &field.attrs)),
-            ))
+            Some(quote_index(index_allocator.next_computed_index(
+                &index_ident,
+                attr::field(attr::Index, &field.attrs),
+            )))
         };
 
         match (&label, &index) {
             (Some(label), Some(index)) => {
                 stream_field.push(quote!({
-                    stream.record_tuple_value_begin(#tag, #label, #index)?;
+                    let #index_ident = #index;
+                    let #label_ident = #label;
+
+                    stream.record_tuple_value_begin(#tag, #label_ident, #index_ident)?;
                     stream.value(#ident)?;
-                    stream.record_tuple_value_end(#tag, #label, #index)?;
+                    stream.record_tuple_value_end(#tag, #label_ident, #index_ident)?;
                 }));
 
                 target = RecordTupleTarget::RecordTuple;
@@ -464,9 +471,11 @@ fn stream_record_tuple<'a>(
             }
             (None, Some(index)) => {
                 stream_field.push(quote!({
-                    stream.tuple_value_begin(#tag, #index)?;
+                    let #index_ident = #index;
+
+                    stream.tuple_value_begin(#tag, #index_ident)?;
                     stream.value(#ident)?;
-                    stream.tuple_value_end(#tag, #index)?;
+                    stream.tuple_value_end(#tag, #index_ident)?;
                 }));
 
                 target = RecordTupleTarget::Tuple;
@@ -474,9 +483,11 @@ fn stream_record_tuple<'a>(
             }
             (Some(label), None) => {
                 stream_field.push(quote!({
-                    stream.record_value_begin(#tag, #label, #index)?;
+                    let #label_ident = #label;
+
+                    stream.record_value_begin(#tag, #label_ident)?;
                     stream.value(#ident)?;
-                    stream.record_value_end(#tag, #label, #index)?;
+                    stream.record_value_end(#tag, #label_ident)?;
                 }));
 
                 target = RecordTupleTarget::Record;
@@ -511,6 +522,8 @@ fn stream_record_tuple<'a>(
             quote!(#path { #(#field_binding,)* } => {
                 stream.record_tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
+                let mut #index_ident = 0;
+
                 #(
                     #stream_field
                 )*
@@ -522,6 +535,8 @@ fn stream_record_tuple<'a>(
             quote!(#path { #(#field_binding,)* } => {
                 stream.tuple_begin(#tag, #label, #index, Some(#field_count))?;
 
+                let mut #index_ident = 0;
+
                 #(
                     #stream_field
                 )*
@@ -532,6 +547,8 @@ fn stream_record_tuple<'a>(
         RecordTupleTarget::Record => {
             quote!(#path { #(#field_binding,)* } => {
                 stream.record_begin(#tag, #label, #index, Some(#field_count))?;
+
+                let mut #index_ident = 0;
 
                 #(
                     #stream_field
@@ -670,43 +687,54 @@ fn quote_field_skip(index: &syn::Index, field: &Field) -> proc_macro2::TokenStre
 }
 
 struct IndexAllocator {
-    next_index: isize,
+    next_const_index: isize,
     explicit: bool,
 }
 
 impl IndexAllocator {
     fn new() -> Self {
         IndexAllocator {
-            next_index: 0,
+            next_const_index: 0,
             explicit: false,
         }
     }
 
-    fn index_of(explicit: Option<isize>) -> Option<Index> {
-        explicit.map(Index::Explicit)
+    fn const_index_of(explicit: Option<isize>) -> Option<Index> {
+        explicit.map(|index| Index::Explicit(quote!(#index)))
     }
 
-    fn next_index(&mut self, explicit: Option<isize>) -> Index {
+    fn next_const_index(&mut self, explicit: Option<isize>) -> Index {
         if let Some(index) = explicit {
             self.explicit = true;
-            self.next_index = index + 1;
+            self.next_const_index = index + 1;
 
-            Index::Explicit(index)
+            Index::Explicit(quote!(#index))
         } else {
-            let index = self.next_index;
-            self.next_index += 1;
+            let index = self.next_const_index;
+            self.next_const_index += 1;
 
             if self.explicit {
-                Index::Explicit(index)
+                Index::Explicit(quote!(#index))
             } else {
-                Index::Implicit(index)
+                Index::Implicit(quote!(#index))
             }
+        }
+    }
+
+    fn next_computed_index(&mut self, ident: &syn::Ident, explicit: Option<isize>) -> Index {
+        match self.next_const_index(explicit) {
+            Index::Implicit(_) => Index::Implicit(quote!({
+                let index = #ident;
+                #ident += 1;
+                index
+            })),
+            Index::Explicit(index) => Index::Explicit(index),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Index {
-    Implicit(isize),
-    Explicit(isize),
+    Implicit(proc_macro2::TokenStream),
+    Explicit(proc_macro2::TokenStream),
 }
