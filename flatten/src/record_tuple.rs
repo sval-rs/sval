@@ -586,6 +586,7 @@ mod tests {
     fn flatten_enum() {
         #[derive(Value)]
         enum Inner {
+            #[sval(label = "b")]
             A(i32),
             B { b: i32, c: i32 },
             C(i32, i32),
@@ -605,9 +606,9 @@ mod tests {
                     RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
                     I32(1),
                     RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
-                    RecordTupleValueBegin(None, Label::new("A"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(1)),
                     I32(2),
-                    RecordTupleValueEnd(None, Label::new("A"), Index::new(1)),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(1)),
                     RecordTupleValueBegin(None, Label::new("d"), Index::new(2)),
                     I32(4),
                     RecordTupleValueEnd(None, Label::new("d"), Index::new(2)),
