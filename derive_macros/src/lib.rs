@@ -7,12 +7,16 @@ extern crate core;
 
 mod attr;
 mod bound;
-mod value;
+mod derive;
+mod index;
+mod label;
+mod stream;
+mod tag;
 
 use proc_macro::TokenStream;
 use syn::DeriveInput;
 
 #[proc_macro_derive(Value, attributes(sval))]
 pub fn derive_value(input: TokenStream) -> TokenStream {
-    value::derive(parse_macro_input!(input as DeriveInput))
+    TokenStream::from(derive::derive(parse_macro_input!(input as DeriveInput)))
 }

@@ -1,77 +1,6 @@
 use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, LitBool, Path, UnOp};
 
 /**
-Get an attribute that is applicable to a struct.
-*/
-pub(crate) fn struct_container<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    get(
-        "struct",
-        &[&Tag, &Label, &Index, &Unlabeled, &Unindexed],
-        request,
-        attrs,
-    )
-}
-
-/**
-Get an attribute that is applicable to a struct field.
-*/
-pub(crate) fn struct_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    get(
-        "struct field",
-        &[&Tag, &Index, &Label, &Skip],
-        request,
-        attrs,
-    )
-}
-
-/**
-Get an attribute that is applicable to a unit struct.
-*/
-pub(crate) fn unit_container<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    get("unit struct", &[&Tag, &Label, &Index], request, attrs)
-}
-
-/**
-Get an attribute that is applicable to a newtype struct.
-*/
-pub(crate) fn newtype_container<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    get("newtype struct", &[&Tag, &Label, &Index], request, attrs)
-}
-
-/**
-Get an attribute that is applicable to a struct.
-*/
-pub(crate) fn enum_container<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    get("enum", &[&Tag, &Label, &Index], request, attrs)
-}
-
-/**
-Ensure that no attributes are applied to a newtype field.
-*/
-pub(crate) fn ensure_newtype_field_empty(attrs: &[Attribute]) {
-    ensure_empty("newtype field", attrs)
-}
-
-/**
-Ensure that no attributes are applied to a void enum.
-*/
-pub(crate) fn ensure_void_empty(attrs: &[Attribute]) {
-    ensure_empty("void enum", attrs)
-}
-
-/**
 The `tag` attribute.
 
 This attribute specifies a path to an `sval::Tag` to use
@@ -262,7 +191,7 @@ pub(crate) trait SvalAttribute: RawAttribute {
     fn from_lit(&self, lit: &Lit) -> Self::Result;
 }
 
-fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
+pub(crate) fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
     // Just ensure the attribute list is empty
     for (value_key, _) in attrs
         .iter()
@@ -273,7 +202,7 @@ fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
     }
 }
 
-fn get<T: SvalAttribute>(
+pub(crate) fn get<T: SvalAttribute>(
     ctxt: &str,
     allowed: &[&dyn RawAttribute],
     request: T,
