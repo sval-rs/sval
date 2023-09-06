@@ -54,7 +54,7 @@ mod derive_record {
     #[test]
     fn unlabeled() {
         #[derive(Value)]
-        #[sval(unlabeled)]
+        #[sval(unlabeled_fields)]
         struct Tuple {
             a: i32,
             b: i32,
@@ -70,7 +70,7 @@ mod derive_record {
     #[test]
     fn unindexed() {
         #[derive(Value)]
-        #[sval(unindexed)]
+        #[sval(unindexed_fields)]
         struct Record {
             a: i32,
             b: i32,
@@ -86,7 +86,7 @@ mod derive_record {
     #[test]
     fn unlabeled_unindexed() {
         #[derive(Value)]
-        #[sval(unlabeled, unindexed)]
+        #[sval(unlabeled_fields, unindexed_fields)]
         struct Seq {
             a: i32,
             b: i32,
@@ -241,7 +241,7 @@ mod derive_tuple {
     #[test]
     fn unindexed() {
         #[derive(Value)]
-        #[sval(unindexed)]
+        #[sval(unindexed_fields)]
         struct Seq(i32, i32);
 
         assert_tokens(&Seq(42, 43), {

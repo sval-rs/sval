@@ -6,9 +6,9 @@ The `tag` attribute.
 This attribute specifies a path to an `sval::Tag` to use
 for the annotated item.
 */
-pub(crate) struct Tag;
+pub(crate) struct TagAttr;
 
-impl SvalAttribute for Tag {
+impl SvalAttribute for TagAttr {
     type Result = syn::Path;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -20,7 +20,7 @@ impl SvalAttribute for Tag {
     }
 }
 
-impl RawAttribute for Tag {
+impl RawAttribute for TagAttr {
     fn key(&self) -> &str {
         "tag"
     }
@@ -32,9 +32,9 @@ The `label` attribute.
 This attribute specifies an `sval::Label` as a constant
 to use for the annotated item.
 */
-pub(crate) struct Label;
+pub(crate) struct LabelAttr;
 
-impl SvalAttribute for Label {
+impl SvalAttribute for LabelAttr {
     type Result = String;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -46,7 +46,7 @@ impl SvalAttribute for Label {
     }
 }
 
-impl RawAttribute for Label {
+impl RawAttribute for LabelAttr {
     fn key(&self) -> &str {
         "label"
     }
@@ -58,9 +58,9 @@ The `index` attribute.
 This attribute specifies an `sval::Index` as a constant
 to use for the annotated item.
 */
-pub(crate) struct Index;
+pub(crate) struct IndexAttr;
 
-impl SvalAttribute for Index {
+impl SvalAttribute for IndexAttr {
     type Result = isize;
 
     fn from_expr(&self, expr: &Expr) -> Option<Self::Result> {
@@ -91,7 +91,7 @@ impl SvalAttribute for Index {
     }
 }
 
-impl RawAttribute for Index {
+impl RawAttribute for IndexAttr {
     fn key(&self) -> &str {
         "index"
     }
@@ -103,9 +103,9 @@ The `skip` attribute.
 This attribute signals that an item should be skipped
 from streaming.
 */
-pub(crate) struct Skip;
+pub(crate) struct SkipAttr;
 
-impl SvalAttribute for Skip {
+impl SvalAttribute for SkipAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -117,7 +117,7 @@ impl SvalAttribute for Skip {
     }
 }
 
-impl RawAttribute for Skip {
+impl RawAttribute for SkipAttr {
     fn key(&self) -> &str {
         "skip"
     }
@@ -128,9 +128,9 @@ The `unlabeled` attribute.
 
 This attribute signals that an item should be unlabeled.
 */
-pub(crate) struct Unlabeled;
+pub(crate) struct UnlabeledFieldsAttr;
 
-impl SvalAttribute for Unlabeled {
+impl SvalAttribute for UnlabeledFieldsAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -142,9 +142,9 @@ impl SvalAttribute for Unlabeled {
     }
 }
 
-impl RawAttribute for Unlabeled {
+impl RawAttribute for UnlabeledFieldsAttr {
     fn key(&self) -> &str {
-        "unlabeled"
+        "unlabeled_fields"
     }
 }
 
@@ -153,9 +153,9 @@ The `unindexed` attribute.
 
 This attribute signals that an item should be unindexed.
 */
-pub(crate) struct Unindexed;
+pub(crate) struct UnindexedFieldsAttr;
 
-impl SvalAttribute for Unindexed {
+impl SvalAttribute for UnindexedFieldsAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -167,9 +167,9 @@ impl SvalAttribute for Unindexed {
     }
 }
 
-impl RawAttribute for Unindexed {
+impl RawAttribute for UnindexedFieldsAttr {
     fn key(&self) -> &str {
-        "unindexed"
+        "unindexed_fields"
     }
 }
 

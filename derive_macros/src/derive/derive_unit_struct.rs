@@ -17,7 +17,7 @@ Get an attribute that is applicable to a unit struct.
 fn unit_container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
     attr::get(
         "unit struct",
-        &[&attr::Tag, &attr::Label, &attr::Index],
+        &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
         request,
         attrs,
     )
@@ -31,9 +31,9 @@ pub(crate) struct UnitStructAttrs {
 
 impl UnitStructAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = unit_container(attr::Tag, attrs);
-        let label = unit_container(attr::Label, attrs);
-        let index = unit_container(attr::Index, attrs);
+        let tag = unit_container(attr::TagAttr, attrs);
+        let label = unit_container(attr::LabelAttr, attrs);
+        let index = unit_container(attr::IndexAttr, attrs);
 
         UnitStructAttrs { tag, label, index }
     }

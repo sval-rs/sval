@@ -16,8 +16,8 @@ Get an attribute that is applicable to a newtype struct.
 */
 fn newtype_container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
     attr::get(
-        "newtype struct",
-        &[&attr::Tag, &attr::Label, &attr::Index],
+        "newtype",
+        &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
         request,
         attrs,
     )
@@ -31,9 +31,9 @@ pub(crate) struct NewtypeAttrs {
 
 impl NewtypeAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = newtype_container(attr::Tag, attrs);
-        let label = newtype_container(attr::Label, attrs);
-        let index = newtype_container(attr::Index, attrs);
+        let tag = newtype_container(attr::TagAttr, attrs);
+        let label = newtype_container(attr::LabelAttr, attrs);
+        let index = newtype_container(attr::IndexAttr, attrs);
 
         NewtypeAttrs { tag, label, index }
     }

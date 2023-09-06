@@ -21,11 +21,11 @@ pub(crate) fn struct_container<T: SvalAttribute>(
     attr::get(
         "struct",
         &[
-            &attr::Tag,
-            &attr::Label,
-            &attr::Index,
-            &attr::Unlabeled,
-            &attr::Unindexed,
+            &attr::TagAttr,
+            &attr::LabelAttr,
+            &attr::IndexAttr,
+            &attr::UnlabeledFieldsAttr,
+            &attr::UnindexedFieldsAttr,
         ],
         request,
         attrs,
@@ -42,12 +42,12 @@ pub(crate) struct StructAttrs {
 
 impl StructAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = struct_container(attr::Tag, attrs);
-        let label = struct_container(attr::Label, attrs);
-        let index = struct_container(attr::Index, attrs);
+        let tag = struct_container(attr::TagAttr, attrs);
+        let label = struct_container(attr::LabelAttr, attrs);
+        let index = struct_container(attr::IndexAttr, attrs);
 
-        let unlabeled_fields = struct_container(attr::Unlabeled, attrs).unwrap_or(false);
-        let unindexed_fields = struct_container(attr::Unindexed, attrs).unwrap_or(false);
+        let unlabeled_fields = struct_container(attr::UnlabeledFieldsAttr, attrs).unwrap_or(false);
+        let unindexed_fields = struct_container(attr::UnindexedFieldsAttr, attrs).unwrap_or(false);
 
         StructAttrs {
             tag,

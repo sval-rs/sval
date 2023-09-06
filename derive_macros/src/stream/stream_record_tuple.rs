@@ -13,7 +13,12 @@ Get an attribute that is applicable to a struct field.
 fn struct_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
     attr::get(
         "struct field",
-        &[&attr::Tag, &attr::Index, &attr::Label, &attr::Skip],
+        &[
+            &attr::TagAttr,
+            &attr::IndexAttr,
+            &attr::LabelAttr,
+            &attr::SkipAttr,
+        ],
         request,
         attrs,
     )
@@ -65,20 +70,20 @@ pub(crate) fn stream_record_tuple<'a>(
     for (i, field) in fields.enumerate() {
         let i = syn::Index::from(i);
 
-        if struct_field(attr::Skip, &field.attrs).unwrap_or(false) {
+        if struct_field(attr::SkipAttr, &field.attrs).unwrap_or(false) {
             field_binding.push(quote_field_skip(&i, field));
             continue;
         }
 
         let (ident, binding) = get_field(&i, field);
 
-        let tag = quote_optional_tag(struct_field(attr::Tag, &field.attrs).as_ref());
+        let tag = quote_optional_tag(struct_field(attr::TagAttr, &field.attrs).as_ref());
 
         let label = if unlabeled_fields {
             None
         } else {
             get_label(
-                struct_field(attr::Label, &field.attrs),
+                struct_field(attr::LabelAttr, &field.attrs),
                 field.ident.as_ref(),
             )
         };
@@ -88,7 +93,7 @@ pub(crate) fn stream_record_tuple<'a>(
         } else {
             Some(quote_index(index_allocator.next_computed_index(
                 &index_ident,
-                struct_field(attr::Index, &field.attrs),
+                struct_field(attr::IndexAttr, &field.attrs),
             )))
         };
 

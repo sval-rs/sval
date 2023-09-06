@@ -21,7 +21,7 @@ Get an attribute that is applicable to a struct.
 fn enum_container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
     attr::get(
         "enum",
-        &[&attr::Tag, &attr::Label, &attr::Index],
+        &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
         request,
         attrs,
     )
@@ -35,9 +35,9 @@ pub(crate) struct EnumAttrs {
 
 impl EnumAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = enum_container(attr::Tag, attrs);
-        let label = enum_container(attr::Label, attrs);
-        let index = enum_container(attr::Index, attrs);
+        let tag = enum_container(attr::TagAttr, attrs);
+        let label = enum_container(attr::LabelAttr, attrs);
+        let index = enum_container(attr::IndexAttr, attrs);
 
         EnumAttrs { tag, label, index }
     }
@@ -73,7 +73,7 @@ pub(crate) fn derive_enum<'a>(
         let discriminant = variant
             .discriminant
             .as_ref()
-            .and_then(|(_, discriminant)| attr::Index.from_expr(discriminant));
+            .and_then(|(_, discriminant)| attr::IndexAttr.from_expr(discriminant));
 
         let variant_ident = &variant.ident;
 
