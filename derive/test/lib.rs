@@ -117,6 +117,51 @@ mod derive_struct {
     }
 
     #[test]
+    fn flattened() {
+        #[derive(Value)]
+        struct Inner {
+            b: i32,
+            c: i32,
+        }
+
+        #[derive(Value)]
+        struct RecordTuple {
+            a: i32,
+            #[sval(flatten)]
+            b: Inner,
+            d: i32,
+        }
+
+        assert_tokens(
+            &RecordTuple {
+                a: 1,
+                b: Inner { b: 2, c: 3 },
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, None),
+                    RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                    RecordTupleValueBegin(None, sval::Label::new("b"), sval::Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(1)),
+                    RecordTupleValueBegin(None, sval::Label::new("c"), sval::Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, sval::Label::new("c"), sval::Index::new(2)),
+                    RecordTupleValueBegin(None, sval::Label::new("d"), sval::Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, sval::Label::new("d"), sval::Index::new(3)),
+                    RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                ]
+            },
+        )
+    }
+
+    #[test]
     fn tagged() {
         const CONTAINER: sval::Tag = sval::Tag::new("container");
         const FIELD: sval::Tag = sval::Tag::new("field");

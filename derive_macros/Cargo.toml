@@ -14,6 +14,9 @@ categories = ["encoding", "no-std"]
 [lib]
 proc-macro = true
 
+[features]
+flatten = []
+
 [dependencies.syn]
 version = "2"
 features = ["derive", "parsing", "extra-traits"]

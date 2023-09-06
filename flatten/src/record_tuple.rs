@@ -588,7 +588,10 @@ mod tests {
         enum Inner {
             #[sval(label = "b")]
             A(i32),
-            B { b: i32, c: i32 },
+            B {
+                b: i32,
+                c: i32,
+            },
             C(i32, i32),
         }
 
