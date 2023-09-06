@@ -9,6 +9,13 @@ path = "../"
 
 [dependencies.sval_buffer]
 path = "../buffer"
+default-features = false
+
+[dependencies.itoa]
+version = "1"
+
+[dependencies.ryu]
+version = "1"
 
 [dev-dependencies.sval_test]
 path = "../test"

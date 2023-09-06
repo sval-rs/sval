@@ -1,3 +1,5 @@
+use core::fmt::Write as _;
+
 use crate::IndexAllocator;
 use sval::{Index, Label, Stream, Tag};
 
@@ -267,11 +269,9 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         if self.depth == 1 {
             let index = self.index_alloc.next_begin(Some(index));
 
-            let fmt = sval_fmt::DisplayToValue::new(&index);
-            let buf = sval_buffer::TextBuf::collect(&fmt).map_err(|_| sval::Error::new())?;
-
-            self.stream
-                .record_tuple_value_begin(tag, &Label::new_computed(buf.as_str()), &index)
+            with_index_to_label(&index, |label| {
+                self.stream.record_tuple_value_begin(tag, &label, &index)
+            })
         } else {
             self.stream.tuple_value_begin(tag, index)
         }
@@ -281,11 +281,9 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         if self.depth == 1 {
             let index = self.index_alloc.next_end(Some(index));
 
-            let fmt = sval_fmt::DisplayToValue::new(&index);
-            let buf = sval_buffer::TextBuf::collect(&fmt).map_err(|_| sval::Error::new())?;
-
-            self.stream
-                .record_tuple_value_begin(tag, &Label::new_computed(buf.as_str()), &index)
+            with_index_to_label(&index, |label| {
+                self.stream.record_tuple_value_end(tag, &label, &index)
+            })
         } else {
             self.stream.tuple_value_end(tag, index)
         }
@@ -347,13 +345,10 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         index: &Index,
     ) -> sval::Result {
         if self.depth == 1 {
-            self.stream.record_tuple_value_begin(
-                tag,
-                label,
-                &self.index_alloc.next_end(Some(index)),
-            )
+            self.stream
+                .record_tuple_value_end(tag, label, &self.index_alloc.next_end(Some(index)))
         } else {
-            self.stream.record_tuple_value_begin(tag, label, index)
+            self.stream.record_tuple_value_end(tag, label, index)
         }
     }
 
@@ -371,6 +366,22 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
             self.stream.record_tuple_end(tag, label, index)
         }
     }
+}
+
+fn with_index_to_label(
+    index: &sval::Index,
+    f: impl FnOnce(sval::Label) -> sval::Result,
+) -> sval::Result {
+    let mut inline = itoa::Buffer::new();
+    let mut fallback = sval_buffer::TextBuf::new();
+    let label = if let Some(index) = index.to_isize() {
+        inline.format(index)
+    } else {
+        write!(&mut fallback, "{}", index).map_err(|_| sval::Error::new())?;
+        fallback.as_str()
+    };
+
+    f(sval::Label::new_computed(label))
 }
 
 #[cfg(test)]
@@ -486,6 +497,20 @@ mod tests {
 
     #[test]
     fn flatten_enum() {
-        todo!()
+        #[derive(Value)]
+        enum Inner {
+            A(i32),
+            B { b: i32, c: i32 },
+            C(i32, i32),
+        }
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: Inner::A(2),
+                d: 4,
+            },
+            &[],
+        );
     }
 }
