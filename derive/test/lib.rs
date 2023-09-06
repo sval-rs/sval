@@ -3,7 +3,7 @@
 use sval_derive::Value;
 use sval_test::assert_tokens;
 
-mod derive_record {
+mod derive_struct {
     use super::*;
 
     #[test]
@@ -57,13 +57,18 @@ mod derive_record {
         #[sval(unlabeled_fields)]
         struct Tuple {
             a: i32,
-            b: i32,
         }
 
-        assert_tokens(&Tuple { a: 42, b: 57 }, {
+        assert_tokens(&Tuple { a: 42 }, {
             use sval_test::Token::*;
 
-            &[]
+            &[
+                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(1)),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+            ]
         })
     }
 
@@ -73,13 +78,18 @@ mod derive_record {
         #[sval(unindexed_fields)]
         struct Record {
             a: i32,
-            b: i32,
         }
 
-        assert_tokens(&Record { a: 42, b: 57 }, {
+        assert_tokens(&Record { a: 42 }, {
             use sval_test::Token::*;
 
-            &[]
+            &[
+                RecordBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordValueBegin(None, sval::Label::new("a")),
+                I32(42),
+                RecordValueEnd(None, sval::Label::new("a")),
+                RecordEnd(None, Some(sval::Label::new("Record")), None),
+            ]
         })
     }
 
@@ -89,13 +99,20 @@ mod derive_record {
         #[sval(unlabeled_fields, unindexed_fields)]
         struct Seq {
             a: i32,
-            b: i32,
         }
 
-        assert_tokens(&Seq { a: 42, b: 57 }, {
+        assert_tokens(&Seq { a: 42 }, {
             use sval_test::Token::*;
 
-            &[]
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
+                SeqBegin(Some(1)),
+                SeqValueBegin,
+                I32(42),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+            ]
         })
     }
 
@@ -247,7 +264,18 @@ mod derive_tuple {
         assert_tokens(&Seq(42, 43), {
             use sval_test::Token::*;
 
-            &[]
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
+                SeqBegin(Some(2)),
+                SeqValueBegin,
+                I32(42),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(43),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+            ]
         })
     }
 
@@ -365,6 +393,22 @@ mod derive_newtype {
                     Some(sval::Index::new(0)),
                 ),
             ]
+        })
+    }
+}
+
+mod derive_unit_struct {
+    use super::*;
+
+    #[test]
+    fn basic() {
+        #[derive(Value)]
+        struct Tag;
+
+        assert_tokens(&Tag, {
+            use sval_test::Token::*;
+
+            &[Tag(None, Some(sval::Label::new("Tag")), None)]
         })
     }
 }
@@ -734,6 +778,72 @@ mod derive_enum {
         // Just ensure `derive` works on empty enums
         #[derive(Value)]
         enum Enum {}
+    }
+
+    #[test]
+    fn dynamic() {
+        #[derive(Value)]
+        #[sval(dynamic)]
+        enum Dynamic {
+            Tag,
+            I32(i32),
+            Bool(bool),
+            Record { a: i32 },
+            Tuple(i32, i32),
+        }
+
+        assert_tokens(&Dynamic::Tag, {
+            use sval_test::Token::*;
+
+            &[Tag(None, Some(sval::Label::new("Tag")), None)]
+        });
+
+        assert_tokens(&Dynamic::Bool(true), {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Bool")), None),
+                Bool(true),
+                TaggedEnd(None, Some(sval::Label::new("Bool")), None),
+            ]
+        });
+
+        assert_tokens(&Dynamic::I32(42), {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("I32")), None),
+                I32(42),
+                TaggedEnd(None, Some(sval::Label::new("I32")), None),
+            ]
+        });
+
+        assert_tokens(&Dynamic::Record { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                I32(42),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
+            ]
+        });
+
+        assert_tokens(&Dynamic::Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(2)),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+            ]
+        });
     }
 }
 

@@ -4,4 +4,4 @@ error: proc-macro derive panicked
 4 | #[derive(Value)]
   |          ^^^^^
   |
-  = help: message: unsupported attribute `not_an_attr` on container
+  = help: message: unsupported attribute `not_an_attr` on struct

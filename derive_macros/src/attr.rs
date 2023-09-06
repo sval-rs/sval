@@ -173,6 +173,31 @@ impl RawAttribute for UnindexedFieldsAttr {
     }
 }
 
+/**
+The `dynamic` attribute.
+
+This attribute signals that an enum should be dynamic.
+*/
+pub(crate) struct DynamicAttr;
+
+impl SvalAttribute for DynamicAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for DynamicAttr {
+    fn key(&self) -> &str {
+        "dynamic"
+    }
+}
+
 pub(crate) trait RawAttribute {
     fn key(&self) -> &str;
 }

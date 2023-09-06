@@ -21,7 +21,12 @@ Get an attribute that is applicable to a struct.
 fn enum_container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
     attr::get(
         "enum",
-        &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
+        &[
+            &attr::TagAttr,
+            &attr::LabelAttr,
+            &attr::IndexAttr,
+            &attr::DynamicAttr,
+        ],
         request,
         attrs,
     )
@@ -31,6 +36,7 @@ pub(crate) struct EnumAttrs {
     tag: Option<Path>,
     label: Option<String>,
     index: Option<isize>,
+    dynamic: bool,
 }
 
 impl EnumAttrs {
@@ -38,8 +44,14 @@ impl EnumAttrs {
         let tag = enum_container(attr::TagAttr, attrs);
         let label = enum_container(attr::LabelAttr, attrs);
         let index = enum_container(attr::IndexAttr, attrs);
+        let dynamic = enum_container(attr::DynamicAttr, attrs).unwrap_or(false);
 
-        EnumAttrs { tag, label, index }
+        EnumAttrs {
+            tag,
+            label,
+            index,
+            dynamic,
+        }
     }
 
     pub(crate) fn tag(&self) -> Option<&Path> {
@@ -69,6 +81,16 @@ pub(crate) fn derive_enum<'a>(
     let mut variant_match_arms = Vec::new();
     let mut index_allocator = IndexAllocator::new();
 
+    let mut variant_index = |index: Option<Index>, discriminant: Option<isize>| {
+        index.or_else(|| {
+            if attrs.dynamic {
+                None
+            } else {
+                Some(index_allocator.next_const_index(discriminant))
+            }
+        })
+    };
+
     for variant in variants {
         let discriminant = variant
             .discriminant
@@ -86,11 +108,7 @@ pub(crate) fn derive_enum<'a>(
                     &fields.unnamed[0],
                     attrs.tag(),
                     Some(&*attrs.label(variant_ident)),
-                    Some(
-                        attrs
-                            .index()
-                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
-                    ),
+                    variant_index(attrs.index(), discriminant),
                 )
             }
             Fields::Unit => {
@@ -100,11 +118,7 @@ pub(crate) fn derive_enum<'a>(
                     quote!(#ident :: #variant_ident),
                     attrs.tag(),
                     Some(&*attrs.label(variant_ident)),
-                    Some(
-                        attrs
-                            .index()
-                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
-                    ),
+                    variant_index(attrs.index(), discriminant),
                 )
             }
             Fields::Named(ref fields) => {
@@ -116,11 +130,7 @@ pub(crate) fn derive_enum<'a>(
                     RecordTupleTarget::named_fields(),
                     attrs.tag(),
                     Some(&*attrs.label(variant_ident)),
-                    Some(
-                        attrs
-                            .index()
-                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
-                    ),
+                    variant_index(attrs.index(), discriminant),
                     attrs.unlabeled_fields(),
                     attrs.unindexed_fields(),
                 )
@@ -134,11 +144,7 @@ pub(crate) fn derive_enum<'a>(
                     RecordTupleTarget::unnamed_fields(),
                     attrs.tag(),
                     Some(&*attrs.label(variant_ident)),
-                    Some(
-                        attrs
-                            .index()
-                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
-                    ),
+                    variant_index(attrs.index(), discriminant),
                     attrs.unlabeled_fields(),
                     attrs.unindexed_fields(),
                 )
@@ -146,30 +152,52 @@ pub(crate) fn derive_enum<'a>(
         });
     }
 
-    let tag = quote_optional_tag(attrs.tag());
-    let tag_owned = quote_optional_tag_owned(attrs.tag());
-    let label = quote_optional_label(Some(&*attrs.label(ident)));
-    let index = quote_optional_index(attrs.index());
+    if attrs.dynamic {
+        assert!(attrs.tag.is_none(), "dynamic enums can't have tags");
+        assert!(attrs.label.is_none(), "dynamic enums can't have labels");
+        assert!(attrs.index.is_none(), "dynamic enums can't have indexes");
 
-    quote! {
-        const _: () = {
-            extern crate sval;
+        quote! {
+            const _: () = {
+                extern crate sval;
 
-            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                    stream.enum_begin(#tag, #label, #index)?;
+                impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
+                    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+                        match self {
+                            #(#variant_match_arms)*
+                        }
 
-                    match self {
-                        #(#variant_match_arms)*
+                        Ok(())
+                    }
+                }
+            };
+        }
+    } else {
+        let tag = quote_optional_tag(attrs.tag());
+        let tag_owned = quote_optional_tag_owned(attrs.tag());
+        let label = quote_optional_label(Some(&*attrs.label(ident)));
+        let index = quote_optional_index(attrs.index());
+
+        quote! {
+            const _: () = {
+                extern crate sval;
+
+                impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
+                    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+                        stream.enum_begin(#tag, #label, #index)?;
+
+                        match self {
+                            #(#variant_match_arms)*
+                        }
+
+                        stream.enum_end(#tag, #label, #index)
                     }
 
-                    stream.enum_end(#tag, #label, #index)
+                    fn tag(&self) -> Option<sval::Tag> {
+                        #tag_owned
+                    }
                 }
-
-                fn tag(&self) -> Option<sval::Tag> {
-                    #tag_owned
-                }
-            }
-        };
+            };
+        }
     }
 }
