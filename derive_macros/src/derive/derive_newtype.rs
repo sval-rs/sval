@@ -1,7 +1,7 @@
 use syn::{Attribute, Field, Generics, Ident, Path};
 
 use crate::{
-    attr::{self, SvalAttribute},
+    attr::{self},
     bound,
     index::{Index, IndexAllocator},
     label::label_or_ident,
@@ -9,31 +9,44 @@ use crate::{
     tag::quote_optional_tag_owned,
 };
 
-/**
-Get an attribute that is applicable to a newtype struct.
-*/
-fn newtype_container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    attr::get(
-        "newtype",
-        &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
-        request,
-        attrs,
-    )
-}
-
 pub(crate) struct NewtypeAttrs {
     tag: Option<Path>,
     label: Option<String>,
     index: Option<isize>,
+    transparent: bool,
 }
 
 impl NewtypeAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = newtype_container(attr::TagAttr, attrs);
-        let label = newtype_container(attr::LabelAttr, attrs);
-        let index = newtype_container(attr::IndexAttr, attrs);
+        attr::check(
+            "newtype",
+            &[
+                &attr::TagAttr,
+                &attr::LabelAttr,
+                &attr::IndexAttr,
+                &attr::TransparentAttr,
+            ],
+            attrs,
+        );
 
-        NewtypeAttrs { tag, label, index }
+        let tag = attr::get_unchecked("newtype", attr::TagAttr, attrs);
+        let label = attr::get_unchecked("newtype", attr::LabelAttr, attrs);
+        let index = attr::get_unchecked("newtype", attr::IndexAttr, attrs);
+        let transparent =
+            attr::get_unchecked("newtype", attr::TransparentAttr, attrs).unwrap_or(false);
+
+        if transparent {
+            assert!(tag.is_none(), "transparent values cannot have tags");
+            assert!(label.is_none(), "transparent values cannot have labels");
+            assert!(index.is_none(), "transparent values cannot have indexes");
+        }
+
+        NewtypeAttrs {
+            tag,
+            label,
+            index,
+            transparent,
+        }
     }
 
     pub(crate) fn tag(&self) -> Option<&Path> {
@@ -46,6 +59,10 @@ impl NewtypeAttrs {
 
     pub(crate) fn index(&self) -> Option<Index> {
         self.index.map(IndexAllocator::const_index_of)
+    }
+
+    pub(crate) fn transparent(&self) -> bool {
+        self.transparent
     }
 }
 
@@ -66,6 +83,7 @@ pub(crate) fn derive_newtype<'a>(
         attrs.tag(),
         Some(&*label_or_ident(attrs.label(), ident)),
         attrs.index(),
+        attrs.transparent(),
     );
 
     let tag = quote_optional_tag_owned(attrs.tag());

@@ -1,4 +1,4 @@
-use syn::{Attribute, Field, Path};
+use syn::{Field, Path};
 
 use crate::{
     attr,
@@ -7,29 +7,29 @@ use crate::{
     tag::quote_optional_tag,
 };
 
-/**
-Ensure that no attributes are applied to a newtype field.
-*/
-fn ensure_newtype_field_empty(attrs: &[Attribute]) {
-    attr::ensure_empty("newtype field", attrs)
-}
-
 pub(crate) fn stream_newtype(
     path: proc_macro2::TokenStream,
     field: &Field,
     tag: Option<&Path>,
     label: Option<&str>,
     index: Option<Index>,
+    transparent: bool,
 ) -> proc_macro2::TokenStream {
-    ensure_newtype_field_empty(&field.attrs);
+    attr::ensure_empty("newtype field", &field.attrs);
 
-    let tag = quote_optional_tag(tag);
-    let label = quote_optional_label(label);
-    let index = quote_optional_index(index);
+    if transparent {
+        quote!(#path(ref field0) => {
+            stream.value(field0)?;
+        })
+    } else {
+        let tag = quote_optional_tag(tag);
+        let label = quote_optional_label(label);
+        let index = quote_optional_index(index);
 
-    quote!(#path(ref field0) => {
-        stream.tagged_begin(#tag, #label, #index)?;
-        stream.value(field0)?;
-        stream.tagged_end(#tag, #label, #index)?;
-    })
+        quote!(#path(ref field0) => {
+            stream.tagged_begin(#tag, #label, #index)?;
+            stream.value(field0)?;
+            stream.tagged_end(#tag, #label, #index)?;
+        })
+    }
 }

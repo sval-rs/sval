@@ -1,25 +1,13 @@
 use syn::{Attribute, Generics, Ident, Path};
 
 use crate::{
-    attr::{self, SvalAttribute},
+    attr::{self},
     bound,
     index::{Index, IndexAllocator},
     label::label_or_ident,
     stream::stream_tag,
     tag::quote_optional_tag_owned,
 };
-
-/**
-Get an attribute that is applicable to a unit struct.
-*/
-fn unit_container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    attr::get(
-        "unit struct",
-        &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
-        request,
-        attrs,
-    )
-}
 
 pub(crate) struct UnitStructAttrs {
     tag: Option<Path>,
@@ -29,9 +17,15 @@ pub(crate) struct UnitStructAttrs {
 
 impl UnitStructAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = unit_container(attr::TagAttr, attrs);
-        let label = unit_container(attr::LabelAttr, attrs);
-        let index = unit_container(attr::IndexAttr, attrs);
+        attr::check(
+            "unit struct",
+            &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
+            attrs,
+        );
+
+        let tag = attr::get_unchecked("unit struct", attr::TagAttr, attrs);
+        let label = attr::get_unchecked("unit struct", attr::LabelAttr, attrs);
+        let index = attr::get_unchecked("unit struct", attr::IndexAttr, attrs);
 
         UnitStructAttrs { tag, label, index }
     }

@@ -2,18 +2,11 @@ use syn::{Attribute, Generics, Ident};
 
 use crate::{attr, bound};
 
-/**
-Ensure that no attributes are applied to a void enum.
-*/
-fn ensure_void_empty(attrs: &[Attribute]) {
-    attr::ensure_empty("void enum", attrs)
-}
-
 pub(crate) struct VoidAttrs {}
 
 impl VoidAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        ensure_void_empty(attrs);
+        attr::ensure_empty("void enum", attrs);
 
         VoidAttrs {}
     }

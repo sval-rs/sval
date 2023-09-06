@@ -13,23 +13,6 @@ use crate::{
     tag::{quote_optional_tag, quote_optional_tag_owned},
 };
 
-/**
-Get an attribute that is applicable to a struct.
-*/
-fn enum_container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    attr::get(
-        "enum",
-        &[
-            &attr::TagAttr,
-            &attr::LabelAttr,
-            &attr::IndexAttr,
-            &attr::DynamicAttr,
-        ],
-        request,
-        attrs,
-    )
-}
-
 pub(crate) struct EnumAttrs {
     tag: Option<Path>,
     label: Option<String>,
@@ -39,10 +22,27 @@ pub(crate) struct EnumAttrs {
 
 impl EnumAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = enum_container(attr::TagAttr, attrs);
-        let label = enum_container(attr::LabelAttr, attrs);
-        let index = enum_container(attr::IndexAttr, attrs);
-        let dynamic = enum_container(attr::DynamicAttr, attrs).unwrap_or(false);
+        attr::check(
+            "enum",
+            &[
+                &attr::TagAttr,
+                &attr::LabelAttr,
+                &attr::IndexAttr,
+                &attr::DynamicAttr,
+            ],
+            attrs,
+        );
+
+        let tag = attr::get_unchecked("enum", attr::TagAttr, attrs);
+        let label = attr::get_unchecked("enum", attr::LabelAttr, attrs);
+        let index = attr::get_unchecked("enum", attr::IndexAttr, attrs);
+        let dynamic = attr::get_unchecked("enum", attr::DynamicAttr, attrs).unwrap_or(false);
+
+        if dynamic {
+            assert!(tag.is_none(), "dynamic enums can't have tags");
+            assert!(label.is_none(), "dynamic enums can't have labels");
+            assert!(index.is_none(), "dynamic enums can't have indexes");
+        }
 
         EnumAttrs {
             tag,
@@ -97,7 +97,25 @@ pub(crate) fn derive_enum<'a>(
         }
     };
 
+    let variant_transparent = attrs.dynamic;
+
     for variant in variants {
+        // Only allow a subset of attributes on enum variants
+        // We need to make sure variants are always wrapped in
+        // a type that accepts tags, like `tag`, `tagged`, record`,
+        // or `tuple`.
+        attr::check(
+            "enum variant",
+            &[
+                &attr::TagAttr,
+                &attr::LabelAttr,
+                &attr::IndexAttr,
+                &attr::UnlabeledFieldsAttr,
+                &attr::UnindexedFieldsAttr,
+            ],
+            &variant.attrs,
+        );
+
         let discriminant = variant
             .discriminant
             .as_ref()
@@ -115,6 +133,7 @@ pub(crate) fn derive_enum<'a>(
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident).as_deref(),
                     variant_index(attrs.index(), discriminant),
+                    variant_transparent,
                 )
             }
             Fields::Unit => {
@@ -159,10 +178,6 @@ pub(crate) fn derive_enum<'a>(
     }
 
     if attrs.dynamic {
-        assert!(attrs.tag.is_none(), "dynamic enums can't have tags");
-        assert!(attrs.label.is_none(), "dynamic enums can't have labels");
-        assert!(attrs.index.is_none(), "dynamic enums can't have indexes");
-
         quote! {
             const _: () = {
                 extern crate sval;

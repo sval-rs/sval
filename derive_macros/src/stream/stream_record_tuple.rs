@@ -1,28 +1,11 @@
-use syn::{spanned::Spanned, Attribute, Field, Ident, Path};
+use syn::{spanned::Spanned, Field, Ident, Path};
 
 use crate::{
-    attr::{self, SvalAttribute},
+    attr::{self},
     index::{quote_index, quote_optional_index, Index, IndexAllocator},
     label::{quote_label, quote_optional_label},
     tag::quote_optional_tag,
 };
-
-/**
-Get an attribute that is applicable to a struct field.
-*/
-fn struct_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    attr::get(
-        "struct field",
-        &[
-            &attr::TagAttr,
-            &attr::IndexAttr,
-            &attr::LabelAttr,
-            &attr::SkipAttr,
-        ],
-        request,
-        attrs,
-    )
-}
 
 pub(crate) enum RecordTupleTarget {
     RecordTuple,
@@ -68,22 +51,35 @@ pub(crate) fn stream_record_tuple<'a>(
     let mut index_allocator = IndexAllocator::new();
 
     for (i, field) in fields.enumerate() {
+        attr::check(
+            "struct field",
+            &[
+                &attr::TagAttr,
+                &attr::IndexAttr,
+                &attr::LabelAttr,
+                &attr::SkipAttr,
+            ],
+            &field.attrs,
+        );
+
         let i = syn::Index::from(i);
 
-        if struct_field(attr::SkipAttr, &field.attrs).unwrap_or(false) {
+        if attr::get_unchecked("struct field", attr::SkipAttr, &field.attrs).unwrap_or(false) {
             field_binding.push(quote_field_skip(&i, field));
             continue;
         }
 
         let (ident, binding) = get_field(&i, field);
 
-        let tag = quote_optional_tag(struct_field(attr::TagAttr, &field.attrs).as_ref());
+        let tag = quote_optional_tag(
+            attr::get_unchecked("struct field", attr::TagAttr, &field.attrs).as_ref(),
+        );
 
         let label = if unlabeled_fields {
             None
         } else {
             get_label(
-                struct_field(attr::LabelAttr, &field.attrs),
+                attr::get_unchecked("struct field", attr::LabelAttr, &field.attrs),
                 field.ident.as_ref(),
             )
         };
@@ -93,7 +89,7 @@ pub(crate) fn stream_record_tuple<'a>(
         } else {
             Some(quote_index(index_allocator.next_computed_index(
                 &index_ident,
-                struct_field(attr::IndexAttr, &field.attrs),
+                attr::get_unchecked("struct field", attr::IndexAttr, &field.attrs),
             )))
         };
 

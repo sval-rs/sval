@@ -370,6 +370,19 @@ mod derive_newtype {
     }
 
     #[test]
+    fn transparent() {
+        #[derive(Value)]
+        #[sval(transparent)]
+        struct Tagged(i32);
+
+        assert_tokens(&Tagged(42), {
+            use sval_test::Token::*;
+
+            &[I32(42)]
+        })
+    }
+
+    #[test]
     fn tagged() {
         const CONTAINER: sval::Tag = sval::Tag::new("container");
 
@@ -801,21 +814,13 @@ mod derive_enum {
         assert_tokens(&Dynamic::Bool(true), {
             use sval_test::Token::*;
 
-            &[
-                TaggedBegin(None, None, None),
-                Bool(true),
-                TaggedEnd(None, None, None),
-            ]
+            &[Bool(true)]
         });
 
         assert_tokens(&Dynamic::I32(42), {
             use sval_test::Token::*;
 
-            &[
-                TaggedBegin(None, None, None),
-                I32(42),
-                TaggedEnd(None, None, None),
-            ]
+            &[I32(42)]
         });
 
         assert_tokens(&Dynamic::Record { a: 42 }, {

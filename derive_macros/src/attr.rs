@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, LitBool, Path, UnOp};
 
 /**
@@ -198,6 +200,32 @@ impl RawAttribute for DynamicAttr {
     }
 }
 
+/**
+The `transparent` attribute.
+
+This attribute signals that a newtype should stream its inner field
+without wrapping it in a tag.
+*/
+pub(crate) struct TransparentAttr;
+
+impl SvalAttribute for TransparentAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for TransparentAttr {
+    fn key(&self) -> &str {
+        "transparent"
+    }
+}
+
 pub(crate) trait RawAttribute {
     fn key(&self) -> &str;
 }
@@ -227,17 +255,10 @@ pub(crate) fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
     }
 }
 
-pub(crate) fn get<T: SvalAttribute>(
-    ctxt: &str,
-    allowed: &[&dyn RawAttribute],
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    let request_key = request.key();
+pub(crate) fn check(ctxt: &str, allowed: &[&dyn RawAttribute], attrs: &[Attribute]) {
+    let mut seen = HashSet::new();
 
-    let mut result = None;
-
-    for (value_key, value) in attrs
+    for (value_key, _) in attrs
         .iter()
         .filter_map(|attr| sval_attr(ctxt, attr))
         .flatten()
@@ -249,25 +270,37 @@ pub(crate) fn get<T: SvalAttribute>(
 
             if value_key.is_ident(attr_key) {
                 is_valid_attr = true;
+
+                if !seen.insert(attr_key) {
+                    panic!("duplicate attribute `{}` on {}", quote!(#value_key), ctxt);
+                }
             }
         }
 
         if !is_valid_attr {
             panic!("unsupported attribute `{}` on {}", quote!(#value_key), ctxt);
         }
+    }
+}
 
+pub(crate) fn get_unchecked<T: SvalAttribute>(
+    ctxt: &str,
+    request: T,
+    attrs: &[Attribute],
+) -> Option<T::Result> {
+    let request_key = request.key();
+
+    for (value_key, value) in attrs
+        .iter()
+        .filter_map(|attr| sval_attr(ctxt, attr))
+        .flatten()
+    {
         if value_key.is_ident(request_key) {
-            if result.is_none() {
-                result = Some(request.from_lit(&value));
-
-                // We don't short-circuit here to check other attributes are valid
-            } else {
-                panic!("duplicate attribute `{}` on {}", quote!(#value_key), ctxt);
-            }
+            return Some(request.from_lit(&value));
         }
     }
 
-    result
+    None
 }
 
 fn sval_attr<'a>(

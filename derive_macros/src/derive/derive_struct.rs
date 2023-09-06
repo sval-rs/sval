@@ -1,34 +1,13 @@
 use syn::{Attribute, Fields, Generics, Ident, Path};
 
 use crate::{
-    attr::{self, SvalAttribute},
+    attr::{self},
     bound,
     index::{Index, IndexAllocator},
     label::label_or_ident,
     stream::{stream_record_tuple, RecordTupleTarget},
     tag::quote_optional_tag_owned,
 };
-
-/**
-Get an attribute that is applicable to a struct.
-*/
-pub(crate) fn struct_container<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    attr::get(
-        "struct",
-        &[
-            &attr::TagAttr,
-            &attr::LabelAttr,
-            &attr::IndexAttr,
-            &attr::UnlabeledFieldsAttr,
-            &attr::UnindexedFieldsAttr,
-        ],
-        request,
-        attrs,
-    )
-}
 
 pub(crate) struct StructAttrs {
     tag: Option<Path>,
@@ -40,12 +19,26 @@ pub(crate) struct StructAttrs {
 
 impl StructAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        let tag = struct_container(attr::TagAttr, attrs);
-        let label = struct_container(attr::LabelAttr, attrs);
-        let index = struct_container(attr::IndexAttr, attrs);
+        attr::check(
+            "struct",
+            &[
+                &attr::TagAttr,
+                &attr::LabelAttr,
+                &attr::IndexAttr,
+                &attr::UnlabeledFieldsAttr,
+                &attr::UnindexedFieldsAttr,
+            ],
+            attrs,
+        );
 
-        let unlabeled_fields = struct_container(attr::UnlabeledFieldsAttr, attrs).unwrap_or(false);
-        let unindexed_fields = struct_container(attr::UnindexedFieldsAttr, attrs).unwrap_or(false);
+        let tag = attr::get_unchecked("struct", attr::TagAttr, attrs);
+        let label = attr::get_unchecked("struct", attr::LabelAttr, attrs);
+        let index = attr::get_unchecked("struct", attr::IndexAttr, attrs);
+
+        let unlabeled_fields =
+            attr::get_unchecked("struct", attr::UnlabeledFieldsAttr, attrs).unwrap_or(false);
+        let unindexed_fields =
+            attr::get_unchecked("struct", attr::UnindexedFieldsAttr, attrs).unwrap_or(false);
 
         StructAttrs {
             tag,
