@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use syn::{Attribute, Field, Generics, Ident, Path};
 
 use crate::{
@@ -42,8 +40,8 @@ impl NewtypeAttrs {
         self.tag.as_ref()
     }
 
-    pub(crate) fn label(&self, ident: &Ident) -> Cow<str> {
-        label_or_ident(self.label.as_deref(), ident)
+    pub(crate) fn label(&self) -> Option<&str> {
+        self.label.as_deref()
     }
 
     pub(crate) fn index(&self) -> Option<Index> {
@@ -66,7 +64,7 @@ pub(crate) fn derive_newtype<'a>(
         quote!(#ident),
         field,
         attrs.tag(),
-        Some(&*attrs.label(ident)),
+        Some(&*label_or_ident(attrs.label(), ident)),
         attrs.index(),
     );
 

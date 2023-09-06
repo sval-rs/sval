@@ -802,9 +802,9 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                TaggedBegin(None, Some(sval::Label::new("Bool")), None),
+                TaggedBegin(None, None, None),
                 Bool(true),
-                TaggedEnd(None, Some(sval::Label::new("Bool")), None),
+                TaggedEnd(None, None, None),
             ]
         });
 
@@ -812,9 +812,9 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                TaggedBegin(None, Some(sval::Label::new("I32")), None),
+                TaggedBegin(None, None, None),
                 I32(42),
-                TaggedEnd(None, Some(sval::Label::new("I32")), None),
+                TaggedEnd(None, None, None),
             ]
         });
 
@@ -822,11 +822,11 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordTupleBegin(None, None, None, Some(1)),
                 RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
                 I32(42),
                 RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleEnd(None, None, None),
             ]
         });
 
@@ -834,14 +834,14 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(2)),
+                TupleBegin(None, None, None, Some(2)),
                 TupleValueBegin(None, sval::Index::new(0)),
                 I32(42),
                 TupleValueEnd(None, sval::Index::new(0)),
                 TupleValueBegin(None, sval::Index::new(1)),
                 I32(43),
                 TupleValueEnd(None, sval::Index::new(1)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+                TupleEnd(None, None, None),
             ]
         });
     }

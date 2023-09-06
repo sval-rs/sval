@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use syn::{Attribute, Fields, Generics, Ident, Path, Variant};
 
 use crate::{
@@ -58,8 +56,8 @@ impl EnumAttrs {
         self.tag.as_ref()
     }
 
-    pub(crate) fn label(&self, ident: &Ident) -> Cow<str> {
-        label_or_ident(self.label.as_deref(), ident)
+    pub(crate) fn label(&self) -> Option<&str> {
+        self.label.as_deref()
     }
 
     pub(crate) fn index(&self) -> Option<Index> {
@@ -91,6 +89,14 @@ pub(crate) fn derive_enum<'a>(
         })
     };
 
+    let variant_label = |label: Option<&str>, ident: &Ident| {
+        if attrs.dynamic {
+            None
+        } else {
+            Some(label_or_ident(label, ident).into_owned())
+        }
+    };
+
     for variant in variants {
         let discriminant = variant
             .discriminant
@@ -107,7 +113,7 @@ pub(crate) fn derive_enum<'a>(
                     quote!(#ident :: #variant_ident),
                     &fields.unnamed[0],
                     attrs.tag(),
-                    Some(&*attrs.label(variant_ident)),
+                    variant_label(attrs.label(), variant_ident).as_deref(),
                     variant_index(attrs.index(), discriminant),
                 )
             }
@@ -117,7 +123,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_tag(
                     quote!(#ident :: #variant_ident),
                     attrs.tag(),
-                    Some(&*attrs.label(variant_ident)),
+                    Some(&*label_or_ident(attrs.label(), variant_ident)),
                     variant_index(attrs.index(), discriminant),
                 )
             }
@@ -129,7 +135,7 @@ pub(crate) fn derive_enum<'a>(
                     fields.named.iter(),
                     RecordTupleTarget::named_fields(),
                     attrs.tag(),
-                    Some(&*attrs.label(variant_ident)),
+                    variant_label(attrs.label(), variant_ident).as_deref(),
                     variant_index(attrs.index(), discriminant),
                     attrs.unlabeled_fields(),
                     attrs.unindexed_fields(),
@@ -143,7 +149,7 @@ pub(crate) fn derive_enum<'a>(
                     fields.unnamed.iter(),
                     RecordTupleTarget::unnamed_fields(),
                     attrs.tag(),
-                    Some(&*attrs.label(variant_ident)),
+                    variant_label(attrs.label(), variant_ident).as_deref(),
                     variant_index(attrs.index(), discriminant),
                     attrs.unlabeled_fields(),
                     attrs.unindexed_fields(),
@@ -175,7 +181,7 @@ pub(crate) fn derive_enum<'a>(
     } else {
         let tag = quote_optional_tag(attrs.tag());
         let tag_owned = quote_optional_tag_owned(attrs.tag());
-        let label = quote_optional_label(Some(&*attrs.label(ident)));
+        let label = quote_optional_label(Some(&*label_or_ident(attrs.label(), ident)));
         let index = quote_optional_index(attrs.index());
 
         quote! {

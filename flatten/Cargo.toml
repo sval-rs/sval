@@ -6,15 +6,9 @@ edition = "2021"
 
 [dependencies.sval]
 path = "../"
-features = ["alloc"]
-
-[dependencies.sval_fmt]
-path = "../fmt"
-features = ["alloc"]
 
 [dependencies.sval_buffer]
 path = "../buffer"
-features = ["alloc"]
 
 [dev-dependencies.sval_test]
 path = "../test"
