@@ -6,109 +6,123 @@ use crate::{
 };
 use proc_macro::TokenStream;
 use syn::{
-    spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Field, Fields, FieldsNamed,
-    FieldsUnnamed, Generics, Ident, Path, Variant,
+    spanned::Spanned, Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Fields, Generics,
+    Ident, Path, Variant,
 };
 
 pub(crate) fn derive(input: DeriveInput) -> TokenStream {
-    let tag = attr::container(attr::Tag, &input.attrs);
-    let label = attr::container(attr::Label, &input.attrs);
-    let index = IndexAllocator::const_index_of(attr::container(attr::Index, &input.attrs));
-    let unlabeled = attr::container(attr::Unlabeled, &input.attrs).unwrap_or(false);
-    let unindexed = attr::container(attr::Unindexed, &input.attrs).unwrap_or(false);
-
     match &input.data {
         Data::Struct(DataStruct {
             fields: Fields::Unit,
             ..
-        }) => derive_unit_struct(
-            tag.as_ref(),
-            label.as_deref(),
-            index,
-            &input.ident,
-            &input.generics,
-        ),
-        Data::Struct(DataStruct {
-            fields: Fields::Named(ref fields),
-            ..
-        }) => derive_struct(
-            tag.as_ref(),
-            label.as_deref(),
-            index,
-            unlabeled,
-            unindexed,
-            &input.ident,
-            &input.generics,
-            fields,
-        ),
-        Data::Struct(DataStruct {
-            fields: Fields::Unnamed(ref fields),
-            ..
-        }) if fields.unnamed.len() == 1 => derive_newtype(
-            tag.as_ref(),
-            label.as_deref(),
-            index,
-            &input.ident,
-            &input.generics,
-            &fields.unnamed[0],
-        ),
-        Data::Struct(DataStruct {
-            fields: Fields::Unnamed(ref fields),
-            ..
-        }) => derive_tuple(
-            tag.as_ref(),
-            label.as_deref(),
-            index,
-            unlabeled,
-            unindexed,
-            &input.ident,
-            &input.generics,
-            fields,
-        ),
-        Data::Enum(DataEnum { ref variants, .. }) if variants.len() == 0 => {
-            derive_void(&input.ident, &input.generics)
+        }) => {
+            let attrs = UnitAttrs::from_attrs(&input.attrs);
+
+            derive_unit_struct(&input.ident, &input.generics, &attrs)
         }
-        Data::Enum(DataEnum { variants, .. }) => derive_enum(
-            tag.as_ref(),
-            label.as_deref(),
-            index,
-            &input.ident,
-            &input.generics,
-            variants.iter(),
-        ),
+        Data::Struct(DataStruct {
+            fields: Fields::Unnamed(ref fields),
+            ..
+        }) if fields.unnamed.len() == 1 => {
+            let attrs = NewtypeAttrs::from_attrs(&input.attrs);
+
+            derive_newtype(&input.ident, &input.generics, &fields.unnamed[0], &attrs)
+        }
+        Data::Struct(DataStruct { ref fields, .. }) => {
+            let attrs = StructAttrs::from_attrs(&input.attrs);
+
+            derive_struct(&input.ident, &input.generics, fields, &attrs)
+        }
+        Data::Enum(DataEnum { ref variants, .. }) if variants.len() == 0 => {
+            let attrs = VoidAttrs::from_attrs(&input.attrs);
+
+            derive_void(&input.ident, &input.generics, &attrs)
+        }
+        Data::Enum(DataEnum { variants, .. }) => {
+            let attrs = EnumAttrs::from_attrs(&input.attrs);
+
+            derive_enum(&input.ident, &input.generics, variants.iter(), &attrs)
+        }
         _ => panic!("unimplemented"),
     }
 }
 
+struct StructAttrs {
+    tag: Option<Path>,
+    label: Option<String>,
+    index: Option<isize>,
+    unlabeled_fields: bool,
+    unindexed_fields: bool,
+}
+
+impl StructAttrs {
+    fn from_attrs(attrs: &[Attribute]) -> Self {
+        let tag = attr::struct_container(attr::Tag, attrs);
+        let label = attr::struct_container(attr::Label, attrs);
+        let index = attr::struct_container(attr::Index, attrs);
+
+        let unlabeled_fields = attr::struct_container(attr::Unlabeled, attrs).unwrap_or(false);
+        let unindexed_fields = attr::struct_container(attr::Unindexed, attrs).unwrap_or(false);
+
+        StructAttrs {
+            tag,
+            label,
+            index,
+            unlabeled_fields,
+            unindexed_fields,
+        }
+    }
+
+    fn tag(&self) -> Option<&Path> {
+        self.tag.as_ref()
+    }
+
+    fn label(&self, ident: &Ident) -> Cow<str> {
+        label_or_ident(self.label.as_deref(), ident)
+    }
+
+    fn index(&self) -> Option<Index> {
+        self.index.map(IndexAllocator::const_index_of)
+    }
+
+    fn unlabeled_fields(&self) -> bool {
+        self.unlabeled_fields
+    }
+
+    fn unindexed_fields(&self) -> bool {
+        self.unindexed_fields
+    }
+}
+
 fn derive_struct<'a>(
-    tag: Option<&Path>,
-    label: Option<&str>,
-    index: Option<Index>,
-    unlabeled: bool,
-    unindexed: bool,
     ident: &Ident,
     generics: &Generics,
-    fields: &FieldsNamed,
+    fields: &Fields,
+    attrs: &StructAttrs,
 ) -> TokenStream {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    let label = label_or_ident(label, ident);
+    let (fields, target) = match fields {
+        Fields::Named(ref fields) => (&fields.named, RecordTupleTarget::named_fields()),
+        Fields::Unnamed(ref fields) => (&fields.unnamed, RecordTupleTarget::unnamed_fields()),
+        _ => unreachable!(),
+    };
 
     let match_arm = stream_record_tuple(
         quote!(#ident),
-        tag,
-        &label,
-        index,
-        fields.named.iter(),
-        RecordTupleTarget::named_fields(),
-        unlabeled,
-        unindexed,
+        fields.iter(),
+        target,
+        attrs.tag(),
+        Some(&*attrs.label(ident)),
+        attrs.index(),
+        attrs.unlabeled_fields(),
+        attrs.unindexed_fields(),
     );
 
-    let tag = quote_optional_tag_owned(tag);
+    let tag = quote_optional_tag_owned(attrs.tag());
 
     TokenStream::from(quote! {
         const _: () = {
@@ -131,23 +145,48 @@ fn derive_struct<'a>(
     })
 }
 
-fn derive_unit_struct<'a>(
-    tag: Option<&Path>,
-    label: Option<&str>,
-    index: Option<Index>,
-    ident: &Ident,
-    generics: &Generics,
-) -> TokenStream {
+struct UnitAttrs {
+    tag: Option<Path>,
+    label: Option<String>,
+    index: Option<isize>,
+}
+
+impl UnitAttrs {
+    fn from_attrs(attrs: &[Attribute]) -> Self {
+        let tag = attr::unit_container(attr::Tag, attrs);
+        let label = attr::unit_container(attr::Label, attrs);
+        let index = attr::unit_container(attr::Index, attrs);
+
+        UnitAttrs { tag, label, index }
+    }
+
+    fn tag(&self) -> Option<&Path> {
+        self.tag.as_ref()
+    }
+
+    fn label(&self, ident: &Ident) -> Cow<str> {
+        label_or_ident(self.label.as_deref(), ident)
+    }
+
+    fn index(&self) -> Option<Index> {
+        self.index.map(IndexAllocator::const_index_of)
+    }
+}
+
+fn derive_unit_struct<'a>(ident: &Ident, generics: &Generics, attrs: &UnitAttrs) -> TokenStream {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    let label = label_or_ident(label, ident);
+    let match_arm = stream_tag(
+        quote!(_),
+        attrs.tag(),
+        Some(&*attrs.label(ident)),
+        attrs.index(),
+    );
 
-    let match_arm = stream_tag(quote!(_), tag, &label, index);
-
-    let tag = quote_optional_tag_owned(tag);
+    let tag = quote_optional_tag_owned(attrs.tag());
 
     TokenStream::from(quote! {
         const _: () = {
@@ -170,13 +209,39 @@ fn derive_unit_struct<'a>(
     })
 }
 
+struct NewtypeAttrs {
+    tag: Option<Path>,
+    label: Option<String>,
+    index: Option<isize>,
+}
+
+impl NewtypeAttrs {
+    fn from_attrs(attrs: &[Attribute]) -> Self {
+        let tag = attr::newtype_container(attr::Tag, attrs);
+        let label = attr::newtype_container(attr::Label, attrs);
+        let index = attr::newtype_container(attr::Index, attrs);
+
+        NewtypeAttrs { tag, label, index }
+    }
+
+    fn tag(&self) -> Option<&Path> {
+        self.tag.as_ref()
+    }
+
+    fn label(&self, ident: &Ident) -> Cow<str> {
+        label_or_ident(self.label.as_deref(), ident)
+    }
+
+    fn index(&self) -> Option<Index> {
+        self.index.map(IndexAllocator::const_index_of)
+    }
+}
+
 fn derive_newtype<'a>(
-    tag: Option<&Path>,
-    label: Option<&str>,
-    index: Option<Index>,
     ident: &Ident,
     generics: &Generics,
     field: &Field,
+    attrs: &NewtypeAttrs,
 ) -> TokenStream {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
@@ -185,11 +250,14 @@ fn derive_newtype<'a>(
 
     attr::ensure_newtype_field_empty(&field.attrs);
 
-    let label = label_or_ident(label, ident);
+    let match_arm = stream_newtype(
+        quote!(#ident),
+        attrs.tag(),
+        Some(&*attrs.label(ident)),
+        attrs.index(),
+    );
 
-    let match_arm = stream_newtype(quote!(#ident), tag, &label, index);
-
-    let tag = quote_optional_tag_owned(tag);
+    let tag = quote_optional_tag_owned(attrs.tag());
 
     TokenStream::from(quote! {
         const _: () = {
@@ -212,135 +280,128 @@ fn derive_newtype<'a>(
     })
 }
 
-fn derive_tuple<'a>(
-    tag: Option<&Path>,
-    label: Option<&str>,
-    index: Option<Index>,
-    unlabeled: bool,
-    unindexed: bool,
-    ident: &Ident,
-    generics: &Generics,
-    fields: &FieldsUnnamed,
-) -> TokenStream {
-    let (impl_generics, ty_generics, _) = generics.split_for_impl();
+struct EnumAttrs {
+    tag: Option<Path>,
+    label: Option<String>,
+    index: Option<isize>,
+}
 
-    let bound = parse_quote!(sval::Value);
-    let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
+impl EnumAttrs {
+    fn from_attrs(attrs: &[Attribute]) -> Self {
+        let tag = attr::enum_container(attr::Tag, attrs);
+        let label = attr::enum_container(attr::Label, attrs);
+        let index = attr::enum_container(attr::Index, attrs);
 
-    let label = label_or_ident(label, ident);
+        EnumAttrs { tag, label, index }
+    }
 
-    let match_arm = stream_record_tuple(
-        quote!(#ident),
-        tag,
-        &label,
-        index,
-        fields.unnamed.iter(),
-        RecordTupleTarget::unnamed_fields(),
-        unlabeled,
-        unindexed,
-    );
+    fn tag(&self) -> Option<&Path> {
+        self.tag.as_ref()
+    }
 
-    let tag = quote_optional_tag_owned(tag);
+    fn label(&self, ident: &Ident) -> Cow<str> {
+        label_or_ident(self.label.as_deref(), ident)
+    }
 
-    TokenStream::from(quote! {
-        const _: () = {
-            extern crate sval;
-
-            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                    match self {
-                        #match_arm
-                    }
-
-                    Ok(())
-                }
-
-                fn tag(&self) -> Option<sval::Tag> {
-                    #tag
-                }
-            }
-        };
-    })
+    fn index(&self) -> Option<Index> {
+        self.index.map(IndexAllocator::const_index_of)
+    }
 }
 
 fn derive_enum<'a>(
-    tag: Option<&Path>,
-    label: Option<&str>,
-    index: Option<Index>,
     ident: &Ident,
     generics: &Generics,
     variants: impl Iterator<Item = &'a Variant> + 'a,
+    attrs: &EnumAttrs,
 ) -> TokenStream {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
-
-    let label = label_or_ident(label, ident);
-
-    let enum_tag = quote_optional_tag(tag);
-    let enum_label = quote_optional_label(Some(&label));
-    let enum_index = quote_optional_index(index);
 
     let mut variant_match_arms = Vec::new();
     let mut index_allocator = IndexAllocator::new();
 
     for variant in variants {
-        let tag = attr::container(attr::Tag, &variant.attrs);
-        let label = attr::container(attr::Label, &variant.attrs)
-            .unwrap_or_else(|| variant.ident.to_string());
-        let unlabeled = attr::container(attr::Unlabeled, &variant.attrs).unwrap_or(false);
-        let unindexed = attr::container(attr::Unindexed, &variant.attrs).unwrap_or(false);
-
-        // If there's a discriminant, use it as the index
-        let index = index_allocator.next_const_index(
-            attr::container(attr::Index, &variant.attrs).or_else(|| {
-                variant
-                    .discriminant
-                    .as_ref()
-                    .and_then(|(_, discriminant)| attr::Index.from_expr(discriminant))
-            }),
-        );
+        let discriminant = variant
+            .discriminant
+            .as_ref()
+            .and_then(|(_, discriminant)| attr::Index.from_expr(discriminant));
 
         let variant_ident = &variant.ident;
 
         variant_match_arms.push(match variant.fields {
-            Fields::Named(ref fields) => stream_record_tuple(
-                quote!(#ident :: #variant_ident),
-                tag.as_ref(),
-                &label,
-                Some(index),
-                fields.named.iter(),
-                RecordTupleTarget::named_fields(),
-                unlabeled,
-                unindexed,
-            ),
-            Fields::Unnamed(ref fields) if fields.unnamed.len() == 1 => stream_newtype(
-                quote!(#ident :: #variant_ident),
-                tag.as_ref(),
-                &label,
-                Some(index),
-            ),
-            Fields::Unnamed(ref fields) => stream_record_tuple(
-                quote!(#ident :: #variant_ident),
-                tag.as_ref(),
-                &label,
-                Some(index),
-                fields.unnamed.iter(),
-                RecordTupleTarget::unnamed_fields(),
-                unlabeled,
-                unindexed,
-            ),
-            Fields::Unit => stream_tag(
-                quote!(#ident :: #variant_ident),
-                tag.as_ref(),
-                &label,
-                Some(index),
-            ),
+            Fields::Unnamed(ref fields) if fields.unnamed.len() == 1 => {
+                let attrs = NewtypeAttrs::from_attrs(&variant.attrs);
+
+                stream_newtype(
+                    quote!(#ident :: #variant_ident),
+                    attrs.tag(),
+                    Some(&*attrs.label(variant_ident)),
+                    Some(
+                        attrs
+                            .index()
+                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
+                    ),
+                )
+            }
+            Fields::Unit => {
+                let attrs = UnitAttrs::from_attrs(&variant.attrs);
+
+                stream_tag(
+                    quote!(#ident :: #variant_ident),
+                    attrs.tag(),
+                    Some(&*attrs.label(variant_ident)),
+                    Some(
+                        attrs
+                            .index()
+                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
+                    ),
+                )
+            }
+            Fields::Named(ref fields) => {
+                let attrs = StructAttrs::from_attrs(&variant.attrs);
+
+                stream_record_tuple(
+                    quote!(#ident :: #variant_ident),
+                    fields.named.iter(),
+                    RecordTupleTarget::named_fields(),
+                    attrs.tag(),
+                    Some(&*attrs.label(variant_ident)),
+                    Some(
+                        attrs
+                            .index()
+                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
+                    ),
+                    attrs.unlabeled_fields(),
+                    attrs.unindexed_fields(),
+                )
+            }
+            Fields::Unnamed(ref fields) => {
+                let attrs = StructAttrs::from_attrs(&variant.attrs);
+
+                stream_record_tuple(
+                    quote!(#ident :: #variant_ident),
+                    fields.unnamed.iter(),
+                    RecordTupleTarget::unnamed_fields(),
+                    attrs.tag(),
+                    Some(&*attrs.label(variant_ident)),
+                    Some(
+                        attrs
+                            .index()
+                            .unwrap_or_else(|| index_allocator.next_const_index(discriminant)),
+                    ),
+                    attrs.unlabeled_fields(),
+                    attrs.unindexed_fields(),
+                )
+            }
         });
     }
 
-    let tag = quote_optional_tag_owned(tag);
+    let tag = quote_optional_tag(attrs.tag());
+    let tag_owned = quote_optional_tag_owned(attrs.tag());
+    let label = quote_optional_label(Some(&*attrs.label(ident)));
+    let index = quote_optional_index(attrs.index());
 
     TokenStream::from(quote! {
         const _: () = {
@@ -348,24 +409,36 @@ fn derive_enum<'a>(
 
             impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
                 fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                    stream.enum_begin(#enum_tag, #enum_label, #enum_index)?;
+                    stream.enum_begin(#tag, #label, #index)?;
 
                     match self {
                         #(#variant_match_arms)*
                     }
 
-                    stream.enum_end(#enum_tag, #enum_label, #enum_index)
+                    stream.enum_end(#tag, #label, #index)
                 }
 
                 fn tag(&self) -> Option<sval::Tag> {
-                    #tag
+                    #tag_owned
                 }
             }
         };
     })
 }
 
-fn derive_void<'a>(ident: &Ident, generics: &Generics) -> TokenStream {
+struct VoidAttrs {}
+
+impl VoidAttrs {
+    fn from_attrs(attrs: &[Attribute]) -> Self {
+        attr::ensure_void_empty(attrs);
+
+        VoidAttrs {}
+    }
+}
+
+fn derive_void<'a>(ident: &Ident, generics: &Generics, attrs: &VoidAttrs) -> TokenStream {
+    let _ = attrs;
+
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
@@ -403,16 +476,16 @@ impl RecordTupleTarget {
 
 fn stream_record_tuple<'a>(
     path: proc_macro2::TokenStream,
-    tag: Option<&Path>,
-    label: &str,
-    index: Option<Index>,
     fields: impl Iterator<Item = &'a Field>,
     mut target: RecordTupleTarget,
-    unlabeled: bool,
-    unindexed: bool,
+    tag: Option<&Path>,
+    label: Option<&str>,
+    index: Option<Index>,
+    unlabeled_fields: bool,
+    unindexed_fields: bool,
 ) -> proc_macro2::TokenStream {
     let tag = quote_optional_tag(tag);
-    let label = quote_optional_label(Some(label));
+    let label = quote_optional_label(label);
     let index = quote_optional_index(index);
 
     let mut field_binding = Vec::new();
@@ -430,27 +503,30 @@ fn stream_record_tuple<'a>(
     for (i, field) in fields.enumerate() {
         let i = syn::Index::from(i);
 
-        if attr::field(attr::Skip, &field.attrs).unwrap_or(false) {
+        if attr::struct_field(attr::Skip, &field.attrs).unwrap_or(false) {
             field_binding.push(quote_field_skip(&i, field));
             continue;
         }
 
         let (ident, binding) = get_field(&i, field);
 
-        let tag = quote_optional_tag(attr::field(attr::Tag, &field.attrs).as_ref());
+        let tag = quote_optional_tag(attr::struct_field(attr::Tag, &field.attrs).as_ref());
 
-        let label = if unlabeled {
+        let label = if unlabeled_fields {
             None
         } else {
-            get_label(attr::field(attr::Label, &field.attrs), field.ident.as_ref())
+            get_label(
+                attr::struct_field(attr::Label, &field.attrs),
+                field.ident.as_ref(),
+            )
         };
 
-        let index = if unindexed {
+        let index = if unindexed_fields {
             None
         } else {
             Some(quote_index(index_allocator.next_computed_index(
                 &index_ident,
-                attr::field(attr::Index, &field.attrs),
+                attr::struct_field(attr::Index, &field.attrs),
             )))
         };
 
@@ -576,11 +652,11 @@ fn stream_record_tuple<'a>(
 fn stream_newtype(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
-    label: &str,
+    label: Option<&str>,
     index: Option<Index>,
 ) -> proc_macro2::TokenStream {
     let tag = quote_optional_tag(tag);
-    let label = quote_optional_label(Some(label));
+    let label = quote_optional_label(label);
     let index = quote_optional_index(index);
 
     quote!(#path(ref field0) => {
@@ -593,11 +669,11 @@ fn stream_newtype(
 fn stream_tag(
     path: proc_macro2::TokenStream,
     tag: Option<&Path>,
-    label: &str,
+    label: Option<&str>,
     index: Option<Index>,
 ) -> proc_macro2::TokenStream {
     let tag = quote_optional_tag(tag);
-    let label = quote_optional_label(Some(label));
+    let label = quote_optional_label(label);
     let index = quote_optional_index(index);
 
     quote!(#path => {
@@ -699,8 +775,8 @@ impl IndexAllocator {
         }
     }
 
-    fn const_index_of(explicit: Option<isize>) -> Option<Index> {
-        explicit.map(|index| Index::Explicit(quote!(#index)))
+    fn const_index_of(explicit: isize) -> Index {
+        Index::Explicit(quote!(#explicit))
     }
 
     fn next_const_index(&mut self, explicit: Option<isize>) -> Index {
