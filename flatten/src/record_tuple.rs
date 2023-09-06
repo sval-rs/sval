@@ -95,7 +95,10 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
     }
 
     fn i32(&mut self, value: i32) -> sval::Result {
-        // TODO: if !self.in_field => err
+        if self.depth == 0 {
+            unimplemented!()
+        }
+
         self.stream.i32(value)
     }
 
@@ -161,7 +164,11 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        todo!()
+        if self.depth == 0 {
+            Ok(())
+        } else {
+            self.stream.enum_begin(tag, label, index)
+        }
     }
 
     fn enum_end(
@@ -170,7 +177,11 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        todo!()
+        if self.depth == 0 {
+            Ok(())
+        } else {
+            self.stream.enum_end(tag, label, index)
+        }
     }
 
     fn tagged_begin(
@@ -179,7 +190,17 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        todo!()
+        self.depth += 1;
+
+        if self.depth == 1 {
+            let index = &self.index_alloc.next_begin(index);
+
+            with_index_to_label(index, label, |label| {
+                self.stream.record_tuple_value_begin(None, &label, index)
+            })
+        } else {
+            self.stream.tagged_begin(tag, label, index)
+        }
     }
 
     fn tagged_end(
@@ -188,7 +209,17 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        todo!()
+        self.depth -= 1;
+
+        if self.depth == 0 {
+            let index = &self.index_alloc.next_end(index);
+
+            with_index_to_label(index, label, |label| {
+                self.stream.record_tuple_value_end(None, &label, index)
+            })
+        } else {
+            self.stream.tagged_end(tag, label, index)
+        }
     }
 
     fn tag(
@@ -197,7 +228,11 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        todo!()
+        if self.depth == 0 {
+            unimplemented!()
+        }
+
+        self.stream.tag(tag, label, index)
     }
 
     fn record_begin(
@@ -269,7 +304,7 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         if self.depth == 1 {
             let index = self.index_alloc.next_begin(Some(index));
 
-            with_index_to_label(&index, |label| {
+            with_index_to_label(&index, None, |label| {
                 self.stream.record_tuple_value_begin(tag, &label, &index)
             })
         } else {
@@ -281,7 +316,7 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
         if self.depth == 1 {
             let index = self.index_alloc.next_end(Some(index));
 
-            with_index_to_label(&index, |label| {
+            with_index_to_label(&index, None, |label| {
                 self.stream.record_tuple_value_end(tag, &label, &index)
             })
         } else {
@@ -369,9 +404,14 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for Flatten<S> {
 }
 
 fn with_index_to_label(
-    index: &sval::Index,
-    f: impl FnOnce(sval::Label) -> sval::Result,
+    index: &Index,
+    label: Option<&Label>,
+    f: impl FnOnce(&Label) -> sval::Result,
 ) -> sval::Result {
+    if let Some(label) = label {
+        return f(label);
+    }
+
     let mut inline = itoa::Buffer::new();
     let mut fallback = sval_buffer::TextBuf::new();
     let label = if let Some(index) = index.to_isize() {
@@ -381,7 +421,7 @@ fn with_index_to_label(
         fallback.as_str()
     };
 
-    f(sval::Label::new_computed(label))
+    f(&Label::new_computed(label))
 }
 
 #[cfg(test)]
@@ -437,16 +477,6 @@ mod tests {
     }
 
     #[test]
-    fn flatten_map() {
-        todo!()
-    }
-
-    #[test]
-    fn flatten_seq() {
-        todo!()
-    }
-
-    #[test]
     fn flatten_record() {
         #[derive(Value)]
         #[sval(unindexed_fields)]
@@ -461,7 +491,26 @@ mod tests {
                 i: Inner { b: 2, c: 3 },
                 d: 4,
             },
-            &[],
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("c"), Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, Label::new("c"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
         );
     }
 
@@ -473,7 +522,26 @@ mod tests {
                 i: (2, 3),
                 d: 4,
             },
-            &[],
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("1"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("1"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("2"), Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, Label::new("2"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
         );
     }
 
@@ -491,7 +559,26 @@ mod tests {
                 i: Inner { b: 2, c: 3 },
                 d: 4,
             },
-            &[],
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("c"), Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, Label::new("c"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
         );
     }
 
@@ -510,7 +597,79 @@ mod tests {
                 i: Inner::A(2),
                 d: 4,
             },
-            &[],
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("A"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("A"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(2)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(2)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: Inner::B { b: 2, c: 3 },
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("c"), Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, Label::new("c"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: Inner::C(2, 3),
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("1"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("1"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("2"), Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, Label::new("2"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
         );
     }
 }
