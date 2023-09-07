@@ -1,6 +1,56 @@
+use crate::{Result, Stream, Value};
+
+/**
+An adapter that streams a slice of key-value pairs as a map.
+ */
+#[repr(transparent)]
+pub struct MapSlice<K, V>([(K, V)]);
+
+impl<K, V> MapSlice<K, V> {
+    /**
+    Treat a slice of 8bit unsigned integers as binary.
+     */
+    pub fn new<'a>(map: &'a [(K, V)]) -> &'a Self {
+        // SAFETY: `MapSlice` and `[(K, V)]` have the same ABI
+        unsafe { &*(map as *const _ as *const MapSlice<K, V>) }
+    }
+
+    /**
+    Get a reference to the underlying slice.
+     */
+    pub fn as_slice(&self) -> &[(K, V)] {
+        &self.0
+    }
+}
+
+impl<K, V> AsRef<[(K, V)]> for MapSlice<K, V> {
+    fn as_ref(&self) -> &[(K, V)] {
+        &self.0
+    }
+}
+
+impl<K: Value, V: Value> Value for MapSlice<K, V> {
+    fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+        stream.map_begin(Some(self.0.len()))?;
+
+        for (k, v) in self.0.iter() {
+            stream.map_key_begin()?;
+            stream.value(k)?;
+            stream.map_key_end()?;
+
+            stream.map_value_begin()?;
+            stream.value(v)?;
+            stream.map_value_end()?;
+        }
+
+        stream.map_end()
+    }
+}
+
 #[cfg(feature = "alloc")]
 mod alloc_support {
-    use crate::{std::collections::BTreeMap, Result, Stream, Value};
+    use super::*;
+    use crate::std::collections::BTreeMap;
 
     impl<K: Value, V: Value> Value for BTreeMap<K, V> {
         fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
@@ -23,10 +73,8 @@ mod alloc_support {
 
 #[cfg(feature = "std")]
 mod std_support {
-    use crate::{
-        std::{collections::HashMap, hash::BuildHasher},
-        Result, Stream, Value,
-    };
+    use super::*;
+    use crate::std::{collections::HashMap, hash::BuildHasher};
 
     impl<K: Value, V: Value, H: BuildHasher> Value for HashMap<K, V, H> {
         fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {

@@ -167,7 +167,7 @@ mod tests {
         sval_test::assert_tokens(
             &Outer {
                 a: 1,
-                i: &[2, 3],
+                i: [2, 3],
                 d: 4,
             },
             {
@@ -184,6 +184,37 @@ mod tests {
                     RecordTupleValueBegin(None, Label::new("2"), Index::new(2)),
                     I32(3),
                     RecordTupleValueEnd(None, Label::new("2"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+    }
+
+    #[test]
+    fn flatten_map() {
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: sval::MapSlice::new(&[("b", 2), ("c", 3)]),
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("c"), Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, Label::new("c"), Index::new(2)),
                     RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
                     I32(4),
                     RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),

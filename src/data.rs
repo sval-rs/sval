@@ -23,7 +23,7 @@ use crate::std::string::String;
 
 pub(crate) use self::number::*;
 
-pub use self::{binary::*, text::*};
+pub use self::{binary::*, map::*, text::*};
 
 /**
 A textual label for some value.
