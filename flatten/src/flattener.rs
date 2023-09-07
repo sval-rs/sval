@@ -3,9 +3,13 @@ use sval::{Index, Label, Stream, Tag};
 
 pub(crate) struct Flattener<S> {
     stream: S,
+    state: FlattenerState,
+}
+
+struct FlattenerState {
     index_alloc: IndexAllocator,
     depth: usize,
-    in_enum: bool,
+    in_flattening_enum: bool,
 }
 
 pub(crate) trait Flatten<'sval> {
@@ -31,18 +35,20 @@ impl<'sval, S: Flatten<'sval>> Flattener<S> {
     pub(crate) fn begin(stream: S, start_from: usize) -> Self {
         Flattener {
             stream,
-            index_alloc: IndexAllocator::start_from(start_from),
-            depth: 0,
-            in_enum: false,
+            state: FlattenerState {
+                index_alloc: IndexAllocator::start_from(start_from),
+                depth: 0,
+                in_flattening_enum: false,
+            },
         }
     }
 
     pub(crate) fn end(self) -> usize {
-        self.index_alloc.current_offset
+        self.state.index_alloc.current_offset
     }
 
     fn value(&mut self, passthru: impl FnOnce(&mut S::Stream) -> sval::Result) -> sval::Result {
-        if self.depth == 0 {
+        if self.state.depth == 0 {
             return Err(sval::Error::new());
         }
 
@@ -51,13 +57,13 @@ impl<'sval, S: Flatten<'sval>> Flattener<S> {
 
     fn flattenable_begin(
         &mut self,
-        flatten: impl FnOnce(&mut S, &mut IndexAllocator) -> sval::Result,
+        flatten: impl FnOnce(&mut S, &mut FlattenerState) -> sval::Result,
         passthru: impl FnOnce(&mut S::Stream) -> sval::Result,
     ) -> sval::Result {
-        self.depth += 1;
+        self.state.depth += 1;
 
-        if self.depth == 1 {
-            flatten(&mut self.stream, &mut self.index_alloc)
+        if self.state.depth == 1 {
+            flatten(&mut self.stream, &mut self.state)
         } else {
             passthru(&mut self.stream.as_stream())
         }
@@ -65,11 +71,11 @@ impl<'sval, S: Flatten<'sval>> Flattener<S> {
 
     fn flattenable_value(
         &mut self,
-        flatten: impl FnOnce(&mut S, &mut IndexAllocator) -> sval::Result,
+        flatten: impl FnOnce(&mut S, &mut FlattenerState) -> sval::Result,
         passthru: impl FnOnce(&mut S::Stream) -> sval::Result,
     ) -> sval::Result {
-        if self.depth == 1 {
-            flatten(&mut self.stream, &mut self.index_alloc)
+        if self.state.depth == 1 {
+            flatten(&mut self.stream, &mut self.state)
         } else {
             passthru(&mut self.stream.as_stream())
         }
@@ -77,13 +83,13 @@ impl<'sval, S: Flatten<'sval>> Flattener<S> {
 
     fn flattenable_end(
         &mut self,
-        flatten: impl FnOnce(&mut S, &mut IndexAllocator) -> sval::Result,
+        flatten: impl FnOnce(&mut S, &mut FlattenerState) -> sval::Result,
         passthru: impl FnOnce(&mut S::Stream) -> sval::Result,
     ) -> sval::Result {
-        self.depth -= 1;
+        self.state.depth -= 1;
 
-        if self.depth == 0 {
-            flatten(&mut self.stream, &mut self.index_alloc)
+        if self.state.depth == 0 {
+            flatten(&mut self.stream, &mut self.state)
         } else {
             passthru(&mut self.stream.as_stream())
         }
@@ -209,8 +215,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
 
     fn seq_value_begin(&mut self) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                let index = &index_alloc.next_begin(None);
+            |stream, state| {
+                let index = &state.index_alloc.next_begin(None);
 
                 with_index_to_label(index, None, |label| {
                     stream.flattened_value_begin(None, label, index)
@@ -222,8 +228,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
 
     fn seq_value_end(&mut self) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                let index = &index_alloc.next_end(None);
+            |stream, state| {
+                let index = &state.index_alloc.next_end(None);
 
                 with_index_to_label(index, None, |label| {
                     stream.flattened_value_end(None, label, index)
@@ -243,8 +249,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        if self.depth == 0 {
-            self.in_enum = true;
+        if self.state.depth == 0 {
+            self.state.in_flattening_enum = true;
 
             Ok(())
         } else {
@@ -258,7 +264,7 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        if self.depth == 0 {
+        if self.state.depth == 0 {
             Ok(())
         } else {
             self.stream.as_stream().enum_end(tag, label, index)
@@ -271,10 +277,10 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        if self.in_enum {
+        if self.state.in_flattening_enum {
             self.flattenable_begin(
-                |stream, index_alloc| {
-                    let index = &index_alloc.next_begin(index);
+                |stream, state| {
+                    let index = &state.index_alloc.next_begin(index);
 
                     with_index_to_label(index, label, |label| {
                         stream.flattened_value_begin(None, label, index)
@@ -284,7 +290,7 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
             )
         }
         // Unwrap tagged values; we'll either find a flattenable value inside or fail
-        else if self.depth == 0 {
+        else if self.state.depth == 0 {
             Ok(())
         } else {
             self.value(|stream| stream.tagged_begin(tag, label, index))
@@ -297,10 +303,10 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        if self.in_enum {
+        if self.state.in_flattening_enum {
             self.flattenable_end(
-                |stream, index_alloc| {
-                    let index = &index_alloc.next_end(index);
+                |stream, state| {
+                    let index = &state.index_alloc.next_end(index);
 
                     with_index_to_label(index, label, |label| {
                         stream.flattened_value_end(None, label, index)
@@ -308,7 +314,7 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
                 },
                 |stream| stream.tagged_end(tag, label, index),
             )
-        } else if self.depth == 0 {
+        } else if self.state.depth == 0 {
             Ok(())
         } else {
             self.value(|stream| stream.tagged_end(tag, label, index))
@@ -339,8 +345,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
 
     fn record_value_begin(&mut self, tag: Option<&Tag>, label: &Label) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                stream.flattened_value_begin(tag, label, &index_alloc.next_begin(None))
+            |stream, state| {
+                stream.flattened_value_begin(tag, label, &state.index_alloc.next_begin(None))
             },
             |stream| stream.record_value_begin(tag, label),
         )
@@ -348,8 +354,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
 
     fn record_value_end(&mut self, tag: Option<&Tag>, label: &Label) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                stream.flattened_value_end(tag, label, &index_alloc.next_end(None))
+            |stream, state| {
+                stream.flattened_value_end(tag, label, &state.index_alloc.next_end(None))
             },
             |stream| stream.record_value_end(tag, label),
         )
@@ -379,8 +385,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
 
     fn tuple_value_begin(&mut self, tag: Option<&Tag>, index: &Index) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                let index = &index_alloc.next_begin(Some(index));
+            |stream, state| {
+                let index = &state.index_alloc.next_begin(Some(index));
 
                 with_index_to_label(index, None, |label| {
                     stream.flattened_value_begin(tag, label, index)
@@ -392,8 +398,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
 
     fn tuple_value_end(&mut self, tag: Option<&Tag>, index: &Index) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                let index = &index_alloc.next_end(Some(index));
+            |stream, state| {
+                let index = &state.index_alloc.next_end(Some(index));
 
                 with_index_to_label(index, None, |label| {
                     stream.flattened_value_end(tag, label, index)
@@ -432,8 +438,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         index: &Index,
     ) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                stream.flattened_value_begin(tag, label, &index_alloc.next_begin(Some(index)))
+            |stream, state| {
+                stream.flattened_value_begin(tag, label, &state.index_alloc.next_begin(Some(index)))
             },
             |stream| stream.record_tuple_value_begin(tag, label, index),
         )
@@ -446,8 +452,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         index: &Index,
     ) -> sval::Result {
         self.flattenable_value(
-            |stream, index_alloc| {
-                stream.flattened_value_end(tag, label, &index_alloc.next_end(Some(index)))
+            |stream, state| {
+                stream.flattened_value_end(tag, label, &state.index_alloc.next_end(Some(index)))
             },
             |stream| stream.record_tuple_value_end(tag, label, index),
         )

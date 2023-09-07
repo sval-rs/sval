@@ -731,14 +731,6 @@ mod tests {
 
     #[test]
     #[cfg(feature = "alloc")]
-    fn collect_text_buf_display() {
-        let buf = TextBuf::collect_display(&42).unwrap();
-
-        assert_eq!("42", buf.as_str());
-    }
-
-    #[test]
-    #[cfg(feature = "alloc")]
     fn collect_binary_buf() {
         let buf = BinaryBuf::collect(sval::BinarySlice::new(b"a string")).unwrap();
 
