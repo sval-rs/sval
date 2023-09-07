@@ -1,3 +1,5 @@
+#![no_std]
+
 mod flattener;
 mod record;
 mod record_tuple;

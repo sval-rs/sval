@@ -4,6 +4,10 @@ version = "0.0.0"
 description = "Value flattening for sval"
 edition = "2021"
 
+[features]
+alloc = ["sval/alloc", "sval_buffer/alloc"]
+std = ["sval/std"]
+
 [dependencies.sval]
 path = "../"
 

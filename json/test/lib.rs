@@ -163,6 +163,66 @@ fn stream_enum() {
 }
 
 #[test]
+fn stream_untagged_enum() {
+    #[derive(Value)]
+    enum Null {}
+
+    #[derive(Value)]
+    #[sval(dynamic)]
+    enum Dynamic<'a> {
+        Null(Option<Null>),
+        Text(&'a str),
+        Number(f64),
+        Boolean(bool),
+        Array(&'a [Dynamic<'a>]),
+    }
+
+    assert_eq!(
+        "\"Some text\"",
+        sval_json::stream_to_string(Dynamic::Text("Some text")).unwrap()
+    );
+    assert_eq!(
+        "3.14",
+        sval_json::stream_to_string(Dynamic::Number(3.14)).unwrap()
+    );
+    assert_eq!(
+        "true",
+        sval_json::stream_to_string(Dynamic::Boolean(true)).unwrap()
+    );
+    assert_eq!(
+        "null",
+        sval_json::stream_to_string(Dynamic::Null(None)).unwrap()
+    );
+    assert_eq!(
+        "[true,false]",
+        sval_json::stream_to_string(Dynamic::Array(&[
+            Dynamic::Boolean(true),
+            Dynamic::Boolean(false),
+        ]))
+        .unwrap()
+    );
+}
+
+#[test]
+fn stream_externally_tagged_enum() {
+    #[derive(Value)]
+    struct Container {
+        internally_tagged: Enum<bool, bool>,
+        #[sval(flatten)]
+        externally_tagged: Enum<bool, bool>,
+    }
+
+    assert_eq!(
+        "{\"internally_tagged\":{\"Tagged\":true},\"Tagged\":true}",
+        sval_json::stream_to_string(Container {
+            internally_tagged: Enum::Tagged(true),
+            externally_tagged: Enum::Tagged(true)
+        })
+        .unwrap()
+    );
+}
+
+#[test]
 fn stream_exotic_record() {
     // { field_0: 42, field_1: true, field_2: "Hello" }
     struct UnnamedRecord {
