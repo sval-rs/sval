@@ -5,6 +5,7 @@ pub(crate) struct Flattener<S> {
     stream: S,
     index_alloc: IndexAllocator,
     depth: usize,
+    in_enum: bool,
 }
 
 pub(crate) trait Flatten<'sval> {
@@ -32,6 +33,7 @@ impl<'sval, S: Flatten<'sval>> Flattener<S> {
             stream,
             index_alloc: IndexAllocator::start_from(start_from),
             depth: 0,
+            in_enum: false,
         }
     }
 
@@ -202,19 +204,37 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
     }
 
     fn seq_begin(&mut self, num_entries: Option<usize>) -> sval::Result {
-        self.value(|stream| stream.seq_begin(num_entries))
+        self.flattenable_begin(|_, _| Ok(()), |stream| stream.seq_begin(num_entries))
     }
 
     fn seq_value_begin(&mut self) -> sval::Result {
-        self.stream.as_stream().seq_value_begin()
+        self.flattenable_value(
+            |stream, index_alloc| {
+                let index = &index_alloc.next_begin(None);
+
+                with_index_to_label(index, None, |label| {
+                    stream.flattened_value_begin(None, label, index)
+                })
+            },
+            |stream| stream.seq_value_begin(),
+        )
     }
 
     fn seq_value_end(&mut self) -> sval::Result {
-        self.stream.as_stream().seq_value_end()
+        self.flattenable_value(
+            |stream, index_alloc| {
+                let index = &index_alloc.next_end(None);
+
+                with_index_to_label(index, None, |label| {
+                    stream.flattened_value_end(None, label, index)
+                })
+            },
+            |stream| stream.seq_value_end(),
+        )
     }
 
     fn seq_end(&mut self) -> sval::Result {
-        self.stream.as_stream().seq_end()
+        self.flattenable_end(|_, _| Ok(()), |stream| stream.seq_end())
     }
 
     fn enum_begin(
@@ -224,6 +244,8 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         index: Option<&Index>,
     ) -> sval::Result {
         if self.depth == 0 {
+            self.in_enum = true;
+
             Ok(())
         } else {
             self.stream.as_stream().enum_begin(tag, label, index)
@@ -249,16 +271,24 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        self.flattenable_begin(
-            |stream, index_alloc| {
-                let index = &index_alloc.next_begin(index);
+        if self.in_enum {
+            self.flattenable_begin(
+                |stream, index_alloc| {
+                    let index = &index_alloc.next_begin(index);
 
-                with_index_to_label(index, label, |label| {
-                    stream.flattened_value_begin(None, label, index)
-                })
-            },
-            |stream| stream.tagged_begin(tag, label, index),
-        )
+                    with_index_to_label(index, label, |label| {
+                        stream.flattened_value_begin(None, label, index)
+                    })
+                },
+                |stream| stream.tagged_begin(tag, label, index),
+            )
+        }
+        // Unwrap tagged values; we'll either find a flattenable value inside or fail
+        else if self.depth == 0 {
+            Ok(())
+        } else {
+            self.value(|stream| stream.tagged_begin(tag, label, index))
+        }
     }
 
     fn tagged_end(
@@ -267,16 +297,22 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<S> {
         label: Option<&Label>,
         index: Option<&Index>,
     ) -> sval::Result {
-        self.flattenable_end(
-            |stream, index_alloc| {
-                let index = &index_alloc.next_end(index);
+        if self.in_enum {
+            self.flattenable_end(
+                |stream, index_alloc| {
+                    let index = &index_alloc.next_end(index);
 
-                with_index_to_label(index, label, |label| {
-                    stream.flattened_value_end(None, label, index)
-                })
-            },
-            |stream| stream.tagged_end(tag, label, index),
-        )
+                    with_index_to_label(index, label, |label| {
+                        stream.flattened_value_end(None, label, index)
+                    })
+                },
+                |stream| stream.tagged_end(tag, label, index),
+            )
+        } else if self.depth == 0 {
+            Ok(())
+        } else {
+            self.value(|stream| stream.tagged_end(tag, label, index))
+        }
     }
 
     fn tag(
