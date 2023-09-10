@@ -153,7 +153,7 @@ pub(crate) fn stream_record_tuple<'a>(
             }
             (None, None) => {
                 if flatten {
-                    stream_field.push(quote!(#index_ident = sval_derive::extensions::flatten::flatten_to_seq(&mut *stream, #ident, #index_ident)?;));
+                    stream_field.push(quote!(sval_derive::extensions::flatten::flatten_to_seq(&mut *stream, #ident)?;));
                 } else {
                     stream_field.push(quote!({
                         stream.seq_value_begin()?;

@@ -325,6 +325,16 @@ mod derive_tuple {
     }
 
     #[test]
+    fn flattened() {
+        todo!()
+    }
+
+    #[test]
+    fn unindexed_flattened() {
+        todo!()
+    }
+
+    #[test]
     fn tagged() {
         const CONTAINER: sval::Tag = sval::Tag::new("container");
         const FIELD: sval::Tag = sval::Tag::new("field");

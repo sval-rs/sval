@@ -1,6 +1,6 @@
-use core::fmt::Write as _;
 use sval::{Index, Label, Stream, Tag};
-use sval_buffer::TextBuf;
+
+use crate::{index::IndexAllocator, label::LabelBuf};
 
 pub(crate) struct Flattener<'sval, S> {
     stream: S,
@@ -26,6 +26,7 @@ pub(crate) trait Flatten<'sval> {
         label: &Label,
         index: &Index,
     ) -> sval::Result;
+
     fn flattened_value_end(
         &mut self,
         tag: Option<&Tag>,
@@ -49,7 +50,7 @@ impl<'sval, S: Flatten<'sval>> Flattener<'sval, S> {
     }
 
     pub(crate) fn end(self) -> usize {
-        self.state.index_alloc.current_offset
+        self.state.index_alloc.current_offset()
     }
 
     fn value(
@@ -558,149 +559,4 @@ fn with_index_to_label(
     }
 
     LabelBuf::from_index(index)?.with_label(f)
-}
-
-struct IndexAllocator {
-    initial_offset: usize,
-    current_offset: usize,
-}
-
-impl IndexAllocator {
-    fn start_from(offset: usize) -> Self {
-        IndexAllocator {
-            initial_offset: offset,
-            current_offset: offset,
-        }
-    }
-
-    fn next_begin(&mut self, incoming: Option<&Index>) -> Index {
-        match incoming {
-            // If there's an incoming tag then merge it into the current set
-            Some(incoming) => match (incoming.tag(), incoming.to_usize()) {
-                // If the incoming tag is a value offset then increment it by our starting point
-                (Some(&sval::tags::VALUE_OFFSET), Some(incoming)) => {
-                    Index::new(incoming + self.initial_offset).with_tag(&sval::tags::VALUE_OFFSET)
-                }
-                // If the incoming tag is not a value offset then just use it directly
-                _ => incoming.clone(),
-            },
-            // If there's no incoming tag then construct one
-            None => Index::new(self.current_offset).with_tag(&sval::tags::VALUE_OFFSET),
-        }
-    }
-
-    fn next_end(&mut self, incoming: Option<&Index>) -> Index {
-        let index = self.next_begin(incoming);
-        self.current_offset += 1;
-
-        index
-    }
-}
-
-enum LabelBuf<'sval> {
-    Empty,
-    Text(TextBuf<'sval>),
-    I128(i128),
-    U128(u128),
-    F64(f64),
-}
-
-impl<'sval> LabelBuf<'sval> {
-    fn new() -> Self {
-        LabelBuf::Empty
-    }
-
-    fn from_index(index: &Index) -> sval::Result<Self> {
-        let mut buf = LabelBuf::new();
-        buf.index(index)?;
-
-        Ok(buf)
-    }
-
-    fn i128(&mut self, v: impl TryInto<i128>) -> sval::Result {
-        *self = LabelBuf::I128(v.try_into().map_err(|_| sval::Error::new())?);
-        Ok(())
-    }
-
-    fn u128(&mut self, v: impl TryInto<u128>) -> sval::Result {
-        *self = LabelBuf::U128(v.try_into().map_err(|_| sval::Error::new())?);
-        Ok(())
-    }
-
-    fn f64(&mut self, v: impl TryInto<f64>) -> sval::Result {
-        *self = LabelBuf::F64(v.try_into().map_err(|_| sval::Error::new())?);
-        Ok(())
-    }
-
-    fn null(&mut self) -> sval::Result {
-        self.text_fragment("null")
-    }
-
-    fn bool(&mut self, v: bool) -> sval::Result {
-        self.text_fragment(if v { "true" } else { "false" })
-    }
-
-    fn label(&mut self, label: &Label) -> sval::Result {
-        if let Some(label) = label.as_static_str() {
-            self.text_fragment(label)
-        } else {
-            self.text_fragment_computed(label.as_str())
-        }
-    }
-
-    fn index(&mut self, index: &Index) -> sval::Result {
-        if let Some(index) = index.to_isize() {
-            self.i128(index)
-        } else if let Some(index) = index.to_usize() {
-            self.u128(index)
-        } else {
-            let buf = self.text_buf()?;
-            write!(buf, "{}", index).map_err(|_| sval::Error::new())
-        }
-    }
-
-    fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
-        self.text_buf()?
-            .push_fragment(fragment)
-            .map_err(|_| sval::Error::new())
-    }
-
-    fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-        self.text_buf()?
-            .push_fragment_computed(fragment)
-            .map_err(|_| sval::Error::new())
-    }
-
-    fn text_buf(&mut self) -> sval::Result<&mut TextBuf<'sval>> {
-        match self {
-            LabelBuf::Text(buf) => Ok(buf),
-            _ => {
-                *self = LabelBuf::Text(TextBuf::new());
-                if let LabelBuf::Text(buf) = self {
-                    Ok(buf)
-                } else {
-                    unreachable!()
-                }
-            }
-        }
-    }
-
-    fn with_label(&self, f: impl FnOnce(&Label) -> sval::Result) -> sval::Result {
-        match self {
-            LabelBuf::Empty => f(&Label::new_computed("")),
-            LabelBuf::Text(text) => f(&Label::new_computed(text.as_str())),
-            LabelBuf::I128(v) => {
-                let mut buf = itoa::Buffer::new();
-                f(&Label::new_computed(buf.format(*v)))
-            }
-            LabelBuf::U128(v) => {
-                let mut buf = itoa::Buffer::new();
-                f(&Label::new_computed(buf.format(*v)))
-            }
-            LabelBuf::F64(v) => {
-                let mut buf = ryu::Buffer::new();
-                f(&Label::new_computed(buf.format(*v)))
-            }
-        }
-    }
 }

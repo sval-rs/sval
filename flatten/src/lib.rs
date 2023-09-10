@@ -1,6 +1,8 @@
 #![no_std]
 
 mod flattener;
+mod index;
+mod label;
 mod record;
 mod record_tuple;
 mod seq;
