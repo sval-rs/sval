@@ -1,7 +1,9 @@
-use core::fmt::Write as _;
+use core::{fmt::Write as _, mem};
 
-use sval::{Index, Label};
+use sval::{Index, Label, Stream};
 use sval_buffer::TextBuf;
+
+use crate::flattener::KeyStream;
 
 pub(crate) enum LabelBuf<'sval> {
     Empty,
@@ -9,6 +11,12 @@ pub(crate) enum LabelBuf<'sval> {
     I128(i128),
     U128(u128),
     F64(f64),
+}
+
+impl<'sval> Default for LabelBuf<'sval> {
+    fn default() -> Self {
+        LabelBuf::Empty
+    }
 }
 
 impl<'sval> LabelBuf<'sval> {
@@ -108,5 +116,89 @@ impl<'sval> LabelBuf<'sval> {
                 f(&Label::new_computed(buf.format(*v)))
             }
         }
+    }
+}
+
+impl<'sval> KeyStream<'sval> for LabelBuf<'sval> {
+    fn label(&mut self, label: &Label) -> sval::Result {
+        self.label(label)
+    }
+
+    fn index(&mut self, index: &Index) -> sval::Result {
+        self.index(index)
+    }
+
+    fn take(&mut self) -> LabelBuf<'sval> {
+        mem::take(self)
+    }
+}
+
+impl<'sval> Stream<'sval> for LabelBuf<'sval> {
+    fn null(&mut self) -> sval::Result {
+        self.null()
+    }
+
+    fn bool(&mut self, value: bool) -> sval::Result {
+        self.bool(value)
+    }
+
+    fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+        self.text_fragment_computed(fragment)
+    }
+
+    fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
+        self.text_fragment(fragment)
+    }
+
+    fn text_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn u64(&mut self, value: u64) -> sval::Result {
+        self.u128(value)
+    }
+
+    fn u128(&mut self, value: u128) -> sval::Result {
+        self.u128(value)
+    }
+
+    fn i64(&mut self, value: i64) -> sval::Result {
+        self.i128(value)
+    }
+
+    fn i128(&mut self, value: i128) -> sval::Result {
+        self.i128(value)
+    }
+
+    fn f64(&mut self, value: f64) -> sval::Result {
+        self.f64(value)
+    }
+
+    fn map_key_begin(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn map_key_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
+        sval::error()
+    }
+
+    fn seq_value_begin(&mut self) -> sval::Result {
+        sval::error()
+    }
+
+    fn seq_value_end(&mut self) -> sval::Result {
+        sval::error()
+    }
+
+    fn seq_end(&mut self) -> sval::Result {
+        sval::error()
     }
 }
