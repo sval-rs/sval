@@ -1,6 +1,9 @@
 use sval::{Index, Label, Stream, Tag};
 
-use crate::{index::IndexAllocator, label::LabelBuf};
+use crate::{
+    index::IndexAllocator,
+    label::{LabelBuf, LabelStream},
+};
 
 pub(crate) struct Flattener<'sval, S> {
     stream: S,
@@ -15,19 +18,12 @@ struct FlattenerState<'sval> {
     in_flattening_map_key: bool,
 }
 
-pub(crate) trait KeyStream<'sval>: Stream<'sval> {
-    fn label(&mut self, label: &Label) -> sval::Result;
-    fn index(&mut self, index: &Index) -> sval::Result;
-
-    fn take(&mut self) -> LabelBuf<'sval>;
-}
-
 pub(crate) trait Flatten<'sval> {
     type Stream: Stream<'sval>;
-    type KeyStream: KeyStream<'sval>;
+    type LabelStream: LabelStream<'sval>;
 
     fn stream(&mut self) -> &mut Self::Stream;
-    fn key_stream(&mut self) -> &mut Self::KeyStream;
+    fn label_stream(&mut self) -> &mut Self::LabelStream;
 
     fn flattened_value_begin(
         &mut self,
@@ -64,7 +60,7 @@ impl<'sval, S: Flatten<'sval>> Flattener<'sval, S> {
 
     fn value(
         &mut self,
-        buffer: impl FnOnce(&mut S::KeyStream) -> sval::Result,
+        buffer: impl FnOnce(&mut S::LabelStream) -> sval::Result,
         passthru: impl FnOnce(&mut S::Stream) -> sval::Result,
     ) -> sval::Result {
         self.value_at_root(|_, _| sval::error(), buffer, passthru)
@@ -73,13 +69,13 @@ impl<'sval, S: Flatten<'sval>> Flattener<'sval, S> {
     fn value_at_root(
         &mut self,
         at_root: impl FnOnce(&mut S, &mut FlattenerState<'sval>) -> sval::Result,
-        buffer: impl FnOnce(&mut S::KeyStream) -> sval::Result,
+        buffer: impl FnOnce(&mut S::LabelStream) -> sval::Result,
         passthru: impl FnOnce(&mut S::Stream) -> sval::Result,
     ) -> sval::Result {
         if self.state.depth == 0 {
             at_root(&mut self.stream, &mut self.state)
         } else if self.state.in_flattening_map_key {
-            buffer(self.stream.key_stream())
+            buffer(self.stream.label_stream())
         } else {
             passthru(self.stream.stream())
         }
@@ -235,7 +231,7 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<'sval, S> {
     fn map_key_begin(&mut self) -> sval::Result {
         self.flattenable_value(
             |stream, state| {
-                stream.key_stream().map_key_begin()?;
+                stream.label_stream().map_key_begin()?;
                 state.in_flattening_map_key = true;
                 Ok(())
             },
@@ -246,7 +242,7 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<'sval, S> {
     fn map_key_end(&mut self) -> sval::Result {
         self.flattenable_value(
             |stream, state| {
-                stream.key_stream().map_key_end()?;
+                stream.label_stream().map_key_end()?;
                 state.in_flattening_map_key = false;
                 Ok(())
             },
@@ -257,7 +253,7 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<'sval, S> {
     fn map_value_begin(&mut self) -> sval::Result {
         self.flattenable_value(
             |stream, state| {
-                state.key_buf = stream.key_stream().take();
+                state.key_buf = stream.label_stream().take();
 
                 state.key_buf.with_label(|label| {
                     let index = &state.index_alloc.next_begin(None);

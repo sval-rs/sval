@@ -3,7 +3,26 @@ use core::{fmt::Write as _, mem};
 use sval::{Index, Label, Stream};
 use sval_buffer::TextBuf;
 
-use crate::flattener::KeyStream;
+pub(crate) trait LabelStream<'sval>: Stream<'sval> {
+    fn label(&mut self, label: &Label) -> sval::Result;
+    fn index(&mut self, index: &Index) -> sval::Result;
+
+    fn take(&mut self) -> LabelBuf<'sval>;
+}
+
+impl<'a, 'sval, S: LabelStream<'sval> + ?Sized> LabelStream<'sval> for &'a mut S {
+    fn label(&mut self, label: &Label) -> sval::Result {
+        (**self).label(label)
+    }
+
+    fn index(&mut self, index: &Index) -> sval::Result {
+        (**self).index(index)
+    }
+
+    fn take(&mut self) -> LabelBuf<'sval> {
+        (**self).take()
+    }
+}
 
 pub(crate) enum LabelBuf<'sval> {
     Empty,
@@ -119,7 +138,7 @@ impl<'sval> LabelBuf<'sval> {
     }
 }
 
-impl<'sval> KeyStream<'sval> for LabelBuf<'sval> {
+impl<'sval> LabelStream<'sval> for LabelBuf<'sval> {
     fn label(&mut self, label: &Label) -> sval::Result {
         self.label(label)
     }
@@ -200,5 +219,67 @@ impl<'sval> Stream<'sval> for LabelBuf<'sval> {
 
     fn seq_end(&mut self) -> sval::Result {
         sval::error()
+    }
+}
+
+pub(crate) struct Empty;
+
+impl<'sval> LabelStream<'sval> for Empty {
+    fn label(&mut self, _: &Label) -> sval::Result {
+        Ok(())
+    }
+
+    fn index(&mut self, _: &Index) -> sval::Result {
+        Ok(())
+    }
+
+    fn take(&mut self) -> LabelBuf<'sval> {
+        Default::default()
+    }
+}
+
+impl<'sval> Stream<'sval> for Empty {
+    fn null(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn bool(&mut self, _: bool) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_fragment_computed(&mut self, _: &str) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn i64(&mut self, _: i64) -> sval::Result {
+        Ok(())
+    }
+
+    fn f64(&mut self, _: f64) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_value_begin(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_value_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> sval::Result {
+        Ok(())
     }
 }

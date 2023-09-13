@@ -9,9 +9,15 @@ pub fn flatten_to_tuple<'sval>(
     value: &'sval (impl sval::Value + ?Sized),
     offset: usize,
 ) -> sval::Result<usize> {
-    let key_stream = LabelBuf::default();
+    let label_stream = LabelBuf::default();
 
-    let mut stream = Flattener::begin(TupleFlatten { stream, key_stream }, offset);
+    let mut stream = Flattener::begin(
+        TupleFlatten {
+            stream,
+            label_stream,
+        },
+        offset,
+    );
 
     value.stream(&mut stream)?;
 
@@ -20,19 +26,19 @@ pub fn flatten_to_tuple<'sval>(
 
 struct TupleFlatten<'sval, S> {
     stream: S,
-    key_stream: LabelBuf<'sval>,
+    label_stream: LabelBuf<'sval>,
 }
 
 impl<'sval, S: Stream<'sval>> Flatten<'sval> for TupleFlatten<'sval, S> {
     type Stream = S;
-    type KeyStream = LabelBuf<'sval>;
+    type LabelStream = LabelBuf<'sval>;
 
     fn stream(&mut self) -> &mut Self::Stream {
         &mut self.stream
     }
 
-    fn key_stream(&mut self) -> &mut Self::KeyStream {
-        &mut self.key_stream
+    fn label_stream(&mut self) -> &mut Self::LabelStream {
+        &mut self.label_stream
     }
 
     fn flattened_value_begin(
