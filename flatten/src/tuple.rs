@@ -54,3 +54,254 @@ impl<'sval, S: Stream<'sval>> Flatten<'sval> for TupleFlatten<'sval, S> {
         self.stream.tuple_value_end(tag, index)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use sval_derive_macros::*;
+
+    use super::*;
+
+    struct Outer<I>(i32, I, i32);
+
+    impl<I: sval::Value> sval::Value for Outer<I> {
+        fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+            let mut offset = 0;
+
+            stream.tuple_begin(None, Some(&Label::new("Outer")), None, None)?;
+
+            stream.tuple_value_begin(
+                None,
+                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+            )?;
+            stream.i32(self.0)?;
+            stream.tuple_value_end(
+                None,
+                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+            )?;
+            offset += 1;
+
+            offset = flatten_to_tuple(&mut *stream, &self.1, offset)?;
+
+            stream.tuple_value_begin(
+                None,
+                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+            )?;
+            stream.i32(self.2)?;
+            stream.tuple_value_end(
+                None,
+                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+            )?;
+            offset += 1;
+
+            let _ = offset;
+            stream.tuple_end(None, Some(&Label::new("Outer")), None)
+        }
+    }
+
+    #[test]
+    fn flatten_record() {
+        #[derive(Value)]
+        #[sval(unindexed_fields)]
+        struct Inner {
+            b: i32,
+            c: i32,
+        }
+
+        sval_test::assert_tokens(&Outer(1, Inner { b: 2, c: 3 }, 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, Index::new(2)),
+                TupleValueBegin(None, Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, Index::new(3)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+    }
+
+    #[test]
+    fn flatten_tuple() {
+        sval_test::assert_tokens(&Outer(1, (2, 3), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, Index::new(2)),
+                TupleValueBegin(None, Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, Index::new(3)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+    }
+
+    #[test]
+    fn flatten_seq() {
+        sval_test::assert_tokens(&Outer(1, [2, 3], 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, Index::new(2)),
+                TupleValueBegin(None, Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, Index::new(3)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+    }
+
+    #[test]
+    fn flatten_map() {
+        sval_test::assert_tokens(&Outer(1, sval::MapSlice::new(&[("b", 2), ("c", 3)]), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, Index::new(2)),
+                TupleValueBegin(None, Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, Index::new(3)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+    }
+
+    #[test]
+    fn flatten_record_tuple() {
+        #[derive(Value)]
+        struct Inner {
+            b: i32,
+            c: i32,
+        }
+
+        sval_test::assert_tokens(&Outer(1, Inner { b: 2, c: 3 }, 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, Index::new(2)),
+                TupleValueBegin(None, Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, Index::new(3)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+    }
+
+    #[test]
+    fn flatten_enum() {
+        #[derive(Value)]
+        enum Inner {
+            #[sval(label = "b")]
+            A(i32),
+            B {
+                b: i32,
+                c: i32,
+            },
+            C(i32, i32),
+        }
+
+        sval_test::assert_tokens(&Outer(1, Inner::A(2), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(4),
+                TupleValueEnd(None, Index::new(2)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+
+        sval_test::assert_tokens(&Outer(1, Inner::B { b: 2, c: 3 }, 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, Index::new(2)),
+                TupleValueBegin(None, Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, Index::new(3)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+
+        sval_test::assert_tokens(&Outer(1, Inner::C(2, 3), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(Label::new("Outer")), None, None),
+                TupleValueBegin(None, Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, Index::new(0)),
+                TupleValueBegin(None, Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, Index::new(1)),
+                TupleValueBegin(None, Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, Index::new(2)),
+                TupleValueBegin(None, Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, Index::new(3)),
+                TupleEnd(None, Some(Label::new("Outer")), None),
+            ]
+        });
+    }
+}

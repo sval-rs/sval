@@ -10,7 +10,13 @@ pub fn assert_tokens<'sval, V: sval::Value + ?Sized>(value: &'sval V, tokens: &[
     let mut stream = TokenBuf::new();
 
     match value.stream(&mut stream) {
-        Ok(()) => assert_eq!(tokens, stream.as_tokens()),
+        Ok(()) => assert_eq!(
+            tokens,
+            stream.as_tokens(),
+            "{} != {}",
+            sval_fmt::stream_to_string(AsValue(tokens)),
+            sval_fmt::stream_to_string(AsValue(stream.as_tokens()))
+        ),
         Err(_) => stream.fail::<V>(),
     }
 }
@@ -280,11 +286,11 @@ pub enum Token<'a> {
 
 // Avoid exposing `sval_buffer`-like functionality here
 // Use `sval_buffer` instead
-struct AsValue<'a, 'b>(&'a TokenBuf<'b>);
+struct AsValue<'a, 'b>(&'a [Token<'b>]);
 
 impl<'a, 'b> sval::Value for AsValue<'a, 'b> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-        for token in &self.0.tokens {
+        for token in self.0 {
             match token {
                 Token::U8(v) => stream.u8(*v)?,
                 Token::U16(v) => stream.u16(*v)?,
@@ -419,7 +425,7 @@ impl<'a> TokenBuf<'a> {
         panic!(
             "the `impl sval::Value for {}` is invalid\nstreamed to:\n  `{}`\nraw:\n  `{:?}`",
             std::any::type_name::<T>(),
-            sval_fmt::stream_to_string(AsValue(self)),
+            sval_fmt::stream_to_string(AsValue(&self.tokens)),
             self.tokens
         );
     }
