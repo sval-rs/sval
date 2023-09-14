@@ -1,6 +1,6 @@
 use crate::{
     flattener::{Flatten, Flattener},
-    label::LabelBuf,
+    label::Empty,
 };
 use sval::{Index, Label, Stream, Tag};
 
@@ -9,7 +9,7 @@ pub fn flatten_to_tuple<'sval>(
     value: &'sval (impl sval::Value + ?Sized),
     offset: usize,
 ) -> sval::Result<usize> {
-    let label_stream = LabelBuf::default();
+    let label_stream = Empty;
 
     let mut stream = Flattener::begin(
         TupleFlatten {
@@ -24,14 +24,14 @@ pub fn flatten_to_tuple<'sval>(
     Ok(stream.end())
 }
 
-struct TupleFlatten<'sval, S> {
+struct TupleFlatten<S> {
     stream: S,
-    label_stream: LabelBuf<'sval>,
+    label_stream: Empty,
 }
 
-impl<'sval, S: Stream<'sval>> Flatten<'sval> for TupleFlatten<'sval, S> {
+impl<'sval, S: Stream<'sval>> Flatten<'sval> for TupleFlatten<S> {
     type Stream = S;
-    type LabelStream = LabelBuf<'sval>;
+    type LabelStream = Empty;
 
     fn stream(&mut self) -> &mut Self::Stream {
         &mut self.stream
