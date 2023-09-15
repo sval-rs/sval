@@ -1,24 +1,13 @@
 use core::{fmt::Write as _, mem};
 
-use sval::{Index, Label, Stream};
+use sval::{Index, Label, Stream, Tag};
 use sval_buffer::TextBuf;
 
 pub(crate) trait LabelStream<'sval>: Stream<'sval> {
-    fn label(&mut self, label: &Label) -> sval::Result;
-    fn index(&mut self, index: &Index) -> sval::Result;
-
     fn take(&mut self) -> LabelBuf<'sval>;
 }
 
 impl<'a, 'sval, S: LabelStream<'sval> + ?Sized> LabelStream<'sval> for &'a mut S {
-    fn label(&mut self, label: &Label) -> sval::Result {
-        (**self).label(label)
-    }
-
-    fn index(&mut self, index: &Index) -> sval::Result {
-        (**self).index(index)
-    }
-
     fn take(&mut self) -> LabelBuf<'sval> {
         (**self).take()
     }
@@ -139,14 +128,6 @@ impl<'sval> LabelBuf<'sval> {
 }
 
 impl<'sval> LabelStream<'sval> for LabelBuf<'sval> {
-    fn label(&mut self, label: &Label) -> sval::Result {
-        self.label(label)
-    }
-
-    fn index(&mut self, index: &Index) -> sval::Result {
-        self.index(index)
-    }
-
     fn take(&mut self) -> LabelBuf<'sval> {
         mem::take(self)
     }
@@ -165,12 +146,12 @@ impl<'sval> Stream<'sval> for LabelBuf<'sval> {
         Ok(())
     }
 
-    fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-        self.text_fragment_computed(fragment)
-    }
-
     fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
         self.text_fragment(fragment)
+    }
+
+    fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+        self.text_fragment_computed(fragment)
     }
 
     fn text_end(&mut self) -> sval::Result {
@@ -220,19 +201,26 @@ impl<'sval> Stream<'sval> for LabelBuf<'sval> {
     fn seq_end(&mut self) -> sval::Result {
         sval::error()
     }
+
+    fn tag(
+        &mut self,
+        _: Option<&Tag>,
+        label: Option<&Label>,
+        index: Option<&Index>,
+    ) -> sval::Result {
+        if let Some(label) = label {
+            self.label(label)
+        } else if let Some(index) = index {
+            self.index(index)
+        } else {
+            self.null()
+        }
+    }
 }
 
 pub(crate) struct Empty;
 
 impl<'sval> LabelStream<'sval> for Empty {
-    fn label(&mut self, _: &Label) -> sval::Result {
-        Ok(())
-    }
-
-    fn index(&mut self, _: &Index) -> sval::Result {
-        Ok(())
-    }
-
     fn take(&mut self) -> LabelBuf<'sval> {
         Default::default()
     }
