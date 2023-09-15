@@ -78,6 +78,8 @@ pub(crate) fn stream_record_tuple<'a>(
         );
 
         let label = if unlabeled_fields {
+            attr::ensure_missing("struct field", attr::LabelAttr, &field.attrs);
+
             None
         } else {
             get_label(
@@ -87,6 +89,8 @@ pub(crate) fn stream_record_tuple<'a>(
         };
 
         let index = if unindexed_fields {
+            attr::ensure_missing("struct field", attr::IndexAttr, &field.attrs);
+
             None
         } else {
             Some(quote_index(index_allocator.next_computed_index(

@@ -380,4 +380,137 @@ mod tests {
             },
         );
     }
+
+    #[test]
+    fn flatten_nested() {
+        #[derive(Value)]
+        struct Inner {
+            b: ReallyInner,
+            c: ReallyInner,
+        }
+
+        #[derive(Value)]
+        struct ReallyInner {
+            b1: i32,
+            b2: i32,
+        }
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: Inner {
+                    b: ReallyInner { b1: 21, b2: 22 },
+                    c: ReallyInner { b1: 31, b2: 32 },
+                },
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                /*
+                RecordTupleBegin(None, Some(Label::new("ReallyInner")), None, None),
+                RecordTupleValueBegin(None, Label::new("b1"), Index::new(0)),
+                I32(21),
+                RecordTupleValueEnd(None, Label::new("b1"), Index::new(0)),
+                RecordTupleValueBegin(None, Label::new("b2"), Index::new(1)),
+                I32(22),
+                RecordTupleValueEnd(None, Label::new("b2"), Index::new(1)),
+                RecordTupleEnd(None, Some(Label::new("ReallyInner")), None),
+                */
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(1)),
+                    RecordTupleBegin(None, Some(Label::new("ReallyInner")), None, Some(2)),
+                    RecordTupleValueBegin(None, Label::new("b1"), Index::new(0)),
+                    I32(21),
+                    RecordTupleValueEnd(None, Label::new("b1"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b2"), Index::new(1)),
+                    I32(22),
+                    RecordTupleValueEnd(None, Label::new("b2"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("ReallyInner")), None),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("c"), Index::new(2)),
+                    RecordTupleBegin(None, Some(Label::new("ReallyInner")), None, Some(2)),
+                    RecordTupleValueBegin(None, Label::new("b1"), Index::new(0)),
+                    I32(31),
+                    RecordTupleValueEnd(None, Label::new("b1"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b2"), Index::new(1)),
+                    I32(32),
+                    RecordTupleValueEnd(None, Label::new("b2"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("ReallyInner")), None),
+                    RecordTupleValueEnd(None, Label::new("c"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+    }
+
+    #[test]
+    fn flatten_map_complex_fails() {
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: sval::MapSlice::new(&[(["b1", "b2"], 2), (["c1", "c2"], 3)]),
+            d: 4,
+        });
+    }
+
+    #[test]
+    fn flatten_enum_tag_fails() {
+        #[derive(Value)]
+        enum Inner {
+            A,
+        }
+
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: Inner::A,
+            d: 4,
+        });
+    }
+
+    #[test]
+    fn flatten_primitive_fails() {
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: 1u128,
+            d: 4,
+        });
+
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: -1i128,
+            d: 4,
+        });
+
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: 3.14f64,
+            d: 4,
+        });
+
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: true,
+            d: 4,
+        });
+
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: "Text",
+            d: 4,
+        });
+
+        sval_test::assert_invalid(&Outer {
+            a: 1,
+            i: sval::BinarySlice::new(b"Binary"),
+            d: 4,
+        });
+    }
 }

@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> compile_fail/record_as_tuple_incomplete_labels.rs:3:10
+  |
+3 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: unsupported attribute `label` on struct field

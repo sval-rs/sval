@@ -2,6 +2,8 @@
 Test utilities for `sval`.
 */
 
+use std::any::type_name;
+
 /**
 Assert that a value streams to exactly the sequence of tokens provided.
 */
@@ -30,6 +32,22 @@ pub fn assert_valid<V: sval::Value>(value: V) {
 
     if let Err(_) = value.stream(&mut stream) {
         stream.fail::<V>();
+    }
+}
+
+/**
+Assert that a value fails to stream.
+*/
+#[track_caller]
+pub fn assert_invalid<V: sval::Value>(value: V) {
+    let mut stream = TokenBuf::new();
+
+    if let Ok(_) = value.stream(&mut stream) {
+        panic!(
+            "expected streaming `{}` to fail, but it produced `{}`",
+            type_name::<V>(),
+            sval_fmt::stream_to_string(AsValue(&stream.tokens))
+        )
     }
 }
 
@@ -424,7 +442,7 @@ impl<'a> TokenBuf<'a> {
     fn fail<T: ?Sized>(&self) {
         panic!(
             "the `impl sval::Value for {}` is invalid\nstreamed to:\n  `{}`\nraw:\n  `{:?}`",
-            std::any::type_name::<T>(),
+            type_name::<T>(),
             sval_fmt::stream_to_string(AsValue(&self.tokens)),
             self.tokens
         );

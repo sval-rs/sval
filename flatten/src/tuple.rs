@@ -185,26 +185,33 @@ mod tests {
 
     #[test]
     fn flatten_map() {
-        sval_test::assert_tokens(&Outer(1, sval::MapSlice::new(&[(["b1", "b2"], 2), (["c1", "c2"], 3)]), 4), {
-            use sval_test::Token::*;
+        sval_test::assert_tokens(
+            &Outer(
+                1,
+                sval::MapSlice::new(&[(["b1", "b2"], 2), (["c1", "c2"], 3)]),
+                4,
+            ),
+            {
+                use sval_test::Token::*;
 
-            &[
-                TupleBegin(None, Some(Label::new("Outer")), None, None),
-                TupleValueBegin(None, Index::new(0)),
-                I32(1),
-                TupleValueEnd(None, Index::new(0)),
-                TupleValueBegin(None, Index::new(1)),
-                I32(2),
-                TupleValueEnd(None, Index::new(1)),
-                TupleValueBegin(None, Index::new(2)),
-                I32(3),
-                TupleValueEnd(None, Index::new(2)),
-                TupleValueBegin(None, Index::new(3)),
-                I32(4),
-                TupleValueEnd(None, Index::new(3)),
-                TupleEnd(None, Some(Label::new("Outer")), None),
-            ]
-        });
+                &[
+                    TupleBegin(None, Some(Label::new("Outer")), None, None),
+                    TupleValueBegin(None, Index::new(0)),
+                    I32(1),
+                    TupleValueEnd(None, Index::new(0)),
+                    TupleValueBegin(None, Index::new(1)),
+                    I32(2),
+                    TupleValueEnd(None, Index::new(1)),
+                    TupleValueBegin(None, Index::new(2)),
+                    I32(3),
+                    TupleValueEnd(None, Index::new(2)),
+                    TupleValueBegin(None, Index::new(3)),
+                    I32(4),
+                    TupleValueEnd(None, Index::new(3)),
+                    TupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
     }
 
     #[test]

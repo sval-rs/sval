@@ -288,6 +288,14 @@ pub(crate) fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
     }
 }
 
+pub(crate) fn ensure_missing<T: SvalAttribute>(ctxt: &str, request: T, attrs: &[Attribute]) {
+    let key = request.key().to_owned();
+
+    if get_unchecked::<T>(ctxt, request, attrs).is_some() {
+        panic!("unsupported attribute `{}` on {}", key, ctxt);
+    }
+}
+
 pub(crate) fn check(ctxt: &str, allowed: &[&dyn RawAttribute], attrs: &[Attribute]) {
     let mut seen = HashSet::new();
 
