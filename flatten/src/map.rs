@@ -2,6 +2,12 @@ use crate::flattener::{Flatten, Flattener};
 use crate::label::{LabelBuf, LabelStream};
 use sval::{Index, Label, Stream, Tag, Value};
 
+/**
+Flatten the fields of a value onto a map.
+
+The `offset` is the current length of the map. A new offset will be returned
+with the length of the map after flattening the value.
+*/
 pub fn flatten_to_map<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),

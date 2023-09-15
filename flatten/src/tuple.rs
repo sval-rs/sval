@@ -4,6 +4,12 @@ use crate::{
 };
 use sval::{Index, Label, Stream, Tag};
 
+/**
+Flatten the fields of a value onto a tuple.
+
+The `offset` is the current length of the tuple. A new offset will be returned
+with the length of the tuple after flattening the value.
+ */
 pub fn flatten_to_tuple<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),
@@ -179,7 +185,7 @@ mod tests {
 
     #[test]
     fn flatten_map() {
-        sval_test::assert_tokens(&Outer(1, sval::MapSlice::new(&[("b", 2), ("c", 3)]), 4), {
+        sval_test::assert_tokens(&Outer(1, sval::MapSlice::new(&[(["b1", "b2"], 2), (["c1", "c2"], 3)]), 4), {
             use sval_test::Token::*;
 
             &[

@@ -6,7 +6,7 @@ edition = "2021"
 
 [features]
 alloc = ["sval/alloc", "sval_buffer/alloc"]
-std = ["sval/std"]
+std = ["alloc", "sval/std", "sval_buffer/std"]
 
 [dependencies.sval]
 path = "../"

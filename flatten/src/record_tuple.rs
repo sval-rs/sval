@@ -4,6 +4,12 @@ use crate::{
 };
 use sval::{Index, Label, Stream, Tag};
 
+/**
+Flatten the fields of a value onto a record or tuple.
+
+The `offset` is the current length of the record or tuple. A new offset will be returned
+with the length of the record or tuple after flattening the value.
+ */
 pub fn flatten_to_record_tuple<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),

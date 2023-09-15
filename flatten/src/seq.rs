@@ -4,6 +4,9 @@ use crate::{
 };
 use sval::{Index, Label, Stream, Tag};
 
+/**
+Flatten the fields of a value onto a sequence.
+ */
 pub fn flatten_to_seq<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),
