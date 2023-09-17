@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[cfg(feature = "alloc")]
-use crate::std::string::String;
+use crate::std::boxed::Box;
 
 pub(crate) use self::number::*;
 
@@ -37,7 +37,7 @@ pub struct Label<'computed> {
     // Only one `backing_field_*` may be `Some`
     backing_field_static: Option<&'static str>,
     #[cfg(feature = "alloc")]
-    backing_field_owned: Option<String>,
+    backing_field_owned: Option<Box<str>>,
     tag: Option<Tag>,
     _marker: PhantomData<&'computed str>,
 }
@@ -500,12 +500,12 @@ impl Value for bool {
 mod alloc_support {
     use super::*;
 
-    use crate::std::string::String;
+    use crate::std::{borrow::ToOwned, string::String};
 
     impl<'computed> Clone for Label<'computed> {
         fn clone(&self) -> Self {
             if let Some(ref owned) = self.backing_field_owned {
-                Label::new_owned(owned.clone())
+                Label::new_owned((**owned).to_owned())
             } else {
                 Label {
                     value_computed: self.value_computed,
@@ -541,7 +541,7 @@ mod alloc_support {
             Label {
                 value_computed: label.as_str() as *const str,
                 backing_field_static: None,
-                backing_field_owned: Some(label),
+                backing_field_owned: Some(label.into_boxed_str()),
                 tag: None,
                 _marker: PhantomData,
             }
