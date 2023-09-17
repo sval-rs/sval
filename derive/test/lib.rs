@@ -54,7 +54,7 @@ mod derive_struct {
     #[test]
     fn unlabeled() {
         #[derive(Value)]
-        #[sval(unlabeled_fields)]
+        #[sval(unlabeled_values)]
         struct Tuple {
             a: i32,
         }
@@ -75,7 +75,7 @@ mod derive_struct {
     #[test]
     fn unindexed() {
         #[derive(Value)]
-        #[sval(unindexed_fields)]
+        #[sval(unindexed_values)]
         struct Record {
             a: i32,
         }
@@ -96,7 +96,7 @@ mod derive_struct {
     #[test]
     fn unlabeled_unindexed() {
         #[derive(Value)]
-        #[sval(unlabeled_fields, unindexed_fields)]
+        #[sval(unlabeled_values, unindexed_values)]
         struct Seq {
             a: i32,
         }
@@ -303,7 +303,7 @@ mod derive_tuple {
     #[test]
     fn unindexed() {
         #[derive(Value)]
-        #[sval(unindexed_fields)]
+        #[sval(unindexed_values)]
         struct Seq(i32, i32);
 
         assert_tokens(&Seq(42, 43), {
@@ -357,11 +357,11 @@ mod derive_tuple {
     #[test]
     fn unindexed_flattened() {
         #[derive(Value)]
-        #[sval(unindexed_fields)]
+        #[sval(unindexed_values)]
         struct Inner(i32, i32);
 
         #[derive(Value)]
-        #[sval(unindexed_fields)]
+        #[sval(unindexed_values)]
         struct Seq(i32, #[sval(flatten)] Inner, i32);
 
         assert_tokens(&Seq(1, Inner(2, 3), 4), {

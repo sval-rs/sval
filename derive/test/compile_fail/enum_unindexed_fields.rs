@@ -1,7 +1,7 @@
 use sval_derive::*;
 
 #[derive(Value)]
-#[sval(unindexed_fields)]
+#[sval(unindexed_values)]
 pub enum Enum {
     A,
     B,

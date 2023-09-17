@@ -130,9 +130,9 @@ The `unlabeled` attribute.
 
 This attribute signals that an item should be unlabeled.
 */
-pub(crate) struct UnlabeledFieldsAttr;
+pub(crate) struct UnlabeledValuesAttr;
 
-impl SvalAttribute for UnlabeledFieldsAttr {
+impl SvalAttribute for UnlabeledValuesAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -144,9 +144,9 @@ impl SvalAttribute for UnlabeledFieldsAttr {
     }
 }
 
-impl RawAttribute for UnlabeledFieldsAttr {
+impl RawAttribute for UnlabeledValuesAttr {
     fn key(&self) -> &str {
-        "unlabeled_fields"
+        "unlabeled_values"
     }
 }
 
@@ -155,9 +155,9 @@ The `unindexed` attribute.
 
 This attribute signals that an item should be unindexed.
 */
-pub(crate) struct UnindexedFieldsAttr;
+pub(crate) struct UnindexedValuesAttr;
 
-impl SvalAttribute for UnindexedFieldsAttr {
+impl SvalAttribute for UnindexedValuesAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -169,9 +169,9 @@ impl SvalAttribute for UnindexedFieldsAttr {
     }
 }
 
-impl RawAttribute for UnindexedFieldsAttr {
+impl RawAttribute for UnindexedValuesAttr {
     fn key(&self) -> &str {
-        "unindexed_fields"
+        "unindexed_values"
     }
 }
 

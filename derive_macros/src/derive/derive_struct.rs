@@ -13,8 +13,8 @@ pub(crate) struct StructAttrs {
     tag: Option<Path>,
     label: Option<String>,
     index: Option<isize>,
-    unlabeled_fields: bool,
-    unindexed_fields: bool,
+    unlabeled_values: bool,
+    unindexed_values: bool,
 }
 
 impl StructAttrs {
@@ -25,8 +25,8 @@ impl StructAttrs {
                 &attr::TagAttr,
                 &attr::LabelAttr,
                 &attr::IndexAttr,
-                &attr::UnlabeledFieldsAttr,
-                &attr::UnindexedFieldsAttr,
+                &attr::UnlabeledValuesAttr,
+                &attr::UnindexedValuesAttr,
             ],
             attrs,
         );
@@ -35,17 +35,17 @@ impl StructAttrs {
         let label = attr::get_unchecked("struct", attr::LabelAttr, attrs);
         let index = attr::get_unchecked("struct", attr::IndexAttr, attrs);
 
-        let unlabeled_fields =
-            attr::get_unchecked("struct", attr::UnlabeledFieldsAttr, attrs).unwrap_or(false);
-        let unindexed_fields =
-            attr::get_unchecked("struct", attr::UnindexedFieldsAttr, attrs).unwrap_or(false);
+        let unlabeled_values =
+            attr::get_unchecked("struct", attr::UnlabeledValuesAttr, attrs).unwrap_or(false);
+        let unindexed_values =
+            attr::get_unchecked("struct", attr::UnindexedValuesAttr, attrs).unwrap_or(false);
 
         StructAttrs {
             tag,
             label,
             index,
-            unlabeled_fields,
-            unindexed_fields,
+            unlabeled_values,
+            unindexed_values,
         }
     }
 
@@ -61,12 +61,12 @@ impl StructAttrs {
         self.index.map(IndexAllocator::const_index_of)
     }
 
-    pub(crate) fn unlabeled_fields(&self) -> bool {
-        self.unlabeled_fields
+    pub(crate) fn unlabeled_values(&self) -> bool {
+        self.unlabeled_values
     }
 
-    pub(crate) fn unindexed_fields(&self) -> bool {
-        self.unindexed_fields
+    pub(crate) fn unindexed_values(&self) -> bool {
+        self.unindexed_values
     }
 }
 
@@ -94,8 +94,8 @@ pub(crate) fn derive_struct<'a>(
         attrs.tag(),
         Some(label_or_ident(attrs.label(), ident)),
         attrs.index(),
-        attrs.unlabeled_fields(),
-        attrs.unindexed_fields(),
+        attrs.unlabeled_values(),
+        attrs.unindexed_values(),
     );
 
     let tag = quote_optional_tag_owned(attrs.tag());

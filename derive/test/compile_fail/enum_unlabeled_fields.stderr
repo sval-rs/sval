@@ -4,4 +4,4 @@ error: proc-macro derive panicked
 3 | #[derive(Value)]
   |          ^^^^^
   |
-  = help: message: unsupported attribute `unlabeled_fields` on enum
+  = help: message: unsupported attribute `unlabeled_values` on enum

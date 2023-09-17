@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn flatten_record() {
         #[derive(Value)]
-        #[sval(unindexed_fields)]
+        #[sval(unindexed_values)]
         struct Inner {
             b: i32,
             c: i32,
