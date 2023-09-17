@@ -381,7 +381,12 @@ where
             _try!(self.out.write_char('"'));
         }
 
-        _try!(escape_str(label.as_str(), &mut self.out));
+        // If the label is a Rust identifier then it doesn't need escaping as JSON
+        if let Some(&sval::tags::VALUE_IDENT) = label.tag() {
+            _try!(self.out.write_str(label.as_str()));
+        } else {
+            _try!(escape_str(label.as_str(), &mut self.out));
+        }
 
         _try!(self.out.write_str("\":"));
 
