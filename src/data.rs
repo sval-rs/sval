@@ -687,6 +687,7 @@ mod tests {
     #[cfg(feature = "alloc")]
     mod alloc_support {
         use crate::data::*;
+        use crate::std::string::String;
 
         #[test]
         fn label_owned() {
