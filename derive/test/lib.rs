@@ -3,25 +3,25 @@
 use sval_derive::Value;
 use sval_test::assert_tokens;
 
-mod derive_record {
+mod derive_struct {
     use super::*;
 
     #[test]
     fn basic() {
         #[derive(Value)]
-        struct Record {
+        struct RecordTuple {
             a: i32,
         }
 
-        assert_tokens(&Record { a: 42 }, {
+        assert_tokens(&RecordTuple { a: 42 }, {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
                 RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
                 I32(42),
                 RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
             ]
         })
     }
@@ -49,6 +49,116 @@ mod derive_record {
                 RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
             ]
         })
+    }
+
+    #[test]
+    fn unlabeled() {
+        #[derive(Value)]
+        #[sval(unlabeled_values)]
+        struct Tuple {
+            a: i32,
+        }
+
+        assert_tokens(&Tuple { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(1)),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn unindexed() {
+        #[derive(Value)]
+        #[sval(unindexed_values)]
+        struct Record {
+            a: i32,
+        }
+
+        assert_tokens(&Record { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
+                RecordValueBegin(None, sval::Label::new("a")),
+                I32(42),
+                RecordValueEnd(None, sval::Label::new("a")),
+                RecordEnd(None, Some(sval::Label::new("Record")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn unlabeled_unindexed() {
+        #[derive(Value)]
+        #[sval(unlabeled_values, unindexed_values)]
+        struct Seq {
+            a: i32,
+        }
+
+        assert_tokens(&Seq { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
+                SeqBegin(Some(1)),
+                SeqValueBegin,
+                I32(42),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn flattened() {
+        #[derive(Value)]
+        struct Inner {
+            b: i32,
+            c: i32,
+        }
+
+        #[derive(Value)]
+        struct RecordTuple {
+            a: i32,
+            #[sval(flatten)]
+            b: Inner,
+            d: i32,
+        }
+
+        assert_tokens(
+            &RecordTuple {
+                a: 1,
+                b: Inner { b: 2, c: 3 },
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, None),
+                    RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                    RecordTupleValueBegin(None, sval::Label::new("b"), sval::Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(1)),
+                    RecordTupleValueBegin(None, sval::Label::new("c"), sval::Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, sval::Label::new("c"), sval::Index::new(2)),
+                    RecordTupleValueBegin(None, sval::Label::new("d"), sval::Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, sval::Label::new("d"), sval::Index::new(3)),
+                    RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                ]
+            },
+        )
     }
 
     #[test]
@@ -191,6 +301,94 @@ mod derive_tuple {
     }
 
     #[test]
+    fn unindexed() {
+        #[derive(Value)]
+        #[sval(unindexed_values)]
+        struct Seq(i32, i32);
+
+        assert_tokens(&Seq(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
+                SeqBegin(Some(2)),
+                SeqValueBegin,
+                I32(42),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(43),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn flattened() {
+        #[derive(Value)]
+        struct Inner(i32, i32);
+
+        #[derive(Value)]
+        struct Tuple(i32, #[sval(flatten)] Inner, i32);
+
+        assert_tokens(&Tuple(1, Inner(2, 3), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(sval::Label::new("Tuple")), None, None),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleValueBegin(None, sval::Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, sval::Index::new(2)),
+                TupleValueBegin(None, sval::Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, sval::Index::new(3)),
+                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn unindexed_flattened() {
+        #[derive(Value)]
+        #[sval(unindexed_values)]
+        struct Inner(i32, i32);
+
+        #[derive(Value)]
+        #[sval(unindexed_values)]
+        struct Seq(i32, #[sval(flatten)] Inner, i32);
+
+        assert_tokens(&Seq(1, Inner(2, 3), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
+                SeqBegin(None),
+                SeqValueBegin,
+                I32(1),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(2),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(3),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(4),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn tagged() {
         const CONTAINER: sval::Tag = sval::Tag::new("container");
         const FIELD: sval::Tag = sval::Tag::new("field");
@@ -281,6 +479,19 @@ mod derive_newtype {
     }
 
     #[test]
+    fn transparent() {
+        #[derive(Value)]
+        #[sval(transparent)]
+        struct Tagged(i32);
+
+        assert_tokens(&Tagged(42), {
+            use sval_test::Token::*;
+
+            &[I32(42)]
+        })
+    }
+
+    #[test]
     fn tagged() {
         const CONTAINER: sval::Tag = sval::Tag::new("container");
 
@@ -304,6 +515,22 @@ mod derive_newtype {
                     Some(sval::Index::new(0)),
                 ),
             ]
+        })
+    }
+}
+
+mod derive_unit_struct {
+    use super::*;
+
+    #[test]
+    fn basic() {
+        #[derive(Value)]
+        struct Tag;
+
+        assert_tokens(&Tag, {
+            use sval_test::Token::*;
+
+            &[Tag(None, Some(sval::Label::new("Tag")), None)]
         })
     }
 }
@@ -673,6 +900,64 @@ mod derive_enum {
         // Just ensure `derive` works on empty enums
         #[derive(Value)]
         enum Enum {}
+    }
+
+    #[test]
+    fn dynamic() {
+        #[derive(Value)]
+        #[sval(dynamic)]
+        enum Dynamic {
+            Tag,
+            I32(i32),
+            Bool(bool),
+            Record { a: i32 },
+            Tuple(i32, i32),
+        }
+
+        assert_tokens(&Dynamic::Tag, {
+            use sval_test::Token::*;
+
+            &[Tag(None, Some(sval::Label::new("Tag")), None)]
+        });
+
+        assert_tokens(&Dynamic::Bool(true), {
+            use sval_test::Token::*;
+
+            &[Bool(true)]
+        });
+
+        assert_tokens(&Dynamic::I32(42), {
+            use sval_test::Token::*;
+
+            &[I32(42)]
+        });
+
+        assert_tokens(&Dynamic::Record { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, None, None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                I32(42),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(None, None, None),
+            ]
+        });
+
+        assert_tokens(&Dynamic::Tuple(42, 43), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, None, None, Some(2)),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleEnd(None, None, None),
+            ]
+        });
     }
 }
 

@@ -11,6 +11,15 @@ readme = "README.md"
 keywords = ["serialization", "no_std"]
 categories = ["encoding", "no-std"]
 
+[features]
+alloc = ["sval_flatten?/alloc"]
+std = ["sval_flatten?/std"]
+flatten = ["dep:sval_flatten", "sval_derive_macros/flatten"]
+
 [dependencies.sval_derive_macros]
 version = "2.6.1"
 path = "../derive_macros"
+
+[dependencies.sval_flatten]
+path = "../flatten"
+optional = true

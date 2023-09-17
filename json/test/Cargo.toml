@@ -16,6 +16,7 @@ features = ["std"]
 
 [dependencies.sval_derive]
 path = "../../derive"
+features = ["flatten"]
 
 [dependencies.serde]
 version = "1"

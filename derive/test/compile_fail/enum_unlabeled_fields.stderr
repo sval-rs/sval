@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> compile_fail/enum_unlabeled_fields.rs:3:10
+  |
+3 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: unsupported attribute `unlabeled_values` on enum

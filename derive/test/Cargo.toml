@@ -9,6 +9,7 @@ path = "lib.rs"
 
 [dependencies.sval_derive]
 path = "../../derive"
+features = ["flatten"]
 
 [dependencies.sval]
 path = "../../"

@@ -13,11 +13,17 @@ enum ErrorKind {
         expected: &'static str,
     },
     #[cfg(feature = "alloc")]
-    OutsideContainer { method: &'static str },
-    #[cfg(feature = "alloc")]
-    InvalidValue { reason: &'static str },
+    OutsideContainer {
+        method: &'static str,
+    },
+    InvalidValue {
+        reason: &'static str,
+    },
     #[cfg(not(feature = "alloc"))]
-    NoAlloc { method: &'static str },
+    #[allow(dead_code)]
+    NoAlloc {
+        method: &'static str,
+    },
 }
 
 impl fmt::Display for Error {
@@ -30,7 +36,6 @@ impl fmt::Display for Error {
             ErrorKind::OutsideContainer { method } => {
                 write!(f, "expected a fragment while buffering {}", method)
             }
-            #[cfg(feature = "alloc")]
             ErrorKind::InvalidValue { reason } => {
                 write!(f, "the value being buffered is invalid: {}", reason)
             }
@@ -50,14 +55,31 @@ impl Error {
         Error(ErrorKind::OutsideContainer { method })
     }
 
-    #[cfg(feature = "alloc")]
     pub(crate) fn invalid_value(reason: &'static str) -> Self {
         Error(ErrorKind::InvalidValue { reason })
     }
 
     #[cfg(not(feature = "alloc"))]
+    #[track_caller]
     pub(crate) fn no_alloc(method: &'static str) -> Self {
-        Error(ErrorKind::NoAlloc { method })
+        /*
+        Users may not know they aren't depending on an allocator when using `sval_buffer`
+        and have buffering fail unexpectedly. In debug builds we provide a more developer-centric
+        panic message if this happens so they can decide whether failure to buffer is acceptable
+        or not, and enable features accordingly.
+
+        If you're not depending on `sval_buffer` directly, but through another library like
+        `sval_serde`, then you can enable their `alloc` or `std` features instead.
+        */
+
+        #[cfg(all(debug_assertions, not(no_debug_assertions), not(test)))]
+        {
+            panic!("attempt to allocate for {} would fail; add the `alloc` feature of `sval_buffer` or the depdendent `sval_*` library to support allocation. This call will error instead of panicking in release builds. Add the `no_debug_assertions` feature of `sval_buffer` if this error is expected.", method);
+        }
+        #[cfg(not(all(debug_assertions, not(no_debug_assertions), not(test))))]
+        {
+            Error(ErrorKind::NoAlloc { method })
+        }
     }
 }
 

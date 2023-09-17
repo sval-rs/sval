@@ -1,0 +1,29 @@
+[package]
+name = "sval_flatten"
+version = "0.0.0"
+description = "Value flattening for sval"
+edition = "2021"
+
+[features]
+alloc = ["sval/alloc", "sval_buffer/alloc"]
+std = ["alloc", "sval/std", "sval_buffer/std"]
+
+[dependencies.sval]
+path = "../"
+default-features = false
+
+[dependencies.sval_buffer]
+path = "../buffer"
+default-features = false
+
+[dependencies.itoa]
+version = "1"
+
+[dependencies.ryu]
+version = "1"
+
+[dev-dependencies.sval_test]
+path = "../test"
+
+[dev-dependencies.sval_derive_macros]
+path = "../derive_macros"

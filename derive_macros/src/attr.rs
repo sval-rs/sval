@@ -1,45 +1,6 @@
+use std::collections::HashSet;
+
 use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, LitBool, Path, UnOp};
-
-/**
-Get an attribute that is applicable to a container.
-*/
-pub(crate) fn container<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    get("container", &[&Tag, &Label, &Index], request, attrs)
-}
-
-/**
-Get an attribute that is applicable to a named struct field.
-*/
-pub(crate) fn named_field<T: SvalAttribute>(request: T, attrs: &[Attribute]) -> Option<T::Result> {
-    get(
-        "named field",
-        &[&Tag, &Label, &Index, &Skip],
-        request,
-        attrs,
-    )
-}
-
-/**
-Get an attribute that is applicable to an unnamed tuple field.
-*/
-pub(crate) fn unnamed_field<T: SvalAttribute>(
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    get(
-        "unnamed field",
-        &[&Tag, &Index, &Label, &Skip],
-        request,
-        attrs,
-    )
-}
-
-/**
-Ensure that no attributes are applied to a newtype field.
-*/
-pub(crate) fn ensure_newtype_field_empty(attrs: &[Attribute]) {
-    ensure_empty("newtype field", attrs)
-}
 
 /**
 The `tag` attribute.
@@ -47,9 +8,9 @@ The `tag` attribute.
 This attribute specifies a path to an `sval::Tag` to use
 for the annotated item.
 */
-pub(crate) struct Tag;
+pub(crate) struct TagAttr;
 
-impl SvalAttribute for Tag {
+impl SvalAttribute for TagAttr {
     type Result = syn::Path;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -61,7 +22,7 @@ impl SvalAttribute for Tag {
     }
 }
 
-impl RawAttribute for Tag {
+impl RawAttribute for TagAttr {
     fn key(&self) -> &str {
         "tag"
     }
@@ -73,9 +34,9 @@ The `label` attribute.
 This attribute specifies an `sval::Label` as a constant
 to use for the annotated item.
 */
-pub(crate) struct Label;
+pub(crate) struct LabelAttr;
 
-impl SvalAttribute for Label {
+impl SvalAttribute for LabelAttr {
     type Result = String;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -87,7 +48,7 @@ impl SvalAttribute for Label {
     }
 }
 
-impl RawAttribute for Label {
+impl RawAttribute for LabelAttr {
     fn key(&self) -> &str {
         "label"
     }
@@ -99,9 +60,9 @@ The `index` attribute.
 This attribute specifies an `sval::Index` as a constant
 to use for the annotated item.
 */
-pub(crate) struct Index;
+pub(crate) struct IndexAttr;
 
-impl SvalAttribute for Index {
+impl SvalAttribute for IndexAttr {
     type Result = isize;
 
     fn from_expr(&self, expr: &Expr) -> Option<Self::Result> {
@@ -132,7 +93,7 @@ impl SvalAttribute for Index {
     }
 }
 
-impl RawAttribute for Index {
+impl RawAttribute for IndexAttr {
     fn key(&self) -> &str {
         "index"
     }
@@ -144,9 +105,9 @@ The `skip` attribute.
 This attribute signals that an item should be skipped
 from streaming.
 */
-pub(crate) struct Skip;
+pub(crate) struct SkipAttr;
 
-impl SvalAttribute for Skip {
+impl SvalAttribute for SkipAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -158,9 +119,143 @@ impl SvalAttribute for Skip {
     }
 }
 
-impl RawAttribute for Skip {
+impl RawAttribute for SkipAttr {
     fn key(&self) -> &str {
         "skip"
+    }
+}
+
+/**
+The `unlabeled` attribute.
+
+This attribute signals that an item should be unlabeled.
+*/
+pub(crate) struct UnlabeledValuesAttr;
+
+impl SvalAttribute for UnlabeledValuesAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for UnlabeledValuesAttr {
+    fn key(&self) -> &str {
+        "unlabeled_values"
+    }
+}
+
+/**
+The `unindexed` attribute.
+
+This attribute signals that an item should be unindexed.
+*/
+pub(crate) struct UnindexedValuesAttr;
+
+impl SvalAttribute for UnindexedValuesAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for UnindexedValuesAttr {
+    fn key(&self) -> &str {
+        "unindexed_values"
+    }
+}
+
+/**
+The `dynamic` attribute.
+
+This attribute signals that an enum should be dynamic.
+*/
+pub(crate) struct DynamicAttr;
+
+impl SvalAttribute for DynamicAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for DynamicAttr {
+    fn key(&self) -> &str {
+        "dynamic"
+    }
+}
+
+/**
+The `transparent` attribute.
+
+This attribute signals that a newtype should stream its inner field
+without wrapping it in a tag.
+*/
+pub(crate) struct TransparentAttr;
+
+impl SvalAttribute for TransparentAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for TransparentAttr {
+    fn key(&self) -> &str {
+        "transparent"
+    }
+}
+
+/**
+The `flatten` attribute.
+
+This attribute will flatten the fields of a value onto its parent.
+ */
+pub(crate) struct FlattenAttr;
+
+impl SvalAttribute for FlattenAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        #[cfg(not(feature = "flatten"))]
+        {
+            let _ = lit;
+            panic!("the `flatten` attribute can only be used when the `flatten` Cargo feature of `sval_derive` is enabled");
+        }
+        #[cfg(feature = "flatten")]
+        {
+            if let Lit::Bool(ref b) = lit {
+                b.value
+            } else {
+                panic!("unexpected value")
+            }
+        }
+    }
+}
+
+impl RawAttribute for FlattenAttr {
+    fn key(&self) -> &str {
+        "flatten"
     }
 }
 
@@ -182,7 +277,7 @@ pub(crate) trait SvalAttribute: RawAttribute {
     fn from_lit(&self, lit: &Lit) -> Self::Result;
 }
 
-fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
+pub(crate) fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
     // Just ensure the attribute list is empty
     for (value_key, _) in attrs
         .iter()
@@ -193,17 +288,18 @@ fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
     }
 }
 
-fn get<T: SvalAttribute>(
-    ctxt: &str,
-    allowed: &[&dyn RawAttribute],
-    request: T,
-    attrs: &[Attribute],
-) -> Option<T::Result> {
-    let request_key = request.key();
+pub(crate) fn ensure_missing<T: SvalAttribute>(ctxt: &str, request: T, attrs: &[Attribute]) {
+    let key = request.key().to_owned();
 
-    let mut result = None;
+    if get_unchecked::<T>(ctxt, request, attrs).is_some() {
+        panic!("unsupported attribute `{}` on {}", key, ctxt);
+    }
+}
 
-    for (value_key, value) in attrs
+pub(crate) fn check(ctxt: &str, allowed: &[&dyn RawAttribute], attrs: &[Attribute]) {
+    let mut seen = HashSet::new();
+
+    for (value_key, _) in attrs
         .iter()
         .filter_map(|attr| sval_attr(ctxt, attr))
         .flatten()
@@ -215,25 +311,37 @@ fn get<T: SvalAttribute>(
 
             if value_key.is_ident(attr_key) {
                 is_valid_attr = true;
+
+                if !seen.insert(attr_key) {
+                    panic!("duplicate attribute `{}` on {}", quote!(#value_key), ctxt);
+                }
             }
         }
 
         if !is_valid_attr {
             panic!("unsupported attribute `{}` on {}", quote!(#value_key), ctxt);
         }
+    }
+}
 
+pub(crate) fn get_unchecked<T: SvalAttribute>(
+    ctxt: &str,
+    request: T,
+    attrs: &[Attribute],
+) -> Option<T::Result> {
+    let request_key = request.key();
+
+    for (value_key, value) in attrs
+        .iter()
+        .filter_map(|attr| sval_attr(ctxt, attr))
+        .flatten()
+    {
         if value_key.is_ident(request_key) {
-            if result.is_none() {
-                result = Some(request.from_lit(&value));
-
-                // We don't short-circuit here to check other attributes are valid
-            } else {
-                panic!("duplicate attribute `{}` on {}", quote!(#value_key), ctxt);
-            }
+            return Some(request.from_lit(&value));
         }
     }
 
-    result
+    None
 }
 
 fn sval_attr<'a>(

@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> compile_fail/tuple_incomplete_labels.rs:3:10
+  |
+3 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: if any fields have a label then all fields need one

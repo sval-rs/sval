@@ -31,6 +31,10 @@ jobs:
         working-directory: ./json/test
         run: cargo hack test --feature-powerset
 
+      - name: Powerset (Benches)
+        working-directory: ./json/bench
+        run: cargo hack test --feature-powerset
+
   embedded:
     name: Build (embedded)
     runs-on: ubuntu-latest

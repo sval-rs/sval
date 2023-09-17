@@ -175,8 +175,8 @@ pub trait Stream<'sval> {
     /**
     Start a homogenous mapping of arbitrary keys to values.
     */
-    fn map_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
-        self.seq_begin(num_entries_hint)
+    fn map_begin(&mut self, num_entries: Option<usize>) -> Result {
+        self.seq_begin(num_entries)
     }
 
     /**
@@ -221,7 +221,7 @@ pub trait Stream<'sval> {
     /**
     Start a homogenous sequence of values.
     */
-    fn seq_begin(&mut self, num_entries_hint: Option<usize>) -> Result;
+    fn seq_begin(&mut self, num_entries: Option<usize>) -> Result;
 
     /**
     Start an individual value in a sequence.
@@ -334,10 +334,10 @@ pub trait Stream<'sval> {
         tag: Option<&Tag>,
         label: Option<&Label>,
         index: Option<&Index>,
-        num_entries_hint: Option<usize>,
+        num_entries: Option<usize>,
     ) -> Result {
         self.tagged_begin(tag, label, index)?;
-        self.map_begin(num_entries_hint)
+        self.map_begin(num_entries)
     }
 
     /**
@@ -392,10 +392,10 @@ pub trait Stream<'sval> {
         tag: Option<&Tag>,
         label: Option<&Label>,
         index: Option<&Index>,
-        num_entries_hint: Option<usize>,
+        num_entries: Option<usize>,
     ) -> Result {
         self.tagged_begin(tag, label, index)?;
-        self.seq_begin(num_entries_hint)
+        self.seq_begin(num_entries)
     }
 
     /**
@@ -608,9 +608,9 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).binary_fragment_computed(fragment)
             }
 
-            fn map_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
+            fn map_begin(&mut self, num_entries: Option<usize>) -> Result {
                 let $bind = self;
-                ($($forward)*).map_begin(num_entries_hint)
+                ($($forward)*).map_begin(num_entries)
             }
 
             fn map_end(&mut self) -> Result {
@@ -638,9 +638,9 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).map_value_end()
             }
 
-            fn seq_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
+            fn seq_begin(&mut self, num_entries: Option<usize>) -> Result {
                 let $bind = self;
-                ($($forward)*).seq_begin(num_entries_hint)
+                ($($forward)*).seq_begin(num_entries)
             }
 
             fn seq_end(&mut self) -> Result {
@@ -865,8 +865,8 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.binary_end()
     }
 
-    fn map_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
-        self.0.map_begin(num_entries_hint)
+    fn map_begin(&mut self, num_entries: Option<usize>) -> Result {
+        self.0.map_begin(num_entries)
     }
 
     fn map_key_begin(&mut self) -> Result {
@@ -889,8 +889,8 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.map_end()
     }
 
-    fn seq_begin(&mut self, num_entries_hint: Option<usize>) -> Result {
-        self.0.seq_begin(num_entries_hint)
+    fn seq_begin(&mut self, num_entries: Option<usize>) -> Result {
+        self.0.seq_begin(num_entries)
     }
 
     fn seq_value_begin(&mut self) -> Result {

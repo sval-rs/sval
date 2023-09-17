@@ -1,4 +1,7 @@
-use crate::{std::fmt, Error};
+use crate::{
+    std::fmt::{self, Write as _},
+    Error,
+};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
@@ -31,79 +34,7 @@ impl<'sval> TextBuf<'sval> {
     Buffer a text value into a contiguous string.
     */
     pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
-        struct Collector<'a> {
-            buf: TextBuf<'a>,
-            err: Option<Error>,
-        }
-
-        impl<'a> Collector<'a> {
-            fn try_catch(
-                &mut self,
-                f: impl FnOnce(&mut TextBuf<'a>) -> Result<(), Error>,
-            ) -> sval::Result {
-                match f(&mut self.buf) {
-                    Ok(()) => Ok(()),
-                    Err(e) => self.fail(e),
-                }
-            }
-
-            fn fail(&mut self, err: Error) -> sval::Result {
-                self.err = Some(err);
-                sval::error()
-            }
-        }
-
-        impl<'a> sval::Stream<'a> for Collector<'a> {
-            fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
-                Ok(())
-            }
-
-            fn text_fragment(&mut self, fragment: &'a str) -> sval::Result {
-                self.try_catch(|buf| buf.push_fragment(fragment))
-            }
-
-            fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-                self.try_catch(|buf| buf.push_fragment_computed(fragment))
-            }
-
-            fn text_end(&mut self) -> sval::Result {
-                Ok(())
-            }
-
-            fn null(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("text", "null"))
-            }
-
-            fn bool(&mut self, _: bool) -> sval::Result {
-                self.fail(Error::unsupported("text", "boolean"))
-            }
-
-            fn i64(&mut self, _: i64) -> sval::Result {
-                self.fail(Error::unsupported("text", "integer"))
-            }
-
-            fn f64(&mut self, _: f64) -> sval::Result {
-                self.fail(Error::unsupported("text", "floating point"))
-            }
-
-            fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-                self.fail(Error::unsupported("text", "sequence"))
-            }
-
-            fn seq_value_begin(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("text", "sequence"))
-            }
-
-            fn seq_value_end(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("text", "sequence"))
-            }
-
-            fn seq_end(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("text", "sequence"))
-            }
-        }
-
-        let mut collector = Collector {
+        let mut collector = TextCollector {
             buf: TextBuf::new(),
             err: None,
         };
@@ -113,6 +44,16 @@ impl<'sval> TextBuf<'sval> {
             .map_err(|_| collector.err.unwrap())?;
 
         Ok(collector.buf)
+    }
+
+    /**
+    Buffer a displayable value into a contiguous string.
+    */
+    pub fn collect_display(value: impl fmt::Display) -> Result<Self, Error> {
+        let mut buf = TextBuf::new();
+        buf.push_display(value)?;
+
+        Ok(buf)
     }
 
     /**
@@ -140,6 +81,42 @@ impl<'sval> TextBuf<'sval> {
     }
 
     /**
+    Push a displayable value onto the buffer.
+
+    If the `std` feature of htis library is enabled, this method will
+    buffer the fragment. In no-std environments this method will fail.
+    */
+    pub fn push_display(&mut self, value: impl fmt::Display) -> Result<(), Error> {
+        struct Writer<'a, 'sval> {
+            buf: &'a mut TextBuf<'sval>,
+            err: Option<Error>,
+        }
+
+        impl<'a, 'sval> fmt::Write for Writer<'a, 'sval> {
+            fn write_str(&mut self, s: &str) -> fmt::Result {
+                match self.buf.push_fragment_computed(s) {
+                    Ok(()) => Ok(()),
+                    Err(e) => {
+                        self.err = Some(e);
+                        Err(fmt::Error)
+                    }
+                }
+            }
+        }
+
+        let mut writer = Writer {
+            buf: self,
+            err: None,
+        };
+
+        write!(&mut writer, "{}", value).map_err(|_| {
+            writer
+                .err
+                .unwrap_or_else(|| Error::invalid_value("formatting failed"))
+        })
+    }
+
+    /**
     Try get the contents of the buffer as a string borrowed for the `'sval` lifetime.
     */
     pub fn as_borrowed_str(&self) -> Option<&'sval str> {
@@ -161,6 +138,81 @@ impl<'sval> TextBuf<'sval> {
 
         // SAFETY: `self` no longer contains any data borrowed for `'sval`
         unsafe { mem::transmute::<&mut TextBuf<'sval>, &mut TextBuf<'static>>(self) }
+    }
+}
+
+struct TextCollector<'a> {
+    buf: TextBuf<'a>,
+    err: Option<Error>,
+}
+
+impl<'a> TextCollector<'a> {
+    fn try_catch(&mut self, f: impl FnOnce(&mut TextBuf<'a>) -> Result<(), Error>) -> sval::Result {
+        match f(&mut self.buf) {
+            Ok(()) => Ok(()),
+            Err(e) => self.fail(e),
+        }
+    }
+
+    fn fail(&mut self, err: Error) -> sval::Result {
+        self.err = Some(err);
+        sval::error()
+    }
+}
+
+impl<'a> sval::Stream<'a> for TextCollector<'a> {
+    fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_fragment(&mut self, fragment: &'a str) -> sval::Result {
+        self.try_catch(|buf| buf.push_fragment(fragment))
+    }
+
+    fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+        self.try_catch(|buf| buf.push_fragment_computed(fragment))
+    }
+
+    fn text_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn null(&mut self) -> sval::Result {
+        self.fail(Error::unsupported("text", "null"))
+    }
+
+    fn bool(&mut self, _: bool) -> sval::Result {
+        self.fail(Error::unsupported("text", "boolean"))
+    }
+
+    fn i64(&mut self, _: i64) -> sval::Result {
+        self.fail(Error::unsupported("text", "integer"))
+    }
+
+    fn f64(&mut self, _: f64) -> sval::Result {
+        self.fail(Error::unsupported("text", "floating point"))
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
+        self.fail(Error::unsupported("text", "sequence"))
+    }
+
+    fn seq_value_begin(&mut self) -> sval::Result {
+        self.fail(Error::unsupported("text", "sequence"))
+    }
+
+    fn seq_value_end(&mut self) -> sval::Result {
+        self.fail(Error::unsupported("text", "sequence"))
+    }
+
+    fn seq_end(&mut self) -> sval::Result {
+        self.fail(Error::unsupported("text", "sequence"))
+    }
+}
+
+impl<'sval> fmt::Write for TextBuf<'sval> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.push_fragment_computed(s).map_err(|_| fmt::Error)
     }
 }
 
@@ -230,99 +282,7 @@ impl<'sval> BinaryBuf<'sval> {
     Buffer a binary value into a contiguous slice.
     */
     pub fn collect(value: &'sval (impl sval::Value + ?Sized)) -> Result<Self, Error> {
-        struct Collector<'a> {
-            buf: BinaryBuf<'a>,
-            err: Option<Error>,
-        }
-
-        impl<'a> Collector<'a> {
-            fn try_catch(
-                &mut self,
-                f: impl FnOnce(&mut BinaryBuf<'a>) -> Result<(), Error>,
-            ) -> sval::Result {
-                match f(&mut self.buf) {
-                    Ok(()) => Ok(()),
-                    Err(e) => self.fail(e),
-                }
-            }
-
-            fn fail(&mut self, err: Error) -> sval::Result {
-                self.err = Some(err);
-                sval::error()
-            }
-        }
-
-        impl<'a> sval::Stream<'a> for Collector<'a> {
-            fn binary_begin(&mut self, _: Option<usize>) -> sval::Result {
-                Ok(())
-            }
-
-            fn binary_fragment(&mut self, fragment: &'a [u8]) -> sval::Result {
-                self.try_catch(|buf| buf.push_fragment(fragment))
-            }
-
-            fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
-                self.try_catch(|buf| buf.push_fragment_computed(fragment))
-            }
-
-            fn binary_end(&mut self) -> sval::Result {
-                Ok(())
-            }
-
-            fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
-                self.fail(Error::unsupported("binary", "text"))
-            }
-
-            fn text_fragment_computed(&mut self, _: &str) -> sval::Result {
-                self.fail(Error::unsupported("binary", "text"))
-            }
-
-            fn text_end(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "text"))
-            }
-
-            fn null(&mut self) -> sval::Result {
-                self.fail(Error::unsupported("binary", "null"))
-            }
-
-            fn bool(&mut self, _: bool) -> sval::Result {
-                self.fail(Error::unsupported("binary", "boolean"))
-            }
-
-            fn u8(&mut self, value: u8) -> sval::Result {
-                self.try_catch(|buf| buf.push_fragment_computed(&[value]))
-            }
-
-            fn i64(&mut self, _: i64) -> sval::Result {
-                self.fail(Error::unsupported("binary", "integer"))
-            }
-
-            fn f64(&mut self, _: f64) -> sval::Result {
-                self.fail(Error::unsupported("binary", "floating point"))
-            }
-
-            fn map_begin(&mut self, _: Option<usize>) -> sval::Result {
-                self.fail(Error::unsupported("binary", "map"))
-            }
-
-            fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
-                Ok(())
-            }
-
-            fn seq_value_begin(&mut self) -> sval::Result {
-                Ok(())
-            }
-
-            fn seq_value_end(&mut self) -> sval::Result {
-                Ok(())
-            }
-
-            fn seq_end(&mut self) -> sval::Result {
-                Ok(())
-            }
-        }
-
-        let mut collector = Collector {
+        let mut collector = BinaryCollector {
             buf: BinaryBuf::new(),
             err: None,
         };
@@ -380,6 +340,98 @@ impl<'sval> BinaryBuf<'sval> {
 
         // SAFETY: `self` no longer contains any data borrowed for `'sval`
         unsafe { mem::transmute::<&mut BinaryBuf<'sval>, &mut BinaryBuf<'static>>(self) }
+    }
+}
+
+struct BinaryCollector<'a> {
+    buf: BinaryBuf<'a>,
+    err: Option<Error>,
+}
+
+impl<'a> BinaryCollector<'a> {
+    fn try_catch(
+        &mut self,
+        f: impl FnOnce(&mut BinaryBuf<'a>) -> Result<(), Error>,
+    ) -> sval::Result {
+        match f(&mut self.buf) {
+            Ok(()) => Ok(()),
+            Err(e) => self.fail(e),
+        }
+    }
+
+    fn fail(&mut self, err: Error) -> sval::Result {
+        self.err = Some(err);
+        sval::error()
+    }
+}
+
+impl<'a> sval::Stream<'a> for BinaryCollector<'a> {
+    fn binary_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn binary_fragment(&mut self, fragment: &'a [u8]) -> sval::Result {
+        self.try_catch(|buf| buf.push_fragment(fragment))
+    }
+
+    fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
+        self.try_catch(|buf| buf.push_fragment_computed(fragment))
+    }
+
+    fn binary_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+        self.fail(Error::unsupported("binary", "text"))
+    }
+
+    fn text_fragment_computed(&mut self, _: &str) -> sval::Result {
+        self.fail(Error::unsupported("binary", "text"))
+    }
+
+    fn text_end(&mut self) -> sval::Result {
+        self.fail(Error::unsupported("binary", "text"))
+    }
+
+    fn null(&mut self) -> sval::Result {
+        self.fail(Error::unsupported("binary", "null"))
+    }
+
+    fn bool(&mut self, _: bool) -> sval::Result {
+        self.fail(Error::unsupported("binary", "boolean"))
+    }
+
+    fn u8(&mut self, value: u8) -> sval::Result {
+        self.try_catch(|buf| buf.push_fragment_computed(&[value]))
+    }
+
+    fn i64(&mut self, _: i64) -> sval::Result {
+        self.fail(Error::unsupported("binary", "integer"))
+    }
+
+    fn f64(&mut self, _: f64) -> sval::Result {
+        self.fail(Error::unsupported("binary", "floating point"))
+    }
+
+    fn map_begin(&mut self, _: Option<usize>) -> sval::Result {
+        self.fail(Error::unsupported("binary", "map"))
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_value_begin(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_value_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> sval::Result {
+        Ok(())
     }
 }
 
@@ -789,6 +841,27 @@ mod tests {
 
             &[TextBegin(Some(3)), TextFragment("123"), TextEnd]
         });
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_text_buf_display() {
+        let buf = TextBuf::collect_display(true).unwrap();
+
+        assert_eq!("true", buf.as_str());
+        assert!(buf.as_borrowed_str().is_none());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn stream_text_buf_display() {
+        let mut buf = TextBuf::new();
+
+        buf.push_display(true).unwrap();
+        buf.push_display(false).unwrap();
+
+        assert_eq!("truefalse", buf.as_str());
+        assert!(buf.as_borrowed_str().is_none());
     }
 
     #[test]

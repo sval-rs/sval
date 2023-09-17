@@ -19,11 +19,11 @@ use crate::{
 };
 
 #[cfg(feature = "alloc")]
-use crate::std::string::String;
+use crate::std::boxed::Box;
 
 pub(crate) use self::number::*;
 
-pub use self::{binary::*, text::*};
+pub use self::{binary::*, map::*, text::*};
 
 /**
 A textual label for some value.
@@ -37,7 +37,8 @@ pub struct Label<'computed> {
     // Only one `backing_field_*` may be `Some`
     backing_field_static: Option<&'static str>,
     #[cfg(feature = "alloc")]
-    backing_field_owned: Option<String>,
+    backing_field_owned: Option<Box<str>>,
+    tag: Option<Tag>,
     _marker: PhantomData<&'computed str>,
 }
 
@@ -52,6 +53,7 @@ impl<'computed> Clone for Label<'computed> {
         Label {
             value_computed: self.value_computed,
             backing_field_static: self.backing_field_static,
+            tag: self.tag.clone(),
             _marker: PhantomData,
         }
     }
@@ -70,6 +72,7 @@ impl<'computed> Label<'computed> {
             backing_field_static: Some(label),
             #[cfg(feature = "alloc")]
             backing_field_owned: None,
+            tag: None,
             _marker: PhantomData,
         }
     }
@@ -83,6 +86,7 @@ impl<'computed> Label<'computed> {
             backing_field_static: None,
             #[cfg(feature = "alloc")]
             backing_field_owned: None,
+            tag: None,
             _marker: PhantomData,
         }
     }
@@ -104,6 +108,26 @@ impl<'computed> Label<'computed> {
     */
     pub const fn as_static_str(&self) -> Option<&'static str> {
         self.backing_field_static
+    }
+
+    /**
+    Associate a tag as a hint with this label.
+
+    Tags don't contribute to equality or ordering of labels but streams may
+    use the them when interpreting the label value.
+     */
+    pub const fn with_tag(mut self, tag: &Tag) -> Self {
+        self.tag = Some(tag.cloned());
+        self
+    }
+
+    /**
+    Get the tag hint associated with the label, if present.
+
+    Streams may use the tag when interpreting the label value.
+     */
+    pub const fn tag(&self) -> Option<&Tag> {
+        self.tag.as_ref()
     }
 }
 
@@ -328,16 +352,6 @@ impl Index {
     }
 
     /**
-    Associate a tag as a hint with this index.
-
-    Tags don't contribute to equality or ordering of indexes but streams may
-    use the them when interpreting the index value.
-    */
-    pub const fn with_tag(self, tag: &Tag) -> Self {
-        Index(self.0, Some(tag.cloned()))
-    }
-
-    /**
     Try get the index as a numeric value.
     */
     pub const fn to_usize(&self) -> Option<usize> {
@@ -404,6 +418,17 @@ impl Index {
     }
 
     /**
+    Associate a tag as a hint with this index.
+
+    Tags don't contribute to equality or ordering of indexes but streams may
+    use the them when interpreting the index value.
+     */
+    pub const fn with_tag(mut self, tag: &Tag) -> Self {
+        self.1 = Some(tag.cloned());
+        self
+    }
+
+    /**
     Get the tag hint associated with the index, if present.
 
     Streams may use the tag when interpreting the index value.
@@ -415,10 +440,13 @@ impl Index {
 
 impl fmt::Debug for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Index")
-            .field("value", &self.0)
-            .field("<tag>", &self.1)
-            .finish()
+        f.debug_struct("Index").field("value", &self.0).finish()
+    }
+}
+
+impl fmt::Display for Index {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
     }
 }
 
@@ -472,17 +500,18 @@ impl Value for bool {
 mod alloc_support {
     use super::*;
 
-    use crate::std::string::String;
+    use crate::std::{borrow::ToOwned, string::String};
 
     impl<'computed> Clone for Label<'computed> {
         fn clone(&self) -> Self {
             if let Some(ref owned) = self.backing_field_owned {
-                Label::new_owned(owned.clone())
+                Label::new_owned((**owned).to_owned())
             } else {
                 Label {
                     value_computed: self.value_computed,
                     backing_field_static: self.backing_field_static,
                     backing_field_owned: None,
+                    tag: self.tag.clone(),
                     _marker: PhantomData,
                 }
             }
@@ -512,7 +541,8 @@ mod alloc_support {
             Label {
                 value_computed: label.as_str() as *const str,
                 backing_field_static: None,
-                backing_field_owned: Some(label),
+                backing_field_owned: Some(label.into_boxed_str()),
+                tag: None,
                 _marker: PhantomData,
             }
         }
@@ -549,6 +579,13 @@ mod tests {
 
         assert!(label.as_static_str().is_none());
         assert_eq!("a", label.as_str());
+    }
+
+    #[test]
+    fn label_tag() {
+        let label = Label::new("a").with_tag(&tags::VALUE_IDENT);
+
+        assert_eq!(Some(&tags::VALUE_IDENT), label.tag());
     }
 
     #[test]
@@ -650,6 +687,7 @@ mod tests {
     #[cfg(feature = "alloc")]
     mod alloc_support {
         use crate::data::*;
+        use crate::std::string::String;
 
         #[test]
         fn label_owned() {
