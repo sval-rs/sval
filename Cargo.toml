@@ -28,6 +28,7 @@ members = [
     "serde/test",
     "json",
     "json/test",
+    "json/bench",
     "flatten",
     "test",
     "experiments",
