@@ -75,6 +75,13 @@ Any datatype that accepts a size hint.
 pub const CONSTANT_SIZE: Tag = Tag::new("CONSTANT_SIZE");
 
 /**
+A tag for labels that are valid Rust identifiers.
+
+`sval` uses this tag by default for labels on record values and enum variants.
+ */
+pub const VALUE_IDENT: Tag = Tag::new("VALUE_IDENT");
+
+/**
 A tag for indexes that are zero-based non-negative offsets into a larger structure.
 
 `sval` uses this tag by default for indexes on tuple values and enum variants.

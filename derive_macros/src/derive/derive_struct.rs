@@ -92,7 +92,7 @@ pub(crate) fn derive_struct<'a>(
         fields.iter(),
         target,
         attrs.tag(),
-        Some(&*label_or_ident(attrs.label(), ident)),
+        Some(label_or_ident(attrs.label(), ident)),
         attrs.index(),
         attrs.unlabeled_fields(),
         attrs.unindexed_fields(),

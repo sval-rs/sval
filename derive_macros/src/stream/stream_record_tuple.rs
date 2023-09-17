@@ -1,5 +1,6 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
+use crate::label::{optional_label_or_ident, Label};
 use crate::{
     attr::{self},
     index::{quote_index, quote_optional_index, Index, IndexAllocator},
@@ -29,7 +30,7 @@ pub(crate) fn stream_record_tuple<'a>(
     fields: impl Iterator<Item = &'a Field>,
     mut target: RecordTupleTarget,
     tag: Option<&Path>,
-    label: Option<&str>,
+    label: Option<Label>,
     index: Option<Index>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
@@ -260,9 +261,7 @@ fn get_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenStr
 }
 
 fn get_label(explicit: Option<String>, ident: Option<&Ident>) -> Option<proc_macro2::TokenStream> {
-    explicit
-        .or_else(|| ident.map(|ident| ident.to_string()))
-        .map(|label| quote_label(&label))
+    optional_label_or_ident(explicit.as_deref(), ident).map(|label| quote_label(label))
 }
 
 fn quote_field_skip(index: &syn::Index, field: &Field) -> proc_macro2::TokenStream {

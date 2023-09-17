@@ -93,7 +93,7 @@ pub(crate) fn derive_enum<'a>(
         if attrs.dynamic {
             None
         } else {
-            Some(label_or_ident(label, ident).into_owned())
+            Some(label_or_ident(label, ident))
         }
     };
 
@@ -131,7 +131,7 @@ pub(crate) fn derive_enum<'a>(
                     quote!(#ident :: #variant_ident),
                     &fields.unnamed[0],
                     attrs.tag(),
-                    variant_label(attrs.label(), variant_ident).as_deref(),
+                    variant_label(attrs.label(), variant_ident),
                     variant_index(attrs.index(), discriminant),
                     variant_transparent,
                 )
@@ -142,7 +142,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_tag(
                     quote!(#ident :: #variant_ident),
                     attrs.tag(),
-                    Some(&*label_or_ident(attrs.label(), variant_ident)),
+                    Some(label_or_ident(attrs.label(), variant_ident)),
                     variant_index(attrs.index(), discriminant),
                 )
             }
@@ -154,7 +154,7 @@ pub(crate) fn derive_enum<'a>(
                     fields.named.iter(),
                     RecordTupleTarget::named_fields(),
                     attrs.tag(),
-                    variant_label(attrs.label(), variant_ident).as_deref(),
+                    variant_label(attrs.label(), variant_ident),
                     variant_index(attrs.index(), discriminant),
                     attrs.unlabeled_fields(),
                     attrs.unindexed_fields(),
@@ -168,7 +168,7 @@ pub(crate) fn derive_enum<'a>(
                     fields.unnamed.iter(),
                     RecordTupleTarget::unnamed_fields(),
                     attrs.tag(),
-                    variant_label(attrs.label(), variant_ident).as_deref(),
+                    variant_label(attrs.label(), variant_ident),
                     variant_index(attrs.index(), discriminant),
                     attrs.unlabeled_fields(),
                     attrs.unindexed_fields(),
@@ -196,7 +196,7 @@ pub(crate) fn derive_enum<'a>(
     } else {
         let tag = quote_optional_tag(attrs.tag());
         let tag_owned = quote_optional_tag_owned(attrs.tag());
-        let label = quote_optional_label(Some(&*label_or_ident(attrs.label(), ident)));
+        let label = quote_optional_label(Some(label_or_ident(attrs.label(), ident)));
         let index = quote_optional_index(attrs.index());
 
         quote! {

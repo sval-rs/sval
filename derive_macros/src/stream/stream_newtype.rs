@@ -1,5 +1,6 @@
 use syn::{Field, Path};
 
+use crate::label::Label;
 use crate::{
     attr,
     index::{quote_optional_index, Index},
@@ -11,7 +12,7 @@ pub(crate) fn stream_newtype(
     path: proc_macro2::TokenStream,
     field: &Field,
     tag: Option<&Path>,
-    label: Option<&str>,
+    label: Option<Label>,
     index: Option<Index>,
     transparent: bool,
 ) -> proc_macro2::TokenStream {

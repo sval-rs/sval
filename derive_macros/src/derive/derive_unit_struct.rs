@@ -56,7 +56,7 @@ pub(crate) fn derive_unit_struct<'a>(
     let match_arm = stream_tag(
         quote!(_),
         attrs.tag(),
-        Some(&*label_or_ident(attrs.label(), ident)),
+        Some(label_or_ident(attrs.label(), ident)),
         attrs.index(),
     );
 

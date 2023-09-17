@@ -81,7 +81,7 @@ pub(crate) fn derive_newtype<'a>(
         quote!(#ident),
         field,
         attrs.tag(),
-        Some(&*label_or_ident(attrs.label(), ident)),
+        Some(label_or_ident(attrs.label(), ident)),
         attrs.index(),
         attrs.transparent(),
     );
