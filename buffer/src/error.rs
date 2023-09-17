@@ -13,11 +13,16 @@ enum ErrorKind {
         expected: &'static str,
     },
     #[cfg(feature = "alloc")]
-    OutsideContainer { method: &'static str },
-    #[cfg(feature = "alloc")]
-    InvalidValue { reason: &'static str },
+    OutsideContainer {
+        method: &'static str,
+    },
+    InvalidValue {
+        reason: &'static str,
+    },
     #[cfg(not(feature = "alloc"))]
-    NoAlloc { method: &'static str },
+    NoAlloc {
+        method: &'static str,
+    },
 }
 
 impl fmt::Display for Error {
@@ -30,7 +35,6 @@ impl fmt::Display for Error {
             ErrorKind::OutsideContainer { method } => {
                 write!(f, "expected a fragment while buffering {}", method)
             }
-            #[cfg(feature = "alloc")]
             ErrorKind::InvalidValue { reason } => {
                 write!(f, "the value being buffered is invalid: {}", reason)
             }
@@ -50,7 +54,6 @@ impl Error {
         Error(ErrorKind::OutsideContainer { method })
     }
 
-    #[cfg(feature = "alloc")]
     pub(crate) fn invalid_value(reason: &'static str) -> Self {
         Error(ErrorKind::InvalidValue { reason })
     }

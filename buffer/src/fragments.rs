@@ -1,4 +1,7 @@
-use crate::{std::fmt, Error};
+use crate::{
+    std::fmt::{self, Write as _},
+    Error,
+};
 
 #[cfg(feature = "alloc")]
 use crate::std::{
@@ -44,6 +47,16 @@ impl<'sval> TextBuf<'sval> {
     }
 
     /**
+    Buffer a displayable value into a contiguous string.
+    */
+    pub fn collect_display(value: impl fmt::Display) -> Result<Self, Error> {
+        let mut buf = TextBuf::new();
+        buf.push_display(value)?;
+
+        Ok(buf)
+    }
+
+    /**
     Clear the text buffer so it can be re-used.
     */
     pub fn clear(&mut self) {
@@ -65,6 +78,42 @@ impl<'sval> TextBuf<'sval> {
     */
     pub fn push_fragment_computed(&mut self, fragment: &str) -> Result<(), Error> {
         self.buf.push_computed(fragment)
+    }
+
+    /**
+    Push a displayable value onto the buffer.
+
+    If the `std` feature of htis library is enabled, this method will
+    buffer the fragment. In no-std environments this method will fail.
+    */
+    pub fn push_display(&mut self, value: impl fmt::Display) -> Result<(), Error> {
+        struct Writer<'a, 'sval> {
+            buf: &'a mut TextBuf<'sval>,
+            err: Option<Error>,
+        }
+
+        impl<'a, 'sval> fmt::Write for Writer<'a, 'sval> {
+            fn write_str(&mut self, s: &str) -> fmt::Result {
+                match self.buf.push_fragment_computed(s) {
+                    Ok(()) => Ok(()),
+                    Err(e) => {
+                        self.err = Some(e);
+                        Err(fmt::Error)
+                    }
+                }
+            }
+        }
+
+        let mut writer = Writer {
+            buf: self,
+            err: None,
+        };
+
+        write!(&mut writer, "{}", value).map_err(|_| {
+            writer
+                .err
+                .unwrap_or_else(|| Error::invalid_value("formatting failed"))
+        })
     }
 
     /**
@@ -792,6 +841,18 @@ mod tests {
 
             &[TextBegin(Some(3)), TextFragment("123"), TextEnd]
         });
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn collect_text_buf_display() {
+        todo!()
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn stream_text_buf_display() {
+        todo!()
     }
 
     #[test]

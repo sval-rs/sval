@@ -1,5 +1,6 @@
 use core::{fmt::Write as _, mem};
 
+use crate::Error;
 use sval::{Index, Label, Stream, Tag};
 use sval_buffer::TextBuf;
 
@@ -32,37 +33,37 @@ impl<'sval> LabelBuf<'sval> {
         LabelBuf::Empty
     }
 
-    pub(crate) fn from_index(index: &Index) -> sval::Result<Self> {
+    pub(crate) fn from_index(index: &Index) -> Result<Self, Error> {
         let mut buf = LabelBuf::new();
         buf.index(index)?;
 
         Ok(buf)
     }
 
-    pub(crate) fn i128(&mut self, v: impl TryInto<i128>) -> sval::Result {
+    pub(crate) fn i128(&mut self, v: impl TryInto<i128>) -> Result<(), Error> {
         *self = LabelBuf::I128(v.try_into().map_err(|_| sval::Error::new())?);
         Ok(())
     }
 
-    pub(crate) fn u128(&mut self, v: impl TryInto<u128>) -> sval::Result {
+    pub(crate) fn u128(&mut self, v: impl TryInto<u128>) -> Result<(), Error> {
         *self = LabelBuf::U128(v.try_into().map_err(|_| sval::Error::new())?);
         Ok(())
     }
 
-    pub(crate) fn f64(&mut self, v: impl TryInto<f64>) -> sval::Result {
+    pub(crate) fn f64(&mut self, v: impl TryInto<f64>) -> Result<(), Error> {
         *self = LabelBuf::F64(v.try_into().map_err(|_| sval::Error::new())?);
         Ok(())
     }
 
-    pub(crate) fn null(&mut self) -> sval::Result {
+    pub(crate) fn null(&mut self) -> Result<(), Error> {
         self.text_fragment("null")
     }
 
-    pub(crate) fn bool(&mut self, v: bool) -> sval::Result {
+    pub(crate) fn bool(&mut self, v: bool) -> Result<(), Error> {
         self.text_fragment(if v { "true" } else { "false" })
     }
 
-    pub(crate) fn label(&mut self, label: &Label) -> sval::Result {
+    pub(crate) fn label(&mut self, label: &Label) -> Result<(), Error> {
         if let Some(label) = label.as_static_str() {
             self.text_fragment(label)
         } else {
@@ -70,7 +71,7 @@ impl<'sval> LabelBuf<'sval> {
         }
     }
 
-    pub(crate) fn index(&mut self, index: &Index) -> sval::Result {
+    pub(crate) fn index(&mut self, index: &Index) -> Result<(), Error> {
         if let Some(index) = index.to_isize() {
             self.i128(index)
         } else if let Some(index) = index.to_usize() {
@@ -81,19 +82,19 @@ impl<'sval> LabelBuf<'sval> {
         }
     }
 
-    pub(crate) fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
+    pub(crate) fn text_fragment(&mut self, fragment: &'sval str) -> Result<(), Error> {
         self.text_buf()?
             .push_fragment(fragment)
             .map_err(|_| sval::Error::new())
     }
 
-    pub(crate) fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+    pub(crate) fn text_fragment_computed(&mut self, fragment: &str) -> Result<(), Error> {
         self.text_buf()?
             .push_fragment_computed(fragment)
             .map_err(|_| sval::Error::new())
     }
 
-    pub(crate) fn text_buf(&mut self) -> sval::Result<&mut TextBuf<'sval>> {
+    pub(crate) fn text_buf(&mut self) -> Result<&mut TextBuf<'sval>, Error> {
         match self {
             LabelBuf::Text(buf) => Ok(buf),
             _ => {
@@ -107,7 +108,10 @@ impl<'sval> LabelBuf<'sval> {
         }
     }
 
-    pub(crate) fn with_label(&self, f: impl FnOnce(&Label) -> sval::Result) -> sval::Result {
+    pub(crate) fn with_label(
+        &self,
+        f: impl FnOnce(&Label) -> Result<(), Error>,
+    ) -> Result<(), Error> {
         match self {
             LabelBuf::Empty => f(&Label::new_computed("")),
             LabelBuf::Text(text) => f(&Label::new_computed(text.as_str())),
