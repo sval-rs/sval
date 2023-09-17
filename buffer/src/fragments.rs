@@ -846,13 +846,22 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn collect_text_buf_display() {
-        todo!()
+        let buf = TextBuf::collect_display(true).unwrap();
+
+        assert_eq!("true", buf.as_str());
+        assert!(buf.as_borrowed_str().is_none());
     }
 
     #[test]
     #[cfg(feature = "alloc")]
     fn stream_text_buf_display() {
-        todo!()
+        let mut buf = TextBuf::new();
+
+        buf.push_display(true).unwrap();
+        buf.push_display(false).unwrap();
+
+        assert_eq!("truefalse", buf.as_str());
+        assert!(buf.as_borrowed_str().is_none());
     }
 
     #[test]

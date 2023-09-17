@@ -20,6 +20,7 @@ enum ErrorKind {
         reason: &'static str,
     },
     #[cfg(not(feature = "alloc"))]
+    #[allow(dead_code)]
     NoAlloc {
         method: &'static str,
     },
@@ -59,8 +60,26 @@ impl Error {
     }
 
     #[cfg(not(feature = "alloc"))]
+    #[track_caller]
     pub(crate) fn no_alloc(method: &'static str) -> Self {
-        Error(ErrorKind::NoAlloc { method })
+        /*
+        Users may not know they aren't depending on an allocator when using `sval_buffer`
+        and have buffering fail unexpectedly. In debug builds we provide a more developer-centric
+        panic message if this happens so they can decide whether failure to buffer is acceptable
+        or not, and enable features accordingly.
+
+        If you're not depending on `sval_buffer` directly, but through another library like
+        `sval_serde`, then you can enable their `alloc` or `std` features instead.
+        */
+
+        #[cfg(all(debug_assertions, not(no_debug_assertions)))]
+        {
+            panic!("attempt to allocate for {} would fail; add the `alloc` feature of `sval_buffer` or the depdendent `sval_*` library to support allocation. This call will error instead of panicking in release builds. Add the `no_debug_assertions` feature of `sval_buffer` if this error is expected.", method);
+        }
+        #[cfg(not(all(debug_assertions, not(no_debug_assertions))))]
+        {
+            Error(ErrorKind::NoAlloc { method })
+        }
     }
 }
 

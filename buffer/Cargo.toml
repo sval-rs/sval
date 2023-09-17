@@ -18,6 +18,7 @@ features = ["std"]
 default = ["alloc"]
 std = ["alloc", "sval/std"]
 alloc = ["sval/alloc"]
+no_debug_assertions = []
 
 [dependencies.sval]
 version = "2.6.1"

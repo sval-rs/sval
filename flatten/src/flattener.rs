@@ -63,7 +63,8 @@ impl<'sval, S: Flatten<'sval>> Flattener<'sval, S> {
         buffer: impl FnOnce(&mut S::LabelStream) -> sval::Result,
         passthru: impl FnOnce(&mut S::Stream) -> sval::Result,
     ) -> sval::Result {
-        self.value_at_root(|_, _| sval::error(), buffer, passthru)
+        // Ignore "unflattenable" values at the root
+        self.value_at_root(|_, _| Ok(()), buffer, passthru)
     }
 
     fn value_at_root(

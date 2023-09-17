@@ -453,64 +453,199 @@ mod tests {
     }
 
     #[test]
-    fn flatten_map_complex_fails() {
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: sval::MapSlice::new(&[(["b1", "b2"], 2), (["c1", "c2"], 3)]),
-            d: 4,
-        });
+    #[cfg(feature = "alloc")]
+    fn flatten_map_complex() {
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: sval::MapSlice::new(&[(["b1", "b2"], 2), (["c1", "c2"], 3)]),
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b1b2"), Index::new(1)),
+                    I32(2),
+                    RecordTupleValueEnd(None, Label::new("b1b2"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("c1c2"), Index::new(2)),
+                    I32(3),
+                    RecordTupleValueEnd(None, Label::new("c1c2"), Index::new(2)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(3)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(3)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
     }
 
     #[test]
-    fn flatten_enum_tag_fails() {
+    fn flatten_enum_tag() {
         #[derive(Value)]
         enum Inner {
             A,
         }
 
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: Inner::A,
-            d: 4,
-        });
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: Inner::A,
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
     }
 
     #[test]
-    fn flatten_primitive_fails() {
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: 1u128,
-            d: 4,
-        });
+    fn flatten_primitive() {
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: 1u128,
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
 
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: -1i128,
-            d: 4,
-        });
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
 
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: 3.14f64,
-            d: 4,
-        });
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: -1i128,
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
 
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: true,
-            d: 4,
-        });
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
 
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: "Text",
-            d: 4,
-        });
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: 3.14f64,
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
 
-        sval_test::assert_invalid(&Outer {
-            a: 1,
-            i: sval::BinarySlice::new(b"Binary"),
-            d: 4,
-        });
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: true,
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: "Text",
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: sval::BinarySlice::new(b"Binary"),
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
     }
 }

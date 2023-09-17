@@ -326,12 +326,66 @@ mod derive_tuple {
 
     #[test]
     fn flattened() {
-        todo!()
+        #[derive(Value)]
+        struct Inner(i32, i32);
+
+        #[derive(Value)]
+        struct Tuple(i32, #[sval(flatten)] Inner, i32);
+
+        assert_tokens(&Tuple(1, Inner(2, 3), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(None, Some(sval::Label::new("Tuple")), None, None),
+                TupleValueBegin(None, sval::Index::new(0)),
+                I32(1),
+                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueBegin(None, sval::Index::new(1)),
+                I32(2),
+                TupleValueEnd(None, sval::Index::new(1)),
+                TupleValueBegin(None, sval::Index::new(2)),
+                I32(3),
+                TupleValueEnd(None, sval::Index::new(2)),
+                TupleValueBegin(None, sval::Index::new(3)),
+                I32(4),
+                TupleValueEnd(None, sval::Index::new(3)),
+                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+            ]
+        })
     }
 
     #[test]
     fn unindexed_flattened() {
-        todo!()
+        #[derive(Value)]
+        #[sval(unindexed_fields)]
+        struct Inner(i32, i32);
+
+        #[derive(Value)]
+        #[sval(unindexed_fields)]
+        struct Seq(i32, #[sval(flatten)] Inner, i32);
+
+        assert_tokens(&Seq(1, Inner(2, 3), 4), {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
+                SeqBegin(None),
+                SeqValueBegin,
+                I32(1),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(2),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(3),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(4),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+            ]
+        })
     }
 
     #[test]
