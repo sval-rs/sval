@@ -117,6 +117,55 @@ mod derive_struct {
     }
 
     #[test]
+    fn data_tagged() {
+        #[derive(Value)]
+        struct RecordTuple {
+            #[sval(data_tag = "sval::tags::NUMBER")]
+            a: i32,
+        }
+
+        assert_tokens(&RecordTuple { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                TaggedBegin(Some(sval::tags::NUMBER), None, None),
+                I32(42),
+                TaggedEnd(Some(sval::tags::NUMBER), None, None),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+            ]
+        })
+    }
+
+    #[test]
+    fn unlabeled_unindexed_data_tagged() {
+        #[derive(Value)]
+        #[sval(unlabeled_values, unindexed_values)]
+        struct Seq {
+            #[sval(data_tag = "sval::tags::NUMBER")]
+            a: i32,
+        }
+
+        assert_tokens(&Seq { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
+                SeqBegin(Some(1)),
+                SeqValueBegin,
+                TaggedBegin(Some(sval::tags::NUMBER), None, None),
+                I32(42),
+                TaggedEnd(Some(sval::tags::NUMBER), None, None),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn flattened() {
         #[derive(Value)]
         struct Inner {
