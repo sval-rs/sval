@@ -29,6 +29,32 @@ impl RawAttribute for TagAttr {
 }
 
 /**
+The `data_tag` attribute.
+
+This attribute specifies a path to an `sval::Tag` to use
+for the data of the annotated item.
+ */
+pub(crate) struct DataTagAttr;
+
+impl SvalAttribute for DataTagAttr {
+    type Result = syn::Path;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Str(ref s) = lit {
+            s.parse().expect("invalid value")
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for DataTagAttr {
+    fn key(&self) -> &str {
+        "data_tag"
+    }
+}
+
+/**
 The `label` attribute.
 
 This attribute specifies an `sval::Label` as a constant

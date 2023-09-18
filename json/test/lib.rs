@@ -106,6 +106,28 @@ fn stream_native_text() {
 }
 
 #[test]
+fn stream_native_text_nested() {
+    #[derive(Value)]
+    struct MapStruct<'a> {
+        #[sval(data_tag = "sval_json::tags::JSON_TEXT")]
+        text: &'a str,
+    }
+
+    assert_stream("{\"text\":\"a\nb\"}", MapStruct { text: "a\nb" });
+}
+
+#[test]
+fn stream_native_number_nested() {
+    #[derive(Value)]
+    struct MapStruct<'a> {
+        #[sval(data_tag = "sval_json::tags::JSON_NUMBER")]
+        number: &'a str,
+    }
+
+    assert_stream("{\"number\":123.456}", MapStruct { number: "123.456" });
+}
+
+#[test]
 fn stream_option() {
     assert_json(Some(42i32));
     assert_json(None::<i32>);

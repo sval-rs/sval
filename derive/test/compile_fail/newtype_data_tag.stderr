@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> compile_fail/newtype_data_tag.rs:3:10
+  |
+3 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: unsupported attribute `data_tag` on newtype field

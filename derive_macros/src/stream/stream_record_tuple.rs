@@ -57,6 +57,7 @@ pub(crate) fn stream_record_tuple<'a>(
             "struct field",
             &[
                 &attr::TagAttr,
+                &attr::DataTagAttr,
                 &attr::IndexAttr,
                 &attr::LabelAttr,
                 &attr::SkipAttr,
@@ -74,7 +75,7 @@ pub(crate) fn stream_record_tuple<'a>(
 
         let (ident, binding) = get_field(&i, field);
 
-        let tag = quote_optional_tag(
+        let field_tag = quote_optional_tag(
             attr::get_unchecked("struct field", attr::TagAttr, &field.attrs).as_ref(),
         );
 
@@ -105,6 +106,20 @@ pub(crate) fn stream_record_tuple<'a>(
 
         const_size = const_size && !flatten;
 
+        let value = if let Some(data_tag) =
+            attr::get_unchecked("struct field", attr::DataTagAttr, &field.attrs)
+        {
+            let data_tag = quote_optional_tag(Some(&data_tag));
+
+            quote!({
+                stream.tagged_begin(#data_tag, None, None)?;
+                stream.value(#ident)?;
+                stream.tagged_end(#data_tag, None, None)?
+            })
+        } else {
+            quote!(stream.value(#ident)?)
+        };
+
         match (&label, &index) {
             (Some(label), Some(index)) => {
                 if flatten {
@@ -114,9 +129,9 @@ pub(crate) fn stream_record_tuple<'a>(
                         let #index_ident = #index;
                         let #label_ident = #label;
 
-                        stream.record_tuple_value_begin(#tag, #label_ident, #index_ident)?;
-                        stream.value(#ident)?;
-                        stream.record_tuple_value_end(#tag, #label_ident, #index_ident)?;
+                        stream.record_tuple_value_begin(#field_tag, #label_ident, #index_ident)?;
+                        #value;
+                        stream.record_tuple_value_end(#field_tag, #label_ident, #index_ident)?;
                     }));
                 }
 
@@ -131,9 +146,9 @@ pub(crate) fn stream_record_tuple<'a>(
                     stream_field.push(quote!({
                         let #index_ident = #index;
 
-                        stream.tuple_value_begin(#tag, #index_ident)?;
-                        stream.value(#ident)?;
-                        stream.tuple_value_end(#tag, #index_ident)?;
+                        stream.tuple_value_begin(#field_tag, #index_ident)?;
+                        #value;
+                        stream.tuple_value_end(#field_tag, #index_ident)?;
                     }));
                 }
 
@@ -147,9 +162,9 @@ pub(crate) fn stream_record_tuple<'a>(
                     stream_field.push(quote!({
                         let #label_ident = #label;
 
-                        stream.record_value_begin(#tag, #label_ident)?;
-                        stream.value(#ident)?;
-                        stream.record_value_end(#tag, #label_ident)?;
+                        stream.record_value_begin(#field_tag, #label_ident)?;
+                        #value;
+                        stream.record_value_end(#field_tag, #label_ident)?;
                     }));
                 }
 
@@ -162,7 +177,7 @@ pub(crate) fn stream_record_tuple<'a>(
                 } else {
                     stream_field.push(quote!({
                         stream.seq_value_begin()?;
-                        stream.value(#ident)?;
+                        #value;
                         stream.seq_value_end()?;
                     }));
                 }
