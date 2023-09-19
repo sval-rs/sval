@@ -12,6 +12,7 @@ impl BinarySlice {
     /**
     Treat a slice of 8bit unsigned integers as binary.
     */
+    #[inline(always)]
     pub fn new<'a>(binary: &'a [u8]) -> &'a Self {
         // SAFETY: `Binary` and `[u8]` have the same ABI
         unsafe { &*(binary as *const _ as *const BinarySlice) }
@@ -20,12 +21,14 @@ impl BinarySlice {
     /**
     Get a reference to the underlying slice.
     */
+    #[inline(always)]
     pub fn as_slice(&self) -> &[u8] {
         &self.0
     }
 }
 
 impl AsRef<[u8]> for BinarySlice {
+    #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         &self.0
     }
@@ -38,6 +41,7 @@ impl Value for BinarySlice {
         stream.binary_end()
     }
 
+    #[inline(always)]
     fn to_binary(&self) -> Option<&[u8]> {
         Some(&self.0)
     }
@@ -55,6 +59,7 @@ impl<const N: usize> BinaryArray<N> {
     /**
     Treat a slice of 8bit unsigned integers as binary.
     */
+    #[inline(always)]
     pub fn new<'a>(binary: &'a [u8; N]) -> &'a Self {
         // SAFETY: `Binary` and `[u8; N]` have the same ABI
         unsafe { &*(binary as *const _ as *const BinaryArray<N>) }
@@ -63,12 +68,14 @@ impl<const N: usize> BinaryArray<N> {
     /**
     Get a reference to the underlying slice.
     */
+    #[inline(always)]
     pub fn as_slice(&self) -> &[u8; N] {
         &self.0
     }
 }
 
 impl<const N: usize> AsRef<[u8; N]> for BinaryArray<N> {
+    #[inline(always)]
     fn as_ref(&self) -> &[u8; N] {
         &self.0
     }
@@ -83,6 +90,7 @@ impl<const N: usize> Value for BinaryArray<N> {
         stream.tagged_end(Some(&tags::CONSTANT_SIZE), None, None)
     }
 
+    #[inline(always)]
     fn to_binary(&self) -> Option<&[u8]> {
         Some(&self.0)
     }
