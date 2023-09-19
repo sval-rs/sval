@@ -15,6 +15,7 @@ impl Error {
 
     More detailed diagnostic information will need to be stored elsewhere.
     */
+    #[inline(always)]
     pub fn new() -> Self {
         Error(())
     }
@@ -40,6 +41,7 @@ A streaming result with a generic failure.
 
 More detailed diagnostic information will need to be stored elsewhere.
 */
+#[inline(always)]
 pub fn error<T>() -> crate::Result<T> {
     Err(Error::new())
 }

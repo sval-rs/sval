@@ -66,6 +66,7 @@ impl<'computed> Label<'computed> {
     For labels that can't satisfy the `'static` lifetime, use [`Label::new_computed`].
     For labels that need owned values, use [`Label::new_owned`].
     */
+    #[inline(always)]
     pub const fn new(label: &'static str) -> Self {
         Label {
             value_computed: label as *const str,
@@ -80,6 +81,7 @@ impl<'computed> Label<'computed> {
     /**
     Create a new label from a string value borrowed for the `'computed` lifetime.
     */
+    #[inline(always)]
     pub const fn new_computed(label: &'computed str) -> Self {
         Label {
             value_computed: label as *const str,
@@ -94,6 +96,7 @@ impl<'computed> Label<'computed> {
     /**
     Get the value of the label as a string.
     */
+    #[inline(always)]
     pub const fn as_str(&self) -> &str {
         // SAFETY: The borrow of the `value_computed` field can't outlive
         // the label itself, so even if `value_computed` points to `_value_owned`
@@ -106,6 +109,7 @@ impl<'computed> Label<'computed> {
 
     For labels that were created over computed data this method will return `None`.
     */
+    #[inline(always)]
     pub const fn as_static_str(&self) -> Option<&'static str> {
         self.backing_field_static
     }
@@ -116,6 +120,7 @@ impl<'computed> Label<'computed> {
     Tags don't contribute to equality or ordering of labels but streams may
     use the them when interpreting the label value.
      */
+    #[inline(always)]
     pub const fn with_tag(mut self, tag: &Tag) -> Self {
         self.tag = Some(tag.cloned());
         self
@@ -126,12 +131,14 @@ impl<'computed> Label<'computed> {
 
     Streams may use the tag when interpreting the label value.
      */
+    #[inline(always)]
     pub const fn tag(&self) -> Option<&Tag> {
         self.tag.as_ref()
     }
 }
 
 impl<'a, 'b> PartialEq<Label<'b>> for Label<'a> {
+    #[inline(always)]
     fn eq(&self, other: &Label<'b>) -> bool {
         self.as_str() == other.as_str()
     }
@@ -146,6 +153,7 @@ impl<'a> Hash for Label<'a> {
 }
 
 impl<'a> Borrow<str> for Label<'a> {
+    #[inline(always)]
     fn borrow(&self) -> &str {
         self.as_str()
     }
@@ -252,6 +260,7 @@ impl Tag {
 
     // NOTE: This method is only private to avoid exposing it prematurely
     // There's no real reason we shouldn't
+    #[inline(always)]
     const fn cloned(&self) -> Tag {
         Tag {
             id: self.id,
@@ -273,36 +282,42 @@ The index of a value in its parent context.
 pub struct Index(i128, Option<Tag>);
 
 impl From<i32> for Index {
+    #[inline(always)]
     fn from(index: i32) -> Self {
         Index::new_i32(index)
     }
 }
 
 impl From<i64> for Index {
+    #[inline(always)]
     fn from(index: i64) -> Self {
         Index::new_i64(index)
     }
 }
 
 impl From<isize> for Index {
+    #[inline(always)]
     fn from(index: isize) -> Self {
         Index::new_isize(index)
     }
 }
 
 impl From<u32> for Index {
+    #[inline(always)]
     fn from(index: u32) -> Self {
         Index::new_u32(index)
     }
 }
 
 impl From<u64> for Index {
+    #[inline(always)]
     fn from(index: u64) -> Self {
         Index::new_u64(index)
     }
 }
 
 impl From<usize> for Index {
+    #[inline(always)]
     fn from(index: usize) -> Self {
         Index::new(index)
     }
@@ -312,6 +327,7 @@ impl Index {
     /**
     Create a new index from a numeric value.
     */
+    #[inline(always)]
     pub const fn new(index: usize) -> Self {
         Index(index as i128, None)
     }
@@ -319,6 +335,7 @@ impl Index {
     /**
     Create a new None index from a 32bit numeric value.
     */
+    #[inline(always)]
     pub const fn new_u32(index: u32) -> Self {
         Index(index as i128, None)
     }
@@ -326,6 +343,7 @@ impl Index {
     /**
     Create a new None index from a 64bit numeric value.
      */
+    #[inline(always)]
     pub const fn new_u64(index: u64) -> Self {
         Index(index as i128, None)
     }
@@ -333,6 +351,7 @@ impl Index {
     /**
     Create a new None index from a signed 32bit numeric value.
      */
+    #[inline(always)]
     pub const fn new_i32(index: i32) -> Self {
         Index(index as i128, None)
     }
@@ -340,6 +359,7 @@ impl Index {
     /**
     Create a new None index from a signed 64bit numeric value.
      */
+    #[inline(always)]
     pub const fn new_i64(index: i64) -> Self {
         Index(index as i128, None)
     }
@@ -347,6 +367,7 @@ impl Index {
     /**
     Create a new None index from a signed numeric value.
      */
+    #[inline(always)]
     pub const fn new_isize(index: isize) -> Self {
         Index(index as i128, None)
     }
@@ -354,6 +375,7 @@ impl Index {
     /**
     Try get the index as a numeric value.
     */
+    #[inline]
     pub const fn to_usize(&self) -> Option<usize> {
         if self.0 >= usize::MIN as i128 && self.0 <= usize::MAX as i128 {
             Some(self.0 as usize)
@@ -365,6 +387,7 @@ impl Index {
     /**
     Try get the index as a 32-bit numeric value.
     */
+    #[inline]
     pub const fn to_u32(&self) -> Option<u32> {
         if self.0 >= u32::MIN as i128 && self.0 <= u32::MAX as i128 {
             Some(self.0 as u32)
@@ -376,6 +399,7 @@ impl Index {
     /**
     Try get the index as a 64-bit numeric value.
     */
+    #[inline]
     pub const fn to_u64(&self) -> Option<u64> {
         if self.0 >= u64::MIN as i128 && self.0 <= u64::MAX as i128 {
             Some(self.0 as u64)
@@ -387,6 +411,7 @@ impl Index {
     /**
     Try get the index as a signed numeric value.
      */
+    #[inline]
     pub const fn to_isize(&self) -> Option<isize> {
         if self.0 >= isize::MIN as i128 && self.0 <= isize::MAX as i128 {
             Some(self.0 as isize)
@@ -398,6 +423,7 @@ impl Index {
     /**
     Try get the index as a signed 32-bit numeric value.
      */
+    #[inline]
     pub const fn to_i32(&self) -> Option<i32> {
         if self.0 >= i32::MIN as i128 && self.0 <= i32::MAX as i128 {
             Some(self.0 as i32)
@@ -409,6 +435,7 @@ impl Index {
     /**
     Try get the index as a signed 64-bit numeric value.
      */
+    #[inline]
     pub const fn to_i64(&self) -> Option<i64> {
         if self.0 >= i64::MIN as i128 && self.0 <= i64::MAX as i128 {
             Some(self.0 as i64)
@@ -423,6 +450,7 @@ impl Index {
     Tags don't contribute to equality or ordering of indexes but streams may
     use the them when interpreting the index value.
      */
+    #[inline(always)]
     pub const fn with_tag(mut self, tag: &Tag) -> Self {
         self.1 = Some(tag.cloned());
         self
@@ -433,6 +461,7 @@ impl Index {
 
     Streams may use the tag when interpreting the index value.
     */
+    #[inline(always)]
     pub const fn tag(&self) -> Option<&Tag> {
         self.1.as_ref()
     }
@@ -451,6 +480,7 @@ impl fmt::Display for Index {
 }
 
 impl PartialEq for Index {
+    #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
@@ -459,6 +489,7 @@ impl PartialEq for Index {
 impl Eq for Index {}
 
 impl PartialOrd for Index {
+    #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.partial_cmp(&other.0)
     }
@@ -471,6 +502,7 @@ impl Hash for Index {
 }
 
 impl Ord for Index {
+    #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }

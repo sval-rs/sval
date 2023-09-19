@@ -25,62 +25,77 @@ impl<T: Value> Value for Option<T> {
         }
     }
 
+    #[inline]
     fn to_bool(&self) -> Option<bool> {
         self.as_ref().and_then(|value| value.to_bool())
     }
 
+    #[inline]
     fn to_f32(&self) -> Option<f32> {
         self.as_ref().and_then(|value| value.to_f32())
     }
 
+    #[inline]
     fn to_f64(&self) -> Option<f64> {
         self.as_ref().and_then(|value| value.to_f64())
     }
 
+    #[inline]
     fn to_i8(&self) -> Option<i8> {
         self.as_ref().and_then(|value| value.to_i8())
     }
 
+    #[inline]
     fn to_i16(&self) -> Option<i16> {
         self.as_ref().and_then(|value| value.to_i16())
     }
 
+    #[inline]
     fn to_i32(&self) -> Option<i32> {
         self.as_ref().and_then(|value| value.to_i32())
     }
 
+    #[inline]
     fn to_i64(&self) -> Option<i64> {
         self.as_ref().and_then(|value| value.to_i64())
     }
 
+    #[inline]
     fn to_i128(&self) -> Option<i128> {
         self.as_ref().and_then(|value| value.to_i128())
     }
 
+    #[inline]
     fn to_u8(&self) -> Option<u8> {
         self.as_ref().and_then(|value| value.to_u8())
     }
 
+    #[inline]
     fn to_u16(&self) -> Option<u16> {
         self.as_ref().and_then(|value| value.to_u16())
     }
 
+    #[inline]
     fn to_u32(&self) -> Option<u32> {
         self.as_ref().and_then(|value| value.to_u32())
     }
 
+    #[inline]
     fn to_u64(&self) -> Option<u64> {
         self.as_ref().and_then(|value| value.to_u64())
     }
 
+    #[inline]
     fn to_u128(&self) -> Option<u128> {
         self.as_ref().and_then(|value| value.to_u128())
     }
 
+    #[inline]
     fn to_text(&self) -> Option<&str> {
         self.as_ref().and_then(|value| value.to_text())
     }
 
+    #[inline]
     fn to_binary(&self) -> Option<&[u8]> {
         self.as_ref().and_then(|value| value.to_binary())
     }

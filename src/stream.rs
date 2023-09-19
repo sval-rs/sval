@@ -36,6 +36,7 @@ pub trait Stream<'sval> {
     /**
     Stream a fragment of UTF8 text.
     */
+    #[inline]
     fn text_fragment(&mut self, fragment: &'sval str) -> Result {
         self.text_fragment_computed(fragment)
     }
@@ -60,6 +61,7 @@ pub trait Stream<'sval> {
     /**
     Stream a fragment of a bitstring.
     */
+    #[inline]
     fn binary_fragment(&mut self, fragment: &'sval [u8]) -> Result {
         self.binary_fragment_computed(fragment)
     }
@@ -80,6 +82,7 @@ pub trait Stream<'sval> {
     /**
     Complete a bitstring.
     */
+    #[inline]
     fn binary_end(&mut self) -> Result {
         self.seq_end()
     }
@@ -87,6 +90,7 @@ pub trait Stream<'sval> {
     /**
     Stream an unsigned 8bit integer.
     */
+    #[inline]
     fn u8(&mut self, value: u8) -> Result {
         self.u16(value as u16)
     }
@@ -94,6 +98,7 @@ pub trait Stream<'sval> {
     /**
     Stream an unsigned 16bit integer.
     */
+    #[inline]
     fn u16(&mut self, value: u16) -> Result {
         self.u32(value as u32)
     }
@@ -101,6 +106,7 @@ pub trait Stream<'sval> {
     /**
     Stream an unsigned 32bit integer.
     */
+    #[inline]
     fn u32(&mut self, value: u32) -> Result {
         self.u64(value as u64)
     }
@@ -108,6 +114,7 @@ pub trait Stream<'sval> {
     /**
     Stream an unsigned 64bit integer.
     */
+    #[inline]
     fn u64(&mut self, value: u64) -> Result {
         self.u128(value as u128)
     }
@@ -126,6 +133,7 @@ pub trait Stream<'sval> {
     /**
     Stream a signed 8bit integer.
     */
+    #[inline]
     fn i8(&mut self, value: i8) -> Result {
         self.i16(value as i16)
     }
@@ -133,6 +141,7 @@ pub trait Stream<'sval> {
     /**
     Stream a signed 16bit integer.
     */
+    #[inline]
     fn i16(&mut self, value: i16) -> Result {
         self.i32(value as i32)
     }
@@ -140,6 +149,7 @@ pub trait Stream<'sval> {
     /**
     Stream a signed 32bit integer.
     */
+    #[inline]
     fn i32(&mut self, value: i32) -> Result {
         self.i64(value as i64)
     }
@@ -163,6 +173,7 @@ pub trait Stream<'sval> {
     /**
     Stream a 32bit binary floating point number.
     */
+    #[inline]
     fn f32(&mut self, value: f32) -> Result {
         self.f64(value as f64)
     }
@@ -175,6 +186,7 @@ pub trait Stream<'sval> {
     /**
     Start a homogenous mapping of arbitrary keys to values.
     */
+    #[inline]
     fn map_begin(&mut self, num_entries: Option<usize>) -> Result {
         self.seq_begin(num_entries)
     }
@@ -182,6 +194,7 @@ pub trait Stream<'sval> {
     /**
     Start a key in a key-value mapping.
     */
+    #[inline]
     fn map_key_begin(&mut self) -> Result {
         self.seq_value_begin()?;
         self.tuple_begin(None, None, None, Some(2))?;
@@ -191,6 +204,7 @@ pub trait Stream<'sval> {
     /**
     Complete a key in a key-value mapping.
     */
+    #[inline]
     fn map_key_end(&mut self) -> Result {
         self.tuple_value_end(None, &Index::new(0))
     }
@@ -198,6 +212,7 @@ pub trait Stream<'sval> {
     /**
     Start a value in a key-value mapping.
     */
+    #[inline]
     fn map_value_begin(&mut self) -> Result {
         self.tuple_value_begin(None, &Index::new(1))
     }
@@ -205,6 +220,7 @@ pub trait Stream<'sval> {
     /**
     Complete a value in a key-value mapping.
     */
+    #[inline]
     fn map_value_end(&mut self) -> Result {
         self.tuple_value_end(None, &Index::new(1))?;
         self.tuple_end(None, None, None)?;
@@ -214,6 +230,7 @@ pub trait Stream<'sval> {
     /**
     Complete a homogenous mapping of arbitrary keys to values.
     */
+    #[inline]
     fn map_end(&mut self) -> Result {
         self.seq_end()
     }
@@ -241,6 +258,7 @@ pub trait Stream<'sval> {
     /**
     Start a variant in an enumerated type.
     */
+    #[inline]
     fn enum_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -253,6 +271,7 @@ pub trait Stream<'sval> {
     /**
     Complete a variant in an enumerated type.
     */
+    #[inline]
     fn enum_end(
         &mut self,
         tag: Option<&Tag>,
@@ -267,6 +286,7 @@ pub trait Stream<'sval> {
 
     Tagged values may be used as enum variants.
     */
+    #[inline]
     fn tagged_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -283,6 +303,7 @@ pub trait Stream<'sval> {
     /**
     Complete a tagged value.
     */
+    #[inline]
     fn tagged_end(
         &mut self,
         tag: Option<&Tag>,
@@ -329,6 +350,7 @@ pub trait Stream<'sval> {
 
     Records may be used as enum variants.
     */
+    #[inline]
     fn record_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -343,6 +365,7 @@ pub trait Stream<'sval> {
     /**
     Start a field in a record.
     */
+    #[inline]
     fn record_value_begin(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
         let _ = tag;
 
@@ -362,6 +385,7 @@ pub trait Stream<'sval> {
     /**
     Complete a field in a record.
     */
+    #[inline]
     fn record_value_end(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
         let _ = tag;
         let _ = label;
@@ -372,6 +396,7 @@ pub trait Stream<'sval> {
     /**
     Complete a record type.
     */
+    #[inline]
     fn record_end(
         &mut self,
         tag: Option<&Tag>,
@@ -387,6 +412,7 @@ pub trait Stream<'sval> {
 
     Tuples may be used as enum variants.
     */
+    #[inline]
     fn tuple_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -401,6 +427,7 @@ pub trait Stream<'sval> {
     /**
     Start a field in a tuple.
     */
+    #[inline]
     fn tuple_value_begin(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
         let _ = tag;
         let _ = index;
@@ -411,6 +438,7 @@ pub trait Stream<'sval> {
     /**
     Complete a field in a tuple.
     */
+    #[inline]
     fn tuple_value_end(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
         let _ = tag;
         let _ = index;
@@ -421,6 +449,7 @@ pub trait Stream<'sval> {
     /**
     Complete a tuple type.
     */
+    #[inline]
     fn tuple_end(
         &mut self,
         tag: Option<&Tag>,
@@ -434,6 +463,7 @@ pub trait Stream<'sval> {
     /**
     Begin a type that may be treated as either a record or a tuple.
     */
+    #[inline]
     fn record_tuple_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -447,6 +477,7 @@ pub trait Stream<'sval> {
     /**
     Begin a field in a type that may be treated as either a record or a tuple.
     */
+    #[inline]
     fn record_tuple_value_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -461,6 +492,7 @@ pub trait Stream<'sval> {
     /**
     Complete a field in a type that may be treated as either a record or a tuple.
     */
+    #[inline]
     fn record_tuple_value_end(
         &mut self,
         tag: Option<&Tag>,
@@ -475,6 +507,7 @@ pub trait Stream<'sval> {
     /**
     Complete a type that may be treated as either a record or a tuple.
     */
+    #[inline]
     fn record_tuple_end(
         &mut self,
         tag: Option<&Tag>,
@@ -498,246 +531,295 @@ macro_rules! impl_stream_forward {
                 ($($forward)*).value_computed(v)
             }
 
+            #[inline]
             fn null(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).null()
             }
 
+            #[inline]
             fn u8(&mut self, value: u8) -> Result {
                 let $bind = self;
                 ($($forward)*).u8(value)
             }
 
+            #[inline]
             fn u16(&mut self, value: u16) -> Result {
                 let $bind = self;
                 ($($forward)*).u16(value)
             }
 
+            #[inline]
             fn u32(&mut self, value: u32) -> Result {
                 let $bind = self;
                 ($($forward)*).u32(value)
             }
 
+            #[inline]
             fn u64(&mut self, value: u64) -> Result {
                 let $bind = self;
                 ($($forward)*).u64(value)
             }
 
+            #[inline]
             fn u128(&mut self, value: u128) -> Result {
                 let $bind = self;
                 ($($forward)*).u128(value)
             }
 
+            #[inline]
             fn i8(&mut self, value: i8) -> Result {
                 let $bind = self;
                 ($($forward)*).i8(value)
             }
 
+            #[inline]
             fn i16(&mut self, value: i16) -> Result {
                 let $bind = self;
                 ($($forward)*).i16(value)
             }
 
+            #[inline]
             fn i32(&mut self, value: i32) -> Result {
                 let $bind = self;
                 ($($forward)*).i32(value)
             }
 
+            #[inline]
             fn i64(&mut self, value: i64) -> Result {
                 let $bind = self;
                 ($($forward)*).i64(value)
             }
 
+            #[inline]
             fn i128(&mut self, value: i128) -> Result {
                 let $bind = self;
                 ($($forward)*).i128(value)
             }
 
+            #[inline]
             fn f32(&mut self, value: f32) -> Result {
                 let $bind = self;
                 ($($forward)*).f32(value)
             }
 
+            #[inline]
             fn f64(&mut self, value: f64) -> Result {
                 let $bind = self;
                 ($($forward)*).f64(value)
             }
 
+            #[inline]
             fn bool(&mut self, value: bool) -> Result {
                 let $bind = self;
                 ($($forward)*).bool(value)
             }
 
+            #[inline]
             fn text_begin(&mut self, num_bytes: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).text_begin(num_bytes)
             }
 
+            #[inline]
             fn text_end(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).text_end()
             }
 
+            #[inline]
             fn text_fragment(&mut self, fragment: &'sval str) -> Result {
                 let $bind = self;
                 ($($forward)*).text_fragment(fragment)
             }
 
+            #[inline]
             fn text_fragment_computed(&mut self, fragment: &str) -> Result {
                 let $bind = self;
                 ($($forward)*).text_fragment_computed(fragment)
             }
 
+            #[inline]
             fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).binary_begin(num_bytes)
             }
 
+            #[inline]
             fn binary_end(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).binary_end()
             }
 
+            #[inline]
             fn binary_fragment(&mut self, fragment: &'sval [u8]) -> Result {
                 let $bind = self;
                 ($($forward)*).binary_fragment(fragment)
             }
 
+            #[inline]
             fn binary_fragment_computed(&mut self, fragment: &[u8]) -> Result {
                 let $bind = self;
                 ($($forward)*).binary_fragment_computed(fragment)
             }
 
+            #[inline]
             fn map_begin(&mut self, num_entries: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).map_begin(num_entries)
             }
 
+            #[inline]
             fn map_end(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).map_end()
             }
 
+            #[inline]
             fn map_key_begin(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).map_key_begin()
             }
 
+            #[inline]
             fn map_key_end(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).map_key_end()
             }
 
+            #[inline]
             fn map_value_begin(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).map_value_begin()
             }
 
+            #[inline]
             fn map_value_end(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).map_value_end()
             }
 
+            #[inline]
             fn seq_begin(&mut self, num_entries: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).seq_begin(num_entries)
             }
 
+            #[inline]
             fn seq_end(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).seq_end()
             }
 
+            #[inline]
             fn seq_value_begin(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).seq_value_begin()
             }
 
+            #[inline]
             fn seq_value_end(&mut self) -> Result {
                 let $bind = self;
                 ($($forward)*).seq_value_end()
             }
 
+            #[inline]
             fn tagged_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).tagged_begin(tag, label, index)
             }
 
+            #[inline]
             fn tagged_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).tagged_end(tag, label, index)
             }
 
+            #[inline]
             fn tag(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).tag(tag, label, index)
             }
 
+            #[inline]
             fn record_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>, num_entries: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).record_begin(tag, label, index, num_entries)
             }
 
+            #[inline]
             fn record_value_begin(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
                 let $bind = self;
                 ($($forward)*).record_value_begin(tag, label)
             }
 
+            #[inline]
             fn record_value_end(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
                 let $bind = self;
                 ($($forward)*).record_value_end(tag, label)
             }
 
+            #[inline]
             fn record_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).record_end(tag, label, index)
             }
 
+            #[inline]
             fn tuple_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>, num_entries: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).tuple_begin(tag, label, index, num_entries)
             }
 
+            #[inline]
             fn tuple_value_begin(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
                 let $bind = self;
                 ($($forward)*).tuple_value_begin(tag, index)
             }
 
+            #[inline]
             fn tuple_value_end(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
                 let $bind = self;
                 ($($forward)*).tuple_value_end(tag, index)
             }
 
+            #[inline]
             fn tuple_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).tuple_end(tag, label, index)
             }
 
+            #[inline]
             fn record_tuple_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>, num_entries: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).record_tuple_begin(tag, label, index, num_entries)
             }
 
+            #[inline]
             fn record_tuple_value_begin(&mut self, tag: Option<&Tag>, label: &Label, index: &Index) -> Result {
                 let $bind = self;
                 ($($forward)*).record_tuple_value_begin(tag, label, index)
             }
 
+            #[inline]
             fn record_tuple_value_end(&mut self, tag: Option<&Tag>, label: &Label, index: &Index) -> Result {
                 let $bind = self;
                 ($($forward)*).record_tuple_value_end(tag, label, index)
             }
 
+            #[inline]
             fn record_tuple_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).record_tuple_end(tag, label, index)
             }
 
+            #[inline]
             fn enum_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).enum_begin(tag, label, index)
             }
 
+            #[inline]
             fn enum_end(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
                 let $bind = self;
                 ($($forward)*).enum_end(tag, label, index)
@@ -766,6 +848,7 @@ This is the result of calling [`Stream::computed`].
 struct Computed<S: ?Sized>(S);
 
 impl<S: ?Sized> Computed<S> {
+    #[inline]
     fn new_borrowed<'a>(stream: &'a mut S) -> &'a mut Computed<S> {
         // SAFETY: `&'a mut S` and `&'a mut Computed<S>` have the same ABI
         unsafe { &mut *(stream as *mut _ as *mut Computed<S>) }
@@ -773,138 +856,172 @@ impl<S: ?Sized> Computed<S> {
 }
 
 impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
+    #[inline]
     fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
         self.0.value_computed(v)
     }
 
+    #[inline]
     fn text_fragment(&mut self, fragment: &'b str) -> Result {
         self.0.text_fragment_computed(fragment)
     }
 
+    #[inline]
     fn binary_fragment(&mut self, fragment: &'b [u8]) -> Result {
         self.0.binary_fragment_computed(fragment)
     }
 
+    #[inline]
     fn null(&mut self) -> Result {
         self.0.null()
     }
 
+    #[inline]
     fn u8(&mut self, v: u8) -> Result {
         self.0.u8(v)
     }
 
+    #[inline]
     fn u16(&mut self, v: u16) -> Result {
         self.0.u16(v)
     }
 
+    #[inline]
     fn u32(&mut self, v: u32) -> Result {
         self.0.u32(v)
     }
 
+    #[inline]
     fn u64(&mut self, v: u64) -> Result {
         self.0.u64(v)
     }
 
+    #[inline]
     fn u128(&mut self, v: u128) -> Result {
         self.0.u128(v)
     }
 
+    #[inline]
     fn i8(&mut self, v: i8) -> Result {
         self.0.i8(v)
     }
 
+    #[inline]
     fn i16(&mut self, v: i16) -> Result {
         self.0.i16(v)
     }
 
+    #[inline]
     fn i32(&mut self, v: i32) -> Result {
         self.0.i32(v)
     }
 
+    #[inline]
     fn i64(&mut self, v: i64) -> Result {
         self.0.i64(v)
     }
 
+    #[inline]
     fn i128(&mut self, v: i128) -> Result {
         self.0.i128(v)
     }
 
+    #[inline]
     fn f32(&mut self, v: f32) -> Result {
         self.0.f32(v)
     }
 
+    #[inline]
     fn f64(&mut self, v: f64) -> Result {
         self.0.f64(v)
     }
 
+    #[inline]
     fn bool(&mut self, v: bool) -> Result {
         self.0.bool(v)
     }
 
+    #[inline]
     fn text_begin(&mut self, num_bytes: Option<usize>) -> Result {
         self.0.text_begin(num_bytes)
     }
 
+    #[inline]
     fn text_fragment_computed(&mut self, fragment: &str) -> Result {
         self.0.text_fragment_computed(fragment)
     }
 
+    #[inline]
     fn text_end(&mut self) -> Result {
         self.0.text_end()
     }
 
+    #[inline]
     fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
         self.0.binary_begin(num_bytes)
     }
 
+    #[inline]
     fn binary_fragment_computed(&mut self, fragment: &[u8]) -> Result {
         self.0.binary_fragment_computed(fragment)
     }
 
+    #[inline]
     fn binary_end(&mut self) -> Result {
         self.0.binary_end()
     }
 
+    #[inline]
     fn map_begin(&mut self, num_entries: Option<usize>) -> Result {
         self.0.map_begin(num_entries)
     }
 
+    #[inline]
     fn map_key_begin(&mut self) -> Result {
         self.0.map_key_begin()
     }
 
+    #[inline]
     fn map_key_end(&mut self) -> Result {
         self.0.map_key_end()
     }
 
+    #[inline]
     fn map_value_begin(&mut self) -> Result {
         self.0.map_value_begin()
     }
 
+    #[inline]
     fn map_value_end(&mut self) -> Result {
         self.0.map_value_end()
     }
 
+    #[inline]
     fn map_end(&mut self) -> Result {
         self.0.map_end()
     }
 
+    #[inline]
     fn seq_begin(&mut self, num_entries: Option<usize>) -> Result {
         self.0.seq_begin(num_entries)
     }
 
+    #[inline]
     fn seq_value_begin(&mut self) -> Result {
         self.0.seq_value_begin()
     }
 
+    #[inline]
     fn seq_value_end(&mut self) -> Result {
         self.0.seq_value_end()
     }
 
+    #[inline]
     fn seq_end(&mut self) -> Result {
         self.0.seq_end()
     }
 
+    #[inline]
     fn tagged_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -914,6 +1031,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.tagged_begin(tag, label, index)
     }
 
+    #[inline]
     fn tagged_end(
         &mut self,
         tag: Option<&Tag>,
@@ -923,10 +1041,12 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.tagged_end(tag, label, index)
     }
 
+    #[inline]
     fn tag(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
         self.0.tag(tag, label, index)
     }
 
+    #[inline]
     fn record_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -937,14 +1057,17 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.record_begin(tag, label, index, num_entries)
     }
 
+    #[inline]
     fn record_value_begin(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
         self.0.record_value_begin(tag, label)
     }
 
+    #[inline]
     fn record_value_end(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
         self.0.record_value_end(tag, label)
     }
 
+    #[inline]
     fn record_end(
         &mut self,
         tag: Option<&Tag>,
@@ -954,6 +1077,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.record_end(tag, label, index)
     }
 
+    #[inline]
     fn tuple_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -964,14 +1088,17 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.tuple_begin(tag, label, index, num_entries)
     }
 
+    #[inline]
     fn tuple_value_begin(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
         self.0.tuple_value_begin(tag, index)
     }
 
+    #[inline]
     fn tuple_value_end(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
         self.0.tuple_value_end(tag, index)
     }
 
+    #[inline]
     fn tuple_end(
         &mut self,
         tag: Option<&Tag>,
@@ -981,6 +1108,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.tuple_end(tag, label, index)
     }
 
+    #[inline]
     fn record_tuple_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -991,6 +1119,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.record_tuple_begin(tag, label, index, num_entries)
     }
 
+    #[inline]
     fn record_tuple_value_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -1000,6 +1129,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.record_tuple_value_begin(tag, label, index)
     }
 
+    #[inline]
     fn record_tuple_value_end(
         &mut self,
         tag: Option<&Tag>,
@@ -1009,6 +1139,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.record_tuple_value_end(tag, label, index)
     }
 
+    #[inline]
     fn record_tuple_end(
         &mut self,
         tag: Option<&Tag>,
@@ -1018,6 +1149,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.record_tuple_end(tag, label, index)
     }
 
+    #[inline]
     fn enum_begin(
         &mut self,
         tag: Option<&Tag>,
@@ -1027,6 +1159,7 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
         self.0.enum_begin(tag, label, index)
     }
 
+    #[inline]
     fn enum_end(
         &mut self,
         tag: Option<&Tag>,
