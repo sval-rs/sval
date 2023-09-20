@@ -1,6 +1,6 @@
 [package]
 name = "sval_buffer"
-version = "2.6.1"
+version = "2.7.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -21,17 +21,17 @@ alloc = ["sval/alloc"]
 no_debug_assertions = []
 
 [dependencies.sval]
-version = "2.6.1"
+version = "2.7.0"
 path = "../"
 
 [dependencies.sval_ref]
-version = "2.6.1"
+version = "2.7.0"
 path = "../ref"
 
 [dev-dependencies.sval_derive]
-version = "2.6.1"
+version = "2.7.0"
 path = "../derive"
 
 [dev-dependencies.sval_test]
-version = "2.6.1"
+version = "2.7.0"
 path = "../test"
