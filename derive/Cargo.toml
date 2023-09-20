@@ -21,5 +21,6 @@ version = "2.6.1"
 path = "../derive_macros"
 
 [dependencies.sval_flatten]
+version = "2.6.1"
 path = "../flatten"
 optional = true

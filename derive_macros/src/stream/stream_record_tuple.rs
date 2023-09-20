@@ -32,8 +32,8 @@ pub(crate) fn stream_record_tuple<'a>(
     tag: Option<&Path>,
     label: Option<Label>,
     index: Option<Index>,
-    unlabeled_values: bool,
-    unindexed_values: bool,
+    unlabeled_fields: bool,
+    unindexed_fields: bool,
 ) -> proc_macro2::TokenStream {
     let tag = quote_optional_tag(tag);
     let label = quote_optional_label(label);
@@ -79,7 +79,7 @@ pub(crate) fn stream_record_tuple<'a>(
             attr::get_unchecked("struct field", attr::TagAttr, &field.attrs).as_ref(),
         );
 
-        let label = if unlabeled_values {
+        let label = if unlabeled_fields {
             attr::ensure_missing("struct field", attr::LabelAttr, &field.attrs);
 
             None
@@ -90,7 +90,7 @@ pub(crate) fn stream_record_tuple<'a>(
             )
         };
 
-        let index = if unindexed_values {
+        let index = if unindexed_fields {
             attr::ensure_missing("struct field", attr::IndexAttr, &field.attrs);
 
             None

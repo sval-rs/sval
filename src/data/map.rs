@@ -8,7 +8,7 @@ pub struct MapSlice<K, V>([(K, V)]);
 
 impl<K, V> MapSlice<K, V> {
     /**
-    Treat a slice of 8bit unsigned integers as binary.
+    Treat a slice of key-value pairs as a map.
      */
     pub fn new<'a>(map: &'a [(K, V)]) -> &'a Self {
         // SAFETY: `MapSlice` and `[(K, V)]` have the same ABI

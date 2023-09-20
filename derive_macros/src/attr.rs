@@ -152,13 +152,13 @@ impl RawAttribute for SkipAttr {
 }
 
 /**
-The `unlabeled` attribute.
+The `unlabeled_fields` attribute.
 
-This attribute signals that an item should be unlabeled.
+This attribute signals that all fields should be unlabeled.
 */
-pub(crate) struct UnlabeledValuesAttr;
+pub(crate) struct UnlabeledFieldsAttr;
 
-impl SvalAttribute for UnlabeledValuesAttr {
+impl SvalAttribute for UnlabeledFieldsAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -170,20 +170,20 @@ impl SvalAttribute for UnlabeledValuesAttr {
     }
 }
 
-impl RawAttribute for UnlabeledValuesAttr {
+impl RawAttribute for UnlabeledFieldsAttr {
     fn key(&self) -> &str {
-        "unlabeled_values"
+        "unlabeled_fields"
     }
 }
 
 /**
-The `unindexed` attribute.
+The `unindexed_fields` attribute.
 
-This attribute signals that an item should be unindexed.
+This attribute signals that all fields should be unindexed.
 */
-pub(crate) struct UnindexedValuesAttr;
+pub(crate) struct UnindexedFieldsAttr;
 
-impl SvalAttribute for UnindexedValuesAttr {
+impl SvalAttribute for UnindexedFieldsAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
@@ -195,9 +195,9 @@ impl SvalAttribute for UnindexedValuesAttr {
     }
 }
 
-impl RawAttribute for UnindexedValuesAttr {
+impl RawAttribute for UnindexedFieldsAttr {
     fn key(&self) -> &str {
-        "unindexed_values"
+        "unindexed_fields"
     }
 }
 

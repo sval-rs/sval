@@ -1,7 +1,7 @@
 use sval_derive::*;
 
 #[derive(Value)]
-#[sval(unlabeled_values)]
+#[sval(unlabeled_fields)]
 pub struct Record {
     #[sval(label = "a")]
     a: i32,

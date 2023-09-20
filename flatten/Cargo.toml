@@ -1,6 +1,6 @@
 [package]
 name = "sval_flatten"
-version = "0.0.0"
+version = "2.6.1"
 description = "Value flattening for sval"
 edition = "2021"
 
