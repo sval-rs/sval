@@ -13,8 +13,8 @@ with the length of the tuple after flattening the value.
 pub fn flatten_to_tuple<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),
-    offset: usize,
-) -> sval::Result<usize> {
+    offset: isize,
+) -> sval::Result<isize> {
     let label_stream = Empty;
 
     let mut stream = Flattener::begin(
@@ -77,12 +77,12 @@ mod tests {
 
             stream.tuple_value_begin(
                 None,
-                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+                &Index::from(offset).with_tag(&sval::tags::VALUE_OFFSET),
             )?;
             stream.i32(self.0)?;
             stream.tuple_value_end(
                 None,
-                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+                &Index::from(offset).with_tag(&sval::tags::VALUE_OFFSET),
             )?;
             offset += 1;
 
@@ -90,12 +90,12 @@ mod tests {
 
             stream.tuple_value_begin(
                 None,
-                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+                &Index::from(offset).with_tag(&sval::tags::VALUE_OFFSET),
             )?;
             stream.i32(self.2)?;
             stream.tuple_value_end(
                 None,
-                &Index::new(offset).with_tag(&sval::tags::VALUE_OFFSET),
+                &Index::from(offset).with_tag(&sval::tags::VALUE_OFFSET),
             )?;
             offset += 1;
 
