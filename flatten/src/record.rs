@@ -13,8 +13,8 @@ with the length of the record after flattening the value.
 pub fn flatten_to_record<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),
-    offset: usize,
-) -> sval::Result<usize> {
+    offset: isize,
+) -> sval::Result<isize> {
     let label_stream = LabelBuf::default();
 
     let mut stream = Flattener::begin(

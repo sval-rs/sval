@@ -41,7 +41,7 @@ pub(crate) trait Flatten<'sval> {
 }
 
 impl<'sval, S: Flatten<'sval>> Flattener<'sval, S> {
-    pub(crate) fn begin(stream: S, start_from: usize) -> Self {
+    pub(crate) fn begin(stream: S, start_from: isize) -> Self {
         Flattener {
             stream,
             state: FlattenerState {
@@ -54,7 +54,7 @@ impl<'sval, S: Flatten<'sval>> Flattener<'sval, S> {
         }
     }
 
-    pub(crate) fn end(self) -> usize {
+    pub(crate) fn end(self) -> isize {
         self.state.index_alloc.current_offset()
     }
 

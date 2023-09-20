@@ -1,8 +1,15 @@
 [package]
 name = "sval_flatten"
 version = "2.6.1"
-description = "Value flattening for sval"
+authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
+license = "Apache-2.0 OR MIT"
+documentation = "https://docs.rs/sval_flatten"
+description = "Value flattening for sval"
+repository = "https://github.com/sval-rs/sval"
+readme = "README.md"
+keywords = ["serialization", "no_std"]
+categories = ["encoding", "no-std"]
 
 [features]
 alloc = ["sval/alloc", "sval_buffer/alloc"]

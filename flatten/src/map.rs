@@ -11,8 +11,8 @@ with the length of the map after flattening the value.
 pub fn flatten_to_map<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),
-    offset: usize,
-) -> sval::Result<usize> {
+    offset: isize,
+) -> sval::Result<isize> {
     let stream = PassThru::new(stream);
 
     let mut stream = Flattener::begin(MapFlatten { stream }, offset);
