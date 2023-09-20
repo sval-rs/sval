@@ -172,7 +172,7 @@ impl SvalAttribute for UnlabeledValuesAttr {
 
 impl RawAttribute for UnlabeledValuesAttr {
     fn key(&self) -> &str {
-        "unlabeled_values"
+        "unlabeled_fields"
     }
 }
 
@@ -197,7 +197,7 @@ impl SvalAttribute for UnindexedValuesAttr {
 
 impl RawAttribute for UnindexedValuesAttr {
     fn key(&self) -> &str {
-        "unindexed_values"
+        "unindexed_fields"
     }
 }
 

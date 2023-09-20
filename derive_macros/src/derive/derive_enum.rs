@@ -156,8 +156,8 @@ pub(crate) fn derive_enum<'a>(
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident),
                     variant_index(attrs.index(), discriminant),
-                    attrs.unlabeled_values(),
-                    attrs.unindexed_values(),
+                    attrs.unlabeled_fields(),
+                    attrs.unindexed_fields(),
                 )
             }
             Fields::Unnamed(ref fields) => {
@@ -170,8 +170,8 @@ pub(crate) fn derive_enum<'a>(
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident),
                     variant_index(attrs.index(), discriminant),
-                    attrs.unlabeled_values(),
-                    attrs.unindexed_values(),
+                    attrs.unlabeled_fields(),
+                    attrs.unindexed_fields(),
                 )
             }
         });
