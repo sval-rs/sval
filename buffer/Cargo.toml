@@ -28,9 +28,9 @@ path = "../"
 version = "2.7.0"
 path = "../ref"
 
-[dev-dependencies.sval_derive]
+[dev-dependencies.sval_derive_macros]
 version = "2.7.0"
-path = "../derive"
+path = "../derive_macros"
 
 [dev-dependencies.sval_test]
 version = "2.7.0"

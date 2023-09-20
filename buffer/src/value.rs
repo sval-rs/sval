@@ -1660,7 +1660,7 @@ mod alloc_support {
         use crate::std::{string::String, vec};
 
         use sval::Stream as _;
-        use sval_derive::*;
+        use sval_derive_macros::*;
 
         #[test]
         fn is_send_sync() {
