@@ -16,10 +16,12 @@ alloc = ["sval/alloc", "sval_buffer/alloc"]
 std = ["alloc", "sval/std", "sval_buffer/std"]
 
 [dependencies.sval]
+version = "2.7.0"
 path = "../"
 default-features = false
 
 [dependencies.sval_buffer]
+version = "2.7.0"
 path = "../buffer"
 default-features = false
 
