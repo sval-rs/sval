@@ -25,8 +25,8 @@ impl StructAttrs {
                 &attr::TagAttr,
                 &attr::LabelAttr,
                 &attr::IndexAttr,
-                &attr::UnlabeledValuesAttr,
-                &attr::UnindexedValuesAttr,
+                &attr::UnlabeledFieldsAttr,
+                &attr::UnindexedFieldsAttr,
             ],
             attrs,
         );
@@ -36,9 +36,9 @@ impl StructAttrs {
         let index = attr::get_unchecked("struct", attr::IndexAttr, attrs);
 
         let unlabeled_fields =
-            attr::get_unchecked("struct", attr::UnlabeledValuesAttr, attrs).unwrap_or(false);
+            attr::get_unchecked("struct", attr::UnlabeledFieldsAttr, attrs).unwrap_or(false);
         let unindexed_fields =
-            attr::get_unchecked("struct", attr::UnindexedValuesAttr, attrs).unwrap_or(false);
+            attr::get_unchecked("struct", attr::UnindexedFieldsAttr, attrs).unwrap_or(false);
 
         StructAttrs {
             tag,

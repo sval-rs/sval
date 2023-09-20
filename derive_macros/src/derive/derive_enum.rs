@@ -110,8 +110,8 @@ pub(crate) fn derive_enum<'a>(
                 &attr::TagAttr,
                 &attr::LabelAttr,
                 &attr::IndexAttr,
-                &attr::UnlabeledValuesAttr,
-                &attr::UnindexedValuesAttr,
+                &attr::UnlabeledFieldsAttr,
+                &attr::UnindexedFieldsAttr,
             ],
             &variant.attrs,
         );
