@@ -1,4 +1,4 @@
-use crate::{tags, Result, Stream, Value};
+use crate::{tags, Result, Stream, Value, std::fmt};
 
 /**
 An adapter that streams a slice of 8bit unsigned integers as binary.
@@ -24,6 +24,12 @@ impl BinarySlice {
     #[inline(always)]
     pub fn as_slice(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl fmt::Debug for BinarySlice {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, f)
     }
 }
 
@@ -71,6 +77,12 @@ impl<const N: usize> BinaryArray<N> {
     #[inline(always)]
     pub fn as_slice(&self) -> &[u8; N] {
         &self.0
+    }
+}
+
+impl<const N: usize> fmt::Debug for BinaryArray<N> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, f)
     }
 }
 
