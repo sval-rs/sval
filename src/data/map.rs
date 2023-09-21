@@ -1,4 +1,4 @@
-use crate::{Result, Stream, Value};
+use crate::{Result, Stream, Value, std::fmt};
 
 /**
 An adapter that streams a slice of key-value pairs as a map.
@@ -20,6 +20,12 @@ impl<K, V> MapSlice<K, V> {
      */
     pub fn as_slice(&self) -> &[(K, V)] {
         &self.0
+    }
+}
+
+impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for MapSlice<K, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, f)
     }
 }
 
