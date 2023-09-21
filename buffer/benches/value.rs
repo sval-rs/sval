@@ -2,8 +2,11 @@
 
 extern crate test;
 
+#[macro_use]
+extern crate sval_derive_macros;
+
 #[cfg(feature = "alloc")]
-#[derive(sval_derive::Value)]
+#[derive(Value)]
 struct OwnedData {
     id: i32,
     title: String,
@@ -20,7 +23,7 @@ fn owned_data() -> OwnedData {
 }
 
 #[cfg(feature = "alloc")]
-#[derive(sval_derive::Value)]
+#[derive(Value)]
 struct BorrowedData<'a> {
     id: i32,
     title: &'a str,
