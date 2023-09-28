@@ -16,8 +16,13 @@ fn assert_stream(expected: &str, v: impl sval::Value) {
     let actual_string = sval_json::stream_to_string(&v).unwrap();
     let actual_bytes = String::from_utf8(sval_json::stream_to_vec(&v).unwrap()).unwrap();
 
+    let actual_json_str = sval_json::stream_to_json_str(&v).unwrap();
+    let rountrip_json_str = sval_json::stream_to_string(&actual_json_str).unwrap();
+
     assert_eq!(expected, actual_string);
     assert_eq!(expected, actual_bytes);
+    assert_eq!(expected, actual_json_str.as_str());
+    assert_eq!(expected, rountrip_json_str);
 }
 
 fn assert_valid(v: impl sval::Value) {

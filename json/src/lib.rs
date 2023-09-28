@@ -15,6 +15,9 @@ extern crate std;
 
 mod error;
 
+mod value;
+pub use self::value::*;
+
 mod to_fmt;
 pub use self::{error::*, to_fmt::*};
 
