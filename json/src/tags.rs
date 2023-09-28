@@ -3,6 +3,15 @@ Tags for JSON-specific types.
 */
 
 /**
+A tag for strings that contain an embedded JSON value.
+
+# Valid datatypes
+
+- `text`
+*/
+pub const JSON_VALUE: sval::Tag = sval::Tag::new("JSON_VALUE");
+
+/**
 A tag for strings that either don't contain characters that need escaping or are already escaped.
 
 # Valid datatypes

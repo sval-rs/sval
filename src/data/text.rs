@@ -4,6 +4,53 @@ use crate::{
 };
 
 /**
+Adapt a [`fmt::Display`] into an [`sval::Value`].
+*/
+#[repr(transparent)]
+pub struct Display<V: ?Sized>(V);
+
+impl<V: fmt::Display> Display<V> {
+    /**
+    Adapt a [`fmt::Display`] into an [`sval::Value`].
+    */
+    pub fn new(value: V) -> Display<V> {
+        Display(value)
+    }
+
+    /**
+    Get a reference to the inner value.
+    */
+    pub fn inner(&self) -> &V {
+        &self.0
+    }
+
+    /**
+    Convert into the inner value.
+    */
+    pub fn into_inner(self) -> V {
+        self.0
+    }
+}
+
+impl<V: fmt::Display + ?Sized> Display<V> {
+    /**
+    Adapt a reference to a [`fmt::Display`] into an [`sval::Value`].
+    */
+    pub fn new_borrowed<'a>(value: &'a V) -> &'a Display<V> {
+        // SAFETY: `&'a V` and `&'a Display<V>` have the same ABI
+        unsafe { &*(value as *const _ as *const Display<V>) }
+    }
+}
+
+impl<V: fmt::Display> Value for Display<V> {
+    fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+        stream.text_begin(None)?;
+        stream_display_fragments(stream, &self.0)?;
+        stream.text_end()
+    }
+}
+
+/**
 Stream a [`fmt::Display`] as text into a [`Stream`].
 
 This function can be used to stream a value as text using its `Display` implementation.
@@ -12,9 +59,7 @@ pub fn stream_display<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: impl fmt::Display,
 ) -> Result {
-    stream.text_begin(None)?;
-    stream_display_fragments(stream, value)?;
-    stream.text_end()
+    stream.value_computed(&Display::new(value))
 }
 
 /**

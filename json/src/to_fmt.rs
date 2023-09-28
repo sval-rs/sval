@@ -296,6 +296,10 @@ where
             Some(&tags::JSON_TEXT) => {
                 self.text_handler = Some(TextHandler::native());
             }
+            Some(&tags::JSON_VALUE) => {
+                self.is_text_quoted = false;
+                self.text_handler = Some(TextHandler::native());
+            }
             Some(&sval::tags::NUMBER) => {
                 self.is_text_quoted = false;
 
@@ -321,6 +325,10 @@ where
     ) -> sval::Result {
         match tag {
             Some(&tags::JSON_TEXT) => {
+                self.text_handler = None;
+            }
+            Some(&tags::JSON_VALUE) => {
+                self.is_text_quoted = true;
                 self.text_handler = None;
             }
             Some(&sval::tags::NUMBER) => {
