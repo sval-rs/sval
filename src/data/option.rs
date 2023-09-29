@@ -5,22 +5,22 @@ impl<T: Value> Value for Option<T> {
         if let Some(some) = self {
             stream.tagged_begin(
                 Some(&tags::RUST_OPTION_SOME),
-                Some(&Label::new("Some")),
-                Some(&Index::new(1)),
+                Some(&Label::new("Some").with_tag(&tags::VALUE_IDENT)),
+                Some(&Index::new(1).with_tag(&tags::VALUE_OFFSET)),
             )?;
 
             stream.value(some)?;
 
             stream.tagged_end(
                 Some(&tags::RUST_OPTION_SOME),
-                Some(&Label::new("Some")),
-                Some(&Index::new(1)),
+                Some(&Label::new("Some").with_tag(&tags::VALUE_IDENT)),
+                Some(&Index::new(1).with_tag(&tags::VALUE_OFFSET)),
             )
         } else {
             stream.tag(
                 Some(&tags::RUST_OPTION_NONE),
-                Some(&Label::new("None")),
-                Some(&Index::new(0)),
+                Some(&Label::new("None").with_tag(&tags::VALUE_IDENT)),
+                Some(&Index::new(0).with_tag(&tags::VALUE_OFFSET)),
             )
         }
     }
