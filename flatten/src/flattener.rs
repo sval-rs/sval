@@ -10,6 +10,7 @@ pub(crate) struct Flattener<'sval, S> {
     state: FlattenerState<'sval>,
 }
 
+#[derive(Debug)]
 struct FlattenerState<'sval> {
     index_alloc: IndexAllocator,
     key_buf: LabelBuf<'sval>,
@@ -379,7 +380,7 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<'sval, S> {
         self.value_at_root(
             |_, _| Ok(()),
             |buf| buf.enum_end(tag, label, index),
-            |stream| stream.enum_begin(tag, label, index),
+            |stream| stream.enum_end(tag, label, index),
         )
     }
 

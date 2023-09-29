@@ -1,5 +1,6 @@
 use sval::Index;
 
+#[derive(Debug)]
 pub(crate) struct IndexAllocator {
     initial_offset: isize,
     current_offset: isize,
