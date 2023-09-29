@@ -1,4 +1,4 @@
-use crate::{tags, Result, Stream, Value, std::fmt};
+use crate::{std::fmt, tags, Result, Stream, Value};
 
 /**
 An adapter that streams a slice of 8bit unsigned integers as binary.

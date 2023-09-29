@@ -403,6 +403,73 @@ mod tests {
     }
 
     #[test]
+    fn flatten_nested_enum() {
+        #[derive(Value)]
+        struct Inner {
+            b: ReallyInner,
+        }
+
+        #[derive(Value)]
+        struct ReallyInner {
+            b1: ReallyReallyInner,
+        }
+
+        #[derive(Value)]
+        #[allow(dead_code)]
+        enum ReallyReallyInner {
+            #[sval(label = "b")]
+            A(i32),
+            B {
+                b: i32,
+                c: i32,
+            },
+            C(i32, i32),
+        }
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: Inner {
+                    b: ReallyInner {
+                        b1: ReallyReallyInner::B { b: 42, c: 43 },
+                    },
+                },
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(1)),
+                    RecordTupleBegin(None, Some(Label::new("ReallyInner")), None, Some(1)),
+                    RecordTupleValueBegin(None, Label::new("b1"), Index::new(0)),
+                    EnumBegin(None, Some(Label::new("ReallyReallyInner")), None),
+                    RecordTupleBegin(None, Some(Label::new("B")), Some(Index::new(1)), Some(2)),
+                    RecordTupleValueBegin(None, Label::new("b"), Index::new(0)),
+                    I32(42),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("c"), Index::new(1)),
+                    I32(43),
+                    RecordTupleValueEnd(None, Label::new("c"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("B")), Some(Index::new(1))),
+                    EnumEnd(None, Some(Label::new("ReallyReallyInner")), None),
+                    RecordTupleValueEnd(None, Label::new("b1"), Index::new(0)),
+                    RecordTupleEnd(None, Some(Label::new("ReallyInner")), None),
+                    RecordTupleValueEnd(None, Label::new("b"), Index::new(1)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(2)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(2)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+    }
+
+    #[test]
     fn flatten_nested() {
         #[derive(Value)]
         struct Inner {

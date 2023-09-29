@@ -13,6 +13,7 @@ impl<'a, 'sval, S: LabelStream<'sval> + ?Sized> LabelStream<'sval> for &'a mut S
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum LabelBuf<'sval> {
     Empty,
     Text(TextBuf<'sval>),

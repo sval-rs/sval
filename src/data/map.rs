@@ -1,4 +1,4 @@
-use crate::{Result, Stream, Value, std::fmt};
+use crate::{std::fmt, Result, Stream, Value};
 
 /**
 An adapter that streams a slice of key-value pairs as a map.
