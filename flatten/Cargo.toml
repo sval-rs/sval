@@ -1,6 +1,6 @@
 [package]
 name = "sval_flatten"
-version = "2.9.1"
+version = "2.9.2"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -16,12 +16,12 @@ alloc = ["sval/alloc", "sval_buffer/alloc"]
 std = ["alloc", "sval/std", "sval_buffer/std"]
 
 [dependencies.sval]
-version = "2.9.1"
+version = "2.9.2"
 path = "../"
 default-features = false
 
 [dependencies.sval_buffer]
-version = "2.9.1"
+version = "2.9.2"
 path = "../buffer"
 default-features = false
 
