@@ -7,16 +7,16 @@ use crate::{
         derive_newtype::NewtypeAttrs, derive_struct::StructAttrs,
         derive_unit_struct::UnitStructAttrs, impl_tokens,
     },
-    index::{quote_optional_index, Index, IndexAllocator},
-    label::{label_or_ident, quote_optional_label},
+    index::{quote_optional_index, Index, IndexAllocator, IndexValue},
+    label::{label_or_ident, quote_optional_label, LabelValue},
     stream::{stream_newtype, stream_record_tuple, stream_tag, RecordTupleTarget},
     tag::{quote_optional_tag, quote_optional_tag_owned},
 };
 
 pub(crate) struct EnumAttrs {
     tag: Option<Path>,
-    label: Option<String>,
-    index: Option<isize>,
+    label: Option<LabelValue>,
+    index: Option<IndexValue>,
     dynamic: bool,
 }
 
@@ -56,12 +56,12 @@ impl EnumAttrs {
         self.tag.as_ref()
     }
 
-    pub(crate) fn label(&self) -> Option<&str> {
-        self.label.as_deref()
+    pub(crate) fn label(&self) -> Option<LabelValue> {
+        self.label.clone()
     }
 
     pub(crate) fn index(&self) -> Option<Index> {
-        self.index.map(IndexAllocator::const_index_of)
+        self.index.clone().map(IndexAllocator::const_index_of)
     }
 }
 
@@ -79,7 +79,7 @@ pub(crate) fn derive_enum<'a>(
     let mut variant_match_arms = Vec::new();
     let mut index_allocator = IndexAllocator::new();
 
-    let mut variant_index = |index: Option<Index>, discriminant: Option<isize>| {
+    let mut variant_index = |index: Option<Index>, discriminant: Option<IndexValue>| {
         index.or_else(|| {
             if attrs.dynamic {
                 None
@@ -89,7 +89,7 @@ pub(crate) fn derive_enum<'a>(
         })
     };
 
-    let variant_label = |label: Option<&str>, ident: &Ident| {
+    let variant_label = |label: Option<LabelValue>, ident: &Ident| {
         if attrs.dynamic {
             None
         } else {
@@ -119,7 +119,7 @@ pub(crate) fn derive_enum<'a>(
         let discriminant = variant
             .discriminant
             .as_ref()
-            .and_then(|(_, discriminant)| attr::IndexAttr.from_expr(discriminant));
+            .and_then(|(_, discriminant)| attr::IndexAttr.try_from_expr(discriminant));
 
         let variant_ident = &variant.ident;
 

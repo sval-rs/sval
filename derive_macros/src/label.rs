@@ -1,30 +1,54 @@
 use syn::Ident;
 
 #[derive(Debug, Clone)]
-pub(crate) enum Label {
-    Ident(String),
-    Text(String),
+pub(crate) enum LabelValue {
+    Const(String),
+    Ident(proc_macro2::TokenStream),
 }
 
-pub(crate) fn label_or_ident<'a>(explicit: Option<&str>, ident: &Ident) -> Label {
+#[derive(Debug, Clone)]
+pub(crate) enum Label {
+    Implicit(proc_macro2::TokenStream),
+    Const(proc_macro2::TokenStream),
+    Ident(proc_macro2::TokenStream),
+}
+
+fn explicit_label(explicit: LabelValue) -> Label {
+    match explicit {
+        LabelValue::Const(explicit) => Label::Const(quote!(#explicit)),
+        LabelValue::Ident(explicit) => Label::Ident(explicit),
+    }
+}
+
+fn ident_label(ident: &Ident) -> Label {
+    Label::Implicit({
+        let ident = ident.to_string();
+        quote!(#ident)
+    })
+}
+
+pub(crate) fn label_or_ident<'a>(explicit: Option<LabelValue>, ident: &Ident) -> Label {
     explicit
-        .map(|text| Label::Text(text.to_owned()))
-        .unwrap_or_else(|| Label::Ident(ident.to_string()))
+        .map(explicit_label)
+        .unwrap_or_else(|| ident_label(ident))
 }
 
 pub(crate) fn optional_label_or_ident<'a>(
-    explicit: Option<&str>,
+    explicit: Option<LabelValue>,
     ident: Option<&Ident>,
 ) -> Option<Label> {
     explicit
-        .map(|explicit| Label::Text(explicit.to_owned()))
-        .or_else(|| ident.map(|ident| Label::Ident(ident.to_string())))
+        .map(explicit_label)
+        .or_else(|| ident.map(ident_label))
 }
 
 pub(crate) fn quote_label(label: Label) -> proc_macro2::TokenStream {
     match label {
-        Label::Ident(ident) => quote!(&sval::Label::new(#ident).with_tag(&sval::tags::VALUE_IDENT)),
-        Label::Text(text) => quote!(&sval::Label::new(#text)),
+        Label::Implicit(implicit) => {
+            quote!(&sval::Label::new(#implicit).with_tag(&sval::tags::VALUE_IDENT))
+        }
+        Label::Const(explicit) => quote!(&sval::Label::new(#explicit)),
+        Label::Ident(explicit) => quote!(&#explicit),
     }
 }
 

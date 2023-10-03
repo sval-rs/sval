@@ -3,16 +3,16 @@ use syn::{Attribute, Fields, Generics, Ident, Path};
 use crate::{
     attr, bound,
     derive::impl_tokens,
-    index::{Index, IndexAllocator},
-    label::label_or_ident,
+    index::{Index, IndexAllocator, IndexValue},
+    label::{label_or_ident, LabelValue},
     stream::{stream_record_tuple, RecordTupleTarget},
     tag::quote_optional_tag_owned,
 };
 
 pub(crate) struct StructAttrs {
     tag: Option<Path>,
-    label: Option<String>,
-    index: Option<isize>,
+    label: Option<LabelValue>,
+    index: Option<IndexValue>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
 }
@@ -53,12 +53,12 @@ impl StructAttrs {
         self.tag.as_ref()
     }
 
-    pub(crate) fn label(&self) -> Option<&str> {
-        self.label.as_deref()
+    pub(crate) fn label(&self) -> Option<LabelValue> {
+        self.label.clone()
     }
 
     pub(crate) fn index(&self) -> Option<Index> {
-        self.index.map(IndexAllocator::const_index_of)
+        self.index.clone().map(IndexAllocator::const_index_of)
     }
 
     pub(crate) fn unlabeled_fields(&self) -> bool {
