@@ -13,7 +13,7 @@ impl BinarySlice {
     Treat a slice of 8bit unsigned integers as binary.
     */
     #[inline(always)]
-    pub fn new<'a>(binary: &'a [u8]) -> &'a Self {
+    pub const fn new<'a>(binary: &'a [u8]) -> &'a Self {
         // SAFETY: `Binary` and `[u8]` have the same ABI
         unsafe { &*(binary as *const _ as *const BinarySlice) }
     }
@@ -22,7 +22,7 @@ impl BinarySlice {
     Get a reference to the underlying slice.
     */
     #[inline(always)]
-    pub fn as_slice(&self) -> &[u8] {
+    pub const fn as_slice(&self) -> &[u8] {
         &self.0
     }
 }
@@ -66,7 +66,7 @@ impl<const N: usize> BinaryArray<N> {
     Treat a slice of 8bit unsigned integers as binary.
     */
     #[inline(always)]
-    pub fn new<'a>(binary: &'a [u8; N]) -> &'a Self {
+    pub const fn new<'a>(binary: &'a [u8; N]) -> &'a Self {
         // SAFETY: `Binary` and `[u8; N]` have the same ABI
         unsafe { &*(binary as *const _ as *const BinaryArray<N>) }
     }
@@ -75,7 +75,7 @@ impl<const N: usize> BinaryArray<N> {
     Get a reference to the underlying slice.
     */
     #[inline(always)]
-    pub fn as_slice(&self) -> &[u8; N] {
+    pub const fn as_slice(&self) -> &[u8; N] {
         &self.0
     }
 }

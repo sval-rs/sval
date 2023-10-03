@@ -30,7 +30,7 @@ impl<V: fmt::Debug> DebugToValue<V> {
     /**
     Adapt a [`fmt::Debug`] into an [`sval::Value`].
     */
-    pub fn new(value: V) -> DebugToValue<V> {
+    pub const fn new(value: V) -> DebugToValue<V> {
         DebugToValue(value)
     }
 }
@@ -39,7 +39,7 @@ impl<V: fmt::Debug + ?Sized> DebugToValue<V> {
     /**
     Adapt a reference to a [`fmt::Debug`] into an [`sval::Value`].
     */
-    pub fn new_borrowed<'a>(value: &'a V) -> &'a DebugToValue<V> {
+    pub const fn new_borrowed<'a>(value: &'a V) -> &'a DebugToValue<V> {
         // SAFETY: `&'a V` and `&'a DebugToValue<V>` have the same ABI
         unsafe { &*(value as *const _ as *const DebugToValue<V>) }
     }
@@ -55,7 +55,7 @@ impl<V: fmt::Display> DisplayToValue<V> {
     /**
     Adapt a [`fmt::Display`] into an [`sval::Value`].
     */
-    pub fn new(value: V) -> DisplayToValue<V> {
+    pub const fn new(value: V) -> DisplayToValue<V> {
         DisplayToValue(value)
     }
 }
@@ -64,7 +64,7 @@ impl<V: fmt::Display + ?Sized> DisplayToValue<V> {
     /**
     Adapt a reference to a [`fmt::Display`] into an [`sval::Value`].
     */
-    pub fn new_borrowed<'a>(value: &'a V) -> &'a DisplayToValue<V> {
+    pub const fn new_borrowed<'a>(value: &'a V) -> &'a DisplayToValue<V> {
         // SAFETY: `&'a V` and `&'a DisplayToValue<V>` have the same ABI
         unsafe { &*(value as *const _ as *const DisplayToValue<V>) }
     }

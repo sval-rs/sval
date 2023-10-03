@@ -10,7 +10,7 @@ impl<K, V> MapSlice<K, V> {
     /**
     Treat a slice of key-value pairs as a map.
      */
-    pub fn new<'a>(map: &'a [(K, V)]) -> &'a Self {
+    pub const fn new<'a>(map: &'a [(K, V)]) -> &'a Self {
         // SAFETY: `MapSlice` and `[(K, V)]` have the same ABI
         unsafe { &*(map as *const _ as *const MapSlice<K, V>) }
     }
@@ -18,7 +18,7 @@ impl<K, V> MapSlice<K, V> {
     /**
     Get a reference to the underlying slice.
      */
-    pub fn as_slice(&self) -> &[(K, V)] {
+    pub const fn as_slice(&self) -> &[(K, V)] {
         &self.0
     }
 }

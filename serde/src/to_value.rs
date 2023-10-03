@@ -22,7 +22,7 @@ impl<V: serde::Serialize> ToValue<V> {
     /**
     Adapt a [`serde::Serialize`] into a [`sval::Value`].
     */
-    pub fn new(value: V) -> ToValue<V> {
+    pub const fn new(value: V) -> ToValue<V> {
         ToValue(value)
     }
 }
@@ -31,7 +31,7 @@ impl<V: serde::Serialize + ?Sized> ToValue<V> {
     /**
     Adapt a reference to a [`serde::Serialize`] into an [`sval::Value`].
     */
-    pub fn new_borrowed<'a>(value: &'a V) -> &'a ToValue<V> {
+    pub const fn new_borrowed<'a>(value: &'a V) -> &'a ToValue<V> {
         // SAFETY: `&'a V` and `&'a ToValue<V>` have the same ABI
         unsafe { &*(value as *const _ as *const ToValue<V>) }
     }
