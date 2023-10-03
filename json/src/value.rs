@@ -14,7 +14,7 @@ impl JsonStr {
     /**
     Treat a string as native JSON.
     */
-    pub fn new<'a>(json: &'a str) -> &'a Self {
+    pub const fn new<'a>(json: &'a str) -> &'a Self {
         // SAFETY: `JsonStr` and `str` have the same ABI
         unsafe { &*(json as *const _ as *const JsonStr) }
     }
@@ -22,7 +22,7 @@ impl JsonStr {
     /**
     Get a reference to the underlying string.
     */
-    pub fn as_str(&self) -> &str {
+    pub const fn as_str(&self) -> &str {
         &self.0
     }
 }
