@@ -1,6 +1,6 @@
 use syn::{Attribute, Generics, Ident};
 
-use crate::{attr, bound};
+use crate::{attr, bound, derive::impl_tokens};
 
 pub(crate) struct VoidAttrs {}
 
@@ -24,15 +24,12 @@ pub(crate) fn derive_void<'a>(
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    quote! {
-        const _: () = {
-            extern crate sval;
-
-            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                    match *self {}
-                }
-            }
-        };
-    }
+    impl_tokens(
+        impl_generics,
+        ident,
+        ty_generics,
+        &bounded_where_clause,
+        quote!({ match *self {} }),
+        None,
+    )
 }

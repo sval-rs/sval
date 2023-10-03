@@ -11,16 +11,27 @@ impl IndexAllocator {
         }
     }
 
-    pub(crate) fn const_index_of(explicit: isize) -> Index {
-        Index::Explicit(quote!(#explicit))
+    pub(crate) fn const_index_of(explicit: IndexValue) -> Index {
+        match explicit {
+            IndexValue::Const(explicit) => Index::Explicit(quote!(#explicit)),
+            IndexValue::Ident(explicit) => Index::Explicit(explicit),
+        }
     }
 
-    pub(crate) fn next_const_index(&mut self, explicit: Option<isize>) -> Index {
-        if let Some(index) = explicit {
+    pub(crate) fn next_const_index(&mut self, explicit: Option<IndexValue>) -> Index {
+        if let Some(explicit) = explicit {
             self.explicit = true;
+
+            let index = match explicit {
+                IndexValue::Const(explicit) => explicit,
+                // If we can't compute an index from the value then
+                // just increment the one we've got
+                _ => self.next_const_index,
+            };
+
             self.next_const_index = index + 1;
 
-            Index::Explicit(quote!(#index))
+            Self::const_index_of(explicit)
         } else {
             let index = self.next_const_index;
             self.next_const_index += 1;
@@ -36,7 +47,7 @@ impl IndexAllocator {
     pub(crate) fn next_computed_index(
         &mut self,
         ident: &syn::Ident,
-        explicit: Option<isize>,
+        explicit: Option<IndexValue>,
     ) -> Index {
         match self.next_const_index(explicit) {
             Index::Implicit(_) => Index::Implicit(quote!({
@@ -47,6 +58,12 @@ impl IndexAllocator {
             Index::Explicit(index) => Index::Explicit(index),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum IndexValue {
+    Const(isize),
+    Ident(proc_macro2::TokenStream),
 }
 
 #[derive(Debug, Clone)]

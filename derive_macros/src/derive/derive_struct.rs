@@ -1,18 +1,18 @@
 use syn::{Attribute, Fields, Generics, Ident, Path};
 
 use crate::{
-    attr::{self},
-    bound,
-    index::{Index, IndexAllocator},
-    label::label_or_ident,
+    attr, bound,
+    derive::impl_tokens,
+    index::{Index, IndexAllocator, IndexValue},
+    label::{label_or_ident, LabelValue},
     stream::{stream_record_tuple, RecordTupleTarget},
     tag::quote_optional_tag_owned,
 };
 
 pub(crate) struct StructAttrs {
     tag: Option<Path>,
-    label: Option<String>,
-    index: Option<isize>,
+    label: Option<LabelValue>,
+    index: Option<IndexValue>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
 }
@@ -53,12 +53,12 @@ impl StructAttrs {
         self.tag.as_ref()
     }
 
-    pub(crate) fn label(&self) -> Option<&str> {
-        self.label.as_deref()
+    pub(crate) fn label(&self) -> Option<LabelValue> {
+        self.label.clone()
     }
 
     pub(crate) fn index(&self) -> Option<Index> {
-        self.index.map(IndexAllocator::const_index_of)
+        self.index.clone().map(IndexAllocator::const_index_of)
     }
 
     pub(crate) fn unlabeled_fields(&self) -> bool {
@@ -100,23 +100,18 @@ pub(crate) fn derive_struct<'a>(
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    quote! {
-        const _: () = {
-            extern crate sval;
-
-            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                    match self {
-                        #match_arm
-                    }
-
-                    Ok(())
-                }
-
-                fn tag(&self) -> Option<sval::Tag> {
-                    #tag
-                }
+    impl_tokens(
+        impl_generics,
+        ident,
+        ty_generics,
+        &bounded_where_clause,
+        quote!({
+            match self {
+                #match_arm
             }
-        };
-    }
+
+            Ok(())
+        }),
+        Some(tag),
+    )
 }

@@ -1,6 +1,6 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
-use crate::label::{optional_label_or_ident, Label};
+use crate::label::{optional_label_or_ident, Label, LabelValue};
 use crate::{
     attr::{self},
     index::{quote_index, quote_optional_index, Index, IndexAllocator},
@@ -275,8 +275,11 @@ fn get_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenStr
     }
 }
 
-fn get_label(explicit: Option<String>, ident: Option<&Ident>) -> Option<proc_macro2::TokenStream> {
-    optional_label_or_ident(explicit.as_deref(), ident).map(|label| quote_label(label))
+fn get_label(
+    explicit: Option<LabelValue>,
+    ident: Option<&Ident>,
+) -> Option<proc_macro2::TokenStream> {
+    optional_label_or_ident(explicit, ident).map(|label| quote_label(label))
 }
 
 fn quote_field_skip(index: &syn::Index, field: &Field) -> proc_macro2::TokenStream {

@@ -27,11 +27,34 @@ mod derive_struct {
     }
 
     #[test]
+    fn generic() {
+        #[derive(Value)]
+        struct RecordTuple<S> {
+            a: S,
+        }
+
+        assert_tokens(&RecordTuple { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                I32(42),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn indexed() {
+        const B_INDEX: sval::Index = sval::Index::new(3);
+
         #[derive(Value)]
         struct RecordTuple {
             #[sval(index = 1)]
             a: i32,
+            #[sval(index = B_INDEX)]
             b: i32,
         }
 
@@ -43,9 +66,9 @@ mod derive_struct {
                 RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(1)),
                 I32(42),
                 RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(1)),
-                RecordTupleValueBegin(None, sval::Label::new("b"), sval::Index::new(2)),
+                RecordTupleValueBegin(None, sval::Label::new("b"), sval::Index::new(3)),
                 I32(57),
-                RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(2)),
+                RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(3)),
                 RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
             ]
         })
@@ -120,7 +143,7 @@ mod derive_struct {
     fn data_tagged() {
         #[derive(Value)]
         struct RecordTuple {
-            #[sval(data_tag = "sval::tags::NUMBER")]
+            #[sval(data_tag = sval::tags::NUMBER)]
             a: i32,
         }
 
@@ -216,7 +239,7 @@ mod derive_struct {
         const FIELD: sval::Tag = sval::Tag::new("field");
 
         #[derive(Value)]
-        #[sval(tag = "CONTAINER", label = "record", index = 0)]
+        #[sval(tag = CONTAINER, label = "record", index = 0)]
         struct Record {
             #[sval(tag = "FIELD", label = "field0")]
             a: i32,
@@ -309,8 +332,10 @@ mod derive_tuple {
 
     #[test]
     fn labeled() {
+        const B_LABEL: sval::Label<'static> = sval::Label::new("B");
+
         #[derive(Value)]
-        struct RecordTuple(#[sval(label = "A")] i32, #[sval(label = "B")] i32);
+        struct RecordTuple(#[sval(label = "A")] i32, #[sval(label = B_LABEL)] i32);
 
         assert_tokens(&RecordTuple(42, 43), {
             use sval_test::Token::*;

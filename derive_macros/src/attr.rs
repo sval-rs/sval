@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, LitBool, Path, UnOp};
+use syn::{Attribute, Expr, ExprUnary, Lit, Path, UnOp};
+
+use crate::{index::IndexValue, label::LabelValue};
 
 /**
 The `tag` attribute.
@@ -12,6 +14,14 @@ pub(crate) struct TagAttr;
 
 impl SvalAttribute for TagAttr {
     type Result = syn::Path;
+
+    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+        match expr {
+            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            Expr::Path(path) => Some(path.path.clone()),
+            _ => None,
+        }
+    }
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
         if let Lit::Str(ref s) = lit {
@@ -39,6 +49,14 @@ pub(crate) struct DataTagAttr;
 impl SvalAttribute for DataTagAttr {
     type Result = syn::Path;
 
+    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+        match expr {
+            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            Expr::Path(path) => Some(path.path.clone()),
+            _ => None,
+        }
+    }
+
     fn from_lit(&self, lit: &Lit) -> Self::Result {
         if let Lit::Str(ref s) = lit {
             s.parse().expect("invalid value")
@@ -63,11 +81,19 @@ to use for the annotated item.
 pub(crate) struct LabelAttr;
 
 impl SvalAttribute for LabelAttr {
-    type Result = String;
+    type Result = LabelValue;
+
+    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+        match expr {
+            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            Expr::Path(path) => Some(LabelValue::Ident(quote!(#path))),
+            _ => None,
+        }
+    }
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
         if let Lit::Str(ref s) = lit {
-            s.value()
+            LabelValue::Const(s.value())
         } else {
             panic!("unexpected value")
         }
@@ -88,10 +114,20 @@ to use for the annotated item.
 */
 pub(crate) struct IndexAttr;
 
-impl SvalAttribute for IndexAttr {
-    type Result = isize;
+impl IndexAttr {
+    fn const_from_lit(&self, lit: &Lit) -> isize {
+        if let Lit::Int(ref n) = lit {
+            n.base10_parse().expect("invalid value")
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
 
-    fn from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+impl SvalAttribute for IndexAttr {
+    type Result = IndexValue;
+
+    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
         match expr {
             // Take `-` into account
             Expr::Unary(ExprUnary {
@@ -100,22 +136,19 @@ impl SvalAttribute for IndexAttr {
                 ..
             }) => {
                 if let Expr::Lit(ref lit) = **expr {
-                    Some(-(self.from_lit(&lit.lit)))
+                    Some(IndexValue::Const(-(self.const_from_lit(&lit.lit))))
                 } else {
                     None
                 }
             }
-            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            Expr::Lit(lit) => Some(IndexValue::Const(self.const_from_lit(&lit.lit))),
+            Expr::Path(path) => Some(IndexValue::Ident(quote!(#path))),
             _ => None,
         }
     }
 
     fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Int(ref n) = lit {
-            n.base10_parse().expect("invalid value")
-        } else {
-            panic!("unexpected value")
-        }
+        IndexValue::Const(self.const_from_lit(lit))
     }
 }
 
@@ -292,7 +325,7 @@ pub(crate) trait RawAttribute {
 pub(crate) trait SvalAttribute: RawAttribute {
     type Result: 'static;
 
-    fn from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
         if let Expr::Lit(lit) = expr {
             Some(self.from_lit(&lit.lit))
         } else {
@@ -363,7 +396,7 @@ pub(crate) fn get_unchecked<T: SvalAttribute>(
         .flatten()
     {
         if value_key.is_ident(request_key) {
-            return Some(request.from_lit(&value));
+            return Some(request.try_from_expr(&value).expect("unexpected value"));
         }
     }
 
@@ -373,23 +406,23 @@ pub(crate) fn get_unchecked<T: SvalAttribute>(
 fn sval_attr<'a>(
     ctxt: &'a str,
     attr: &'_ Attribute,
-) -> Option<impl IntoIterator<Item = (Path, Lit)> + 'a> {
+) -> Option<impl IntoIterator<Item = (Path, Expr)> + 'a> {
     if !attr.path().is_ident("sval") {
         return None;
     }
 
     let mut results = Vec::new();
     attr.parse_nested_meta(|meta| {
-        let lit: Lit = match meta.value() {
+        let expr: Expr = match meta.value() {
             Ok(value) => value.parse()?,
             // If there isn't a value associated with the item
             // then use the boolean `true`
-            Err(_) => Lit::Bool(LitBool::new(true, meta.path.span())),
+            Err(_) => syn::parse_quote!(true),
         };
 
         let path = meta.path;
 
-        results.push((path, lit));
+        results.push((path, expr));
 
         Ok(())
     })
