@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> compile_fail/union.rs:3:10
+  |
+3 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = help: message: unsupported container type

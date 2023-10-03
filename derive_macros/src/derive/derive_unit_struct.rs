@@ -1,8 +1,8 @@
 use syn::{Attribute, Generics, Ident, Path};
 
 use crate::{
-    attr::{self},
-    bound,
+    attr, bound,
+    derive::impl_tokens,
     index::{Index, IndexAllocator},
     label::label_or_ident,
     stream::stream_tag,
@@ -62,23 +62,18 @@ pub(crate) fn derive_unit_struct<'a>(
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    quote! {
-        const _: () = {
-            extern crate sval;
-
-            impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                    match self {
-                        #match_arm
-                    }
-
-                    Ok(())
-                }
-
-                fn tag(&self) -> Option<sval::Tag> {
-                    #tag
-                }
+    impl_tokens(
+        impl_generics,
+        ident,
+        ty_generics,
+        &bounded_where_clause,
+        quote!({
+            match self {
+                #match_arm
             }
-        };
-    }
+
+            Ok(())
+        }),
+        Some(tag),
+    )
 }

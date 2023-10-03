@@ -27,6 +27,26 @@ mod derive_struct {
     }
 
     #[test]
+    fn generic() {
+        #[derive(Value)]
+        struct RecordTuple<S> {
+            a: S,
+        }
+
+        assert_tokens(&RecordTuple { a: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                I32(42),
+                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn indexed() {
         #[derive(Value)]
         struct RecordTuple {

@@ -5,7 +5,7 @@ use crate::{
     bound,
     derive::{
         derive_newtype::NewtypeAttrs, derive_struct::StructAttrs,
-        derive_unit_struct::UnitStructAttrs,
+        derive_unit_struct::UnitStructAttrs, impl_tokens,
     },
     index::{quote_optional_index, Index, IndexAllocator},
     label::{label_or_ident, quote_optional_label},
@@ -178,47 +178,41 @@ pub(crate) fn derive_enum<'a>(
     }
 
     if attrs.dynamic {
-        quote! {
-            const _: () = {
-                extern crate sval;
-
-                impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                        match self {
-                            #(#variant_match_arms)*
-                        }
-
-                        Ok(())
-                    }
+        impl_tokens(
+            impl_generics,
+            ident,
+            ty_generics,
+            &bounded_where_clause,
+            quote!({
+                match self {
+                    #(#variant_match_arms)*
                 }
-            };
-        }
+
+                Ok(())
+            }),
+            None,
+        )
     } else {
         let tag = quote_optional_tag(attrs.tag());
         let tag_owned = quote_optional_tag_owned(attrs.tag());
         let label = quote_optional_label(Some(label_or_ident(attrs.label(), ident)));
         let index = quote_optional_index(attrs.index());
 
-        quote! {
-            const _: () = {
-                extern crate sval;
+        impl_tokens(
+            impl_generics,
+            ident,
+            ty_generics,
+            &bounded_where_clause,
+            quote!({
+                stream.enum_begin(#tag, #label, #index)?;
 
-                impl #impl_generics sval::Value for #ident #ty_generics #bounded_where_clause {
-                    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
-                        stream.enum_begin(#tag, #label, #index)?;
-
-                        match self {
-                            #(#variant_match_arms)*
-                        }
-
-                        stream.enum_end(#tag, #label, #index)
-                    }
-
-                    fn tag(&self) -> Option<sval::Tag> {
-                        #tag_owned
-                    }
+                match self {
+                    #(#variant_match_arms)*
                 }
-            };
-        }
+
+                stream.enum_end(#tag, #label, #index)
+            }),
+            Some(tag_owned),
+        )
     }
 }
