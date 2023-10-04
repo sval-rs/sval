@@ -41,6 +41,15 @@ struct MapStruct<F0, F1> {
 struct SeqStruct<F0, F1>(F0, F1);
 
 #[derive(Value, Serialize)]
+struct NestedMap {
+    field_0: i32,
+    field_1: bool,
+}
+
+#[derive(Value, Serialize)]
+struct EmptyMap {}
+
+#[derive(Value, Serialize)]
 struct Tagged<T>(T);
 
 #[derive(Clone, Value, Serialize)]
@@ -154,6 +163,27 @@ fn stream_map_struct() {
         field_0: "Hello",
         field_1: 1.3,
     });
+
+    assert_json(MapStruct {
+        field_0: EmptyMap {},
+        field_1: EmptyMap {},
+    });
+
+    assert_json(MapStruct {
+        field_0: &[] as &[i32],
+        field_1: &[] as &[i32],
+    });
+
+    assert_json(MapStruct {
+        field_0: NestedMap {
+            field_0: 42,
+            field_1: true,
+        },
+        field_1: NestedMap {
+            field_0: 43,
+            field_1: false,
+        },
+    });
 }
 
 #[test]
@@ -161,6 +191,27 @@ fn stream_seq_struct() {
     assert_json(SeqStruct(42, true));
     assert_json(SeqStruct("Hello", 1.3));
     assert_json((42, true));
+
+    #[derive(Value, Serialize)]
+    struct NestedMap {
+        field_0: i32,
+        field_1: bool,
+    }
+
+    assert_json((
+        NestedMap {
+            field_0: 42,
+            field_1: true,
+        },
+        NestedMap {
+            field_0: 43,
+            field_1: false,
+        },
+    ));
+
+    assert_json((EmptyMap {}, EmptyMap {}));
+
+    assert_json((&[] as &[i32], &[] as &[i32]));
 }
 
 #[test]
