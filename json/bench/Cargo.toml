@@ -7,9 +7,6 @@ edition = "2021"
 [lib]
 path = "lib.rs"
 
-[dependencies.rustversion]
-version = "1"
-
 [dependencies.sval]
 path = "../../"
 features = ["std"]

@@ -30,6 +30,7 @@ members = [
     "json/test",
     "json/bench",
     "flatten",
+    "flatten/bench",
     "test",
     "experiments",
 ]
