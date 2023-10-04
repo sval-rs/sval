@@ -1,6 +1,6 @@
 [package]
 name = "sval_test"
-version = "2.9.2"
+version = "2.10.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -12,15 +12,15 @@ keywords = ["serialization", "no_std"]
 categories = ["encoding", "no-std"]
 
 [dependencies.sval]
-version = "2.9.2"
+version = "2.10.0"
 path = "../"
 features = ["std"]
 
 [dependencies.sval_fmt]
-version = "2.9.2"
+version = "2.10.0"
 path = "../fmt"
 features = ["std"]
 
 [dev-dependencies.sval_dynamic]
-version = "2.9.2"
+version = "2.10.0"
 path = "../dynamic"
