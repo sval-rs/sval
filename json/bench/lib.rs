@@ -197,6 +197,14 @@ pub fn input_struct() -> Twitter {
     serde_json::from_str(&j).unwrap()
 }
 
+#[test]
+fn compat() {
+    let serde = serde_json::to_string(&input_struct()).unwrap();
+    let sval = sval_json::stream_to_string(input_struct()).unwrap();
+
+    assert_eq!(serde, sval);
+}
+
 #[bench]
 fn primitive_miniserde(b: &mut test::Bencher) {
     b.iter(|| miniserde::json::to_string(&42));

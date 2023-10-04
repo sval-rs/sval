@@ -28,11 +28,29 @@ struct Number(&'static str);
 struct MapStruct {
     field_0: i32,
     field_1: bool,
-    field_2: &'static str,
+    field_2: EmptyMap,
+    field_3: &'static str,
+    field_4: &'static [i32],
+    field_5: u32,
+}
+
+struct EmptyMap {}
+
+impl fmt::Debug for EmptyMap {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_map().finish()
+    }
+}
+
+impl sval::Value for EmptyMap {
+    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+        stream.map_begin(Some(0))?;
+        stream.map_end()
+    }
 }
 
 #[derive(Value, Debug)]
-struct SeqStruct(i32, bool, &'static str);
+struct SeqStruct(i32, bool, EmptyMap, &'static str, &'static [i32], u32);
 
 #[derive(Value, Debug)]
 struct Tagged(i32);
@@ -44,9 +62,12 @@ enum Enum {
     MapStruct {
         field_0: i32,
         field_1: bool,
-        field_2: &'static str,
+        field_2: EmptyMap,
+        field_3: &'static str,
+        field_4: &'static [i32],
+        field_5: u32,
     },
-    SeqStruct(i32, bool, &'static str),
+    SeqStruct(i32, bool, EmptyMap, &'static str, &'static [i32], u32),
 }
 
 #[test]
@@ -72,13 +93,16 @@ fn debug_map_struct() {
     assert_fmt(MapStruct {
         field_0: 42,
         field_1: true,
-        field_2: "Hello",
+        field_2: EmptyMap {},
+        field_3: "Hello",
+        field_4: &[],
+        field_5: 17,
     });
 }
 
 #[test]
 fn debug_seq_struct() {
-    assert_fmt(SeqStruct(42, true, "Hello"));
+    assert_fmt(SeqStruct(42, true, EmptyMap {}, "Hello", &[], 17));
     assert_fmt((42, true, "Hello"));
 }
 
@@ -94,10 +118,13 @@ fn debug_enum() {
     assert_fmt(Enum::MapStruct {
         field_0: 42,
         field_1: true,
-        field_2: "Hello",
+        field_2: EmptyMap {},
+        field_3: "Hello",
+        field_4: &[],
+        field_5: 17,
     });
 
-    assert_fmt(Enum::SeqStruct(42, true, "Hello"));
+    assert_fmt(Enum::SeqStruct(42, true, EmptyMap {}, "Hello", &[], 17));
 
     assert_fmt(Enum::Tagged(42));
 }
@@ -308,13 +335,16 @@ fn stream_token_write_compact() {
         MapStruct {
             field_0: 42,
             field_1: true,
-            field_2: "text \"in quotes\"",
+            field_2: EmptyMap {},
+            field_3: "text \"in quotes\"",
+            field_4: &[],
+            field_5: 17,
         },
     )
     .unwrap();
 
     assert_eq!(
-        r#"MapStruct{field_0:42,field_1:true,field_2:"text \"in quotes\""}"#,
+        r#"MapStruct{field_0:42,field_1:true,field_2:{},field_3:"text \"in quotes\"",field_4:[],field_5:17}"#,
         buf
     );
 }
@@ -345,13 +375,16 @@ fn stream_token_write_no_escaping() {
         MapStruct {
             field_0: 42,
             field_1: true,
-            field_2: "text \"in quotes\"",
+            field_2: EmptyMap {},
+            field_3: "text \"in quotes\"",
+            field_4: &[],
+            field_5: 17,
         },
     )
     .unwrap();
 
     assert_eq!(
-        r#"MapStruct { field_0: 42, field_1: true, field_2: text "in quotes" }"#,
+        r#"MapStruct { field_0: 42, field_1: true, field_2: {}, field_3: text "in quotes", field_4: [], field_5: 17 }"#,
         buf
     );
 }
@@ -504,7 +537,10 @@ fn stream_token_write_indented() {
         MapStruct {
             field_0: 42,
             field_1: true,
-            field_2: "text \"in quotes\"",
+            field_2: EmptyMap {},
+            field_3: "text \"in quotes\"",
+            field_4: &[],
+            field_5: 17,
         },
     )
     .unwrap();
@@ -513,7 +549,10 @@ fn stream_token_write_indented() {
         r#"MapStruct {
     field_0: 42,
     field_1: true,
-    field_2: "text \"in quotes\"",
+    field_2: {},
+    field_3: "text \"in quotes\"",
+    field_4: [],
+    field_5: 17,
 }"#,
         buf
     );

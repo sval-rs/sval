@@ -221,6 +221,7 @@ where
     }
 
     fn map_end(&mut self) -> sval::Result {
+        self.is_current_depth_empty = false;
         _try!(self.out.write_char('}'));
 
         Ok(())
@@ -255,6 +256,7 @@ where
     }
 
     fn seq_end(&mut self) -> sval::Result {
+        self.is_current_depth_empty = false;
         _try!(self.out.write_char(']'));
 
         Ok(())
