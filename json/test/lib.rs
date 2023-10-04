@@ -57,7 +57,9 @@ enum Enum<F0, F1> {
     Constant,
     Tagged(F0),
     MapStruct { field_0: F0, field_1: F1 },
+    EmptyMapStruct,
     SeqStruct(F0, F1),
+    EmptySeq(&'static [i32]),
     Nested(Box<Enum<F0, F1>>),
 }
 
@@ -227,7 +229,9 @@ fn stream_enum() {
             field_0: 42,
             field_1: true,
         },
+        Enum::EmptyMapStruct,
         Enum::SeqStruct(42, true),
+        Enum::EmptySeq(&[]),
         Enum::Tagged(42),
     ] {
         assert_json(&variant);
