@@ -1,0 +1,20 @@
+[package]
+name = "sval_flatten_bench"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.sval]
+path = "../../"
+features = ["std"]
+
+[dependencies.sval_flatten]
+path = "../"
+features = ["std"]
+
+[dependencies.sval_json]
+path = "../../json"
+features = ["std"]

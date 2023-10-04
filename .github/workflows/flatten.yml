@@ -22,6 +22,10 @@ jobs:
       - name: Powerset
         working-directory: ./flatten
         run: cargo hack test --feature-powerset
+      
+      - name: Powerset (Benches)
+        working-directory: ./flatten/bench
+        run: cargo hack test --feature-powerset
 
       - name: Minimal Versions
         working-directory: ./flatten
