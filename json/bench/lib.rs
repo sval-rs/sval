@@ -286,7 +286,12 @@ fn twitter_sval_collect(b: &mut test::Bencher) {
 #[bench]
 fn twitter_sval_collect_owned(b: &mut test::Bencher) {
     let s = input_struct();
-    b.iter(|| sval_buffer::Value::collect(&s).unwrap().into_owned().unwrap());
+    b.iter(|| {
+        sval_buffer::Value::collect(&s)
+            .unwrap()
+            .into_owned()
+            .unwrap()
+    });
 }
 
 #[bench]
