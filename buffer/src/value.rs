@@ -74,7 +74,7 @@ impl<'sval> ValueBuf<'sval> {
 
         match v.stream(&mut buf) {
             Ok(()) => Ok(buf),
-            Err(_) => Err(buf.err.unwrap()),
+            Err(_) => Err(buf.into_err()),
         }
     }
 
@@ -201,6 +201,11 @@ impl<'sval> ValueBuf<'sval> {
         self.err = Some(err);
         sval::error()
     }
+
+    fn into_err(self) -> Error {
+        self.err
+            .unwrap_or_else(|| Error::invalid_value("the value itself failed to stream"))
+    }
 }
 
 impl ValueBuf<'static> {
@@ -216,7 +221,7 @@ impl ValueBuf<'static> {
         // have to be converted into owned anyways
         match sval::stream_computed(&mut buf, v) {
             Ok(()) => Ok(buf),
-            Err(_) => Err(buf.err.unwrap()),
+            Err(_) => Err(buf.into_err()),
         }
     }
 }
@@ -2281,6 +2286,24 @@ mod alloc_support {
             buf.bool(true).unwrap();
 
             assert_eq!(Value::collect(&true).unwrap().parts, buf.to_value().parts);
+        }
+
+        #[test]
+        fn buffer_invalid() {
+            struct Kaboom;
+
+            impl sval::Value for Kaboom {
+                fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                    &'sval self,
+                    _: &mut S,
+                ) -> sval::Result {
+                    sval::error()
+                }
+            }
+
+            // Ensure we don't panic
+            let _ = Value::collect(&Kaboom);
+            let _ = Value::collect_owned(&Kaboom);
         }
 
         #[test]
