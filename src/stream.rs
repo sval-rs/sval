@@ -1,5 +1,27 @@
 use crate::{data, tags, Index, Label, Result, Tag, Value};
 
+pub mod default_stream {
+    /*!
+    Default method implementations for [`Stream`]s.
+    */
+
+    use super::*;
+
+    /**
+    Recurse into a nested value.
+    */
+    pub fn value<'sval>(stream: &mut (impl Stream<'sval> + ?Sized), v: &'sval (impl Value + ?Sized)) -> Result {
+        v.stream(stream)
+    }
+
+    /**
+    Recurse into a nested value, borrowed for some arbitrarily short lifetime.
+    */
+    pub fn value_computed<'a, 'b>(stream: &mut (impl Stream<'a> + ?Sized), v: &'b (impl Value + ?Sized)) -> Result {
+        v.stream(Computed::new_borrowed(stream))
+    }
+}
+
 /**
 A consumer of structured data.
 */
@@ -8,14 +30,14 @@ pub trait Stream<'sval> {
     Recurse into a nested value.
     */
     fn value<V: Value + ?Sized>(&mut self, v: &'sval V) -> Result {
-        v.stream(self)
+        default_stream::value(self, v)
     }
 
     /**
     Recurse into a nested value, borrowed for some arbitrarily short lifetime.
     */
     fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
-        v.stream(Computed::new_borrowed(self))
+        default_stream::value_computed(self, v)
     }
 
     /**
@@ -841,8 +863,6 @@ mod alloc_support {
 
 /**
 A `Stream` that accepts values for any lifetime.
-
-This is the result of calling [`Stream::computed`].
 */
 #[repr(transparent)]
 struct Computed<S: ?Sized>(S);

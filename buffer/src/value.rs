@@ -202,7 +202,7 @@ impl<'sval> ValueBuf<'sval> {
         sval::error()
     }
 
-    fn into_err(self) -> Error {
+    pub(crate) fn into_err(self) -> Error {
         self.err
             .unwrap_or_else(|| Error::invalid_value("the value itself failed to stream"))
     }

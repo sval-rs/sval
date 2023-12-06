@@ -23,7 +23,7 @@ use crate::std::boxed::Box;
 
 pub(crate) use self::number::*;
 
-pub use self::{binary::*, map::*, text::*};
+pub use self::{binary::*, map::*, text::*, option::*};
 
 /**
 A textual label for some value.

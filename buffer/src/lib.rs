@@ -38,8 +38,9 @@ mod std {
 
 mod fragments;
 mod value;
+mod stream;
 
 #[cfg(feature = "alloc")]
 fn assert_static<T: 'static>(_: &mut T) {}
 
-pub use self::{error::*, fragments::*, value::*};
+pub use self::{error::*, fragments::*, value::*, stream::*};
