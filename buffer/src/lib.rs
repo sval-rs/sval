@@ -9,7 +9,7 @@ Rather than conditionally compile these methods, this library stubs
 out functionality when an allocator isn't available.
 */
 
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
 
 mod error;
@@ -37,10 +37,10 @@ mod std {
 }
 
 mod fragments;
-mod value;
 mod stream;
+mod value;
 
 #[cfg(feature = "alloc")]
 fn assert_static<T: 'static>(_: &mut T) {}
 
-pub use self::{error::*, fragments::*, value::*, stream::*};
+pub use self::{error::*, fragments::*, stream::*, value::*};

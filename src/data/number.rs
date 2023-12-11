@@ -58,9 +58,13 @@ impl_value!(
     to_f64 => f64,
 );
 
-fn stream_number<'sval, T: fmt::Display>(
+/**
+Stream an arbitrary precision number conforming to [`tags::NUMBER`]
+using its [`fmt::Display`] implementation.
+*/
+pub fn stream_number<'sval>(
     mut stream: &mut (impl Stream<'sval> + ?Sized),
-    text: T,
+    number: impl fmt::Display,
 ) -> Result {
     struct Writer<S>(S);
 
@@ -75,7 +79,7 @@ fn stream_number<'sval, T: fmt::Display>(
     stream.tagged_begin(Some(&tags::NUMBER), None, None)?;
     stream.text_begin(None)?;
 
-    write!(Writer(&mut stream), "{}", text).map_err(|_| crate::Error::new())?;
+    write!(Writer(&mut stream), "{}", number).map_err(|_| crate::Error::new())?;
 
     stream.text_end()?;
     stream.tagged_end(Some(&tags::NUMBER), None, None)

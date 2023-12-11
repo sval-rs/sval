@@ -271,6 +271,7 @@ where
         _try_no_conv!(self.internally_tagged_begin(label));
 
         self.is_internally_tagged = true;
+        self.is_current_depth_empty = true;
 
         Ok(())
     }
@@ -281,6 +282,10 @@ where
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
+        if self.is_current_depth_empty {
+            _try_no_conv!(self.tag(None, None, None));
+        }
+
         if self.is_internally_tagged {
             self.internally_tagged_map_end()
         } else {
@@ -357,6 +362,7 @@ where
         _: Option<&sval::Index>,
     ) -> sval::Result {
         self.is_internally_tagged = false;
+        self.is_current_depth_empty = false;
 
         match tag {
             Some(&sval::tags::RUST_OPTION_NONE) => self.null(),
@@ -442,6 +448,7 @@ where
     fn internally_tagged_begin(&mut self, label: Option<&sval::Label>) -> sval::Result {
         // If there's a label then begin a map, using the label as the key
         if self.is_internally_tagged {
+            self.is_current_depth_empty = false;
             self.is_internally_tagged = false;
 
             if let Some(label) = label {

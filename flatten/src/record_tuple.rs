@@ -825,6 +825,16 @@ mod tests {
     }
 
     #[test]
+    fn flatten_exotic_enum_empty() {
+        todo!()
+    }
+
+    #[test]
+    fn flatten_exotic_enum_nested_empty() {
+        todo!()
+    }
+
+    #[test]
     fn flatten_primitive() {
         sval_test::assert_tokens(
             &Outer {

@@ -1662,7 +1662,6 @@ mod alloc_support {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::std::{string::String, vec};
 
         use sval::Stream as _;
         use sval_derive_macros::*;
