@@ -56,6 +56,7 @@ impl Error {
     }
 
     pub(crate) fn invalid_value(reason: &'static str) -> Self {
+        panic!("{}", reason);
         Error(ErrorKind::InvalidValue { reason })
     }
 

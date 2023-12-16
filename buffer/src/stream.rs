@@ -251,6 +251,185 @@ pub trait StreamEnum<'sval> {
     fn end(self) -> Result<Self::Ok>;
 }
 
+pub struct Unsupported<Ok>(PhantomData<Result<Ok, Error>>);
+
+impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
+    type Ok = Ok;
+
+    type Map = Self;
+
+    type Enum = Self;
+
+    fn null(self) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn bool(self, value: bool) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn i64(self, value: i64) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn f64(self, value: f64) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn text_computed(self, text: &str) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn tag(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn tagged_computed<V: sval::Value + ?Sized>(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        value: &V,
+    ) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map> {
+        todo!()
+    }
+
+    fn enum_begin(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> Result<Self::Enum> {
+        todo!()
+    }
+}
+
+impl<'sval, Ok> StreamMap<'sval> for Unsupported<Ok> {
+    type Ok = Ok;
+
+    fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> Result {
+        todo!()
+    }
+
+    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result {
+        todo!()
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        todo!()
+    }
+}
+
+impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
+    type Ok = Ok;
+
+    type Nested = Self;
+
+    fn tag(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn tagged_computed<V: sval::Value + ?Sized>(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        value: &V,
+    ) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        variant: F,
+    ) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        todo!()
+    }
+}
+
+pub struct NestedStream<S>(S);
+
+impl<'sval, S: StreamEnum<'sval, Nested = S>> Stream<'sval> for NestedStream<S> {
+    type Ok = S::Ok;
+
+    type Map = Unsupported<S::Ok>;
+
+    type Enum = S::Nested;
+
+    fn null(self) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn bool(self, value: bool) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn i64(self, value: i64) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn f64(self, value: f64) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn text_computed(self, text: &str) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn tag(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> Result<Self::Ok> {
+        todo!()
+    }
+
+    fn tagged_computed<V: sval::Value + ?Sized>(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        value: &V,
+    ) -> Result<Self::Ok> {
+        self.0.tagged_computed(tag, label, index, value)
+    }
+
+    fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map> {
+        todo!()
+    }
+
+    fn enum_begin(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> Result<Self::Enum> {
+        todo!()
+    }
+}
+
 pub struct FlatStream<'sval, S: Stream<'sval>> {
     buffered: Option<Buffered<'sval>>,
     state: State<'sval, S>,
@@ -261,6 +440,7 @@ enum State<'sval, S: Stream<'sval>> {
     Map(Option<Map<'sval, S>>),
     Tagged(Option<Tagged<'sval, S>>),
     Enum(Option<Enum<'sval, S>>),
+    EnumVariant(Option<EnumVariant<'sval, S>>),
     Done(Option<Result<S::Ok>>),
 }
 
@@ -283,18 +463,33 @@ struct Map<'sval, S: Stream<'sval>> {
 
 struct Tagged<'sval, S: Stream<'sval>> {
     stream: S,
+    tag: Option<sval::Tag>,
     label: Option<sval::Label<'static>>,
     index: Option<sval::Index>,
-    tag: Option<sval::Tag>,
     _marker: PhantomData<&'sval ()>,
 }
 
 struct Enum<'sval, S: Stream<'sval>> {
-    stream: S,
-    label: Option<sval::Label<'static>>,
-    index: Option<sval::Index>,
-    tag: Option<sval::Tag>,
+    stream: S::Enum,
     _marker: PhantomData<&'sval ()>,
+}
+
+struct EnumVariant<'sval, S: Stream<'sval>> {
+    stream: S::Enum,
+    variant: Variant,
+}
+
+enum Variant {
+    Tagged {
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label<'static>>,
+        index: Option<sval::Index>,
+    },
+    Nested {
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label<'static>>,
+        index: Option<sval::Index>,
+    },
 }
 
 impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
@@ -363,6 +558,7 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                     _marker: PhantomData,
                 })))
             },
+            |_| Err(Error::invalid_value("maps cannot be used as enum variants")),
         )
     }
 
@@ -413,7 +609,29 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
     ) -> sval::Result {
-        todo!()
+        self.buffer_or_begin_with(
+            |buf| buf.enum_begin(tag, label, index),
+            |stream| {
+                Ok(State::Enum(Some(Enum {
+                    stream: stream.stream.enum_begin(tag, label, index)?,
+                    _marker: PhantomData,
+                })))
+            },
+            |mut stream| {
+                Ok(State::EnumVariant(Some(EnumVariant {
+                    stream: stream.stream,
+                    variant: Variant::Nested {
+                        tag: tag.cloned(),
+                        label: if let Some(label) = label {
+                            Some(owned_label(label)?)
+                        } else {
+                            None
+                        },
+                        index: index.cloned(),
+                    },
+                })))
+            },
+        )
     }
 
     fn enum_end(
@@ -422,7 +640,16 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
     ) -> sval::Result {
-        todo!()
+        self.buffer_or_end_with(
+            |buf| buf.enum_end(tag, label, index),
+            |stream| {
+                if let Some(stream) = stream.take_enum()? {
+                    stream.stream.end()
+                } else {
+                    stream.finish()
+                }
+            },
+        )
     }
 
     fn tagged_begin(
@@ -444,6 +671,20 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                     },
                     index: index.cloned(),
                     _marker: PhantomData,
+                })))
+            },
+            |mut stream| {
+                Ok(State::EnumVariant(Some(EnumVariant {
+                    stream: stream.stream,
+                    variant: Variant::Tagged {
+                        tag: tag.cloned(),
+                        label: if let Some(label) = label {
+                            Some(owned_label(label)?)
+                        } else {
+                            None
+                        },
+                        index: index.cloned(),
+                    },
                 })))
             },
         )
@@ -841,6 +1082,12 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
         self.value_with(
             |stream| any(stream, value),
             |stream, tag, label, index| stream.tagged(tag, label, index, value),
+            |stream, tag, label, index| stream.tagged(tag, label, index, value),
+            |stream, tag, label, index| {
+                stream.nested(tag, label, index, |nested| {
+                    NestedStream(nested).value(value)
+                })
+            },
         )
     }
 
@@ -852,6 +1099,12 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
         self.value_with(
             |stream| any(stream, value),
             |stream, tag, label, index| stream.tagged_computed(tag, label, index, value),
+            |stream, tag, label, index| stream.tagged_computed(tag, label, index, value),
+            |stream, tag, label, index| {
+                stream.nested(tag, label, index, |nested| {
+                    NestedStream(nested).value_computed(value)
+                })
+            },
         )
     }
 
@@ -864,19 +1117,33 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
             Option<&sval::Label>,
             Option<&sval::Index>,
         ) -> Result<S::Ok>,
+        tagged_variant: impl FnOnce(
+            S::Enum,
+            Option<&sval::Tag>,
+            Option<&sval::Label>,
+            Option<&sval::Index>,
+        ) -> Result<S::Ok>,
+        nested_variant: impl FnOnce(
+            S::Enum,
+            Option<&sval::Tag>,
+            Option<&sval::Label>,
+            Option<&sval::Index>,
+        ) -> Result<S::Ok>,
     ) -> Result<S::Ok> {
         match self {
             State::Any(ref mut stream) => {
-                let stream = stream
-                    .take()
-                    .ok_or_else(|| Error::invalid_value("the stream is already completed"))?;
+                let stream = stream.take().ok_or_else(|| {
+                    Error::invalid_value("cannot stream value; the stream is already completed")
+                })?;
 
                 value(stream.stream)
             }
             State::Tagged(ref mut stream) => {
-                let stream = stream
-                    .take()
-                    .ok_or_else(|| Error::invalid_value("the stream is already completed"))?;
+                let stream = stream.take().ok_or_else(|| {
+                    Error::invalid_value(
+                        "cannot stream tagged value; the stream is already completed",
+                    )
+                })?;
 
                 tagged(
                     stream.stream,
@@ -886,6 +1153,18 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                 )
             }
             State::Enum(_) => todo!(),
+            State::EnumVariant(stream) => {
+                let stream = stream.take().ok_or_else(|| Error::invalid_value(""))?;
+
+                match stream.variant {
+                    Variant::Tagged { tag, label, index } => {
+                        tagged_variant(stream.stream, tag.as_ref(), label.as_ref(), index.as_ref())
+                    }
+                    Variant::Nested { tag, label, index } => {
+                        nested_variant(stream.stream, tag.as_ref(), label.as_ref(), index.as_ref())
+                    }
+                }
+            }
             State::Map(_) => todo!(),
             State::Done(_) => todo!(),
         }
@@ -939,45 +1218,59 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
     fn buffer_or_begin_with(
         &mut self,
         mut buffer: impl FnMut(&mut ValueBuf<'sval>) -> sval::Result,
-        transition: impl FnOnce(Any<'sval, S>) -> Result<State<'sval, S>>,
+        transition_any: impl FnOnce(Any<'sval, S>) -> Result<State<'sval, S>>,
+        transition_enum: impl FnOnce(Enum<'sval, S>) -> Result<State<'sval, S>>,
     ) -> sval::Result {
-        let buf =
-            try_catch(self, |stream| {
-                match stream {
-                    FlatStream {
-                        buffered: Some(Buffered::Value(ref mut buf)),
-                        ..
-                    } => {
-                        if buffer(buf).is_err() {
-                            let buf = mem::take(buf);
+        let buf = try_catch(self, |stream| match stream {
+            FlatStream {
+                buffered: Some(Buffered::Value(ref mut buf)),
+                state: _,
+            } => {
+                if buffer(buf).is_err() {
+                    let buf = mem::take(buf);
 
-                            return Err(buf.into_err());
-                        }
-
-                        return Ok(None);
-                    }
-                    FlatStream {
-                        buffered: None,
-                        state: State::Any(any),
-                    } => {
-                        if let Ok(state) = transition(any.take().ok_or_else(|| {
-                            Error::invalid_value("the stream is already completed")
-                        })?) {
-                            stream.state = state;
-
-                            return Ok(None);
-                        }
-                    }
-                    _ => return Err(Error::invalid_value("the stream is in an invalid state")),
+                    return Err(buf.into_err());
                 }
 
+                Ok(None)
+            }
+            FlatStream {
+                buffered: None,
+                state: State::Any(any),
+            } => {
+                stream.state = transition_any(any.take().ok_or_else(|| {
+                    Error::invalid_value("cannot stream value; the stream is already completed")
+                })?)?;
+
+                Ok(None)
+            }
+            FlatStream {
+                buffered: None,
+                state: State::Enum(variant),
+            } => {
+                stream.state = transition_enum(variant.take().ok_or_else(|| {
+                    Error::invalid_value(
+                        "cannot stream enum value; the stream is already completed",
+                    )
+                })?)?;
+
+                Ok(None)
+            }
+            FlatStream {
+                buffered: None,
+                state: _,
+            } => {
                 let mut buf = ValueBuf::new();
                 if buffer(&mut buf).is_err() {
                     return Err(buf.into_err());
                 }
 
                 Ok(Some(Buffered::Value(buf)))
-            })?;
+            }
+            _ => Err(Error::invalid_value(
+                "cannot begin buffering; the stream is in an invalid state",
+            )),
+        })?;
 
         self.buffered = buf;
 
@@ -990,10 +1283,14 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
         transition: impl FnOnce(&mut Self) -> Result<S::Ok>,
     ) -> sval::Result {
         let r = try_catch(self, |stream| match stream {
-            FlatStream {
-                buffered: Some(Buffered::Value(ref mut buf)),
-                ..
-            } => {
+            FlatStream { buffered: None, .. } => Ok(Some(transition(stream)?)),
+            FlatStream { buffered, .. } => {
+                let Some(Buffered::Value(ref mut buf)) = buffered else {
+                    return Err(Error::invalid_value(
+                        "cannot end buffering value; the stream is in an invalid state",
+                    ));
+                };
+
                 if buffer(buf).is_err() {
                     let buf = mem::take(buf);
 
@@ -1001,17 +1298,18 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
                 }
 
                 if buf.is_complete() {
+                    let buf = mem::take(buf);
+                    *buffered = None;
+
                     return Ok(Some(
                         stream
                             .state
-                            .value_computed(&*buf, |stream, value| stream.value_computed(value))?,
+                            .value_computed(&buf, |stream, value| stream.value_computed(value))?,
                     ));
                 }
 
                 return Ok(None);
             }
-            FlatStream { buffered: None, .. } => Ok(Some(transition(stream)?)),
-            _ => return Err(Error::invalid_value("the stream is in an invalid state")),
         })?;
 
         if let Some(r) = r {
@@ -1028,14 +1326,18 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
 
                 Ok(())
             }
-            Some(_) => Err(Error::invalid_value("a buffer is already active")),
+            Some(_) => Err(Error::invalid_value(
+                "cannot begin buffering; a buffer is already active",
+            )),
         }
     }
 
     fn with_text(&mut self, buffer: impl FnOnce(&mut TextBuf<'sval>) -> Result) -> Result {
         match self.buffered {
             Some(Buffered::Text(ref mut buf)) => buffer(buf),
-            _ => Err(Error::invalid_value("no active text buffer")),
+            _ => Err(Error::invalid_value(
+                "cannot buffer text; no active text buffer",
+            )),
         }
     }
 
@@ -1047,14 +1349,18 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
 
                 Ok(buf)
             }
-            _ => Err(Error::invalid_value("no active text buffer")),
+            _ => Err(Error::invalid_value(
+                "cannot end buffering text; no active text buffer",
+            )),
         }
     }
 
     fn with_binary(&mut self, buffer: impl FnOnce(&mut BinaryBuf<'sval>) -> Result) -> Result {
         match self.buffered {
             Some(Buffered::Binary(ref mut buf)) => buffer(buf),
-            _ => Err(Error::invalid_value("no active binary buffer")),
+            _ => Err(Error::invalid_value(
+                "cannot buffer binary; no active binary buffer",
+            )),
         }
     }
 
@@ -1066,7 +1372,9 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
 
                 Ok(buf)
             }
-            _ => Err(Error::invalid_value("no active binary buffer")),
+            _ => Err(Error::invalid_value(
+                "cannot end buffering binary; no active binary buffer",
+            )),
         }
     }
 
@@ -1075,10 +1383,12 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
             FlatStream {
                 buffered: None,
                 state: State::Tagged(tagged),
-            } => tagged
-                .take()
-                .ok_or_else(|| Error::invalid_value("invalid stream state")),
-            _ => Err(Error::invalid_value("invalid stream state")),
+            } => tagged.take().ok_or_else(|| {
+                Error::invalid_value("cannot end a tagged value; the stream is already completed")
+            }),
+            _ => Err(Error::invalid_value(
+                "cannot end a tagged value; invalid stream state",
+            )),
         }
     }
 
@@ -1088,7 +1398,9 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
                 buffered: None,
                 state: State::Map(Some(map)),
             } => f(map),
-            _ => Err(Error::invalid_value("invalid stream state")),
+            _ => Err(Error::invalid_value(
+                "cannot stream a map; invalid stream state",
+            )),
         }
     }
 
@@ -1097,10 +1409,28 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
             FlatStream {
                 buffered: None,
                 state: State::Map(map),
-            } => map
-                .take()
-                .ok_or_else(|| Error::invalid_value("invalid stream state")),
-            _ => Err(Error::invalid_value("invalid stream state")),
+            } => map.take().ok_or_else(|| {
+                Error::invalid_value("cannot end a map; the stream is already completed")
+            }),
+            _ => Err(Error::invalid_value(
+                "cannot end a map; invalid stream state",
+            )),
+        }
+    }
+
+    fn take_enum(&mut self) -> Result<Option<Enum<'sval, S>>> {
+        match self {
+            FlatStream {
+                buffered: None,
+                state: State::Enum(variant),
+            } => Ok(variant.take()),
+            FlatStream {
+                buffered: None,
+                state: State::Done(_),
+            } => Ok(None),
+            _ => Err(Error::invalid_value(
+                "cannot end an enum; invalid stream state",
+            )),
         }
     }
 }
@@ -1124,6 +1454,41 @@ mod tests {
     #[test]
     fn stream_primitive() {
         assert_eq!(Value::I64(42), ToValue.value(&42i64).unwrap());
+    }
+
+    #[test]
+    fn stream_nested_enum() {
+        // Outer::Inner::Value(42)
+        struct Outer;
+
+        impl sval::Value for Outer {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.enum_begin(None, Some(&sval::Label::new("Outer")), None)?;
+                stream.enum_begin(None, Some(&sval::Label::new("Inner")), None)?;
+                stream.tagged_begin(None, Some(&sval::Label::new("Value")), None)?;
+                stream.i64(42)?;
+                stream.tagged_end(None, Some(&sval::Label::new("Value")), None)?;
+                stream.enum_end(None, Some(&sval::Label::new("Inner")), None)?;
+                stream.enum_end(None, Some(&sval::Label::new("Outer")), None)
+            }
+        }
+
+        assert_eq!(
+            Value::Enum(Enum {
+                tag: Tag::new(None, Some(&sval::Label::new("Outer")), None).unwrap(),
+                variant: Some(Variant::Enum(Box::new(Enum {
+                    tag: Tag::new(None, Some(&sval::Label::new("Inner")), None).unwrap(),
+                    variant: Some(Variant::Tagged(Tagged {
+                        tag: Tag::new(None, Some(&sval::Label::new("Value")), None).unwrap(),
+                        value: Box::new(Value::I64(42)),
+                    }))
+                })))
+            }),
+            ToValue.value(&Outer).unwrap()
+        );
     }
 
     #[derive(Debug, PartialEq)]
@@ -1259,7 +1624,9 @@ mod tests {
             label: Option<&sval::Label>,
             index: Option<&sval::Index>,
         ) -> Result<Self::Enum> {
-            todo!()
+            Ok(ToEnum {
+                tag: Tag::new(tag, label, index)?,
+            })
         }
     }
 

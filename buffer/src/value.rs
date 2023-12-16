@@ -777,6 +777,7 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
     ) -> sval::Result {
+        println!("enum_begin");
         #[cfg(feature = "alloc")]
         {
             self.push_begin(ValueKind::Enum {
@@ -801,6 +802,8 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         _: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
+        println!("enum_end");
+
         #[cfg(feature = "alloc")]
         {
             self.try_catch(|buf| buf.push_end())
@@ -817,6 +820,8 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
     ) -> sval::Result {
+        println!("tagged_begin");
+
         #[cfg(feature = "alloc")]
         {
             self.push_begin(ValueKind::Tagged {
@@ -841,6 +846,8 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         _: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
+        println!("tagged_end");
+
         #[cfg(feature = "alloc")]
         {
             self.try_catch(|buf| buf.push_end())

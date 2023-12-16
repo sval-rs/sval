@@ -9,7 +9,7 @@ Rather than conditionally compile these methods, this library stubs
 out functionality when an allocator isn't available.
 */
 
-#![cfg_attr(not(test), no_std)]
+//#![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
 
 mod error;
