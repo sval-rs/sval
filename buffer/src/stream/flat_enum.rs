@@ -72,6 +72,8 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
     type Seq = Unsupported<S::Ok>;
     type Map = Unsupported<S::Ok>;
 
+    type Record = S::Record;
+
     type Enum = Unsupported<S::Ok>;
 
     fn value<V: sval::Value + ?Sized>(self, value: &'sval V) -> Result<Self::Ok> {
@@ -162,6 +164,10 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 
     fn map_begin(self, _: Option<usize>) -> Result<Self::Map> {
         Ok(Unsupported::default())
+    }
+
+    fn record_begin(self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>, num_entries: Option<usize>) -> Result<Self::Record> {
+        todo!()
     }
 
     fn enum_begin(

@@ -14,6 +14,9 @@ pub trait Stream<'sval> {
 
     type Seq: StreamSeq<'sval, Ok = Self::Ok>;
     type Map: StreamMap<'sval, Ok = Self::Ok>;
+
+    type Record: StreamRecord<'sval, Ok = Self::Ok>;
+
     type Enum: StreamEnum<'sval, Ok = Self::Ok>;
 
     fn value<V: sval::Value + ?Sized>(self, value: &'sval V) -> Result<Self::Ok>
@@ -163,6 +166,8 @@ pub trait Stream<'sval> {
 
     fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map>;
 
+    fn record_begin(self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>, num_entries: Option<usize>) -> Result<Self::Record>;
+
     fn enum_begin(
         self,
         tag: Option<&sval::Tag>,
@@ -201,10 +206,23 @@ pub trait StreamMap<'sval> {
     fn end(self) -> Result<Self::Ok>;
 }
 
+pub trait StreamRecord<'sval> {
+    type Ok;
+
+    fn value<V: sval::Value + ?Sized>(&mut self, tag: Option<&sval::Tag>, label: &sval::Label, value: &'sval V) -> Result {
+        default_stream::record_value(self, tag, label, value)
+    }
+
+    fn value_computed<V: sval::Value + ?Sized>(&mut self, tag: Option<&sval::Tag>, label: &sval::Label, value: &V) -> Result;
+
+    fn end(self) -> Result<Self::Ok>;
+}
+
 pub trait StreamEnum<'sval> {
     type Ok;
 
-    type Nested: StreamEnum<'sval, Nested = Self::Nested>;
+    type Record: StreamRecord<'sval, Ok = Self::Ok>;
+    type Nested: StreamEnum<'sval, Ok = Self::Ok, Nested = Self::Nested>;
 
     fn tag(
         self,
@@ -233,6 +251,14 @@ pub trait StreamEnum<'sval> {
         index: Option<&sval::Index>,
         value: &V,
     ) -> Result<Self::Ok>;
+
+    fn begin_record(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> Result<Self::Record>;
 
     fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
         self,
@@ -307,6 +333,10 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
         Err(Error::invalid_value("maps are unsupported"))
     }
 
+    fn record_begin(self, _: Option<&sval::Tag>, _: Option<&sval::Label>, _: Option<&sval::Index>, _: Option<usize>) -> Result<Self::Record> {
+        Err(Error::invalid_value("records are unsupported"))
+    }
+
     fn enum_begin(
         self,
         _: Option<&sval::Tag>,
@@ -348,6 +378,7 @@ impl<'sval, Ok> StreamMap<'sval> for Unsupported<Ok> {
 impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
+    type Record = Self;
     type Nested = Self;
 
     fn tag(
@@ -676,6 +707,7 @@ mod tests {
         Tagged(Tagged<'sval>),
         Seq(Seq<'sval>),
         Map(Map<'sval>),
+        Record(Record<'sval>),
         Enum(Enum<'sval>),
     }
 
@@ -717,6 +749,12 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq)]
+    struct Record<'sval> {
+        tag: Tag,
+        entries: Vec<(Cow<'static, str>, Value<'sval>)>,
+    }
+
+    #[derive(Debug, PartialEq)]
     struct Enum<'sval> {
         tag: Tag,
         variant: Option<Variant<'sval>>,
@@ -726,6 +764,7 @@ mod tests {
     enum Variant<'sval> {
         Tag(Tag),
         Tagged(Tagged<'sval>),
+        Record(Record<'sval>),
         Enum(Box<Enum<'sval>>),
     }
 
@@ -905,6 +944,7 @@ mod tests {
     impl<'sval> StreamEnum<'sval> for ToEnum<'sval> {
         type Ok = Value<'sval>;
 
+        type Record = ToRecordVariant<'sval>;
         type Nested = ToEnumVariant<'sval>;
 
         fn tag(

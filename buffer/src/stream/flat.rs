@@ -410,43 +410,6 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         todo!()
     }
 
-    fn record_tuple_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-        num_entries: Option<usize>,
-    ) -> sval::Result {
-        todo!()
-    }
-
-    fn record_tuple_value_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: &sval::Label,
-        index: &sval::Index,
-    ) -> sval::Result {
-        todo!()
-    }
-
-    fn record_tuple_value_end(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: &sval::Label,
-        index: &sval::Index,
-    ) -> sval::Result {
-        todo!()
-    }
-
-    fn record_tuple_end(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        todo!()
-    }
-
     fn tag(
         &mut self,
         tag: Option<&sval::Tag>,
@@ -1037,18 +1000,6 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
             }
             _ => Err(Error::invalid_value(
                 "cannot end buffering binary; no active binary buffer",
-            )),
-        }
-    }
-
-    fn with_seq(&mut self, f: impl FnOnce(&mut Seq<'sval, S>) -> Result) -> Result {
-        match self {
-            FlatStream {
-                buffered: None,
-                state: State::Seq(Some(seq)),
-            } => f(seq),
-            _ => Err(Error::invalid_value(
-                "cannot stream a sequence; invalid stream state",
             )),
         }
     }
