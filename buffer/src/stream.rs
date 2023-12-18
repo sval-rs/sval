@@ -12,6 +12,7 @@ mod flat_enum;
 pub trait Stream<'sval> {
     type Ok;
 
+    type Seq: StreamSeq<'sval, Ok = Self::Ok>;
     type Map: StreamMap<'sval, Ok = Self::Ok>;
     type Enum: StreamEnum<'sval, Ok = Self::Ok>;
 
@@ -37,21 +38,21 @@ pub trait Stream<'sval> {
     where
         Self: Sized,
     {
-        self.i16(value as i16)
+        default_stream::i8(self, value)
     }
 
     fn i16(self, value: i16) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        self.i32(value as i32)
+        default_stream::i16(self, value)
     }
 
     fn i32(self, value: i32) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        self.i64(value as i64)
+        default_stream::i32(self, value)
     }
 
     fn i64(self, value: i64) -> Result<Self::Ok>;
@@ -60,61 +61,49 @@ pub trait Stream<'sval> {
     where
         Self: Sized,
     {
-        if let Ok(value) = value.try_into() {
-            self.i64(value)
-        } else {
-            let mut stream = FlatStream::new(self);
-            let _ = sval::stream_number(&mut stream, value);
-            stream.finish()
-        }
+        default_stream::i128(self, value)
     }
 
     fn u8(self, value: u8) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        self.u16(value as u16)
+        default_stream::u8(self, value)
     }
 
     fn u16(self, value: u16) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        self.u32(value as u32)
+        default_stream::u16(self, value)
     }
 
     fn u32(self, value: u32) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        self.u64(value as u64)
+        default_stream::u32(self, value)
     }
 
     fn u64(self, value: u64) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        self.u128(value as u128)
+        default_stream::u64(self, value)
     }
 
     fn u128(self, value: u128) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        if let Ok(value) = value.try_into() {
-            self.i64(value)
-        } else {
-            let mut stream = FlatStream::new(self);
-            let _ = sval::stream_number(&mut stream, value);
-            stream.finish()
-        }
+        default_stream::u128(self, value)
     }
 
     fn f32(self, value: f32) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        self.f64(value as f64)
+        default_stream::f32(self, value)
     }
 
     fn f64(self, value: f64) -> Result<Self::Ok>;
@@ -123,7 +112,7 @@ pub trait Stream<'sval> {
     where
         Self: Sized,
     {
-        self.text_computed(text)
+        default_stream::text(self, text)
     }
 
     fn text_computed(self, text: &str) -> Result<Self::Ok>;
@@ -132,15 +121,14 @@ pub trait Stream<'sval> {
     where
         Self: Sized,
     {
-        self.binary_computed(binary)
+        default_stream::binary(self, binary)
     }
 
     fn binary_computed(self, binary: &[u8]) -> Result<Self::Ok>
     where
         Self: Sized,
     {
-        // Seq
-        todo!()
+        default_stream::binary_computed(self, binary)
     }
 
     fn tag(
@@ -171,6 +159,8 @@ pub trait Stream<'sval> {
         value: &V,
     ) -> Result<Self::Ok>;
 
+    fn seq_begin(self, num_entries: Option<usize>) -> Result<Self::Seq>;
+
     fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map>;
 
     fn enum_begin(
@@ -181,17 +171,29 @@ pub trait Stream<'sval> {
     ) -> Result<Self::Enum>;
 }
 
+pub trait StreamSeq<'sval> {
+    type Ok;
+
+    fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+        default_stream::seq_value(self, value)
+    }
+
+    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result;
+
+    fn end(self) -> Result<Self::Ok>;
+}
+
 pub trait StreamMap<'sval> {
     type Ok;
 
     fn key<V: sval::Value + ?Sized>(&mut self, key: &'sval V) -> Result {
-        self.key_computed(key)
+        default_stream::map_key(self, key)
     }
 
     fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> Result;
 
     fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
-        self.value_computed(value)
+        default_stream::map_value(self, value)
     }
 
     fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result;
@@ -221,7 +223,7 @@ pub trait StreamEnum<'sval> {
     where
         Self: Sized,
     {
-        self.tagged_computed(tag, label, index, value)
+        default_stream::enum_tagged(self, tag, label, index, value)
     }
 
     fn tagged_computed<V: sval::Value + ?Sized>(
@@ -254,76 +256,92 @@ impl<Ok> Default for Unsupported<Ok> {
 impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
+    type Seq = Self;
     type Map = Self;
-
     type Enum = Self;
 
     fn null(self) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("null is unsupported"))
     }
 
-    fn bool(self, value: bool) -> Result<Self::Ok> {
-        todo!()
+    fn bool(self, _: bool) -> Result<Self::Ok> {
+        Err(Error::invalid_value("booleans are unsupported"))
     }
 
-    fn i64(self, value: i64) -> Result<Self::Ok> {
-        todo!()
+    fn i64(self, _: i64) -> Result<Self::Ok> {
+        Err(Error::invalid_value("numbers are unsupported"))
     }
 
-    fn f64(self, value: f64) -> Result<Self::Ok> {
-        todo!()
+    fn f64(self, _: f64) -> Result<Self::Ok> {
+        Err(Error::invalid_value("numbers are unsupported"))
     }
 
-    fn text_computed(self, text: &str) -> Result<Self::Ok> {
-        todo!()
+    fn text_computed(self, _: &str) -> Result<Self::Ok> {
+        Err(Error::invalid_value("text is unsupported"))
     }
 
     fn tag(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
     ) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("tags are unsupported"))
     }
 
     fn tagged_computed<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-        value: &V,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+        _: &V,
     ) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("tagged values are unsupported"))
     }
 
-    fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map> {
-        todo!()
+    fn seq_begin(self, _: Option<usize>) -> Result<Self::Seq> {
+        Err(Error::invalid_value("sequences are unsupported"))
+    }
+
+    fn map_begin(self, _: Option<usize>) -> Result<Self::Map> {
+        Err(Error::invalid_value("maps are unsupported"))
     }
 
     fn enum_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
     ) -> Result<Self::Enum> {
-        todo!()
+        Err(Error::invalid_value("enums are unsupported"))
+    }
+}
+
+impl<'sval, Ok> StreamSeq<'sval> for Unsupported<Ok> {
+    type Ok = Ok;
+
+    fn value_computed<V: sval::Value + ?Sized>(&mut self, _: &V) -> Result {
+        Err(Error::invalid_value("sequences are unsupported"))
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        Err(Error::invalid_value("sequences are unsupported"))
     }
 }
 
 impl<'sval, Ok> StreamMap<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
-    fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> Result {
-        todo!()
+    fn key_computed<V: sval::Value + ?Sized>(&mut self, _: &V) -> Result {
+        Err(Error::invalid_value("maps are unsupported"))
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result {
-        todo!()
+    fn value_computed<V: sval::Value + ?Sized>(&mut self, _: &V) -> Result {
+        Err(Error::invalid_value("maps are unsupported"))
     }
 
     fn end(self) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("maps are unsupported"))
     }
 }
 
@@ -334,35 +352,35 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
 
     fn tag(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
     ) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("enums are unsupported"))
     }
 
     fn tagged_computed<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-        value: &V,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+        _: &V,
     ) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("enums are unsupported"))
     }
 
     fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-        variant: F,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+        _: F,
     ) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("enums are unsupported"))
     }
 
     fn end(self) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::invalid_value("enums are unsupported"))
     }
 }
 
@@ -401,15 +419,179 @@ pub mod default_stream {
         let _ = sval::default_stream::value_computed(&mut stream, value);
         stream.finish()
     }
+
+    pub fn i8<'sval, S: Stream<'sval>>(stream: S, value: i8) -> Result<S::Ok> {
+        stream.i16(value as i16)
+    }
+
+    pub fn i16<'sval, S: Stream<'sval>>(stream: S, value: i16) -> Result<S::Ok> {
+        stream.i32(value as i32)
+    }
+
+    pub fn i32<'sval, S: Stream<'sval>>(stream: S, value: i32) -> Result<S::Ok> {
+        stream.i64(value as i64)
+    }
+
+    pub fn i128<'sval, S: Stream<'sval>>(stream: S, value: i128) -> Result<S::Ok> {
+        if let Ok(value) = value.try_into() {
+            stream.i64(value)
+        } else {
+            let mut stream = FlatStream::new(stream);
+            let _ = sval::stream_number(&mut stream, value);
+            stream.finish()
+        }
+    }
+
+    pub fn u8<'sval, S: Stream<'sval>>(stream: S, value: u8) -> Result<S::Ok> {
+        stream.u16(value as u16)
+    }
+
+    pub fn u16<'sval, S: Stream<'sval>>(stream: S, value: u16) -> Result<S::Ok> {
+        stream.u32(value as u32)
+    }
+
+    pub fn u32<'sval, S: Stream<'sval>>(stream: S, value: u32) -> Result<S::Ok> {
+        stream.u64(value as u64)
+    }
+
+    pub fn u64<'sval, S: Stream<'sval>>(stream: S, value: u64) -> Result<S::Ok> {
+        stream.u128(value as u128)
+    }
+
+    pub fn u128<'sval, S: Stream<'sval>>(stream: S, value: u128) -> Result<S::Ok> {
+        if let Ok(value) = value.try_into() {
+            stream.i64(value)
+        } else {
+            let mut stream = FlatStream::new(stream);
+            let _ = sval::stream_number(&mut stream, value);
+            stream.finish()
+        }
+    }
+
+    pub fn f32<'sval, S: Stream<'sval>>(stream: S, value: f32) -> Result<S::Ok> {
+        stream.f64(value as f64)
+    }
+
+    pub fn text<'sval, S: Stream<'sval>>(stream: S, text: &'sval str) -> Result<S::Ok> {
+        stream.text_computed(text)
+    }
+
+    pub fn binary<'sval, S: Stream<'sval>>(stream: S, binary: &'sval [u8]) -> Result<S::Ok> {
+        stream.binary_computed(binary)
+    }
+
+    pub fn binary_computed<'sval, S: Stream<'sval>>(stream: S, binary: &[u8]) -> Result<S::Ok> {
+        let mut seq = stream.seq_begin(Some(binary.len()))?;
+
+        for b in binary {
+            seq.value_computed(b)?;
+        }
+
+        seq.end()
+    }
+
+    pub fn seq_value<'sval, S: StreamSeq<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        seq: &mut S,
+        value: &'sval V,
+    ) -> Result {
+        seq.value_computed(value)
+    }
+
+    pub fn map_key<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        map: &mut S,
+        key: &'sval V,
+    ) -> Result {
+        map.key_computed(key)
+    }
+
+    pub fn map_value<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        map: &mut S,
+        value: &'sval V,
+    ) -> Result {
+        map.value_computed(value)
+    }
+
+    pub fn enum_tagged<'sval, S: StreamEnum<'sval>, V: sval::Value + ?Sized>(
+        stream: S,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        value: &'sval V,
+    ) -> Result<S::Ok> {
+        stream.tagged_computed(tag, label, index, value)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::borrow::Cow;
+
     use super::*;
 
     #[test]
     fn stream_primitive() {
-        assert_eq!(Value::I64(42), ToValue.value(&42i64).unwrap());
+        assert_eq!(Value::Null, ToValue::default().value(&sval::Null).unwrap());
+        assert_eq!(Value::I64(42), ToValue::default().value(&42i64).unwrap());
+        assert_eq!(Value::F64(42.1), ToValue::default().value(&42.1).unwrap());
+        assert_eq!(Value::Bool(true), ToValue::default().value(&true).unwrap());
+    }
+
+    #[test]
+    fn stream_text_borrowed() {
+        assert_eq!(
+            Value::Text(Cow::Borrowed("borrowed")),
+            ToValue::default().value("borrowed").unwrap()
+        );
+    }
+
+    #[test]
+    fn stream_text_owned() {
+        struct Text;
+
+        impl sval::Value for Text {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.text_begin(None)?;
+
+                stream.text_fragment("ow")?;
+                stream.text_fragment("ned")?;
+
+                stream.text_end()
+            }
+        }
+
+        assert_eq!(
+            Value::Text(Cow::Owned("owned".into())),
+            ToValue::default().value(&Text).unwrap()
+        );
+    }
+
+    #[test]
+    fn stream_seq() {
+        assert_eq!(
+            Value::Seq(Seq {
+                entries: vec![Value::I64(1), Value::I64(2), Value::I64(3),]
+            }),
+            ToValue::default().value(&[1, 2, 3] as &[_]).unwrap()
+        );
+    }
+
+    #[test]
+    fn stream_map() {
+        assert_eq!(
+            Value::Map(Map {
+                entries: vec![
+                    (Value::Text(Cow::Borrowed("a")), Value::I64(1)),
+                    (Value::Text(Cow::Borrowed("b")), Value::I64(2)),
+                    (Value::Text(Cow::Borrowed("c")), Value::I64(3)),
+                ]
+            }),
+            ToValue::default()
+                .value(sval::MapSlice::new(&[("a", 1), ("b", 2), ("c", 3),]))
+                .unwrap()
+        );
     }
 
     #[test]
@@ -479,17 +661,22 @@ mod tests {
                     })))
                 })))
             }),
-            ToValue.value(&Layer).unwrap()
+            ToValue::default().value(&Layer).unwrap()
         );
     }
 
     #[derive(Debug, PartialEq)]
-    enum Value {
+    enum Value<'sval> {
         Null,
+        Bool(bool),
         I64(i64),
+        F64(f64),
+        Text(Cow<'sval, str>),
         Tag(Tag),
-        Tagged(Tagged),
-        Enum(Enum),
+        Tagged(Tagged<'sval>),
+        Seq(Seq<'sval>),
+        Map(Map<'sval>),
+        Enum(Enum<'sval>),
     }
 
     #[derive(Debug, PartialEq)]
@@ -514,57 +701,70 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq)]
-    struct Tagged {
+    struct Tagged<'sval> {
         tag: Tag,
-        value: Box<Value>,
+        value: Box<Value<'sval>>,
     }
 
     #[derive(Debug, PartialEq)]
-    struct Map {
-        entries: Vec<(Value, Value)>,
+    struct Seq<'sval> {
+        entries: Vec<Value<'sval>>,
     }
 
     #[derive(Debug, PartialEq)]
-    struct Enum {
+    struct Map<'sval> {
+        entries: Vec<(Value<'sval>, Value<'sval>)>,
+    }
+
+    #[derive(Debug, PartialEq)]
+    struct Enum<'sval> {
         tag: Tag,
-        variant: Option<Variant>,
+        variant: Option<Variant<'sval>>,
     }
 
     #[derive(Debug, PartialEq)]
-    enum Variant {
+    enum Variant<'sval> {
         Tag(Tag),
-        Tagged(Tagged),
-        Enum(Box<Enum>),
+        Tagged(Tagged<'sval>),
+        Enum(Box<Enum<'sval>>),
     }
 
-    struct ToValue;
+    #[derive(Default)]
+    struct ToValue<'sval>(PhantomData<Value<'sval>>);
 
-    struct ToMap {
-        key: Option<Value>,
-        map: Map,
+    struct ToMap<'sval> {
+        key: Option<Value<'sval>>,
+        map: Map<'sval>,
     }
 
-    struct ToEnum {
+    struct ToSeq<'sval> {
+        seq: Seq<'sval>,
+    }
+
+    struct ToEnum<'sval> {
         tag: Tag,
+        _marker: PhantomData<Enum<'sval>>,
     }
 
-    struct ToEnumVariant {
+    struct ToEnumVariant<'sval> {
         tag: Tag,
+        _marker: PhantomData<Variant<'sval>>,
     }
 
-    impl<'sval> Stream<'sval> for ToValue {
-        type Ok = Value;
+    impl<'sval> Stream<'sval> for ToValue<'sval> {
+        type Ok = Value<'sval>;
 
-        type Map = ToMap;
+        type Seq = ToSeq<'sval>;
+        type Map = ToMap<'sval>;
 
-        type Enum = ToEnum;
+        type Enum = ToEnum<'sval>;
 
         fn null(self) -> Result<Self::Ok> {
             Ok(Value::Null)
         }
 
         fn bool(self, value: bool) -> Result<Self::Ok> {
-            todo!()
+            Ok(Value::Bool(value))
         }
 
         fn i64(self, value: i64) -> Result<Self::Ok> {
@@ -572,11 +772,15 @@ mod tests {
         }
 
         fn f64(self, value: f64) -> Result<Self::Ok> {
-            todo!()
+            Ok(Value::F64(value))
+        }
+
+        fn text(self, text: &'sval str) -> Result<Self::Ok> {
+            Ok(Value::Text(Cow::Borrowed(text)))
         }
 
         fn text_computed(self, text: &str) -> Result<Self::Ok> {
-            todo!()
+            Ok(Value::Text(Cow::Owned(text.into())))
         }
 
         fn tag(
@@ -598,7 +802,7 @@ mod tests {
             value: &V,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
-            let value = ToValue.value_computed(value)?;
+            let value = ToValue::default().value_computed(value)?;
 
             Ok(Value::Tagged(Tagged {
                 tag,
@@ -606,8 +810,21 @@ mod tests {
             }))
         }
 
-        fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map> {
-            todo!()
+        fn seq_begin(self, _: Option<usize>) -> Result<Self::Seq> {
+            Ok(ToSeq {
+                seq: Seq {
+                    entries: Vec::new(),
+                },
+            })
+        }
+
+        fn map_begin(self, _: Option<usize>) -> Result<Self::Map> {
+            Ok(ToMap {
+                key: None,
+                map: Map {
+                    entries: Vec::new(),
+                },
+            })
         }
 
         fn enum_begin(
@@ -618,30 +835,77 @@ mod tests {
         ) -> Result<Self::Enum> {
             Ok(ToEnum {
                 tag: Tag::new(tag, label, index)?,
+                _marker: Default::default(),
             })
         }
     }
 
-    impl<'sval> StreamMap<'sval> for ToMap {
-        type Ok = Value;
+    impl<'sval> StreamSeq<'sval> for ToSeq<'sval> {
+        type Ok = Value<'sval>;
 
-        fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> Result {
-            todo!()
+        fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+            let value = ToValue::default().value(value)?;
+
+            self.seq.entries.push(value);
+
+            Ok(())
         }
 
         fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result {
-            todo!()
+            let value = ToValue::default().value_computed(value)?;
+
+            self.seq.entries.push(value);
+
+            Ok(())
         }
 
         fn end(self) -> Result<Self::Ok> {
-            todo!()
+            Ok(Value::Seq(self.seq))
         }
     }
 
-    impl<'sval> StreamEnum<'sval> for ToEnum {
-        type Ok = Value;
+    impl<'sval> StreamMap<'sval> for ToMap<'sval> {
+        type Ok = Value<'sval>;
 
-        type Nested = ToEnumVariant;
+        fn key<V: sval::Value + ?Sized>(&mut self, key: &'sval V) -> Result {
+            self.key = Some(ToValue::default().value(key)?);
+
+            Ok(())
+        }
+
+        fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> Result {
+            self.key = Some(ToValue::default().value_computed(key)?);
+
+            Ok(())
+        }
+
+        fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+            let key = self.key.take().unwrap();
+            let value = ToValue::default().value(value)?;
+
+            self.map.entries.push((key, value));
+
+            Ok(())
+        }
+
+        fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result {
+            let key = self.key.take().unwrap();
+            let value = ToValue::default().value_computed(value)?;
+
+            self.map.entries.push((key, value));
+
+            Ok(())
+        }
+
+        fn end(self) -> Result<Self::Ok> {
+            Ok(Value::Map(self.map))
+        }
+    }
+
+    impl<'sval> StreamEnum<'sval> for ToEnum<'sval> {
+        type Ok = Value<'sval>;
+
+        type Nested = ToEnumVariant<'sval>;
 
         fn tag(
             self,
@@ -665,7 +929,7 @@ mod tests {
             value: &V,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
-            let value = ToValue.value_computed(value)?;
+            let value = ToValue::default().value_computed(value)?;
 
             Ok(Value::Enum(Enum {
                 tag: self.tag,
@@ -685,6 +949,7 @@ mod tests {
         ) -> Result<Self::Ok> {
             let variant = variant(ToEnumVariant {
                 tag: Tag::new(tag, label, index)?,
+                _marker: Default::default(),
             })?;
 
             Ok(Value::Enum(Enum {
@@ -701,8 +966,8 @@ mod tests {
         }
     }
 
-    impl<'sval> StreamEnum<'sval> for ToEnumVariant {
-        type Ok = Variant;
+    impl<'sval> StreamEnum<'sval> for ToEnumVariant<'sval> {
+        type Ok = Variant<'sval>;
 
         type Nested = Self;
 
@@ -728,7 +993,7 @@ mod tests {
             value: &V,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
-            let value = ToValue.value_computed(value)?;
+            let value = ToValue::default().value_computed(value)?;
 
             Ok(Variant::Enum(Box::new(Enum {
                 tag: self.tag,
@@ -748,6 +1013,7 @@ mod tests {
         ) -> Result<Self::Ok> {
             let variant = variant(ToEnumVariant {
                 tag: Tag::new(tag, label, index)?,
+                _marker: PhantomData,
             })?;
 
             Ok(Variant::Enum(Box::new(Enum {

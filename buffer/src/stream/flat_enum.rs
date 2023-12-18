@@ -69,6 +69,7 @@ impl<'sval, S: StreamEnum<'sval>> FlatStreamEnum<S> {
 impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
     type Ok = S::Ok;
 
+    type Seq = Unsupported<S::Ok>;
     type Map = Unsupported<S::Ok>;
 
     type Enum = Unsupported<S::Ok>;
@@ -155,6 +156,10 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
         )
     }
 
+    fn seq_begin(self, _: Option<usize>) -> Result<Self::Seq> {
+        Ok(Unsupported::default())
+    }
+
     fn map_begin(self, _: Option<usize>) -> Result<Self::Map> {
         Ok(Unsupported::default())
     }
@@ -173,8 +178,6 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 struct Queue {
     #[cfg(feature = "alloc")]
     inner: crate::std::collections::VecDeque<NestedVariant>,
-    #[cfg(not(feature = "alloc"))]
-    inner: Option<NestedVariant>,
 }
 
 impl Queue {
@@ -186,7 +189,7 @@ impl Queue {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            todo!()
+            Err(Error::no_alloc("nested enum variant"))
         }
     }
 
@@ -197,7 +200,7 @@ impl Queue {
         }
         #[cfg(not(feature = "alloc"))]
         {
-            self.inner.take()
+            None
         }
     }
 }
