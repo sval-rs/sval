@@ -1,6 +1,9 @@
 use core::{fmt, marker::PhantomData, mem};
 
-use crate::{BinaryBuf, Error, Result, Stream, StreamMap, StreamSeq, TextBuf, ValueBuf};
+use crate::{
+    BinaryBuf, Error, Result, Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, TextBuf,
+    ValueBuf,
+};
 
 use super::{flat_enum::FlatStreamEnum, owned_label};
 
@@ -23,6 +26,7 @@ enum State<'sval, S: Stream<'sval>> {
     Seq(Option<Seq<'sval, S>>),
     Map(Option<Map<'sval, S>>),
     Tagged(Option<Tagged<'sval, S>>),
+    Record(Option<Record<'sval, S>>),
     Enum(Option<Enum<'sval, S>>),
     EnumVariant(Option<EnumVariant<'sval, S>>),
     Done(Option<Result<S::Ok>>),
@@ -34,6 +38,7 @@ impl<'sval, S: Stream<'sval>> fmt::Debug for State<'sval, S> {
             State::Any(state) => fmt::Debug::fmt(state, f),
             State::Seq(state) => fmt::Debug::fmt(state, f),
             State::Map(state) => fmt::Debug::fmt(state, f),
+            State::Record(state) => fmt::Debug::fmt(state, f),
             State::Tagged(state) => fmt::Debug::fmt(state, f),
             State::Enum(state) => fmt::Debug::fmt(state, f),
             State::EnumVariant(state) => fmt::Debug::fmt(state, f),
@@ -82,6 +87,18 @@ impl<'sval, S: Stream<'sval>> fmt::Debug for Map<'sval, S> {
         f.debug_struct("Map")
             .field("is_key", &self.is_key)
             .finish_non_exhaustive()
+    }
+}
+
+struct Record<'sval, S: Stream<'sval>> {
+    stream: S::Record,
+    field: Option<(Option<sval::Tag>, sval::Label<'static>)>,
+    _marker: PhantomData<&'sval ()>,
+}
+
+impl<'sval, S: Stream<'sval>> fmt::Debug for Record<'sval, S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Record").finish_non_exhaustive()
     }
 }
 
@@ -363,15 +380,43 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         index: Option<&sval::Index>,
         num_entries: Option<usize>,
     ) -> sval::Result {
-        todo!()
+        self.buffer_or_begin_with(
+            |buf| buf.record_begin(tag, label, index, num_entries),
+            |stream| {
+                Ok(State::Record(Some(Record {
+                    stream: stream.stream.record_begin(tag, label, index, num_entries)?,
+                    field: None,
+                    _marker: PhantomData,
+                })))
+            },
+            |stream| todo!(),
+        )
     }
 
     fn record_value_begin(&mut self, tag: Option<&sval::Tag>, label: &sval::Label) -> sval::Result {
-        todo!()
+        self.buffer_or_with(
+            |buf| buf.record_value_begin(tag, label),
+            |stream| {
+                stream.with_record(|record| {
+                    record.field = Some((tag.cloned(), owned_label(label)?));
+
+                    Ok(())
+                })
+            },
+        )
     }
 
     fn record_value_end(&mut self, tag: Option<&sval::Tag>, label: &sval::Label) -> sval::Result {
-        todo!()
+        self.buffer_or_with(
+            |buf| buf.record_value_end(tag, label),
+            |stream| {
+                stream.with_record(|record| {
+                    record.field = None;
+
+                    Ok(())
+                })
+            },
+        )
     }
 
     fn record_end(
@@ -380,7 +425,10 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
     ) -> sval::Result {
-        todo!()
+        self.buffer_or_end_with(
+            |buf| buf.record_end(tag, label, index),
+            |stream| stream.take_record()?.stream.end(),
+        )
     }
 
     fn tuple_begin(
@@ -687,6 +735,7 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
             |stream| stream.value(value),
             |stream| stream.key(value),
             |stream| stream.value(value),
+            |stream, tag, label| stream.value(tag, label, value),
             |stream, tag, label, index| stream.tagged(tag, label, index, value),
         )
     }
@@ -702,6 +751,7 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
             |stream| stream.value_computed(value),
             |stream| stream.key_computed(value),
             |stream| stream.value_computed(value),
+            |stream, tag, label| stream.value_computed(tag, label, value),
             |stream, tag, label, index| stream.tagged_computed(tag, label, index, value),
         )
     }
@@ -718,6 +768,7 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
         seq: impl FnOnce(&mut S::Seq) -> Result,
         map_key: impl FnOnce(&mut S::Map) -> Result,
         map_value: impl FnOnce(&mut S::Map) -> Result,
+        record: impl FnOnce(&mut S::Record, Option<&sval::Tag>, &sval::Label) -> Result,
         tagged_variant: impl FnOnce(
             FlatStreamEnum<S::Enum>,
             Option<&sval::Tag>,
@@ -768,6 +819,19 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                 } else {
                     map_value(&mut stream.stream)?;
                 }
+
+                Ok(None)
+            }
+            State::Record(stream) => {
+                let stream = stream.as_mut().ok_or_else(|| {
+                    Error::invalid_value("cannot stream a map; the stream is already completed")
+                })?;
+
+                let (tag, label) = stream.field.as_ref().ok_or_else(|| {
+                    Error::invalid_value("cannot stream a record; the field label is missing")
+                })?;
+
+                record(&mut stream.stream, tag.as_ref(), label)?;
 
                 Ok(None)
             }
@@ -1040,6 +1104,32 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
             }),
             _ => Err(Error::invalid_value(
                 "cannot end a map; invalid stream state",
+            )),
+        }
+    }
+
+    fn with_record(&mut self, f: impl FnOnce(&mut Record<'sval, S>) -> Result) -> Result {
+        match self {
+            FlatStream {
+                buffered: None,
+                state: State::Record(Some(record)),
+            } => f(record),
+            _ => Err(Error::invalid_value(
+                "cannot stream a record; invalid stream state",
+            )),
+        }
+    }
+
+    fn take_record(&mut self) -> Result<Record<'sval, S>> {
+        match self {
+            FlatStream {
+                buffered: None,
+                state: State::Record(record),
+            } => record.take().ok_or_else(|| {
+                Error::invalid_value("cannot end a record; the stream is already completed")
+            }),
+            _ => Err(Error::invalid_value(
+                "cannot end a record; invalid stream state",
             )),
         }
     }

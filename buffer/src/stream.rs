@@ -166,7 +166,13 @@ pub trait Stream<'sval> {
 
     fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map>;
 
-    fn record_begin(self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>, num_entries: Option<usize>) -> Result<Self::Record>;
+    fn record_begin(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> Result<Self::Record>;
 
     fn enum_begin(
         self,
@@ -209,11 +215,21 @@ pub trait StreamMap<'sval> {
 pub trait StreamRecord<'sval> {
     type Ok;
 
-    fn value<V: sval::Value + ?Sized>(&mut self, tag: Option<&sval::Tag>, label: &sval::Label, value: &'sval V) -> Result {
+    fn value<V: sval::Value + ?Sized>(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        value: &'sval V,
+    ) -> Result {
         default_stream::record_value(self, tag, label, value)
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, tag: Option<&sval::Tag>, label: &sval::Label, value: &V) -> Result;
+    fn value_computed<V: sval::Value + ?Sized>(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        value: &V,
+    ) -> Result;
 
     fn end(self) -> Result<Self::Ok>;
 }
@@ -252,7 +268,7 @@ pub trait StreamEnum<'sval> {
         value: &V,
     ) -> Result<Self::Ok>;
 
-    fn begin_record(
+    fn record_begin(
         self,
         tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
@@ -284,6 +300,7 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
 
     type Seq = Self;
     type Map = Self;
+    type Record = Self;
     type Enum = Self;
 
     fn null(self) -> Result<Self::Ok> {
@@ -333,7 +350,13 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
         Err(Error::invalid_value("maps are unsupported"))
     }
 
-    fn record_begin(self, _: Option<&sval::Tag>, _: Option<&sval::Label>, _: Option<&sval::Index>, _: Option<usize>) -> Result<Self::Record> {
+    fn record_begin(
+        self,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+        _: Option<usize>,
+    ) -> Result<Self::Record> {
         Err(Error::invalid_value("records are unsupported"))
     }
 
@@ -375,6 +398,23 @@ impl<'sval, Ok> StreamMap<'sval> for Unsupported<Ok> {
     }
 }
 
+impl<'sval, Ok> StreamRecord<'sval> for Unsupported<Ok> {
+    type Ok = Ok;
+
+    fn value_computed<V: sval::Value + ?Sized>(
+        &mut self,
+        _: Option<&sval::Tag>,
+        _: &sval::Label,
+        _: &V,
+    ) -> Result {
+        Err(Error::invalid_value("records are unsupported"))
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        Err(Error::invalid_value("records are unsupported"))
+    }
+}
+
 impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
@@ -397,6 +437,16 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
         _: Option<&sval::Index>,
         _: &V,
     ) -> Result<Self::Ok> {
+        Err(Error::invalid_value("enums are unsupported"))
+    }
+
+    fn record_begin(
+        self,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+        _: Option<usize>,
+    ) -> Result<Self::Record> {
         Err(Error::invalid_value("enums are unsupported"))
     }
 
@@ -542,6 +592,15 @@ pub mod default_stream {
         map.value_computed(value)
     }
 
+    pub fn record_value<'sval, S: StreamRecord<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        record: &mut S,
+        tag: Option<&sval::Tag>,
+        label: &sval::Label,
+        value: &'sval V,
+    ) -> Result {
+        record.value_computed(tag, label, value)
+    }
+
     pub fn enum_tagged<'sval, S: StreamEnum<'sval>, V: sval::Value + ?Sized>(
         stream: S,
         tag: Option<&sval::Tag>,
@@ -577,25 +636,29 @@ mod tests {
 
     #[test]
     fn stream_text_owned() {
-        struct Text;
-
-        impl sval::Value for Text {
-            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
-                &'sval self,
-                stream: &mut S,
-            ) -> sval::Result {
-                stream.text_begin(None)?;
-
-                stream.text_fragment("ow")?;
-                stream.text_fragment("ned")?;
-
-                stream.text_end()
-            }
-        }
-
         assert_eq!(
             Value::Text(Cow::Owned("owned".into())),
-            ToValue::default().value(&Text).unwrap()
+            ToValue::default()
+                .value(&{
+                    struct Text;
+
+                    impl sval::Value for Text {
+                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                            &'sval self,
+                            stream: &mut S,
+                        ) -> sval::Result {
+                            stream.text_begin(None)?;
+
+                            stream.text_fragment("ow")?;
+                            stream.text_fragment("ned")?;
+
+                            stream.text_end()
+                        }
+                    }
+
+                    Text
+                })
+                .unwrap()
         );
     }
 
@@ -623,6 +686,50 @@ mod tests {
                 .value(sval::MapSlice::new(&[("a", 1), ("b", 2), ("c", 3),]))
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn stream_record() {
+        assert_eq!(
+            Value::Record(Record {
+                tag: Tag::new(None, Some(&sval::Label::new("Record")), None).unwrap(),
+                entries: vec![
+                    (sval::Label::new("a"), Value::I64(1)),
+                    (sval::Label::new("b"), Value::Bool(true)),
+                ]
+            }),
+            ToValue::default()
+                .value(&{
+                    struct Record;
+
+                    impl sval::Value for Record {
+                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                            &'sval self,
+                            stream: &mut S,
+                        ) -> sval::Result {
+                            stream.record_begin(
+                                None,
+                                Some(&sval::Label::new("Record")),
+                                None,
+                                None,
+                            )?;
+
+                            stream.record_value_begin(None, &sval::Label::new("a"))?;
+                            stream.i64(1)?;
+                            stream.record_value_end(None, &sval::Label::new("a"))?;
+
+                            stream.record_value_begin(None, &sval::Label::new("b"))?;
+                            stream.bool(true)?;
+                            stream.record_value_end(None, &sval::Label::new("b"))?;
+
+                            stream.record_end(None, Some(&sval::Label::new("Record")), None)
+                        }
+                    }
+
+                    Record
+                })
+                .unwrap(),
+        )
     }
 
     #[test]
@@ -711,6 +818,18 @@ mod tests {
         Enum(Enum<'sval>),
     }
 
+    impl<'sval> Value<'sval> {
+        fn try_into_variant(self) -> Result<Variant<'sval>, Error> {
+            match self {
+                Value::Tag(variant) => Ok(Variant::Tag(variant)),
+                Value::Tagged(variant) => Ok(Variant::Tagged(variant)),
+                Value::Record(variant) => Ok(Variant::Record(variant)),
+                Value::Enum(variant) => Ok(Variant::Enum(Box::new(variant))),
+                _ => Err(Error::invalid_value("expected an enum variant")),
+            }
+        }
+    }
+
     #[derive(Debug, PartialEq)]
     struct Tag {
         tag: Option<sval::Tag>,
@@ -751,7 +870,7 @@ mod tests {
     #[derive(Debug, PartialEq)]
     struct Record<'sval> {
         tag: Tag,
-        entries: Vec<(Cow<'static, str>, Value<'sval>)>,
+        entries: Vec<(sval::Label<'static>, Value<'sval>)>,
     }
 
     #[derive(Debug, PartialEq)]
@@ -780,14 +899,17 @@ mod tests {
         seq: Seq<'sval>,
     }
 
+    struct ToRecord<'sval> {
+        record: Record<'sval>,
+    }
+
     struct ToEnum<'sval> {
         tag: Tag,
         _marker: PhantomData<Enum<'sval>>,
     }
 
-    struct ToEnumVariant<'sval> {
-        tag: Tag,
-        _marker: PhantomData<Variant<'sval>>,
+    struct ToVariant<S> {
+        stream: S,
     }
 
     impl<'sval> Stream<'sval> for ToValue<'sval> {
@@ -796,6 +918,7 @@ mod tests {
         type Seq = ToSeq<'sval>;
         type Map = ToMap<'sval>;
 
+        type Record = ToRecord<'sval>;
         type Enum = ToEnum<'sval>;
 
         fn null(self) -> Result<Self::Ok> {
@@ -862,6 +985,21 @@ mod tests {
                 key: None,
                 map: Map {
                     entries: Vec::new(),
+                },
+            })
+        }
+
+        fn record_begin(
+            self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+            _: Option<usize>,
+        ) -> Result<Self::Record> {
+            Ok(ToRecord {
+                record: Record {
+                    tag: Tag::new(tag, label, index)?,
+                    entries: Default::default(),
                 },
             })
         }
@@ -941,11 +1079,47 @@ mod tests {
         }
     }
 
+    impl<'sval> StreamRecord<'sval> for ToRecord<'sval> {
+        type Ok = Value<'sval>;
+
+        fn value<V: sval::Value + ?Sized>(
+            &mut self,
+            _: Option<&sval::Tag>,
+            label: &sval::Label,
+            value: &'sval V,
+        ) -> Result {
+            let label = owned_label(label)?;
+            let value = ToValue::default().value(value)?;
+
+            self.record.entries.push((label, value));
+
+            Ok(())
+        }
+
+        fn value_computed<V: sval::Value + ?Sized>(
+            &mut self,
+            _: Option<&sval::Tag>,
+            label: &sval::Label,
+            value: &V,
+        ) -> Result {
+            let label = owned_label(label)?;
+            let value = ToValue::default().value_computed(value)?;
+
+            self.record.entries.push((label, value));
+
+            Ok(())
+        }
+
+        fn end(self) -> Result<Self::Ok> {
+            Ok(Value::Record(self.record))
+        }
+    }
+
     impl<'sval> StreamEnum<'sval> for ToEnum<'sval> {
         type Ok = Value<'sval>;
 
-        type Record = ToRecordVariant<'sval>;
-        type Nested = ToEnumVariant<'sval>;
+        type Record = ToVariant<ToRecord<'sval>>;
+        type Nested = Self;
 
         fn tag(
             self,
@@ -980,6 +1154,16 @@ mod tests {
             }))
         }
 
+        fn record_begin(
+            self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+            num_entries: Option<usize>,
+        ) -> Result<Self::Record> {
+            todo!()
+        }
+
         fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
             self,
             tag: Option<&sval::Tag>,
@@ -987,10 +1171,11 @@ mod tests {
             index: Option<&sval::Index>,
             variant: F,
         ) -> Result<Self::Ok> {
-            let variant = variant(ToEnumVariant {
+            let variant = variant(ToEnum {
                 tag: Tag::new(tag, label, index)?,
-                _marker: Default::default(),
-            })?;
+                _marker: PhantomData,
+            })?
+            .try_into_variant()?;
 
             Ok(Value::Enum(Enum {
                 tag: self.tag,
@@ -1006,67 +1191,29 @@ mod tests {
         }
     }
 
-    impl<'sval> StreamEnum<'sval> for ToEnumVariant<'sval> {
-        type Ok = Variant<'sval>;
+    impl<'sval> StreamRecord<'sval> for ToVariant<ToRecord<'sval>> {
+        type Ok = Value<'sval>;
 
-        type Nested = Self;
-
-        fn tag(
-            self,
+        fn value<V: sval::Value + ?Sized>(
+            &mut self,
             tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
-        ) -> Result<Self::Ok> {
-            let tag = Tag::new(tag, label, index)?;
-
-            Ok(Variant::Enum(Box::new(Enum {
-                tag: self.tag,
-                variant: Some(Variant::Tag(tag)),
-            })))
+            label: &sval::Label,
+            value: &'sval V,
+        ) -> Result {
+            todo!()
         }
 
-        fn tagged_computed<V: sval::Value + ?Sized>(
-            self,
+        fn value_computed<V: sval::Value + ?Sized>(
+            &mut self,
             tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            label: &sval::Label,
             value: &V,
-        ) -> Result<Self::Ok> {
-            let tag = Tag::new(tag, label, index)?;
-            let value = ToValue::default().value_computed(value)?;
-
-            Ok(Variant::Enum(Box::new(Enum {
-                tag: self.tag,
-                variant: Some(Variant::Tagged(Tagged {
-                    tag,
-                    value: Box::new(value),
-                })),
-            })))
-        }
-
-        fn nested<F: FnOnce(Self::Nested) -> Result<Self::Ok>>(
-            self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
-            variant: F,
-        ) -> Result<Self::Ok> {
-            let variant = variant(ToEnumVariant {
-                tag: Tag::new(tag, label, index)?,
-                _marker: PhantomData,
-            })?;
-
-            Ok(Variant::Enum(Box::new(Enum {
-                tag: self.tag,
-                variant: Some(variant),
-            })))
+        ) -> Result {
+            todo!()
         }
 
         fn end(self) -> Result<Self::Ok> {
-            Ok(Variant::Enum(Box::new(Enum {
-                tag: self.tag,
-                variant: None,
-            })))
+            todo!()
         }
     }
 }

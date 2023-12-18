@@ -166,7 +166,13 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
         Ok(Unsupported::default())
     }
 
-    fn record_begin(self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>, num_entries: Option<usize>) -> Result<Self::Record> {
+    fn record_begin(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> Result<Self::Record> {
         todo!()
     }
 
