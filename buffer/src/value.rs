@@ -820,8 +820,6 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
     ) -> sval::Result {
-        println!("tagged_begin");
-
         #[cfg(feature = "alloc")]
         {
             self.push_begin(ValueKind::Tagged {
