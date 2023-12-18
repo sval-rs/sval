@@ -9,8 +9,13 @@ Rather than conditionally compile these methods, this library stubs
 out functionality when an allocator isn't available.
 */
 
-//#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
+
+/**
+A generic streaming result.
+*/
+pub type Result<T = (), E = Error> = sval::Result<T, E>;
 
 mod error;
 
