@@ -24,44 +24,47 @@ impl<'sval, S: StreamEnum<'sval>> FlatStreamEnum<S> {
 
     pub fn push(
         &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
     ) -> Result {
         self.queue.push_back(NestedVariant {
-            tag: tag.cloned(),
+            tag,
             label: if let Some(label) = label {
                 Some(owned_label(label)?)
             } else {
                 None
             },
-            index: index.cloned(),
+            index,
         })
     }
 
     pub fn end(self) -> Result<S::Ok> {
-        self.value_or_recurse(|stream| stream.end(), |stream| stream.end())
+        self.value_or_recurse(|stream, _| stream.end(), |stream, _| stream.end(), ())
     }
 
-    fn value_or_recurse(
+    fn value_or_recurse<I>(
         mut self,
-        value: impl FnOnce(Self) -> Result<S::Ok>,
-        nested: impl FnOnce(FlatStreamEnum<S::Nested>) -> Result<<S::Nested as StreamEnum<'sval>>::Ok>,
+        value: impl FnOnce(Self, I) -> Result<S::Ok>,
+        nested: impl FnOnce(
+            FlatStreamEnum<S::Nested>,
+            I,
+        ) -> Result<<S::Nested as StreamEnum<'sval>>::Ok>,
+        input: I,
     ) -> Result<S::Ok> {
         if let Some(variant) = self.queue.pop_front() {
-            self.stream.nested(
-                variant.tag.as_ref(),
-                variant.label.as_ref(),
-                variant.index.as_ref(),
-                |variant| {
-                    nested(FlatStreamEnum {
-                        stream: variant,
-                        queue: self.queue,
-                    })
-                },
-            )
+            self.stream
+                .nested(variant.tag, variant.label, variant.index, |variant| {
+                    nested(
+                        FlatStreamEnum {
+                            stream: variant,
+                            queue: self.queue,
+                        },
+                        input,
+                    )
+                })
         } else {
-            value(self)
+            value(self, input)
         }
     }
 }
@@ -79,15 +82,17 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 
     fn value<V: sval::Value + ?Sized>(self, value: &'sval V) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream| default_stream::value(stream, value),
-            |stream| stream.value(value),
+            |stream, _| default_stream::value(stream, value),
+            |stream, _| stream.value(value),
+            (),
         )
     }
 
     fn value_computed<V: sval::Value + ?Sized>(self, value: &V) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream| default_stream::value_computed(stream, value),
-            |stream| stream.value_computed(value),
+            |stream, _| default_stream::value_computed(stream, value),
+            |stream, _| stream.value_computed(value),
+            (),
         )
     }
 
@@ -123,39 +128,42 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 
     fn tag(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
     ) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream| stream.stream.tag(tag, label, index),
-            |stream| Stream::tag(stream, tag, label, index),
+            |stream, (tag, label, index)| stream.stream.tag(tag, label, index),
+            |stream, (tag, label, index)| Stream::tag(stream, tag, label, index),
+            (tag, label, index),
         )
     }
 
     fn tagged<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         value: &'sval V,
     ) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream| stream.stream.tagged(tag, label, index, value),
-            |stream| Stream::tagged(stream, tag, label, index, value),
+            |stream, (tag, label, index)| stream.stream.tagged(tag, label, index, value),
+            |stream, (tag, label, index)| Stream::tagged(stream, tag, label, index, value),
+            (tag, label, index),
         )
     }
 
     fn tagged_computed<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         value: &V,
     ) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream| stream.stream.tagged_computed(tag, label, index, value),
-            |stream| Stream::tagged_computed(stream, tag, label, index, value),
+            |stream, (tag, label, index)| stream.stream.tagged_computed(tag, label, index, value),
+            |stream, (tag, label, index)| Stream::tagged_computed(stream, tag, label, index, value),
+            (tag, label, index),
         )
     }
 
@@ -169,9 +177,9 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 
     fn tuple_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         num_entries: Option<usize>,
     ) -> Result<Self::Tuple> {
         assert!(self.queue.is_empty());
@@ -181,9 +189,9 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 
     fn record_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         num_entries: Option<usize>,
     ) -> Result<Self::Record> {
         assert!(self.queue.is_empty());
@@ -193,9 +201,9 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 
     fn enum_begin(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
     ) -> Result<Self::Enum> {
         unreachable!()
     }

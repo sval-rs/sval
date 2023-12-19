@@ -137,16 +137,16 @@ pub trait Stream<'sval> {
 
     fn tag(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
     ) -> Result<Self::Ok>;
 
     fn tagged<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         value: &'sval V,
     ) -> Result<Self::Ok>
     where
@@ -157,9 +157,9 @@ pub trait Stream<'sval> {
 
     fn tagged_computed<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         value: &V,
     ) -> Result<Self::Ok>;
 
@@ -169,25 +169,25 @@ pub trait Stream<'sval> {
 
     fn tuple_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         num_entries: Option<usize>,
     ) -> Result<Self::Tuple>;
 
     fn record_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         num_entries: Option<usize>,
     ) -> Result<Self::Record>;
 
     fn enum_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
     ) -> Result<Self::Enum>;
 }
 
@@ -226,8 +226,8 @@ pub trait StreamTuple<'sval> {
 
     fn value<V: sval::Value + ?Sized>(
         &mut self,
-        tag: Option<&sval::Tag>,
-        index: &sval::Index,
+        tag: Option<sval::Tag>,
+        index: sval::Index,
         value: &'sval V,
     ) -> Result {
         default_stream::tuple_value(self, tag, index, value)
@@ -235,8 +235,8 @@ pub trait StreamTuple<'sval> {
 
     fn value_computed<V: sval::Value + ?Sized>(
         &mut self,
-        tag: Option<&sval::Tag>,
-        index: &sval::Index,
+        tag: Option<sval::Tag>,
+        index: sval::Index,
         value: &V,
     ) -> Result;
 
@@ -248,8 +248,8 @@ pub trait StreamRecord<'sval> {
 
     fn value<V: sval::Value + ?Sized>(
         &mut self,
-        tag: Option<&sval::Tag>,
-        label: &sval::Label,
+        tag: Option<sval::Tag>,
+        label: sval::Label,
         value: &'sval V,
     ) -> Result {
         default_stream::record_value(self, tag, label, value)
@@ -257,8 +257,8 @@ pub trait StreamRecord<'sval> {
 
     fn value_computed<V: sval::Value + ?Sized>(
         &mut self,
-        tag: Option<&sval::Tag>,
-        label: &sval::Label,
+        tag: Option<sval::Tag>,
+        label: sval::Label,
         value: &V,
     ) -> Result;
 
@@ -274,16 +274,16 @@ pub trait StreamEnum<'sval> {
 
     fn tag(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
     ) -> Result<Self::Ok>;
 
     fn tagged<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         value: &'sval V,
     ) -> Result<Self::Ok>
     where
@@ -294,33 +294,33 @@ pub trait StreamEnum<'sval> {
 
     fn tagged_computed<V: sval::Value + ?Sized>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         value: &V,
     ) -> Result<Self::Ok>;
 
     fn tuple_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         num_entries: Option<usize>,
     ) -> Result<Self::Tuple>;
 
     fn record_begin(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         num_entries: Option<usize>,
     ) -> Result<Self::Record>;
 
     fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
         self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         variant: F,
     ) -> Result<Self::Ok>;
 
@@ -366,18 +366,18 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
 
     fn tag(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
     ) -> Result<Self::Ok> {
         Err(Error::invalid_value("tags are unsupported"))
     }
 
     fn tagged_computed<V: sval::Value + ?Sized>(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
         _: &V,
     ) -> Result<Self::Ok> {
         Err(Error::invalid_value("tagged values are unsupported"))
@@ -393,9 +393,9 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
 
     fn tuple_begin(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
         _: Option<usize>,
     ) -> Result<Self::Tuple> {
         Err(Error::invalid_value("records are unsupported"))
@@ -403,9 +403,9 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
 
     fn record_begin(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
         _: Option<usize>,
     ) -> Result<Self::Record> {
         Err(Error::invalid_value("records are unsupported"))
@@ -413,9 +413,9 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
 
     fn enum_begin(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
     ) -> Result<Self::Enum> {
         Err(Error::invalid_value("enums are unsupported"))
     }
@@ -454,8 +454,8 @@ impl<'sval, Ok> StreamTuple<'sval> for Unsupported<Ok> {
 
     fn value_computed<V: sval::Value + ?Sized>(
         &mut self,
-        _: Option<&sval::Tag>,
-        _: &sval::Index,
+        _: Option<sval::Tag>,
+        _: sval::Index,
         _: &V,
     ) -> Result {
         Err(Error::invalid_value("tuples are unsupported"))
@@ -471,8 +471,8 @@ impl<'sval, Ok> StreamRecord<'sval> for Unsupported<Ok> {
 
     fn value_computed<V: sval::Value + ?Sized>(
         &mut self,
-        _: Option<&sval::Tag>,
-        _: &sval::Label,
+        _: Option<sval::Tag>,
+        _: sval::Label,
         _: &V,
     ) -> Result {
         Err(Error::invalid_value("records are unsupported"))
@@ -492,18 +492,18 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
 
     fn tag(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
     ) -> Result<Self::Ok> {
         Err(Error::invalid_value("enums are unsupported"))
     }
 
     fn tagged_computed<V: sval::Value + ?Sized>(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
         _: &V,
     ) -> Result<Self::Ok> {
         Err(Error::invalid_value("enums are unsupported"))
@@ -511,9 +511,9 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
 
     fn tuple_begin(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
         _: Option<usize>,
     ) -> Result<Self::Record> {
         Err(Error::invalid_value("enums are unsupported"))
@@ -521,9 +521,9 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
 
     fn record_begin(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
         _: Option<usize>,
     ) -> Result<Self::Record> {
         Err(Error::invalid_value("enums are unsupported"))
@@ -531,9 +531,9 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
 
     fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
         self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
         _: F,
     ) -> Result<Self::Ok> {
         Err(Error::invalid_value("enums are unsupported"))
@@ -544,7 +544,11 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
     }
 }
 
-fn owned_label(label: &sval::Label) -> Result<sval::Label<'static>> {
+fn owned_label(label: sval::Label) -> Result<sval::Label<'static>> {
+    owned_label_ref(&label)
+}
+
+fn owned_label_ref(label: &sval::Label) -> Result<sval::Label<'static>> {
     #[cfg(feature = "alloc")]
     {
         Ok(label.to_owned())
@@ -673,8 +677,8 @@ pub mod default_stream {
 
     pub fn tuple_value<'sval, S: StreamTuple<'sval> + ?Sized, V: sval::Value + ?Sized>(
         tuple: &mut S,
-        tag: Option<&sval::Tag>,
-        index: &sval::Index,
+        tag: Option<sval::Tag>,
+        index: sval::Index,
         value: &'sval V,
     ) -> Result {
         tuple.value_computed(tag, index, value)
@@ -682,8 +686,8 @@ pub mod default_stream {
 
     pub fn record_value<'sval, S: StreamRecord<'sval> + ?Sized, V: sval::Value + ?Sized>(
         record: &mut S,
-        tag: Option<&sval::Tag>,
-        label: &sval::Label,
+        tag: Option<sval::Tag>,
+        label: sval::Label,
         value: &'sval V,
     ) -> Result {
         record.value_computed(tag, label, value)
@@ -691,9 +695,9 @@ pub mod default_stream {
 
     pub fn enum_tagged<'sval, S: StreamEnum<'sval>, V: sval::Value + ?Sized>(
         stream: S,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         value: &'sval V,
     ) -> Result<S::Ok> {
         stream.tagged_computed(tag, label, index, value)
@@ -729,13 +733,13 @@ mod tests {
 
         assert_eq!(
             Value::Record(Record {
-                tag: Tag::new(None, Some(&sval::Label::new("DeriveRecord")), None).unwrap(),
+                tag: Tag::new(None, Some(sval::Label::new("DeriveRecord")), None).unwrap(),
                 entries: vec![
                     (sval::Label::new("a"), Value::I64(1)),
                     (
                         sval::Label::new("b"),
                         Value::Tuple(Tuple {
-                            tag: Tag::new(None, Some(&sval::Label::new("DeriveTuple")), None)
+                            tag: Tag::new(None, Some(sval::Label::new("DeriveTuple")), None)
                                 .unwrap(),
                             entries: vec![
                                 (sval::Index::new(0), Value::I64(2)),
@@ -744,15 +748,15 @@ mod tests {
                                     Value::Enum(Enum {
                                         tag: Tag::new(
                                             None,
-                                            Some(&sval::Label::new("DeriveEnum")),
+                                            Some(sval::Label::new("DeriveEnum")),
                                             None
                                         )
                                         .unwrap(),
                                         variant: Some(Variant::Record(Record {
                                             tag: Tag::new(
                                                 None,
-                                                Some(&sval::Label::new("Record")),
-                                                Some(&sval::Index::new(0))
+                                                Some(sval::Label::new("Record")),
+                                                Some(sval::Index::new(0))
                                             )
                                             .unwrap(),
                                             entries: vec![
@@ -762,7 +766,7 @@ mod tests {
                                                     Value::Tagged(Tagged {
                                                         tag: Tag::new(
                                                             None,
-                                                            Some(&sval::Label::new("DeriveTagged")),
+                                                            Some(sval::Label::new("DeriveTagged")),
                                                             None
                                                         )
                                                         .unwrap(),
@@ -849,7 +853,7 @@ mod tests {
     fn stream_tuple() {
         assert_eq!(
             Value::Tuple(Tuple {
-                tag: Tag::new(None, Some(&sval::Label::new("Tuple")), None).unwrap(),
+                tag: Tag::new(None, Some(sval::Label::new("Tuple")), None).unwrap(),
                 entries: vec![
                     (sval::Index::new(0), Value::I64(1)),
                     (sval::Index::new(1), Value::Bool(true)),
@@ -893,12 +897,12 @@ mod tests {
     fn stream_enum_tuple_variant() {
         assert_eq!(
             Value::Enum(Enum {
-                tag: Tag::new(None, Some(&sval::Label::new("Enum")), None).unwrap(),
+                tag: Tag::new(None, Some(sval::Label::new("Enum")), None).unwrap(),
                 variant: Some(Variant::Tuple(Tuple {
                     tag: Tag::new(
                         None,
-                        Some(&sval::Label::new("Tuple")),
-                        Some(&sval::Index::new(0))
+                        Some(sval::Label::new("Tuple")),
+                        Some(sval::Index::new(0))
                     )
                     .unwrap(),
                     entries: vec![
@@ -953,7 +957,7 @@ mod tests {
     fn stream_record() {
         assert_eq!(
             Value::Record(Record {
-                tag: Tag::new(None, Some(&sval::Label::new("Record")), None).unwrap(),
+                tag: Tag::new(None, Some(sval::Label::new("Record")), None).unwrap(),
                 entries: vec![
                     (sval::Label::new("a"), Value::I64(1)),
                     (sval::Label::new("b"), Value::Bool(true)),
@@ -997,12 +1001,12 @@ mod tests {
     fn stream_enum_record_variant() {
         assert_eq!(
             Value::Enum(Enum {
-                tag: Tag::new(None, Some(&sval::Label::new("Enum")), None).unwrap(),
+                tag: Tag::new(None, Some(sval::Label::new("Enum")), None).unwrap(),
                 variant: Some(Variant::Record(Record {
                     tag: Tag::new(
                         None,
-                        Some(&sval::Label::new("Record")),
-                        Some(&sval::Index::new(0))
+                        Some(sval::Label::new("Record")),
+                        Some(sval::Index::new(0))
                     )
                     .unwrap(),
                     entries: vec![
@@ -1144,11 +1148,11 @@ mod tests {
 
         assert_eq!(
             Value::Enum(Enum {
-                tag: Tag::new(None, Some(&sval::Label::new("Layer1")), None).unwrap(),
+                tag: Tag::new(None, Some(sval::Label::new("Layer1")), None).unwrap(),
                 variant: Some(Variant::Enum(Box::new(Enum {
-                    tag: Tag::new(None, Some(&sval::Label::new("Layer2")), None).unwrap(),
+                    tag: Tag::new(None, Some(sval::Label::new("Layer2")), None).unwrap(),
                     variant: Some(Variant::Tagged(Tagged {
-                        tag: Tag::new(None, Some(&sval::Label::new("Value")), None).unwrap(),
+                        tag: Tag::new(None, Some(sval::Label::new("Value")), None).unwrap(),
                         value: Box::new(Value::I64(42)),
                     }))
                 })))
@@ -1189,30 +1193,26 @@ mod tests {
 
         assert_eq!(
             Value::Enum(Enum {
-                tag: Tag::new(None, Some(&sval::Label::new("Layer1")), None).unwrap(),
+                tag: Tag::new(None, Some(sval::Label::new("Layer1")), None).unwrap(),
                 variant: Some(Variant::Enum(Box::new(Enum {
-                    tag: Tag::new(None, Some(&sval::Label::new("Layer2")), None).unwrap(),
+                    tag: Tag::new(None, Some(sval::Label::new("Layer2")), None).unwrap(),
                     variant: Some(Variant::Enum(Box::new(Enum {
-                        tag: Tag::new(None, Some(&sval::Label::new("Layer3")), None).unwrap(),
+                        tag: Tag::new(None, Some(sval::Label::new("Layer3")), None).unwrap(),
                         variant: Some(Variant::Enum(Box::new(Enum {
-                            tag: Tag::new(None, Some(&sval::Label::new("Layer4")), None).unwrap(),
+                            tag: Tag::new(None, Some(sval::Label::new("Layer4")), None).unwrap(),
                             variant: Some(Variant::Enum(Box::new(Enum {
-                                tag: Tag::new(None, Some(&sval::Label::new("Layer5")), None)
+                                tag: Tag::new(None, Some(sval::Label::new("Layer5")), None)
                                     .unwrap(),
                                 variant: Some(Variant::Enum(Box::new(Enum {
-                                    tag: Tag::new(None, Some(&sval::Label::new("Layer6")), None)
+                                    tag: Tag::new(None, Some(sval::Label::new("Layer6")), None)
                                         .unwrap(),
                                     variant: Some(Variant::Enum(Box::new(Enum {
-                                        tag: Tag::new(
-                                            None,
-                                            Some(&sval::Label::new("Layer7")),
-                                            None
-                                        )
-                                        .unwrap(),
+                                        tag: Tag::new(None, Some(sval::Label::new("Layer7")), None)
+                                            .unwrap(),
                                         variant: Some(Variant::Tagged(Tagged {
                                             tag: Tag::new(
                                                 None,
-                                                Some(&sval::Label::new("Value")),
+                                                Some(sval::Label::new("Value")),
                                                 None
                                             )
                                             .unwrap(),
@@ -1268,14 +1268,14 @@ mod tests {
 
     impl Tag {
         fn new(
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
         ) -> Result<Self, Error> {
             Ok(Tag {
-                tag: tag.cloned(),
+                tag,
                 label: label.map(owned_label).transpose()?,
-                index: index.cloned(),
+                index: index,
             })
         }
     }
@@ -1397,9 +1397,9 @@ mod tests {
 
         fn tag(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
 
@@ -1408,9 +1408,9 @@ mod tests {
 
         fn tagged_computed<V: sval::Value + ?Sized>(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
             value: &V,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
@@ -1441,9 +1441,9 @@ mod tests {
 
         fn tuple_begin(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
             _: Option<usize>,
         ) -> Result<Self::Tuple> {
             Ok(ToTuple {
@@ -1456,9 +1456,9 @@ mod tests {
 
         fn record_begin(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
             _: Option<usize>,
         ) -> Result<Self::Record> {
             Ok(ToRecord {
@@ -1471,9 +1471,9 @@ mod tests {
 
         fn enum_begin(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
         ) -> Result<Self::Enum> {
             Ok(ToEnum {
                 tag: Tag::new(tag, label, index)?,
@@ -1549,8 +1549,8 @@ mod tests {
 
         fn value<V: sval::Value + ?Sized>(
             &mut self,
-            _: Option<&sval::Tag>,
-            index: &sval::Index,
+            _: Option<sval::Tag>,
+            index: sval::Index,
             value: &'sval V,
         ) -> Result {
             let value = ToValue::default().value(value)?;
@@ -1562,8 +1562,8 @@ mod tests {
 
         fn value_computed<V: sval::Value + ?Sized>(
             &mut self,
-            _: Option<&sval::Tag>,
-            index: &sval::Index,
+            _: Option<sval::Tag>,
+            index: sval::Index,
             value: &V,
         ) -> Result {
             let value = ToValue::default().value_computed(value)?;
@@ -1583,8 +1583,8 @@ mod tests {
 
         fn value<V: sval::Value + ?Sized>(
             &mut self,
-            _: Option<&sval::Tag>,
-            label: &sval::Label,
+            _: Option<sval::Tag>,
+            label: sval::Label,
             value: &'sval V,
         ) -> Result {
             let label = owned_label(label)?;
@@ -1597,8 +1597,8 @@ mod tests {
 
         fn value_computed<V: sval::Value + ?Sized>(
             &mut self,
-            _: Option<&sval::Tag>,
-            label: &sval::Label,
+            _: Option<sval::Tag>,
+            label: sval::Label,
             value: &V,
         ) -> Result {
             let label = owned_label(label)?;
@@ -1623,9 +1623,9 @@ mod tests {
 
         fn tag(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
 
@@ -1637,9 +1637,9 @@ mod tests {
 
         fn tagged_computed<V: sval::Value + ?Sized>(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
             value: &V,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
@@ -1656,9 +1656,9 @@ mod tests {
 
         fn tuple_begin(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
             _: Option<usize>,
         ) -> Result<Self::Tuple> {
             Ok(ToVariant {
@@ -1674,9 +1674,9 @@ mod tests {
 
         fn record_begin(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
             _: Option<usize>,
         ) -> Result<Self::Record> {
             Ok(ToVariant {
@@ -1692,9 +1692,9 @@ mod tests {
 
         fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
             self,
-            tag: Option<&sval::Tag>,
-            label: Option<&sval::Label>,
-            index: Option<&sval::Index>,
+            tag: Option<sval::Tag>,
+            label: Option<sval::Label>,
+            index: Option<sval::Index>,
             variant: F,
         ) -> Result<Self::Ok> {
             let variant = variant(ToEnum {
@@ -1722,8 +1722,8 @@ mod tests {
 
         fn value<V: sval::Value + ?Sized>(
             &mut self,
-            tag: Option<&sval::Tag>,
-            index: &sval::Index,
+            tag: Option<sval::Tag>,
+            index: sval::Index,
             value: &'sval V,
         ) -> Result {
             self.stream.value(tag, index, value)
@@ -1731,8 +1731,8 @@ mod tests {
 
         fn value_computed<V: sval::Value + ?Sized>(
             &mut self,
-            tag: Option<&sval::Tag>,
-            index: &sval::Index,
+            tag: Option<sval::Tag>,
+            index: sval::Index,
             value: &V,
         ) -> Result {
             self.stream.value_computed(tag, index, value)
@@ -1751,8 +1751,8 @@ mod tests {
 
         fn value<V: sval::Value + ?Sized>(
             &mut self,
-            tag: Option<&sval::Tag>,
-            label: &sval::Label,
+            tag: Option<sval::Tag>,
+            label: sval::Label,
             value: &'sval V,
         ) -> Result {
             self.stream.value(tag, label, value)
@@ -1760,8 +1760,8 @@ mod tests {
 
         fn value_computed<V: sval::Value + ?Sized>(
             &mut self,
-            tag: Option<&sval::Tag>,
-            label: &sval::Label,
+            tag: Option<sval::Tag>,
+            label: sval::Label,
             value: &V,
         ) -> Result {
             self.stream.value_computed(tag, label, value)

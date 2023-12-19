@@ -5,7 +5,7 @@ use crate::{
     TextBuf, ValueBuf,
 };
 
-use super::{flat_enum::FlatStreamEnum, owned_label};
+use super::{flat_enum::FlatStreamEnum, owned_label_ref};
 
 pub(super) struct FlatStream<'sval, S: Stream<'sval>> {
     buffered: Option<Buffered<'sval>>,
@@ -300,11 +300,17 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
             |buf| buf.enum_begin(tag, label, index),
             |stream| {
                 Ok(State::Enum(Some(Enum {
-                    stream: FlatStreamEnum::new(stream.stream.enum_begin(tag, label, index)?),
+                    stream: FlatStreamEnum::new(stream.stream.enum_begin(
+                        tag.cloned(),
+                        label.cloned(),
+                        index.cloned(),
+                    )?),
                 })))
             },
             |mut stream| {
-                stream.stream.push(tag, label, index)?;
+                stream
+                    .stream
+                    .push(tag.cloned(), label.cloned(), index.cloned())?;
 
                 Ok(State::Enum(Some(stream)))
             },
@@ -342,7 +348,7 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                     stream: stream.stream,
                     tag: tag.cloned(),
                     label: if let Some(label) = label {
-                        Some(owned_label(label)?)
+                        Some(owned_label_ref(label)?)
                     } else {
                         None
                     },
@@ -354,7 +360,7 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                     stream: stream.stream,
                     tag: tag.cloned(),
                     label: if let Some(label) = label {
-                        Some(owned_label(label)?)
+                        Some(owned_label_ref(label)?)
                     } else {
                         None
                     },
@@ -387,13 +393,23 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
             |buf| buf.record_begin(tag, label, index, num_entries),
             |stream| {
                 Ok(State::Record(Some(Record {
-                    stream: stream.stream.record_begin(tag, label, index, num_entries)?,
+                    stream: stream.stream.record_begin(
+                        tag.cloned(),
+                        label.cloned(),
+                        index.cloned(),
+                        num_entries,
+                    )?,
                     field: None,
                 })))
             },
             |stream| {
                 Ok(State::EnumVariant(Some(EnumVariant::Record(Record {
-                    stream: stream.stream.record_begin(tag, label, index, num_entries)?,
+                    stream: stream.stream.record_begin(
+                        tag.cloned(),
+                        label.cloned(),
+                        index.cloned(),
+                        num_entries,
+                    )?,
                     field: None,
                 }))))
             },
@@ -406,12 +422,12 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
             |stream| {
                 stream.with_record(
                     |record| {
-                        record.field = Some((tag.cloned(), owned_label(label)?));
+                        record.field = Some((tag.cloned(), owned_label_ref(label)?));
 
                         Ok(())
                     },
                     |record_variant| {
-                        record_variant.field = Some((tag.cloned(), owned_label(label)?));
+                        record_variant.field = Some((tag.cloned(), owned_label_ref(label)?));
 
                         Ok(())
                     },
@@ -452,13 +468,23 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
             |buf| buf.tuple_begin(tag, label, index, num_entries),
             |stream| {
                 Ok(State::Tuple(Some(Tuple {
-                    stream: stream.stream.tuple_begin(tag, label, index, num_entries)?,
+                    stream: stream.stream.tuple_begin(
+                        tag.cloned(),
+                        label.cloned(),
+                        index.cloned(),
+                        num_entries,
+                    )?,
                     field: None,
                 })))
             },
             |stream| {
                 Ok(State::EnumVariant(Some(EnumVariant::Tuple(Tuple {
-                    stream: stream.stream.tuple_begin(tag, label, index, num_entries)?,
+                    stream: stream.stream.tuple_begin(
+                        tag.cloned(),
+                        label.cloned(),
+                        index.cloned(),
+                        num_entries,
+                    )?,
                     field: None,
                 }))))
             },
@@ -518,7 +544,7 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                 stream
                     .state
                     .value_computed(&Tag(tag, label, index), |stream, _| {
-                        stream.tag(tag, label, index)
+                        stream.tag(tag.cloned(), label.cloned(), index.cloned())
                     })
             },
         )
@@ -815,30 +841,30 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
         any: impl FnOnce(S) -> Result<S::Ok>,
         tagged: impl FnOnce(
             S,
-            Option<&sval::Tag>,
-            Option<&sval::Label>,
-            Option<&sval::Index>,
+            Option<sval::Tag>,
+            Option<sval::Label>,
+            Option<sval::Index>,
         ) -> Result<S::Ok>,
         seq: impl FnOnce(&mut S::Seq) -> Result,
         map_key: impl FnOnce(&mut S::Map) -> Result,
         map_value: impl FnOnce(&mut S::Map) -> Result,
-        tuple: impl FnOnce(&mut S::Tuple, Option<&sval::Tag>, &sval::Index) -> Result,
-        record: impl FnOnce(&mut S::Record, Option<&sval::Tag>, &sval::Label) -> Result,
+        tuple: impl FnOnce(&mut S::Tuple, Option<sval::Tag>, sval::Index) -> Result,
+        record: impl FnOnce(&mut S::Record, Option<sval::Tag>, sval::Label) -> Result,
         tagged_variant: impl FnOnce(
             FlatStreamEnum<S::Enum>,
-            Option<&sval::Tag>,
-            Option<&sval::Label>,
-            Option<&sval::Index>,
+            Option<sval::Tag>,
+            Option<sval::Label>,
+            Option<sval::Index>,
         ) -> Result<S::Ok>,
         tuple_variant: impl FnOnce(
             &mut <S::Enum as StreamEnum<'sval>>::Tuple,
-            Option<&sval::Tag>,
-            &sval::Index,
+            Option<sval::Tag>,
+            sval::Index,
         ) -> Result,
         record_variant: impl FnOnce(
             &mut <S::Enum as StreamEnum<'sval>>::Record,
-            Option<&sval::Tag>,
-            &sval::Label,
+            Option<sval::Tag>,
+            sval::Label,
         ) -> Result,
     ) -> Result<Option<S::Ok>> {
         match self {
@@ -858,9 +884,9 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
 
                 Ok(Some(tagged(
                     stream.stream,
-                    stream.tag.as_ref(),
-                    stream.label.as_ref(),
-                    stream.index.as_ref(),
+                    stream.tag,
+                    stream.label,
+                    stream.index,
                 )?))
             }
             State::Seq(stream) => {
@@ -892,11 +918,11 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                     Error::invalid_value("cannot stream a tuple; the stream is already completed")
                 })?;
 
-                let (tag, index) = stream.field.as_ref().ok_or_else(|| {
+                let (tag, index) = stream.field.take().ok_or_else(|| {
                     Error::invalid_value("cannot stream a tuple; the field index is missing")
                 })?;
 
-                tuple(&mut stream.stream, tag.as_ref(), index)?;
+                tuple(&mut stream.stream, tag, index)?;
 
                 Ok(None)
             }
@@ -905,11 +931,11 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                     Error::invalid_value("cannot stream a record; the stream is already completed")
                 })?;
 
-                let (tag, label) = stream.field.as_ref().ok_or_else(|| {
+                let (tag, label) = stream.field.take().ok_or_else(|| {
                     Error::invalid_value("cannot stream a record; the field label is missing")
                 })?;
 
-                record(&mut stream.stream, tag.as_ref(), label)?;
+                record(&mut stream.stream, tag, label)?;
 
                 Ok(None)
             }
@@ -921,13 +947,13 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                     ref mut stream,
                     ref mut field,
                 })) => {
-                    let (tag, index) = field.as_ref().ok_or_else(|| {
+                    let (tag, index) = field.take().ok_or_else(|| {
                         Error::invalid_value(
                             "cannot stream a tuple variant; the field index is missing",
                         )
                     })?;
 
-                    tuple_variant(stream, tag.as_ref(), index)?;
+                    tuple_variant(stream, tag, index)?;
 
                     Ok(None)
                 }
@@ -935,13 +961,13 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                     ref mut stream,
                     ref mut field,
                 })) => {
-                    let (tag, label) = field.as_ref().ok_or_else(|| {
+                    let (tag, label) = field.take().ok_or_else(|| {
                         Error::invalid_value(
                             "cannot stream a record variant; the field label is missing",
                         )
                     })?;
 
-                    record_variant(stream, tag.as_ref(), label)?;
+                    record_variant(stream, tag, label)?;
 
                     Ok(None)
                 }
@@ -956,12 +982,7 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                             tag,
                             label,
                             index,
-                        }) => Ok(Some(tagged_variant(
-                            stream,
-                            tag.as_ref(),
-                            label.as_ref(),
-                            index.as_ref(),
-                        )?)),
+                        }) => Ok(Some(tagged_variant(stream, tag, label, index)?)),
                         _ => unreachable!(),
                     }
                 }
