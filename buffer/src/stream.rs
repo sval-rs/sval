@@ -733,6 +733,66 @@ mod tests {
     }
 
     #[test]
+    fn stream_enum_record_variant() {
+        assert_eq!(
+            Value::Enum(Enum {
+                tag: Tag::new(None, Some(&sval::Label::new("Enum")), None).unwrap(),
+                variant: Some(Variant::Record(Record {
+                    tag: Tag::new(
+                        None,
+                        Some(&sval::Label::new("Record")),
+                        Some(&sval::Index::new(0))
+                    )
+                    .unwrap(),
+                    entries: vec![
+                        (sval::Label::new("a"), Value::I64(1)),
+                        (sval::Label::new("b"), Value::Bool(true)),
+                    ]
+                })),
+            }),
+            ToValue::default()
+                .value(&{
+                    struct RecordVariant;
+
+                    impl sval::Value for RecordVariant {
+                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                            &'sval self,
+                            stream: &mut S,
+                        ) -> sval::Result {
+                            stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+                            stream.record_begin(
+                                None,
+                                Some(&sval::Label::new("Record")),
+                                Some(&sval::Index::new(0)),
+                                None,
+                            )?;
+
+                            stream.record_value_begin(None, &sval::Label::new("a"))?;
+                            stream.i64(1)?;
+                            stream.record_value_end(None, &sval::Label::new("a"))?;
+
+                            stream.record_value_begin(None, &sval::Label::new("b"))?;
+                            stream.bool(true)?;
+                            stream.record_value_end(None, &sval::Label::new("b"))?;
+
+                            stream.record_end(
+                                None,
+                                Some(&sval::Label::new("Record")),
+                                Some(&sval::Index::new(0)),
+                            )?;
+
+                            stream.enum_end(None, Some(&sval::Label::new("Enum")), None)
+                        }
+                    }
+
+                    RecordVariant
+                })
+                .unwrap(),
+        )
+    }
+
+    #[test]
     fn stream_deeply_nested_enum() {
         struct Layer;
 
@@ -909,6 +969,7 @@ mod tests {
     }
 
     struct ToVariant<S> {
+        tag: Tag,
         stream: S,
     }
 
@@ -1159,9 +1220,17 @@ mod tests {
             tag: Option<&sval::Tag>,
             label: Option<&sval::Label>,
             index: Option<&sval::Index>,
-            num_entries: Option<usize>,
+            _: Option<usize>,
         ) -> Result<Self::Record> {
-            todo!()
+            Ok(ToVariant {
+                tag: self.tag,
+                stream: ToRecord {
+                    record: Record {
+                        tag: Tag::new(tag, label, index)?,
+                        entries: Vec::new(),
+                    },
+                },
+            })
         }
 
         fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
@@ -1200,7 +1269,7 @@ mod tests {
             label: &sval::Label,
             value: &'sval V,
         ) -> Result {
-            todo!()
+            self.stream.value(tag, label, value)
         }
 
         fn value_computed<V: sval::Value + ?Sized>(
@@ -1209,11 +1278,14 @@ mod tests {
             label: &sval::Label,
             value: &V,
         ) -> Result {
-            todo!()
+            self.stream.value_computed(tag, label, value)
         }
 
         fn end(self) -> Result<Self::Ok> {
-            todo!()
+            Ok(Value::Enum(Enum {
+                tag: self.tag,
+                variant: Some(Variant::Record(self.stream.record)),
+            }))
         }
     }
 }

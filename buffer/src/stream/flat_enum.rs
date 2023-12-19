@@ -173,7 +173,9 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
         index: Option<&sval::Index>,
         num_entries: Option<usize>,
     ) -> Result<Self::Record> {
-        todo!()
+        assert!(self.queue.is_empty());
+
+        self.stream.record_begin(tag, label, index, num_entries)
     }
 
     fn enum_begin(
@@ -213,6 +215,17 @@ impl Queue {
         #[cfg(not(feature = "alloc"))]
         {
             None
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        #[cfg(feature = "alloc")]
+        {
+            self.inner.is_empty()
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            true
         }
     }
 }
