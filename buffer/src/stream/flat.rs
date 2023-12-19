@@ -1,8 +1,8 @@
 use core::{fmt, marker::PhantomData, mem};
 
 use crate::{
-    BinaryBuf, Error, Result, Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, TextBuf,
-    ValueBuf,
+    BinaryBuf, Error, Result, Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple,
+    TextBuf, ValueBuf,
 };
 
 use super::{flat_enum::FlatStreamEnum, owned_label};
@@ -26,6 +26,7 @@ enum State<'sval, S: Stream<'sval>> {
     Seq(Option<Seq<S::Seq>>),
     Map(Option<Map<S::Map>>),
     Tagged(Option<Tagged<S>>),
+    Tuple(Option<Tuple<S::Tuple>>),
     Record(Option<Record<S::Record>>),
     Enum(Option<Enum<FlatStreamEnum<S::Enum>>>),
     EnumVariant(Option<EnumVariant<'sval, S>>),
@@ -38,6 +39,7 @@ impl<'sval, S: Stream<'sval>> fmt::Debug for State<'sval, S> {
             State::Any(state) => fmt::Debug::fmt(state, f),
             State::Seq(state) => fmt::Debug::fmt(state, f),
             State::Map(state) => fmt::Debug::fmt(state, f),
+            State::Tuple(state) => fmt::Debug::fmt(state, f),
             State::Record(state) => fmt::Debug::fmt(state, f),
             State::Tagged(state) => fmt::Debug::fmt(state, f),
             State::Enum(state) => fmt::Debug::fmt(state, f),
@@ -99,6 +101,17 @@ impl<S> fmt::Debug for Record<S> {
     }
 }
 
+struct Tuple<S> {
+    stream: S,
+    field: Option<(Option<sval::Tag>, sval::Index)>,
+}
+
+impl<S> fmt::Debug for Tuple<S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Tuple").finish_non_exhaustive()
+    }
+}
+
 struct Tagged<S> {
     stream: S,
     tag: Option<sval::Tag>,
@@ -128,6 +141,7 @@ impl<S> fmt::Debug for Enum<S> {
 
 enum EnumVariant<'sval, S: Stream<'sval>> {
     Tagged(Tagged<FlatStreamEnum<S::Enum>>),
+    Tuple(Tuple<<S::Enum as StreamEnum<'sval>>::Tuple>),
     Record(Record<<S::Enum as StreamEnum<'sval>>::Record>),
 }
 
@@ -135,6 +149,7 @@ impl<'sval, S: Stream<'sval>> fmt::Debug for EnumVariant<'sval, S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EnumVariant::Tagged(stream) => fmt::Debug::fmt(stream, f),
+            EnumVariant::Tuple(stream) => fmt::Debug::fmt(stream, f),
             EnumVariant::Record(stream) => fmt::Debug::fmt(stream, f),
         }
     }
@@ -165,17 +180,27 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
     fn value<V: sval::Value + ?Sized>(&mut self, v: &'sval V) -> sval::Result {
         self.buffer_or_stream_with(
             |buf| buf.value(v),
-            |stream| stream.state.value(v, |stream, v| stream.value(v)),
+            |stream| match stream.state {
+                State::Enum(_) => {
+                    sval::default_stream::value(stream, v)
+                        .map_err(|_| Error::invalid_value("failed to stream value"))?;
+                    Ok(None)
+                }
+                ref mut state => state.value(v, |stream, v| stream.value(v)),
+            },
         )
     }
 
     fn value_computed<V: sval::Value + ?Sized>(&mut self, v: &V) -> sval::Result {
         self.buffer_or_stream_with(
             |buf| buf.value_computed(v),
-            |stream| {
-                stream
-                    .state
-                    .value_computed(v, |stream, v| stream.value_computed(v))
+            |stream| match stream.state {
+                State::Enum(_) => {
+                    sval::default_stream::value_computed(stream, v)
+                        .map_err(|_| Error::invalid_value("failed to stream value"))?;
+                    Ok(None)
+                }
+                ref mut state => state.value_computed(v, |stream, v| stream.value_computed(v)),
             },
         )
     }
@@ -423,15 +448,45 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         index: Option<&sval::Index>,
         num_entries: Option<usize>,
     ) -> sval::Result {
-        todo!()
+        self.buffer_or_begin_with(
+            |buf| buf.tuple_begin(tag, label, index, num_entries),
+            |stream| {
+                Ok(State::Tuple(Some(Tuple {
+                    stream: stream.stream.tuple_begin(tag, label, index, num_entries)?,
+                    field: None,
+                })))
+            },
+            |stream| {
+                Ok(State::EnumVariant(Some(EnumVariant::Tuple(Tuple {
+                    stream: stream.stream.tuple_begin(tag, label, index, num_entries)?,
+                    field: None,
+                }))))
+            },
+        )
     }
 
     fn tuple_value_begin(&mut self, tag: Option<&sval::Tag>, index: &sval::Index) -> sval::Result {
-        todo!()
+        self.buffer_or_with(
+            |buf| buf.tuple_value_begin(tag, index),
+            |stream| {
+                stream.with_tuple(
+                    |tuple| {
+                        tuple.field = Some((tag.cloned(), index.clone()));
+
+                        Ok(())
+                    },
+                    |tuple_variant| {
+                        tuple_variant.field = Some((tag.cloned(), index.clone()));
+
+                        Ok(())
+                    },
+                )
+            },
+        )
     }
 
     fn tuple_value_end(&mut self, tag: Option<&sval::Tag>, index: &sval::Index) -> sval::Result {
-        todo!()
+        self.buffer_or_with(|buf| buf.tuple_value_end(tag, index), |_| Ok(()))
     }
 
     fn tuple_end(
@@ -440,7 +495,15 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         label: Option<&sval::Label>,
         index: Option<&sval::Index>,
     ) -> sval::Result {
-        todo!()
+        self.buffer_or_end_with(
+            |buf| buf.tuple_end(tag, label, index),
+            |stream| {
+                stream.take_with_tuple(
+                    |tuple| tuple.stream.end(),
+                    |tuple_variant| tuple_variant.stream.end(),
+                )
+            },
+        )
     }
 
     fn tag(
@@ -720,8 +783,10 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
             |stream| stream.value(value),
             |stream| stream.key(value),
             |stream| stream.value(value),
+            |stream, tag, index| stream.value(tag, index, value),
             |stream, tag, label| stream.value(tag, label, value),
             |stream, tag, label, index| stream.tagged(tag, label, index, value),
+            |stream, tag, index| stream.value(tag, index, value),
             |stream, tag, label| stream.value(tag, label, value),
         )
     }
@@ -737,8 +802,10 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
             |stream| stream.value_computed(value),
             |stream| stream.key_computed(value),
             |stream| stream.value_computed(value),
+            |stream, tag, index| stream.value_computed(tag, index, value),
             |stream, tag, label| stream.value_computed(tag, label, value),
             |stream, tag, label, index| stream.tagged_computed(tag, label, index, value),
+            |stream, tag, index| stream.value_computed(tag, index, value),
             |stream, tag, label| stream.value_computed(tag, label, value),
         )
     }
@@ -755,6 +822,7 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
         seq: impl FnOnce(&mut S::Seq) -> Result,
         map_key: impl FnOnce(&mut S::Map) -> Result,
         map_value: impl FnOnce(&mut S::Map) -> Result,
+        tuple: impl FnOnce(&mut S::Tuple, Option<&sval::Tag>, &sval::Index) -> Result,
         record: impl FnOnce(&mut S::Record, Option<&sval::Tag>, &sval::Label) -> Result,
         tagged_variant: impl FnOnce(
             FlatStreamEnum<S::Enum>,
@@ -762,6 +830,11 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
             Option<&sval::Label>,
             Option<&sval::Index>,
         ) -> Result<S::Ok>,
+        tuple_variant: impl FnOnce(
+            &mut <S::Enum as StreamEnum<'sval>>::Tuple,
+            Option<&sval::Tag>,
+            &sval::Index,
+        ) -> Result,
         record_variant: impl FnOnce(
             &mut <S::Enum as StreamEnum<'sval>>::Record,
             Option<&sval::Tag>,
@@ -814,9 +887,22 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
 
                 Ok(None)
             }
+            State::Tuple(stream) => {
+                let stream = stream.as_mut().ok_or_else(|| {
+                    Error::invalid_value("cannot stream a tuple; the stream is already completed")
+                })?;
+
+                let (tag, index) = stream.field.as_ref().ok_or_else(|| {
+                    Error::invalid_value("cannot stream a tuple; the field index is missing")
+                })?;
+
+                tuple(&mut stream.stream, tag.as_ref(), index)?;
+
+                Ok(None)
+            }
             State::Record(stream) => {
                 let stream = stream.as_mut().ok_or_else(|| {
-                    Error::invalid_value("cannot stream a map; the stream is already completed")
+                    Error::invalid_value("cannot stream a record; the stream is already completed")
                 })?;
 
                 let (tag, label) = stream.field.as_ref().ok_or_else(|| {
@@ -827,14 +913,32 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
 
                 Ok(None)
             }
-            State::Enum(_) => todo!(),
+            State::Enum(_) => Err(Error::invalid_value(
+                "cannot stream an enum; the stream is in an invalid state",
+            )),
             State::EnumVariant(stream) => match stream {
+                Some(EnumVariant::Tuple(Tuple {
+                    ref mut stream,
+                    ref mut field,
+                })) => {
+                    let (tag, index) = field.as_ref().ok_or_else(|| {
+                        Error::invalid_value(
+                            "cannot stream a tuple variant; the field index is missing",
+                        )
+                    })?;
+
+                    tuple_variant(stream, tag.as_ref(), index)?;
+
+                    Ok(None)
+                }
                 Some(EnumVariant::Record(Record {
                     ref mut stream,
                     ref mut field,
                 })) => {
                     let (tag, label) = field.as_ref().ok_or_else(|| {
-                        Error::invalid_value("cannot stream a record; the field label is missing")
+                        Error::invalid_value(
+                            "cannot stream a record variant; the field label is missing",
+                        )
                     })?;
 
                     record_variant(stream, tag.as_ref(), label)?;
@@ -862,7 +966,9 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
                     }
                 }
             },
-            State::Done(_) => todo!(),
+            State::Done(_) => Err(Error::invalid_value(
+                "cannot stream a value; the stream is already completed",
+            )),
         }
     }
 }
@@ -1112,6 +1218,59 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
             }),
             _ => Err(Error::invalid_value(
                 "cannot end a map; invalid stream state",
+            )),
+        }
+    }
+
+    fn with_tuple(
+        &mut self,
+        tuple: impl FnOnce(&mut Tuple<S::Tuple>) -> Result,
+        tuple_variant: impl FnOnce(&mut Tuple<<S::Enum as StreamEnum<'sval>>::Tuple>) -> Result,
+    ) -> Result {
+        match self {
+            FlatStream {
+                buffered: None,
+                state: State::Tuple(Some(stream)),
+            } => tuple(stream),
+            FlatStream {
+                buffered: None,
+                state: State::EnumVariant(Some(EnumVariant::Tuple(stream))),
+            } => tuple_variant(stream),
+            _ => Err(Error::invalid_value(
+                "cannot stream a tuple; invalid stream state",
+            )),
+        }
+    }
+
+    fn take_with_tuple<T>(
+        &mut self,
+        tuple: impl FnOnce(Tuple<S::Tuple>) -> Result<T>,
+        tuple_variant: impl FnOnce(Tuple<<S::Enum as StreamEnum<'sval>>::Tuple>) -> Result<T>,
+    ) -> Result<T> {
+        match self {
+            FlatStream {
+                buffered: None,
+                state: State::Tuple(stream),
+            } => tuple(stream.take().ok_or_else(|| {
+                Error::invalid_value("cannot end a tuple; the stream is already completed")
+            })?),
+            FlatStream {
+                buffered: None,
+                state: State::EnumVariant(stream),
+            } => {
+                let stream = stream.take().ok_or_else(|| {
+                    Error::invalid_value("cannot end a tuple; the stream is already completed")
+                })?;
+
+                match stream {
+                    EnumVariant::Tuple(stream) => tuple_variant(stream),
+                    _ => Err(Error::invalid_value(
+                        "cannot end a tuple; invalid stream state",
+                    )),
+                }
+            }
+            _ => Err(Error::invalid_value(
+                "cannot end a tuple; invalid stream state",
             )),
         }
     }

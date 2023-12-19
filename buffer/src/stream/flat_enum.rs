@@ -72,6 +72,7 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
     type Seq = Unsupported<S::Ok>;
     type Map = Unsupported<S::Ok>;
 
+    type Tuple = S::Tuple;
     type Record = S::Record;
 
     type Enum = Unsupported<S::Ok>;
@@ -166,6 +167,18 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
         Ok(Unsupported::default())
     }
 
+    fn tuple_begin(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> Result<Self::Tuple> {
+        assert!(self.queue.is_empty());
+
+        self.stream.tuple_begin(tag, label, index, num_entries)
+    }
+
     fn record_begin(
         self,
         tag: Option<&sval::Tag>,
@@ -184,7 +197,7 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
         _: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> Result<Self::Enum> {
-        Ok(Unsupported::default())
+        unreachable!()
     }
 }
 

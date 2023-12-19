@@ -15,6 +15,7 @@ pub trait Stream<'sval> {
     type Seq: StreamSeq<'sval, Ok = Self::Ok>;
     type Map: StreamMap<'sval, Ok = Self::Ok>;
 
+    type Tuple: StreamTuple<'sval, Ok = Self::Ok>;
     type Record: StreamRecord<'sval, Ok = Self::Ok>;
 
     type Enum: StreamEnum<'sval, Ok = Self::Ok>;
@@ -166,6 +167,14 @@ pub trait Stream<'sval> {
 
     fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map>;
 
+    fn tuple_begin(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> Result<Self::Tuple>;
+
     fn record_begin(
         self,
         tag: Option<&sval::Tag>,
@@ -212,6 +221,28 @@ pub trait StreamMap<'sval> {
     fn end(self) -> Result<Self::Ok>;
 }
 
+pub trait StreamTuple<'sval> {
+    type Ok;
+
+    fn value<V: sval::Value + ?Sized>(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        index: &sval::Index,
+        value: &'sval V,
+    ) -> Result {
+        default_stream::tuple_value(self, tag, index, value)
+    }
+
+    fn value_computed<V: sval::Value + ?Sized>(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        index: &sval::Index,
+        value: &V,
+    ) -> Result;
+
+    fn end(self) -> Result<Self::Ok>;
+}
+
 pub trait StreamRecord<'sval> {
     type Ok;
 
@@ -237,6 +268,7 @@ pub trait StreamRecord<'sval> {
 pub trait StreamEnum<'sval> {
     type Ok;
 
+    type Tuple: StreamTuple<'sval, Ok = Self::Ok>;
     type Record: StreamRecord<'sval, Ok = Self::Ok>;
     type Nested: StreamEnum<'sval, Ok = Self::Ok, Nested = Self::Nested>;
 
@@ -267,6 +299,14 @@ pub trait StreamEnum<'sval> {
         index: Option<&sval::Index>,
         value: &V,
     ) -> Result<Self::Ok>;
+
+    fn tuple_begin(
+        self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+        num_entries: Option<usize>,
+    ) -> Result<Self::Tuple>;
 
     fn record_begin(
         self,
@@ -300,6 +340,7 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
 
     type Seq = Self;
     type Map = Self;
+    type Tuple = Self;
     type Record = Self;
     type Enum = Self;
 
@@ -350,6 +391,16 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
         Err(Error::invalid_value("maps are unsupported"))
     }
 
+    fn tuple_begin(
+        self,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+        _: Option<usize>,
+    ) -> Result<Self::Tuple> {
+        Err(Error::invalid_value("records are unsupported"))
+    }
+
     fn record_begin(
         self,
         _: Option<&sval::Tag>,
@@ -398,6 +449,23 @@ impl<'sval, Ok> StreamMap<'sval> for Unsupported<Ok> {
     }
 }
 
+impl<'sval, Ok> StreamTuple<'sval> for Unsupported<Ok> {
+    type Ok = Ok;
+
+    fn value_computed<V: sval::Value + ?Sized>(
+        &mut self,
+        _: Option<&sval::Tag>,
+        _: &sval::Index,
+        _: &V,
+    ) -> Result {
+        Err(Error::invalid_value("tuples are unsupported"))
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        Err(Error::invalid_value("tuples are unsupported"))
+    }
+}
+
 impl<'sval, Ok> StreamRecord<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
@@ -418,6 +486,7 @@ impl<'sval, Ok> StreamRecord<'sval> for Unsupported<Ok> {
 impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
+    type Tuple = Self;
     type Record = Self;
     type Nested = Self;
 
@@ -437,6 +506,16 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
         _: Option<&sval::Index>,
         _: &V,
     ) -> Result<Self::Ok> {
+        Err(Error::invalid_value("enums are unsupported"))
+    }
+
+    fn tuple_begin(
+        self,
+        _: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+        _: Option<usize>,
+    ) -> Result<Self::Record> {
         Err(Error::invalid_value("enums are unsupported"))
     }
 
@@ -592,6 +671,15 @@ pub mod default_stream {
         map.value_computed(value)
     }
 
+    pub fn tuple_value<'sval, S: StreamTuple<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        tuple: &mut S,
+        tag: Option<&sval::Tag>,
+        index: &sval::Index,
+        value: &'sval V,
+    ) -> Result {
+        tuple.value_computed(tag, index, value)
+    }
+
     pub fn record_value<'sval, S: StreamRecord<'sval> + ?Sized, V: sval::Value + ?Sized>(
         record: &mut S,
         tag: Option<&sval::Tag>,
@@ -686,6 +774,110 @@ mod tests {
                 .value(sval::MapSlice::new(&[("a", 1), ("b", 2), ("c", 3),]))
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn stream_tuple() {
+        assert_eq!(
+            Value::Tuple(Tuple {
+                tag: Tag::new(None, Some(&sval::Label::new("Tuple")), None).unwrap(),
+                entries: vec![
+                    (sval::Index::new(0), Value::I64(1)),
+                    (sval::Index::new(1), Value::Bool(true)),
+                ]
+            }),
+            ToValue::default()
+                .value(&{
+                    struct Tuple;
+
+                    impl sval::Value for Tuple {
+                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                            &'sval self,
+                            stream: &mut S,
+                        ) -> sval::Result {
+                            stream.tuple_begin(
+                                None,
+                                Some(&sval::Label::new("Tuple")),
+                                None,
+                                None,
+                            )?;
+
+                            stream.tuple_value_begin(None, &sval::Index::new(0))?;
+                            stream.i64(1)?;
+                            stream.tuple_value_end(None, &sval::Index::new(0))?;
+
+                            stream.tuple_value_begin(None, &sval::Index::new(1))?;
+                            stream.bool(true)?;
+                            stream.tuple_value_end(None, &sval::Index::new(1))?;
+
+                            stream.tuple_end(None, Some(&sval::Label::new("Tuple")), None)
+                        }
+                    }
+
+                    Tuple
+                })
+                .unwrap(),
+        )
+    }
+
+    #[test]
+    fn stream_enum_tuple_variant() {
+        assert_eq!(
+            Value::Enum(Enum {
+                tag: Tag::new(None, Some(&sval::Label::new("Enum")), None).unwrap(),
+                variant: Some(Variant::Tuple(Tuple {
+                    tag: Tag::new(
+                        None,
+                        Some(&sval::Label::new("Tuple")),
+                        Some(&sval::Index::new(0))
+                    )
+                    .unwrap(),
+                    entries: vec![
+                        (sval::Index::new(0), Value::I64(1)),
+                        (sval::Index::new(1), Value::Bool(true)),
+                    ]
+                })),
+            }),
+            ToValue::default()
+                .value(&{
+                    struct TupleVariant;
+
+                    impl sval::Value for TupleVariant {
+                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                            &'sval self,
+                            stream: &mut S,
+                        ) -> sval::Result {
+                            stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+                            stream.tuple_begin(
+                                None,
+                                Some(&sval::Label::new("Tuple")),
+                                Some(&sval::Index::new(0)),
+                                None,
+                            )?;
+
+                            stream.tuple_value_begin(None, &sval::Index::new(0))?;
+                            stream.i64(1)?;
+                            stream.tuple_value_end(None, &sval::Index::new(0))?;
+
+                            stream.tuple_value_begin(None, &sval::Index::new(1))?;
+                            stream.bool(true)?;
+                            stream.tuple_value_end(None, &sval::Index::new(1))?;
+
+                            stream.tuple_end(
+                                None,
+                                Some(&sval::Label::new("Tuple")),
+                                Some(&sval::Index::new(0)),
+                            )?;
+
+                            stream.enum_end(None, Some(&sval::Label::new("Enum")), None)
+                        }
+                    }
+
+                    TupleVariant
+                })
+                .unwrap(),
+        )
     }
 
     #[test]
@@ -793,6 +985,51 @@ mod tests {
     }
 
     #[test]
+    fn stream_enum_nested_value() {
+        struct Layer;
+
+        impl sval::Value for Layer {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                struct Layer;
+
+                impl sval::Value for Layer {
+                    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                        &'sval self,
+                        stream: &mut S,
+                    ) -> sval::Result {
+                        stream.enum_begin(None, Some(&sval::Label::new("Layer2")), None)?;
+                        stream.tagged_begin(None, Some(&sval::Label::new("Value")), None)?;
+                        stream.i64(42)?;
+                        stream.tagged_end(None, Some(&sval::Label::new("Value")), None)?;
+                        stream.enum_end(None, Some(&sval::Label::new("Layer2")), None)
+                    }
+                }
+
+                stream.enum_begin(None, Some(&sval::Label::new("Layer1")), None)?;
+                stream.value(&Layer)?;
+                stream.enum_end(None, Some(&sval::Label::new("Layer1")), None)
+            }
+        }
+
+        assert_eq!(
+            Value::Enum(Enum {
+                tag: Tag::new(None, Some(&sval::Label::new("Layer1")), None).unwrap(),
+                variant: Some(Variant::Enum(Box::new(Enum {
+                    tag: Tag::new(None, Some(&sval::Label::new("Layer2")), None).unwrap(),
+                    variant: Some(Variant::Tagged(Tagged {
+                        tag: Tag::new(None, Some(&sval::Label::new("Value")), None).unwrap(),
+                        value: Box::new(Value::I64(42)),
+                    }))
+                })))
+            }),
+            ToValue::default().value(&Layer).unwrap()
+        );
+    }
+
+    #[test]
     fn stream_deeply_nested_enum() {
         struct Layer;
 
@@ -874,6 +1111,7 @@ mod tests {
         Tagged(Tagged<'sval>),
         Seq(Seq<'sval>),
         Map(Map<'sval>),
+        Tuple(Tuple<'sval>),
         Record(Record<'sval>),
         Enum(Enum<'sval>),
     }
@@ -883,6 +1121,7 @@ mod tests {
             match self {
                 Value::Tag(variant) => Ok(Variant::Tag(variant)),
                 Value::Tagged(variant) => Ok(Variant::Tagged(variant)),
+                Value::Tuple(variant) => Ok(Variant::Tuple(variant)),
                 Value::Record(variant) => Ok(Variant::Record(variant)),
                 Value::Enum(variant) => Ok(Variant::Enum(Box::new(variant))),
                 _ => Err(Error::invalid_value("expected an enum variant")),
@@ -928,6 +1167,12 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq)]
+    struct Tuple<'sval> {
+        tag: Tag,
+        entries: Vec<(sval::Index, Value<'sval>)>,
+    }
+
+    #[derive(Debug, PartialEq)]
     struct Record<'sval> {
         tag: Tag,
         entries: Vec<(sval::Label<'static>, Value<'sval>)>,
@@ -943,6 +1188,7 @@ mod tests {
     enum Variant<'sval> {
         Tag(Tag),
         Tagged(Tagged<'sval>),
+        Tuple(Tuple<'sval>),
         Record(Record<'sval>),
         Enum(Box<Enum<'sval>>),
     }
@@ -957,6 +1203,10 @@ mod tests {
 
     struct ToSeq<'sval> {
         seq: Seq<'sval>,
+    }
+
+    struct ToTuple<'sval> {
+        tuple: Tuple<'sval>,
     }
 
     struct ToRecord<'sval> {
@@ -979,6 +1229,7 @@ mod tests {
         type Seq = ToSeq<'sval>;
         type Map = ToMap<'sval>;
 
+        type Tuple = ToTuple<'sval>;
         type Record = ToRecord<'sval>;
         type Enum = ToEnum<'sval>;
 
@@ -1046,6 +1297,21 @@ mod tests {
                 key: None,
                 map: Map {
                     entries: Vec::new(),
+                },
+            })
+        }
+
+        fn tuple_begin(
+            self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+            _: Option<usize>,
+        ) -> Result<Self::Tuple> {
+            Ok(ToTuple {
+                tuple: Tuple {
+                    tag: Tag::new(tag, label, index)?,
+                    entries: Default::default(),
                 },
             })
         }
@@ -1140,6 +1406,40 @@ mod tests {
         }
     }
 
+    impl<'sval> StreamTuple<'sval> for ToTuple<'sval> {
+        type Ok = Value<'sval>;
+
+        fn value<V: sval::Value + ?Sized>(
+            &mut self,
+            _: Option<&sval::Tag>,
+            index: &sval::Index,
+            value: &'sval V,
+        ) -> Result {
+            let value = ToValue::default().value(value)?;
+
+            self.tuple.entries.push((index.clone(), value));
+
+            Ok(())
+        }
+
+        fn value_computed<V: sval::Value + ?Sized>(
+            &mut self,
+            _: Option<&sval::Tag>,
+            index: &sval::Index,
+            value: &V,
+        ) -> Result {
+            let value = ToValue::default().value_computed(value)?;
+
+            self.tuple.entries.push((index.clone(), value));
+
+            Ok(())
+        }
+
+        fn end(self) -> Result<Self::Ok> {
+            Ok(Value::Tuple(self.tuple))
+        }
+    }
+
     impl<'sval> StreamRecord<'sval> for ToRecord<'sval> {
         type Ok = Value<'sval>;
 
@@ -1179,6 +1479,7 @@ mod tests {
     impl<'sval> StreamEnum<'sval> for ToEnum<'sval> {
         type Ok = Value<'sval>;
 
+        type Tuple = ToVariant<ToTuple<'sval>>;
         type Record = ToVariant<ToRecord<'sval>>;
         type Nested = Self;
 
@@ -1213,6 +1514,24 @@ mod tests {
                     value: Box::new(value),
                 })),
             }))
+        }
+
+        fn tuple_begin(
+            self,
+            tag: Option<&sval::Tag>,
+            label: Option<&sval::Label>,
+            index: Option<&sval::Index>,
+            _: Option<usize>,
+        ) -> Result<Self::Tuple> {
+            Ok(ToVariant {
+                tag: self.tag,
+                stream: ToTuple {
+                    tuple: Tuple {
+                        tag: Tag::new(tag, label, index)?,
+                        entries: Vec::new(),
+                    },
+                },
+            })
         }
 
         fn record_begin(
@@ -1256,6 +1575,35 @@ mod tests {
             Ok(Value::Enum(Enum {
                 tag: self.tag,
                 variant: None,
+            }))
+        }
+    }
+
+    impl<'sval> StreamTuple<'sval> for ToVariant<ToTuple<'sval>> {
+        type Ok = Value<'sval>;
+
+        fn value<V: sval::Value + ?Sized>(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            index: &sval::Index,
+            value: &'sval V,
+        ) -> Result {
+            self.stream.value(tag, index, value)
+        }
+
+        fn value_computed<V: sval::Value + ?Sized>(
+            &mut self,
+            tag: Option<&sval::Tag>,
+            index: &sval::Index,
+            value: &V,
+        ) -> Result {
+            self.stream.value_computed(tag, index, value)
+        }
+
+        fn end(self) -> Result<Self::Ok> {
+            Ok(Value::Enum(Enum {
+                tag: self.tag,
+                variant: Some(Variant::Tuple(self.stream.tuple)),
             }))
         }
     }
