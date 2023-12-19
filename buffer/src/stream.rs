@@ -702,9 +702,96 @@ pub mod default_stream {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use alloc::borrow::Cow;
 
-    use super::*;
+    use sval_derive_macros::*;
+
+    #[test]
+    fn stream_derive() {
+        #[derive(Value)]
+        struct DeriveRecord {
+            a: i32,
+            b: DeriveTuple,
+        }
+
+        #[derive(Value)]
+        struct DeriveTuple(i32, DeriveEnum);
+
+        #[derive(Value)]
+        enum DeriveEnum {
+            Record { a: i32, b: DeriveTagged },
+        }
+
+        #[derive(Value)]
+        struct DeriveTagged(bool);
+
+        assert_eq!(
+            Value::Record(Record {
+                tag: Tag::new(None, Some(&sval::Label::new("DeriveRecord")), None).unwrap(),
+                entries: vec![
+                    (sval::Label::new("a"), Value::I64(1)),
+                    (
+                        sval::Label::new("b"),
+                        Value::Tuple(Tuple {
+                            tag: Tag::new(None, Some(&sval::Label::new("DeriveTuple")), None)
+                                .unwrap(),
+                            entries: vec![
+                                (sval::Index::new(0), Value::I64(2)),
+                                (
+                                    sval::Index::new(1),
+                                    Value::Enum(Enum {
+                                        tag: Tag::new(
+                                            None,
+                                            Some(&sval::Label::new("DeriveEnum")),
+                                            None
+                                        )
+                                        .unwrap(),
+                                        variant: Some(Variant::Record(Record {
+                                            tag: Tag::new(
+                                                None,
+                                                Some(&sval::Label::new("Record")),
+                                                Some(&sval::Index::new(0))
+                                            )
+                                            .unwrap(),
+                                            entries: vec![
+                                                (sval::Label::new("a"), Value::I64(3)),
+                                                (
+                                                    sval::Label::new("b"),
+                                                    Value::Tagged(Tagged {
+                                                        tag: Tag::new(
+                                                            None,
+                                                            Some(&sval::Label::new("DeriveTagged")),
+                                                            None
+                                                        )
+                                                        .unwrap(),
+                                                        value: Box::new(Value::Bool(true)),
+                                                    })
+                                                )
+                                            ]
+                                        }))
+                                    })
+                                )
+                            ]
+                        })
+                    )
+                ]
+            }),
+            ToValue::default()
+                .value(&DeriveRecord {
+                    a: 1,
+                    b: DeriveTuple(
+                        2,
+                        DeriveEnum::Record {
+                            a: 3,
+                            b: DeriveTagged(true)
+                        }
+                    )
+                })
+                .unwrap()
+        );
+    }
 
     #[test]
     fn stream_primitive() {
@@ -723,29 +810,11 @@ mod tests {
     }
 
     #[test]
-    fn stream_text_owned() {
+    fn stream_binary_borrowed() {
         assert_eq!(
-            Value::Text(Cow::Owned("owned".into())),
+            Value::Binary(Cow::Borrowed(b"borrowed")),
             ToValue::default()
-                .value(&{
-                    struct Text;
-
-                    impl sval::Value for Text {
-                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
-                            &'sval self,
-                            stream: &mut S,
-                        ) -> sval::Result {
-                            stream.text_begin(None)?;
-
-                            stream.text_fragment("ow")?;
-                            stream.text_fragment("ned")?;
-
-                            stream.text_end()
-                        }
-                    }
-
-                    Text
-                })
+                .value(sval::BinarySlice::new(b"borrowed"))
                 .unwrap()
         );
     }
@@ -985,6 +1054,65 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
+    fn stream_text_owned() {
+        assert_eq!(
+            Value::Text(Cow::Owned("owned".into())),
+            ToValue::default()
+                .value(&{
+                    struct Text;
+
+                    impl sval::Value for Text {
+                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                            &'sval self,
+                            stream: &mut S,
+                        ) -> sval::Result {
+                            stream.text_begin(None)?;
+
+                            stream.text_fragment("ow")?;
+                            stream.text_fragment("ned")?;
+
+                            stream.text_end()
+                        }
+                    }
+
+                    Text
+                })
+                .unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn stream_binary_owned() {
+        assert_eq!(
+            Value::Binary(Cow::Owned(b"owned".into())),
+            ToValue::default()
+                .value(&{
+                    struct Binary;
+
+                    impl sval::Value for Binary {
+                        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                            &'sval self,
+                            stream: &mut S,
+                        ) -> sval::Result {
+                            stream.binary_begin(None)?;
+
+                            stream.binary_fragment(b"ow")?;
+                            stream.binary_fragment(b"ned")?;
+
+                            stream.binary_end()
+                        }
+                    }
+
+                    Binary
+                })
+                .unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
     fn stream_enum_nested_value() {
         struct Layer;
 
@@ -1030,6 +1158,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn stream_deeply_nested_enum() {
         struct Layer;
 
@@ -1106,6 +1235,7 @@ mod tests {
         Bool(bool),
         I64(i64),
         F64(f64),
+        Binary(Cow<'sval, [u8]>),
         Text(Cow<'sval, str>),
         Tag(Tag),
         Tagged(Tagged<'sval>),
@@ -1255,6 +1385,14 @@ mod tests {
 
         fn text_computed(self, text: &str) -> Result<Self::Ok> {
             Ok(Value::Text(Cow::Owned(text.into())))
+        }
+
+        fn binary(self, binary: &'sval [u8]) -> Result<Self::Ok> {
+            Ok(Value::Binary(Cow::Borrowed(binary)))
+        }
+
+        fn binary_computed(self, binary: &[u8]) -> Result<Self::Ok> {
+            Ok(Value::Binary(Cow::Owned(binary.into())))
         }
 
         fn tag(

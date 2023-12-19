@@ -25,7 +25,7 @@ extern crate std as libstd;
 #[cfg(not(feature = "alloc"))]
 extern crate core as std;
 
-#[cfg(feature = "alloc")]
+#[cfg(any(test, feature = "alloc"))]
 extern crate alloc;
 #[cfg(feature = "alloc")]
 extern crate core;

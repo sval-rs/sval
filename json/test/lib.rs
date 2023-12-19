@@ -315,7 +315,7 @@ fn stream_empty_enum() {
         }
     }
 
-    assert_eq!("null", sval_json::stream_to_string(Enum).unwrap());
+    assert_eq!("\"Enum\"", sval_json::stream_to_string(Enum).unwrap());
 }
 
 #[test]
@@ -452,7 +452,7 @@ fn stream_exotic_nested_enum_tag() {
 
 #[test]
 fn stream_exotic_nested_enum_empty() {
-    // Outer::Inner::Variant
+    // Outer::Inner
     struct NestedEnum;
 
     impl sval::Value for NestedEnum {
@@ -479,7 +479,7 @@ fn stream_exotic_nested_enum_empty() {
     }
 
     assert_eq!(
-        "{\"Inner\":null}",
+        "{\"Inner\":\"Inner\"}",
         sval_json::stream_to_string(NestedEnum).unwrap(),
     );
 

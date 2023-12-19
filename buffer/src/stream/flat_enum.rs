@@ -216,6 +216,7 @@ impl Queue {
         }
         #[cfg(not(feature = "alloc"))]
         {
+            let _ = variant;
             Err(Error::no_alloc("nested enum variant"))
         }
     }

@@ -278,12 +278,12 @@ where
 
     fn enum_end(
         &mut self,
-        _: Option<&sval::Tag>,
+        tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
         if self.is_current_depth_empty {
-            _try_no_conv!(self.tag(None, None, None));
+            _try_no_conv!(self.tag(tag, label, index));
         }
 
         if self.is_internally_tagged {
