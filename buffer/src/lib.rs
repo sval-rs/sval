@@ -32,6 +32,7 @@ extern crate core;
 
 #[cfg(feature = "alloc")]
 mod std {
+    #[allow(unused_imports)]
     pub use crate::{
         alloc::{borrow, boxed, collections, string, vec},
         core::{convert, fmt, hash, marker, mem, ops, result, str},
