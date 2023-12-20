@@ -180,7 +180,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
             _ => {
                 let name = label
                     .and_then(|label| label.as_static_str())
-                    .ok_or_else(|| sval_nested::Error::invalid_value("missing unit label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("unit label must be static"))?;
 
                 Ok(self.serializer.serialize_unit_struct(name))
             }
@@ -201,7 +201,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
             _ => {
                 let name = label
                     .and_then(|label| label.as_static_str())
-                    .ok_or_else(|| sval_nested::Error::invalid_value("missing newtype label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("newtype label must be static"))?;
 
                 Ok(self
                     .serializer
@@ -236,7 +236,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
             Some(label) => {
                 let name = label
                     .as_static_str()
-                    .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("tuple label must be static"))?;
 
                 Ok(SerializeTuple {
                     serializer: self
@@ -262,13 +262,13 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         num_entries: Option<usize>,
     ) -> sval_nested::Result<Self::Record> {
         let len =
-            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing tuple len"))?;
+            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing struct len"))?;
 
         match label {
             Some(label) => {
                 let name = label
                     .as_static_str()
-                    .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("struct label must be static"))?;
 
                 Ok(SerializeRecord {
                     serializer: self
@@ -294,7 +294,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
     ) -> sval_nested::Result<Self::Enum> {
         let name = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing enum label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("enum label must be static"))?;
 
         Ok(SerializeEnum {
             name,
@@ -389,7 +389,7 @@ impl<
         match self.serializer {
             Ok(MaybeNamed::Named { ref mut serializer }) => {
                 let field = label.as_static_str().ok_or_else(|| {
-                    sval_nested::Error::invalid_value("missing struct field label")
+                    sval_nested::Error::invalid_value("struct field label must be static")
                 })?;
 
                 match serializer.serialize_field(field, &ToSerialize::new(value)) {
@@ -491,11 +491,11 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
     ) -> sval_nested::Result<Self::Ok> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing unit label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("unit variant label must be static"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing unit index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("unit variant index must a 32bit value"))?;
 
         Ok(self
             .serializer
@@ -511,11 +511,11 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
     ) -> sval_nested::Result<Self::Ok> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing newtype label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("newtype variant label must be static"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing newtype index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("newtype variant index must be a 32bit value"))?;
 
         Ok(self.serializer.serialize_newtype_variant(
             self.name,
@@ -534,14 +534,14 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
     ) -> sval_nested::Result<Self::Tuple> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("tuple variant label must be static"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("tuple variant index must be a 32bit value"))?;
 
         let len =
-            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing tuple len"))?;
+            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing tuple variant len"))?;
 
         Ok(SerializeTupleVariant {
             serializer: self.serializer.serialize_tuple_variant(
@@ -562,14 +562,14 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
     ) -> sval_nested::Result<Self::Record> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing struct label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("struct variant label must be static"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing struct index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("struct variant index must be a 32bit value"))?;
 
         let len =
-            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing struct len"))?;
+            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing struct variant len"))?;
 
         Ok(SerializeRecordVariant {
             serializer: self.serializer.serialize_struct_variant(
@@ -613,7 +613,7 @@ impl<'sval, S: serde::ser::SerializeStructVariant> StreamRecord<'sval>
     ) -> sval_nested::Result {
         let field = label
             .as_static_str()
-            .ok_or_else(|| sval_nested::Error::invalid_value("missing struct field label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("struct variant field label must be static"))?;
 
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_field(field, &ToSerialize::new(value)) {
