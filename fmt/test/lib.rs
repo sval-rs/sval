@@ -216,6 +216,54 @@ fn debug_exotic_nested_enum() {
 }
 
 #[test]
+fn debug_exotic_empty_enum() {
+    struct Enum;
+
+    impl sval::Value for Enum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+            stream.enum_end(None, Some(&sval::Label::new("Enum")), None)
+        }
+    }
+
+    assert_eq!("Enum", format!("{:?}", sval_fmt::ToFmt::new(Enum)));
+}
+
+#[test]
+fn debug_exotic_nested_enum_empty() {
+    // Outer::Inner::Variant
+    struct NestedEnum;
+
+    impl sval::Value for NestedEnum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, Some(&sval::Label::new("Outer")), None)?;
+
+            stream.enum_begin(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.enum_end(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.enum_end(None, Some(&sval::Label::new("Outer")), None)
+        }
+    }
+
+    assert_eq!("Inner", format!("{:?}", sval_fmt::ToFmt::new(NestedEnum)));
+}
+
+#[test]
 fn debug_exotic_unnamed_enum() {
     // i32 | bool
     enum UntaggedEnum {

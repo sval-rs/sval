@@ -247,12 +247,9 @@ fn stream_enum() {
 #[test]
 fn stream_untagged_enum() {
     #[derive(Value)]
-    enum Null {}
-
-    #[derive(Value)]
     #[sval(dynamic)]
     enum Dynamic<'a> {
-        Null(Option<Null>),
+        Null(sval::Null),
         Text(&'a str),
         Number(f64),
         Boolean(bool),
@@ -273,7 +270,7 @@ fn stream_untagged_enum() {
     );
     assert_eq!(
         "null",
-        sval_json::stream_to_string(Dynamic::Null(None)).unwrap()
+        sval_json::stream_to_string(Dynamic::Null(sval::Null)).unwrap()
     );
     assert_eq!(
         "[true,false]",
@@ -302,6 +299,23 @@ fn stream_externally_tagged_enum() {
         })
         .unwrap()
     );
+}
+
+#[test]
+fn stream_empty_enum() {
+    struct Enum;
+
+    impl sval::Value for Enum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+            stream.enum_end(None, Some(&sval::Label::new("Enum")), None)
+        }
+    }
+
+    assert_eq!("\"Enum\"", sval_json::stream_to_string(Enum).unwrap());
 }
 
 #[test]
@@ -425,6 +439,47 @@ fn stream_exotic_nested_enum_tag() {
 
     assert_eq!(
         "{\"Inner\":\"Variant\"}",
+        sval_json::stream_to_string(NestedEnum).unwrap(),
+    );
+
+    assert_valid(MapStruct {
+        field_0: NestedEnum,
+        field_1: NestedEnum,
+    });
+
+    assert_valid(SeqStruct(NestedEnum, NestedEnum));
+}
+
+#[test]
+fn stream_exotic_nested_enum_empty() {
+    // Outer::Inner
+    struct NestedEnum;
+
+    impl sval::Value for NestedEnum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, Some(&sval::Label::new("Outer")), None)?;
+
+            stream.enum_begin(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.enum_end(
+                None,
+                Some(&sval::Label::new("Inner")),
+                Some(&sval::Index::new(1)),
+            )?;
+
+            stream.enum_end(None, Some(&sval::Label::new("Outer")), None)
+        }
+    }
+
+    assert_eq!(
+        "{\"Inner\":\"Inner\"}",
         sval_json::stream_to_string(NestedEnum).unwrap(),
     );
 

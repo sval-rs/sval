@@ -825,6 +825,105 @@ mod tests {
     }
 
     #[test]
+    fn flatten_exotic_enum_empty() {
+        struct EmptyEnum;
+
+        impl sval::Value for EmptyEnum {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.enum_begin(None, Some(&Label::new("Enum")), None)?;
+                stream.enum_end(None, Some(&Label::new("Enum")), None)
+            }
+        }
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: EmptyEnum,
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+    }
+
+    #[test]
+    fn flatten_exotic_enum_nested_empty() {
+        struct NestedEnum;
+
+        impl sval::Value for NestedEnum {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.enum_begin(None, Some(&Label::new("Enum")), None)?;
+
+                stream.enum_begin(
+                    None,
+                    Some(&Label::new("EnumInner")),
+                    Some(&Index::new(7).with_tag(&sval::tags::VALUE_OFFSET)),
+                )?;
+
+                stream.enum_begin(
+                    None,
+                    Some(&Label::new("EnumInnerInner")),
+                    Some(&Index::new(3).with_tag(&sval::tags::VALUE_OFFSET)),
+                )?;
+
+                stream.enum_end(
+                    None,
+                    Some(&Label::new("EnumInnerInner")),
+                    Some(&Index::new(3).with_tag(&sval::tags::VALUE_OFFSET)),
+                )?;
+
+                stream.enum_end(
+                    None,
+                    Some(&Label::new("EnumInner")),
+                    Some(&Index::new(7).with_tag(&sval::tags::VALUE_OFFSET)),
+                )?;
+
+                stream.enum_end(None, Some(&Label::new("Enum")), None)
+            }
+        }
+
+        sval_test::assert_tokens(
+            &Outer {
+                a: 1,
+                i: NestedEnum,
+                d: 4,
+            },
+            {
+                use sval_test::Token::*;
+
+                &[
+                    RecordTupleBegin(None, Some(Label::new("Outer")), None, None),
+                    RecordTupleValueBegin(None, Label::new("a"), Index::new(0)),
+                    I32(1),
+                    RecordTupleValueEnd(None, Label::new("a"), Index::new(0)),
+                    RecordTupleValueBegin(None, Label::new("d"), Index::new(1)),
+                    I32(4),
+                    RecordTupleValueEnd(None, Label::new("d"), Index::new(1)),
+                    RecordTupleEnd(None, Some(Label::new("Outer")), None),
+                ]
+            },
+        );
+    }
+
+    #[test]
     fn flatten_primitive() {
         sval_test::assert_tokens(
             &Outer {

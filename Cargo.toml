@@ -24,6 +24,7 @@ members = [
     "buffer",
     "fmt",
     "fmt/test",
+    "nested",
     "serde",
     "serde/test",
     "json",

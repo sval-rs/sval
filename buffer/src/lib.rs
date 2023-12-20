@@ -9,7 +9,7 @@ Rather than conditionally compile these methods, this library stubs
 out functionality when an allocator isn't available.
 */
 
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
 
 mod error;
@@ -20,13 +20,14 @@ extern crate std as libstd;
 #[cfg(not(feature = "alloc"))]
 extern crate core as std;
 
-#[cfg(feature = "alloc")]
+#[cfg(any(test, feature = "alloc"))]
 extern crate alloc;
 #[cfg(feature = "alloc")]
 extern crate core;
 
 #[cfg(feature = "alloc")]
 mod std {
+    #[allow(unused_imports)]
     pub use crate::{
         alloc::{borrow, boxed, collections, string, vec},
         core::{convert, fmt, hash, marker, mem, ops, result, str},

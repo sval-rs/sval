@@ -15,21 +15,17 @@ categories = ["encoding", "no-std"]
 features = ["std"]
 
 [features]
-std = ["alloc", "serde/std", "sval/std", "sval_buffer/std"]
-alloc = ["serde/alloc", "sval/alloc", "sval_buffer/alloc"]
+std = ["alloc", "serde/std", "sval/std", "sval_nested/std"]
+alloc = ["serde/alloc", "sval/alloc", "sval_nested/alloc"]
 
 [dependencies.sval]
 version = "2.10.2"
 path = "../"
 
-[dependencies.sval_buffer]
+[dependencies.sval_nested]
 version = "2.10.2"
-path = "../buffer"
+path = "../nested"
 default-features = false
-
-[dependencies.sval_fmt]
-version = "2.10.2"
-path = "../fmt"
 
 [dependencies.serde]
 version = "1"

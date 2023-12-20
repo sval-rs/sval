@@ -1,5 +1,17 @@
 use crate::{tags, Index, Label, Result, Stream, Value};
 
+/**
+The absence of any meaningful value.
+*/
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Null;
+
+impl Value for Null {
+    fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+        stream.null()
+    }
+}
+
 impl<T: Value> Value for Option<T> {
     fn stream<'a, S: Stream<'a> + ?Sized>(&'a self, stream: &mut S) -> Result {
         if let Some(some) = self {

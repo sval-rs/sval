@@ -344,15 +344,21 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         _: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
+        self.is_current_depth_empty = true;
+
         Ok(())
     }
 
     fn enum_end(
         &mut self,
-        _: Option<&sval::Tag>,
-        _: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
+        if self.is_current_depth_empty {
+            self.tag(tag, label, index)?;
+        }
+
         Ok(())
     }
 
@@ -362,6 +368,8 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         if tag == Some(&tags::NUMBER) {
             self.is_number = true;
         }
@@ -403,6 +411,8 @@ impl<'sval, W: TokenWrite> sval::Stream<'sval> for Writer<W> {
         label: Option<&sval::Label>,
         _: Option<&sval::Index>,
     ) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         if let Some(label) = label {
             self.out
                 .write_type(label.as_str())

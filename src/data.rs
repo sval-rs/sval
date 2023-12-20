@@ -21,9 +21,7 @@ use crate::{
 #[cfg(feature = "alloc")]
 use crate::std::boxed::Box;
 
-pub(crate) use self::number::*;
-
-pub use self::{binary::*, map::*, text::*};
+pub use self::{binary::*, map::*, number::*, option::*, text::*};
 
 /**
 A textual label for some value.
