@@ -1198,7 +1198,7 @@ pub mod default_stream {
 mod tests {
     use super::*;
 
-    use alloc::borrow::Cow;
+    use std::borrow::Cow;
 
     use sval_derive_macros::*;
 
