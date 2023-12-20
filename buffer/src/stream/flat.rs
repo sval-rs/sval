@@ -205,6 +205,35 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
         )
     }
 
+    fn tag(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> sval::Result {
+        self.buffer_or_stream_with(
+            |buf| buf.tag(tag, label, index),
+            |stream| match stream.state {
+                State::Enum(ref mut stream) => {
+                    let stream = stream.take().ok_or_else(|| {
+                        Error::invalid_value(
+                            "failed to stream an enum; the stream is already completed",
+                        )
+                    })?;
+
+                    Ok(Some(stream.stream.tag(
+                        tag.cloned(),
+                        label.cloned(),
+                        index.cloned(),
+                    )?))
+                }
+                ref mut state => state.value_computed(&Tag(tag, label, index), |stream, _| {
+                    stream.tag(tag.cloned(), label.cloned(), index.cloned())
+                }),
+            },
+        )
+    }
+
     fn seq_begin(&mut self, num_entries: Option<usize>) -> sval::Result {
         self.buffer_or_begin_with(
             |buf| buf.seq_begin(num_entries),
@@ -528,24 +557,6 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                     |tuple| tuple.stream.end(),
                     |tuple_variant| tuple_variant.stream.end(),
                 )
-            },
-        )
-    }
-
-    fn tag(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        self.buffer_or_stream_with(
-            |buf| buf.tag(tag, label, index),
-            |stream| {
-                stream
-                    .state
-                    .value_computed(&Tag(tag, label, index), |stream, _| {
-                        stream.tag(tag.cloned(), label.cloned(), index.cloned())
-                    })
             },
         )
     }

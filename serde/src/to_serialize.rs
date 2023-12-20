@@ -1,12 +1,8 @@
-use core::mem;
+use serde::ser::{Error as _, Serialize as _};
 
-use serde::ser::{
-    Error as _, Serialize as _, SerializeMap as _, SerializeSeq as _, SerializeStruct as _,
-    SerializeStructVariant as _, SerializeTuple as _, SerializeTupleStruct as _,
-    SerializeTupleVariant as _,
+use sval_buffer::{
+    Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple, Unsupported,
 };
-
-use sval_buffer::{BinaryBuf, TextBuf, ValueBuf};
 
 /**
 Serialize an [`sval::Value`] into a [`serde::Serializer`].
@@ -45,955 +41,633 @@ impl<V: sval::Value + ?Sized> ToSerialize<V> {
 
 impl<V: sval::Value> serde::Serialize for ToSerialize<V> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut stream = Serializer {
-            buffered: None,
-            state: State::Any(Some(Any {
-                serializer,
-                is_option: false,
-                struct_label: None,
-                variant_label: None,
-                variant_index: None,
-            })),
-        };
-
-        let _ = self.0.stream(&mut stream);
-
-        stream.finish()
+        Serializer::new(serializer)
+            .value(&self.0)
+            .unwrap_or_else(|e| Err(S::Error::custom(e)))
     }
 }
 
-struct Serializer<'sval, S: serde::Serializer> {
-    buffered: Option<Buffered<'sval>>,
-    state: State<S>,
+struct Serializer<S> {
+    serializer: S,
 }
 
-impl<'sval, S: serde::Serializer> sval::Stream<'sval> for Serializer<'sval, S> {
-    fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> sval::Result {
-        self.buffer_or_value(|buf| buf.value(value), || ToSerialize(value))
+struct SerializeSeq<S, E> {
+    serializer: Result<S, E>,
+}
+
+struct SerializeMap<S, E> {
+    serializer: Result<S, E>,
+}
+
+struct SerializeTuple<TNamed, TUnnamed, E> {
+    serializer: Result<MaybeNamed<TNamed, TUnnamed>, E>,
+}
+
+enum MaybeNamed<TNamed, TUnnamed> {
+    Named { serializer: TNamed },
+    Unnamed { serializer: TUnnamed },
+}
+
+struct SerializeRecord<TNamed, TUnnamed, E> {
+    serializer: Result<MaybeNamed<TNamed, TUnnamed>, E>,
+}
+
+struct SerializeEnum<S> {
+    name: &'static str,
+    serializer: S,
+}
+
+struct SerializeRecordVariant<S, E> {
+    serializer: Result<S, E>,
+}
+
+struct SerializeTupleVariant<S, E> {
+    serializer: Result<S, E>,
+}
+
+impl<S> Serializer<S> {
+    fn new(serializer: S) -> Self {
+        Serializer { serializer }
+    }
+}
+
+impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
+    type Ok = Result<S::Ok, S::Error>;
+
+    type Seq = SerializeSeq<S::SerializeSeq, S::Error>;
+
+    type Map = SerializeMap<S::SerializeMap, S::Error>;
+
+    type Tuple = SerializeTuple<S::SerializeTupleStruct, S::SerializeTuple, S::Error>;
+
+    type Record = SerializeRecord<S::SerializeStruct, S::SerializeTuple, S::Error>;
+
+    type Enum = SerializeEnum<S>;
+
+    fn null(self) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_none())
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> sval::Result {
-        self.buffer_or_value(|buf| buf.value_computed(value), || ToSerialize(value))
+    fn bool(self, value: bool) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_bool(value))
     }
 
-    fn null(&mut self) -> sval::Result {
-        self.buffer_or_value(|buf| buf.null(), || None::<()>)
+    fn i8(self, value: i8) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_i8(value))
     }
 
-    fn bool(&mut self, value: bool) -> sval::Result {
-        self.buffer_or_value(|buf| buf.bool(value), || value)
+    fn i16(self, value: i16) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_i16(value))
     }
 
-    fn u8(&mut self, value: u8) -> sval::Result {
-        self.buffer_or_value(|buf| buf.u8(value), || value)
+    fn i32(self, value: i32) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_i32(value))
     }
 
-    fn u16(&mut self, value: u16) -> sval::Result {
-        self.buffer_or_value(|buf| buf.u16(value), || value)
+    fn i64(self, value: i64) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_i64(value))
     }
 
-    fn u32(&mut self, value: u32) -> sval::Result {
-        self.buffer_or_value(|buf| buf.u32(value), || value)
+    fn i128(self, value: i128) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_i128(value))
     }
 
-    fn u64(&mut self, value: u64) -> sval::Result {
-        self.buffer_or_value(|buf| buf.u64(value), || value)
+    fn u8(self, value: u8) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_u8(value))
     }
 
-    fn u128(&mut self, value: u128) -> sval::Result {
-        self.buffer_or_value(|buf| buf.u128(value), || value)
+    fn u16(self, value: u16) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_u16(value))
     }
 
-    fn i8(&mut self, value: i8) -> sval::Result {
-        self.buffer_or_value(|buf| buf.i8(value), || value)
+    fn u32(self, value: u32) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_u32(value))
     }
 
-    fn i16(&mut self, value: i16) -> sval::Result {
-        self.buffer_or_value(|buf| buf.i16(value), || value)
+    fn u64(self, value: u64) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_u64(value))
     }
 
-    fn i32(&mut self, value: i32) -> sval::Result {
-        self.buffer_or_value(|buf| buf.i32(value), || value)
+    fn u128(self, value: u128) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_u128(value))
     }
 
-    fn i64(&mut self, value: i64) -> sval::Result {
-        self.buffer_or_value(|buf| buf.i64(value), || value)
+    fn f32(self, value: f32) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_f32(value))
     }
 
-    fn i128(&mut self, value: i128) -> sval::Result {
-        self.buffer_or_value(|buf| buf.i128(value), || value)
+    fn f64(self, value: f64) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_f64(value))
     }
 
-    fn f32(&mut self, value: f32) -> sval::Result {
-        self.buffer_or_value(|buf| buf.f32(value), || value)
+    fn text_computed(self, text: &str) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_str(text))
     }
 
-    fn f64(&mut self, value: f64) -> sval::Result {
-        self.buffer_or_value(|buf| buf.f64(value), || value)
-    }
-
-    fn text_begin(&mut self, size_hint: Option<usize>) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.text_begin(size_hint),
-            |serializer| serializer.put_buffer(Buffered::Text(TextBuf::new())),
-        )
-    }
-
-    fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.text_fragment(fragment),
-            |serializer| serializer.with_text(|text| text.push_fragment(fragment)),
-        )
-    }
-
-    fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.text_fragment_computed(fragment),
-            |serializer| serializer.with_text(|text| text.push_fragment_computed(fragment)),
-        )
-    }
-
-    fn text_end(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.text_end(),
-            |serializer| {
-                let buf = serializer.take_text()?;
-
-                serializer.state.serialize_value(buf.as_str())
-            },
-        )
-    }
-
-    fn binary_begin(&mut self, size_hint: Option<usize>) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.binary_begin(size_hint),
-            |serializer| serializer.put_buffer(Buffered::Binary(BinaryBuf::new())),
-        )
-    }
-
-    fn binary_fragment(&mut self, fragment: &'sval [u8]) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.binary_fragment(fragment),
-            |serializer| serializer.with_binary(|binary| binary.push_fragment(fragment)),
-        )
-    }
-
-    fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.binary_fragment_computed(fragment),
-            |serializer| serializer.with_binary(|binary| binary.push_fragment_computed(fragment)),
-        )
-    }
-
-    fn binary_end(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.binary_end(),
-            |serializer| {
-                let buf = serializer.take_binary()?;
-
-                serializer.state.serialize_value(Bytes(buf.as_slice()))
-            },
-        )
-    }
-
-    fn map_begin(&mut self, num_entries_hint: Option<usize>) -> sval::Result {
-        self.buffer_or_transition_any_with(
-            |buf| buf.map_begin(num_entries_hint),
-            |serializer| {
-                Ok(State::Map(Some(Map {
-                    serializer: serializer.serializer.serialize_map(num_entries_hint)?,
-                    is_key: true,
-                })))
-            },
-        )
-    }
-
-    fn map_key_begin(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.map_key_begin(),
-            |serializer| {
-                serializer.with_map(|serializer| {
-                    serializer.is_key = true;
-
-                    Ok(())
-                })
-            },
-        )
-    }
-
-    fn map_key_end(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(|buf| buf.map_key_end(), |_| Ok(()))
-    }
-
-    fn map_value_begin(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.map_value_begin(),
-            |serializer| {
-                serializer.with_map(|serializer| {
-                    serializer.is_key = false;
-
-                    Ok(())
-                })
-            },
-        )
-    }
-
-    fn map_value_end(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(|buf| buf.map_value_end(), |_| Ok(()))
-    }
-
-    fn map_end(&mut self) -> sval::Result {
-        self.buffer_or_transition_done_with(
-            |buf| buf.map_end(),
-            |serializer| serializer.take_map()?.serializer.end(),
-        )
-    }
-
-    fn seq_begin(&mut self, num_entries_hint: Option<usize>) -> sval::Result {
-        self.buffer_or_transition_any_with(
-            |buf| buf.seq_begin(num_entries_hint),
-            |serializer| {
-                Ok(State::Seq(Some(Seq {
-                    serializer: serializer.serializer.serialize_seq(num_entries_hint)?,
-                })))
-            },
-        )
-    }
-
-    fn seq_value_begin(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(|buf| buf.seq_value_begin(), |_| Ok(()))
-    }
-
-    fn seq_value_end(&mut self) -> sval::Result {
-        self.buffer_or_serialize_with(|buf| buf.seq_value_begin(), |_| Ok(()))
-    }
-
-    fn seq_end(&mut self) -> sval::Result {
-        self.buffer_or_transition_done_with(
-            |buf| buf.seq_end(),
-            |serializer| serializer.take_seq()?.serializer.end(),
-        )
-    }
-
-    fn enum_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        self.buffer_or_transition_any_with(
-            |buf| buf.enum_begin(tag, label, index),
-            |mut serializer| {
-                serializer.struct_label = label.and_then(|label| label.as_static_str());
-
-                Ok(State::Any(Some(serializer)))
-            },
-        )
-    }
-
-    fn enum_end(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        self.buffer_or_transition_done_with(
-            |buf| buf.enum_end(tag, label, index),
-            |serializer| serializer.finish(),
-        )
-    }
-
-    fn tagged_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        self.buffer_or_transition_any_with(
-            |buf| buf.tagged_begin(tag, label, index),
-            |mut serializer| {
-                match tag {
-                    Some(&sval::tags::RUST_OPTION_SOME) => {
-                        serializer.is_option = true;
-                    }
-                    _ => {
-                        if serializer.struct_label.is_none() {
-                            serializer.struct_label = label.and_then(|label| label.as_static_str());
-                        } else {
-                            serializer.variant_label =
-                                label.and_then(|label| label.as_static_str());
-                            serializer.variant_index = index.and_then(|index| index.to_u32());
-                        }
-                    }
-                }
-
-                Ok(State::Any(Some(serializer)))
-            },
-        )
-    }
-
-    fn tagged_end(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        self.buffer_or_transition_done_with(
-            |buf| buf.tagged_end(tag, label, index),
-            |serializer| serializer.finish(),
-        )
+    fn binary_computed(self, binary: &[u8]) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_bytes(binary))
     }
 
     fn tag(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
+        self,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        _: Option<sval::Index>,
+    ) -> sval_buffer::Result<Self::Ok> {
         match tag {
-            Some(&sval::tags::RUST_OPTION_NONE) => {
-                self.buffer_or_value(|buf| buf.tag(tag, label, index), || None::<()>)
+            Some(sval::tags::RUST_OPTION_NONE) => Ok(self.serializer.serialize_none()),
+            Some(sval::tags::RUST_UNIT) => Ok(self.serializer.serialize_unit()),
+            _ => {
+                let name = label
+                    .and_then(|label| label.as_static_str())
+                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing unit label"))?;
+
+                Ok(self.serializer.serialize_unit_struct(name))
             }
-            Some(&sval::tags::RUST_UNIT) => {
-                self.buffer_or_value(|buf| buf.tag(tag, label, index), || ())
+        }
+    }
+
+    fn tagged_computed<V: sval::Value + ?Sized>(
+        self,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        _: Option<sval::Index>,
+        value: &V,
+    ) -> sval_buffer::Result<Self::Ok> {
+        match tag {
+            Some(sval::tags::RUST_OPTION_SOME) => {
+                Ok(self.serializer.serialize_some(&ToSerialize::new(value)))
             }
-            _ => self.buffer_or_transition_any_with(
-                |buf| buf.tag(tag, label, index),
-                |serializer| {
-                    let unit_label = label
-                        .and_then(|label| label.as_static_str())
-                        .ok_or_else(|| S::Error::custom("missing unit label"))?;
+            _ => {
+                let name = label
+                    .and_then(|label| label.as_static_str())
+                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing newtype label"))?;
 
-                    let r = if let Some(struct_label) = serializer.struct_label {
-                        let variant_index = index
-                            .and_then(|index| index.to_u32())
-                            .ok_or_else(|| S::Error::custom("missing variant index"))?;
+                Ok(self
+                    .serializer
+                    .serialize_newtype_struct(name, &ToSerialize::new(value)))
+            }
+        }
+    }
 
-                        serializer.serializer.serialize_unit_variant(
-                            struct_label,
-                            variant_index,
-                            unit_label,
-                        )
-                    } else {
-                        serializer.serializer.serialize_unit_struct(unit_label)
-                    };
+    fn seq_begin(self, num_entries: Option<usize>) -> sval_buffer::Result<Self::Seq> {
+        Ok(SerializeSeq {
+            serializer: self.serializer.serialize_seq(num_entries),
+        })
+    }
 
-                    Ok(State::Done(Some(r)))
-                },
-            ),
+    fn map_begin(self, num_entries: Option<usize>) -> sval_buffer::Result<Self::Map> {
+        Ok(SerializeMap {
+            serializer: self.serializer.serialize_map(num_entries),
+        })
+    }
+
+    fn tuple_begin(
+        self,
+        _: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        _: Option<sval::Index>,
+        num_entries: Option<usize>,
+    ) -> sval_buffer::Result<Self::Tuple> {
+        let len =
+            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple len"))?;
+
+        match label {
+            Some(label) => {
+                let name = label
+                    .as_static_str()
+                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple label"))?;
+
+                Ok(SerializeTuple {
+                    serializer: self
+                        .serializer
+                        .serialize_tuple_struct(name, len)
+                        .map(|serializer| MaybeNamed::Named { serializer }),
+                })
+            }
+            None => Ok(SerializeTuple {
+                serializer: self
+                    .serializer
+                    .serialize_tuple(len)
+                    .map(|serializer| MaybeNamed::Unnamed { serializer }),
+            }),
         }
     }
 
     fn record_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        self,
+        _: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        _: Option<sval::Index>,
         num_entries: Option<usize>,
-    ) -> sval::Result {
-        self.buffer_or_transition_any_with(
-            |buf| buf.record_begin(tag, label, index, num_entries),
-            |serializer| {
-                let record_label = label.and_then(|label| label.as_static_str());
+    ) -> sval_buffer::Result<Self::Record> {
+        let len =
+            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple len"))?;
 
-                let num_entries =
-                    num_entries.ok_or_else(|| S::Error::custom("missing struct field count"))?;
+        match label {
+            Some(label) => {
+                let name = label
+                    .as_static_str()
+                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple label"))?;
 
-                match (serializer.struct_label, record_label) {
-                    (Some(struct_label), Some(variant_label)) => {
-                        let variant_index = index
-                            .and_then(|index| index.to_u32())
-                            .ok_or_else(|| S::Error::custom("missing variant index"))?;
+                Ok(SerializeRecord {
+                    serializer: self
+                        .serializer
+                        .serialize_struct(name, len)
+                        .map(|serializer| MaybeNamed::Named { serializer }),
+                })
+            }
+            None => Ok(SerializeRecord {
+                serializer: self
+                    .serializer
+                    .serialize_tuple(len)
+                    .map(|serializer| MaybeNamed::Unnamed { serializer }),
+            }),
+        }
+    }
 
-                        Ok(State::Record(Some(Record::Variant(VariantRecord {
-                            serializer: serializer.serializer.serialize_struct_variant(
-                                struct_label,
-                                variant_index,
-                                variant_label,
-                                num_entries,
-                            )?,
-                            label: None,
-                        }))))
-                    }
-                    (None, Some(struct_label)) | (Some(struct_label), None) => {
-                        Ok(State::Record(Some(Record::Struct(StructRecord {
-                            serializer: serializer
-                                .serializer
-                                .serialize_struct(struct_label, num_entries)?,
-                            label: None,
-                        }))))
-                    }
-                    (None, None) => Ok(State::Record(Some(Record::Anonymous(AnonymousRecord {
-                        serializer: serializer.serializer.serialize_map(Some(num_entries))?,
-                    })))),
+    fn enum_begin(
+        self,
+        _: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        _: Option<sval::Index>,
+    ) -> sval_buffer::Result<Self::Enum> {
+        let name = label
+            .and_then(|label| label.as_static_str())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing enum label"))?;
+
+        Ok(SerializeEnum {
+            name,
+            serializer: self.serializer,
+        })
+    }
+}
+
+impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S::Error> {
+    type Ok = Result<S::Ok, S::Error>;
+
+    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> sval_buffer::Result {
+        if let Ok(ref mut serializer) = self.serializer {
+            match serializer.serialize_element(&ToSerialize::new(value)) {
+                Ok(()) => return Ok(()),
+                Err(err) => {
+                    self.serializer = Err(err);
                 }
-            },
-        )
+            }
+        }
+
+        Err(sval_buffer::Error::invalid_value(
+            "failed to serialize sequence element",
+        ))
     }
 
-    fn record_value_begin(&mut self, tag: Option<&sval::Tag>, label: &sval::Label) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.record_value_begin(tag, label),
-            |serializer| {
-                serializer.with_record(|serializer| match serializer {
-                    Record::Anonymous(serializer) => {
-                        serializer.serializer.serialize_key(label.as_str())?;
+    fn end(self) -> sval_buffer::Result<Self::Ok> {
+        match self.serializer {
+            Ok(serializer) => Ok(serializer.end()),
+            Err(err) => Ok(Err(err)),
+        }
+    }
+}
 
-                        Ok(())
-                    }
-                    Record::Struct(serializer) => {
-                        serializer.label = label.as_static_str();
+impl<'sval, S: serde::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S::Error> {
+    type Ok = Result<S::Ok, S::Error>;
 
-                        Ok(())
-                    }
-                    Record::Variant(serializer) => {
-                        serializer.label = label.as_static_str();
+    fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> sval_buffer::Result {
+        if let Ok(ref mut serializer) = self.serializer {
+            match serializer.serialize_key(&ToSerialize::new(key)) {
+                Ok(()) => return Ok(()),
+                Err(err) => {
+                    self.serializer = Err(err);
+                }
+            }
+        }
 
-                        Ok(())
-                    }
-                })
-            },
-        )
+        Err(sval_buffer::Error::invalid_value(
+            "failed to serialize map key",
+        ))
     }
 
-    fn record_value_end(&mut self, tag: Option<&sval::Tag>, label: &sval::Label) -> sval::Result {
-        self.buffer_or_serialize_with(
-            |buf| buf.record_value_end(tag, label),
-            |serializer| {
-                serializer.with_record(|serializer| match serializer {
-                    Record::Anonymous(_) => Ok(()),
-                    Record::Struct(serializer) => {
-                        serializer.label = None;
+    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> sval_buffer::Result {
+        if let Ok(ref mut serializer) = self.serializer {
+            match serializer.serialize_value(&ToSerialize::new(value)) {
+                Ok(()) => return Ok(()),
+                Err(err) => {
+                    self.serializer = Err(err);
+                }
+            }
+        }
 
-                        Ok(())
-                    }
-                    Record::Variant(serializer) => {
-                        serializer.label = None;
-
-                        Ok(())
-                    }
-                })
-            },
-        )
+        Err(sval_buffer::Error::invalid_value(
+            "failed to serialize map value",
+        ))
     }
 
-    fn record_end(
+    fn end(self) -> sval_buffer::Result<Self::Ok> {
+        match self.serializer {
+            Ok(serializer) => Ok(serializer.end()),
+            Err(err) => Ok(Err(err)),
+        }
+    }
+}
+
+impl<
+        'sval,
+        TOk,
+        TError,
+        TNamed: serde::ser::SerializeStruct<Ok = TOk, Error = TError>,
+        TUnnamed: serde::ser::SerializeTuple<Ok = TOk, Error = TError>,
+    > StreamRecord<'sval> for SerializeRecord<TNamed, TUnnamed, TError>
+{
+    type Ok = Result<TOk, TError>;
+
+    fn value_computed<V: sval::Value + ?Sized>(
         &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        self.buffer_or_transition_done_with(
-            |buf| buf.record_end(tag, label, index),
-            |serializer| match serializer.take_record()? {
-                Record::Anonymous(serializer) => serializer.serializer.end(),
-                Record::Struct(serializer) => serializer.serializer.end(),
-                Record::Variant(serializer) => serializer.serializer.end(),
-            },
-        )
+        _: Option<sval::Tag>,
+        label: sval::Label,
+        value: &V,
+    ) -> sval_buffer::Result {
+        match self.serializer {
+            Ok(MaybeNamed::Named { ref mut serializer }) => {
+                let field = label.as_static_str().ok_or_else(|| {
+                    sval_buffer::Error::invalid_value("missing struct field label")
+                })?;
+
+                match serializer.serialize_field(field, &ToSerialize::new(value)) {
+                    Ok(()) => return Ok(()),
+                    Err(err) => {
+                        self.serializer = Err(err);
+                    }
+                }
+            }
+            Ok(MaybeNamed::Unnamed { ref mut serializer }) => {
+                match serializer.serialize_element(&ToSerialize::new(value)) {
+                    Ok(()) => return Ok(()),
+                    Err(err) => {
+                        self.serializer = Err(err);
+                    }
+                }
+            }
+            Err(_) => (),
+        }
+
+        Err(sval_buffer::Error::invalid_value(
+            "failed to serialize tuple field",
+        ))
+    }
+
+    fn end(self) -> sval_buffer::Result<Self::Ok> {
+        match self.serializer {
+            Ok(MaybeNamed::Named { serializer }) => Ok(serializer.end()),
+            Ok(MaybeNamed::Unnamed { serializer }) => Ok(serializer.end()),
+            Err(e) => Ok(Err(e)),
+        }
+    }
+}
+
+impl<
+        'sval,
+        TOk,
+        TError,
+        TNamed: serde::ser::SerializeTupleStruct<Ok = TOk, Error = TError>,
+        TUnnamed: serde::ser::SerializeTuple<Ok = TOk, Error = TError>,
+    > StreamTuple<'sval> for SerializeTuple<TNamed, TUnnamed, TError>
+{
+    type Ok = Result<TOk, TError>;
+
+    fn value_computed<V: sval::Value + ?Sized>(
+        &mut self,
+        _: Option<sval::Tag>,
+        _: sval::Index,
+        value: &V,
+    ) -> sval_buffer::Result {
+        match self.serializer {
+            Ok(MaybeNamed::Named { ref mut serializer }) => {
+                match serializer.serialize_field(&ToSerialize::new(value)) {
+                    Ok(()) => return Ok(()),
+                    Err(err) => {
+                        self.serializer = Err(err);
+                    }
+                }
+            }
+            Ok(MaybeNamed::Unnamed { ref mut serializer }) => {
+                match serializer.serialize_element(&ToSerialize::new(value)) {
+                    Ok(()) => return Ok(()),
+                    Err(err) => {
+                        self.serializer = Err(err);
+                    }
+                }
+            }
+            Err(_) => (),
+        }
+
+        Err(sval_buffer::Error::invalid_value(
+            "failed to serialize tuple field",
+        ))
+    }
+
+    fn end(self) -> sval_buffer::Result<Self::Ok> {
+        match self.serializer {
+            Ok(MaybeNamed::Named { serializer }) => Ok(serializer.end()),
+            Ok(MaybeNamed::Unnamed { serializer }) => Ok(serializer.end()),
+            Err(e) => Ok(Err(e)),
+        }
+    }
+}
+
+impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
+    type Ok = Result<S::Ok, S::Error>;
+
+    type Tuple = SerializeTupleVariant<S::SerializeTupleVariant, S::Error>;
+
+    type Record = SerializeRecordVariant<S::SerializeStructVariant, S::Error>;
+
+    type Nested = Unsupported<Self::Ok>;
+
+    fn tag(
+        self,
+        _: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+    ) -> sval_buffer::Result<Self::Ok> {
+        let variant = label
+            .and_then(|label| label.as_static_str())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing unit label"))?;
+
+        let variant_index = index
+            .and_then(|index| index.to_u32())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing unit index"))?;
+
+        Ok(self
+            .serializer
+            .serialize_unit_variant(self.name, variant_index, variant))
+    }
+
+    fn tagged_computed<V: sval::Value + ?Sized>(
+        self,
+        _: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        value: &V,
+    ) -> sval_buffer::Result<Self::Ok> {
+        let variant = label
+            .and_then(|label| label.as_static_str())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing newtype label"))?;
+
+        let variant_index = index
+            .and_then(|index| index.to_u32())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing newtype index"))?;
+
+        Ok(self.serializer.serialize_newtype_variant(
+            self.name,
+            variant_index,
+            variant,
+            &ToSerialize::new(value),
+        ))
     }
 
     fn tuple_begin(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
+        self,
+        _: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
         num_entries: Option<usize>,
-    ) -> sval::Result {
-        self.buffer_or_transition_any_with(
-            |buf| buf.tuple_begin(tag, label, index, num_entries),
-            |serializer| {
-                let tuple_label = label.and_then(|label| label.as_static_str());
+    ) -> sval_buffer::Result<Self::Tuple> {
+        let variant = label
+            .and_then(|label| label.as_static_str())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple label"))?;
 
-                let num_entries =
-                    num_entries.ok_or_else(|| S::Error::custom("missing tuple field count"))?;
+        let variant_index = index
+            .and_then(|index| index.to_u32())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple index"))?;
 
-                match (serializer.struct_label, tuple_label) {
-                    (Some(struct_label), Some(variant_label)) => {
-                        let variant_index = index
-                            .and_then(|index| index.to_u32())
-                            .ok_or_else(|| S::Error::custom("missing variant index"))?;
+        let len =
+            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple len"))?;
 
-                        Ok(State::Tuple(Some(Tuple::Variant(VariantTuple {
-                            serializer: serializer.serializer.serialize_tuple_variant(
-                                struct_label,
-                                variant_index,
-                                variant_label,
-                                num_entries,
-                            )?,
-                        }))))
-                    }
-                    (None, Some(struct_label)) | (Some(struct_label), None) => {
-                        Ok(State::Tuple(Some(Tuple::Struct(StructTuple {
-                            serializer: serializer
-                                .serializer
-                                .serialize_tuple_struct(struct_label, num_entries)?,
-                        }))))
-                    }
-                    (None, None) => Ok(State::Tuple(Some(Tuple::Anonymous(AnonymousTuple {
-                        serializer: serializer.serializer.serialize_tuple(num_entries)?,
-                    })))),
-                }
-            },
-        )
-    }
-
-    fn tuple_value_begin(&mut self, tag: Option<&sval::Tag>, index: &sval::Index) -> sval::Result {
-        self.buffer_or_serialize_with(|buf| buf.tuple_value_begin(tag, index), |_| Ok(()))
-    }
-
-    fn tuple_value_end(&mut self, tag: Option<&sval::Tag>, index: &sval::Index) -> sval::Result {
-        self.buffer_or_serialize_with(|buf| buf.tuple_value_end(tag, index), |_| Ok(()))
-    }
-
-    fn tuple_end(
-        &mut self,
-        tag: Option<&sval::Tag>,
-        label: Option<&sval::Label>,
-        index: Option<&sval::Index>,
-    ) -> sval::Result {
-        self.buffer_or_transition_done_with(
-            |buf| buf.tuple_end(tag, label, index),
-            |serializer| match serializer.take_tuple()? {
-                Tuple::Anonymous(serializer) => serializer.serializer.end(),
-                Tuple::Struct(serializer) => serializer.serializer.end(),
-                Tuple::Variant(serializer) => serializer.serializer.end(),
-            },
-        )
-    }
-}
-
-impl<S: serde::Serializer> State<S> {
-    fn serialize_value<T: serde::Serialize>(&mut self, v: T) -> sval::Result {
-        let mut r = || match self {
-            State::Any(serializer) => {
-                let serializer = serializer
-                    .take()
-                    .ok_or_else(|| S::Error::custom("missing serializer"))?;
-
-                let r = match serializer {
-                    Any {
-                        is_option: true,
-                        serializer,
-                        ..
-                    } => serializer.serialize_some(&v),
-                    Any {
-                        struct_label: Some(struct_label),
-                        variant_label: None,
-                        variant_index: None,
-                        is_option: false,
-                        serializer,
-                    } => serializer.serialize_newtype_struct(struct_label, &v),
-                    Any {
-                        struct_label: Some(struct_label),
-                        variant_label: Some(variant_label),
-                        variant_index: Some(variant_index),
-                        is_option: false,
-                        serializer,
-                    } => serializer.serialize_newtype_variant(
-                        struct_label,
-                        variant_index,
-                        variant_label,
-                        &v,
-                    ),
-                    Any { serializer, .. } => v.serialize(serializer),
-                };
-
-                match r {
-                    Ok(r) => Ok(Some(r)),
-                    Err(e) => Err(e),
-                }
-            }
-            State::Map(serializer) => {
-                let serializer = serializer
-                    .as_mut()
-                    .ok_or_else(|| S::Error::custom("missing serializer"))?;
-
-                if serializer.is_key {
-                    serializer.serializer.serialize_key(&v)?;
-
-                    Ok(None)
-                } else {
-                    serializer.serializer.serialize_value(&v)?;
-
-                    Ok(None)
-                }
-            }
-            State::Seq(serializer) => {
-                serializer
-                    .as_mut()
-                    .ok_or_else(|| S::Error::custom("missing serializer"))?
-                    .serializer
-                    .serialize_element(&v)?;
-
-                Ok(None)
-            }
-            State::Record(serializer) => {
-                let serializer = serializer
-                    .as_mut()
-                    .ok_or_else(|| S::Error::custom("missing serializer"))?;
-
-                match serializer {
-                    Record::Anonymous(serializer) => {
-                        serializer.serializer.serialize_value(&v)?;
-                    }
-                    Record::Struct(serializer) => serializer.serializer.serialize_field(
-                        serializer
-                            .label
-                            .ok_or_else(|| S::Error::custom("missing field label"))?,
-                        &v,
-                    )?,
-                    Record::Variant(serializer) => serializer.serializer.serialize_field(
-                        serializer
-                            .label
-                            .ok_or_else(|| S::Error::custom("missing field label"))?,
-                        &v,
-                    )?,
-                }
-
-                Ok(None)
-            }
-            State::Tuple(serializer) => {
-                let serializer = serializer
-                    .as_mut()
-                    .ok_or_else(|| S::Error::custom("missing serializer"))?;
-
-                match serializer {
-                    Tuple::Anonymous(serializer) => serializer.serializer.serialize_element(&v)?,
-                    Tuple::Struct(serializer) => serializer.serializer.serialize_field(&v)?,
-                    Tuple::Variant(serializer) => serializer.serializer.serialize_field(&v)?,
-                }
-
-                Ok(None)
-            }
-            State::Done(_) => Err(S::Error::custom("already completed")),
-        };
-
-        match r() {
-            Ok(Some(r)) => {
-                *self = State::Done(Some(Ok(r)));
-                Ok(())
-            }
-            Ok(None) => Ok(()),
-            Err(e) => {
-                *self = State::Done(Some(Err(e)));
-                Err(sval::Error::new())
-            }
-        }
-    }
-}
-
-fn try_catch<'sval, T, S: serde::Serializer>(
-    serializer: &mut Serializer<'sval, S>,
-    f: impl FnOnce(&mut Serializer<'sval, S>) -> Result<T, S::Error>,
-) -> sval::Result<T> {
-    match f(serializer) {
-        Ok(v) => Ok(v),
-        Err(e) => {
-            serializer.state = State::Done(Some(Err(e)));
-
-            sval::error()
-        }
-    }
-}
-
-impl<'sval, S: serde::Serializer> Serializer<'sval, S> {
-    fn buffer_or_serialize_with(
-        &mut self,
-        buffer: impl FnOnce(&mut sval_buffer::ValueBuf<'sval>) -> sval::Result,
-        stream: impl FnOnce(&mut Self) -> sval::Result,
-    ) -> sval::Result {
-        match self {
-            Serializer {
-                buffered: Some(Buffered::Value(ref mut buf)),
-                ..
-            } => buffer(buf),
-            serializer => stream(serializer),
-        }
-    }
-
-    fn buffer_or_value<T: serde::Serialize>(
-        &mut self,
-        buffer: impl FnOnce(&mut sval_buffer::ValueBuf<'sval>) -> sval::Result,
-        value: impl FnOnce() -> T,
-    ) -> sval::Result {
-        self.buffer_or_serialize_with(buffer, |stream| stream.state.serialize_value(value()))
-    }
-
-    fn put_buffer(&mut self, buf: Buffered<'sval>) -> sval::Result {
-        try_catch(self, |serializer| match serializer.buffered {
-            None => {
-                serializer.buffered = Some(buf);
-
-                Ok(())
-            }
-            Some(_) => Err(S::Error::custom("a buffer is already active")),
+        Ok(SerializeTupleVariant {
+            serializer: self.serializer.serialize_tuple_variant(
+                self.name,
+                variant_index,
+                variant,
+                len,
+            ),
         })
     }
 
-    fn buffer_or_transition_any_with(
-        &mut self,
-        mut buffer: impl FnMut(&mut sval_buffer::ValueBuf<'sval>) -> sval::Result,
-        transition: impl FnOnce(Any<S>) -> Result<State<S>, S::Error>,
-    ) -> sval::Result {
-        let buf = try_catch(self, |serializer| {
-            match serializer {
-                Serializer {
-                    buffered: Some(Buffered::Value(ref mut buf)),
-                    ..
-                } => {
-                    buffer(buf).map_err(|_| S::Error::custom("failed to buffer a value"))?;
+    fn record_begin(
+        self,
+        _: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        num_entries: Option<usize>,
+    ) -> sval_buffer::Result<Self::Record> {
+        let variant = label
+            .and_then(|label| label.as_static_str())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing struct label"))?;
 
-                    return Ok(None);
+        let variant_index = index
+            .and_then(|index| index.to_u32())
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing struct index"))?;
+
+        let len =
+            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing struct len"))?;
+
+        Ok(SerializeRecordVariant {
+            serializer: self.serializer.serialize_struct_variant(
+                self.name,
+                variant_index,
+                variant,
+                len,
+            ),
+        })
+    }
+
+    fn nested<
+        F: FnOnce(Self::Nested) -> sval_buffer::Result<<Self::Nested as StreamEnum<'sval>>::Ok>,
+    >(
+        self,
+        _: Option<sval::Tag>,
+        _: Option<sval::Label>,
+        _: Option<sval::Index>,
+        _: F,
+    ) -> sval_buffer::Result<Self::Ok> {
+        Err(sval_buffer::Error::invalid_value(
+            "nested enums aren't supported",
+        ))
+    }
+
+    fn end(self) -> sval_buffer::Result<Self::Ok> {
+        Ok(self.serializer.serialize_unit_struct(self.name))
+    }
+}
+
+impl<'sval, S: serde::ser::SerializeStructVariant> StreamRecord<'sval>
+    for SerializeRecordVariant<S, S::Error>
+{
+    type Ok = Result<S::Ok, S::Error>;
+
+    fn value_computed<V: sval::Value + ?Sized>(
+        &mut self,
+        _: Option<sval::Tag>,
+        label: sval::Label,
+        value: &V,
+    ) -> sval_buffer::Result {
+        let field = label
+            .as_static_str()
+            .ok_or_else(|| sval_buffer::Error::invalid_value("missing struct field label"))?;
+
+        if let Ok(ref mut serializer) = self.serializer {
+            match serializer.serialize_field(field, &ToSerialize::new(value)) {
+                Ok(()) => return Ok(()),
+                Err(err) => {
+                    self.serializer = Err(err);
                 }
-                Serializer {
-                    buffered: None,
-                    state: State::Any(any),
-                } => {
-                    if let Ok(state) = transition(
-                        any.take()
-                            .ok_or_else(|| S::Error::custom("missing serializer"))?,
-                    ) {
-                        serializer.state = state;
+            }
+        }
 
-                        return Ok(None);
-                    }
+        Err(sval_buffer::Error::invalid_value(
+            "failed to serialize struct value",
+        ))
+    }
+
+    fn end(self) -> sval_buffer::Result<Self::Ok> {
+        match self.serializer {
+            Ok(serializer) => Ok(serializer.end()),
+            Err(err) => Ok(Err(err)),
+        }
+    }
+}
+
+impl<'sval, S: serde::ser::SerializeTupleVariant> StreamTuple<'sval>
+    for SerializeTupleVariant<S, S::Error>
+{
+    type Ok = Result<S::Ok, S::Error>;
+
+    fn value_computed<V: sval::Value + ?Sized>(
+        &mut self,
+        _: Option<sval::Tag>,
+        _: sval::Index,
+        value: &V,
+    ) -> sval_buffer::Result {
+        if let Ok(ref mut serializer) = self.serializer {
+            match serializer.serialize_field(&ToSerialize::new(value)) {
+                Ok(()) => return Ok(()),
+                Err(err) => {
+                    self.serializer = Err(err);
                 }
-                _ => return Err(S::Error::custom("invalid serializer state")),
             }
-
-            let mut value = ValueBuf::new();
-            buffer(&mut value).map_err(|_| S::Error::custom("failed to buffer a value"))?;
-
-            Ok(Some(Buffered::Value(value)))
-        })?;
-
-        self.buffered = buf;
-
-        Ok(())
-    }
-
-    fn buffer_or_transition_done_with(
-        &mut self,
-        buffer: impl FnOnce(&mut sval_buffer::ValueBuf<'sval>) -> sval::Result,
-        transition: impl FnOnce(&mut Serializer<S>) -> Result<S::Ok, S::Error>,
-    ) -> sval::Result {
-        let r = try_catch(self, |serializer| match serializer {
-            Serializer {
-                buffered: Some(Buffered::Value(ref mut buf)),
-                ..
-            } => {
-                buffer(buf).map_err(|_| S::Error::custom("failed to buffer a value"))?;
-
-                if buf.is_complete() {
-                    // Errors handled internally by `serialize_value`
-                    let _ = serializer.state.serialize_value(ToSerialize(&*buf));
-                    serializer.buffered = None;
-                }
-
-                return Ok(None);
-            }
-            Serializer { buffered: None, .. } => Ok(Some(transition(serializer)?)),
-            _ => return Err(S::Error::custom("invalid serializer state")),
-        })?;
-
-        if let Some(r) = r {
-            self.state = State::Done(Some(Ok(r)));
         }
 
-        Ok(())
+        Err(sval_buffer::Error::invalid_value(
+            "failed to serialize tuple value",
+        ))
     }
 
-    fn with_map(&mut self, f: impl FnOnce(&mut Map<S>) -> Result<(), S::Error>) -> sval::Result {
-        try_catch(self, |serializer| match serializer {
-            Serializer {
-                buffered: None,
-                state: State::Map(Some(map)),
-            } => f(map),
-            _ => Err(S::Error::custom("invalid serializer state")),
-        })
-    }
-
-    fn take_map(&mut self) -> Result<Map<S>, S::Error> {
-        match self {
-            Serializer {
-                buffered: None,
-                state: State::Map(map),
-            } => map
-                .take()
-                .ok_or_else(|| S::Error::custom("invalid serializer state")),
-            _ => Err(S::Error::custom("invalid serializer state")),
+    fn end(self) -> sval_buffer::Result<Self::Ok> {
+        match self.serializer {
+            Ok(serializer) => Ok(serializer.end()),
+            Err(err) => Ok(Err(err)),
         }
     }
-
-    fn take_seq(&mut self) -> Result<Seq<S>, S::Error> {
-        match self {
-            Serializer {
-                buffered: None,
-                state: State::Seq(seq),
-            } => seq
-                .take()
-                .ok_or_else(|| S::Error::custom("invalid serializer state")),
-            _ => Err(S::Error::custom("invalid serializer state")),
-        }
-    }
-
-    fn with_record(
-        &mut self,
-        f: impl FnOnce(&mut Record<S>) -> Result<(), S::Error>,
-    ) -> sval::Result {
-        try_catch(self, |serializer| match serializer {
-            Serializer {
-                buffered: None,
-                state: State::Record(Some(s)),
-            } => f(s),
-            _ => Err(S::Error::custom("invalid serializer state")),
-        })
-    }
-
-    fn take_record(&mut self) -> Result<Record<S>, S::Error> {
-        match self {
-            Serializer {
-                buffered: None,
-                state: State::Record(s),
-            } => s
-                .take()
-                .ok_or_else(|| S::Error::custom("invalid serializer state")),
-            _ => Err(S::Error::custom("invalid serializer state")),
-        }
-    }
-
-    fn take_tuple(&mut self) -> Result<Tuple<S>, S::Error> {
-        match self {
-            Serializer {
-                buffered: None,
-                state: State::Tuple(s),
-            } => s
-                .take()
-                .ok_or_else(|| S::Error::custom("invalid serializer state")),
-            _ => Err(S::Error::custom("invalid serializer state")),
-        }
-    }
-
-    fn with_text(
-        &mut self,
-        f: impl FnOnce(&mut TextBuf<'sval>) -> Result<(), sval_buffer::Error>,
-    ) -> sval::Result {
-        try_catch(self, |serializer| match serializer.buffered {
-            Some(Buffered::Text(ref mut buf)) => f(buf).map_err(|e| S::Error::custom(e)),
-            _ => Err(S::Error::custom("no active text buffer")),
-        })
-    }
-
-    fn take_text(&mut self) -> sval::Result<TextBuf<'sval>> {
-        try_catch(self, |serializer| match serializer.buffered {
-            Some(Buffered::Text(ref mut buf)) => {
-                let buf = mem::take(buf);
-                serializer.buffered = None;
-
-                Ok(buf)
-            }
-            _ => Err(S::Error::custom("no active text buffer")),
-        })
-    }
-
-    fn with_binary(
-        &mut self,
-        f: impl FnOnce(&mut BinaryBuf<'sval>) -> Result<(), sval_buffer::Error>,
-    ) -> sval::Result {
-        try_catch(self, |serializer| match serializer.buffered {
-            Some(Buffered::Binary(ref mut buf)) => f(buf).map_err(|e| S::Error::custom(e)),
-            _ => Err(S::Error::custom("no active binary buffer")),
-        })
-    }
-
-    fn take_binary(&mut self) -> sval::Result<BinaryBuf<'sval>> {
-        try_catch(self, |serializer| match serializer.buffered {
-            Some(Buffered::Binary(ref mut buf)) => {
-                let buf = mem::take(buf);
-                serializer.buffered = None;
-
-                Ok(buf)
-            }
-            _ => Err(S::Error::custom("no active binary buffer")),
-        })
-    }
-
-    fn finish(&mut self) -> Result<S::Ok, S::Error> {
-        if let State::Done(ref mut r) = self.state {
-            r.take()
-                .unwrap_or_else(|| Err(S::Error::custom("incomplete serializer")))
-        } else {
-            Err(S::Error::custom("incomplete serializer"))
-        }
-    }
-}
-
-enum Buffered<'sval> {
-    Text(TextBuf<'sval>),
-    Binary(BinaryBuf<'sval>),
-    Value(ValueBuf<'sval>),
-}
-
-enum State<S: serde::Serializer> {
-    Any(Option<Any<S>>),
-    Map(Option<Map<S>>),
-    Seq(Option<Seq<S>>),
-    Record(Option<Record<S>>),
-    Tuple(Option<Tuple<S>>),
-    Done(Option<Result<S::Ok, S::Error>>),
-}
-
-struct Any<S: serde::Serializer> {
-    serializer: S,
-    is_option: bool,
-    struct_label: Option<&'static str>,
-    variant_label: Option<&'static str>,
-    variant_index: Option<u32>,
-}
-
-struct Map<S: serde::Serializer> {
-    serializer: S::SerializeMap,
-    is_key: bool,
-}
-
-struct Seq<S: serde::Serializer> {
-    serializer: S::SerializeSeq,
-}
-
-struct AnonymousRecord<S: serde::Serializer> {
-    serializer: S::SerializeMap,
-}
-
-struct StructRecord<S: serde::Serializer> {
-    serializer: S::SerializeStruct,
-    label: Option<&'static str>,
-}
-struct VariantRecord<S: serde::Serializer> {
-    serializer: S::SerializeStructVariant,
-    label: Option<&'static str>,
-}
-
-enum Record<S: serde::Serializer> {
-    Anonymous(AnonymousRecord<S>),
-    Struct(StructRecord<S>),
-    Variant(VariantRecord<S>),
-}
-
-struct AnonymousTuple<S: serde::Serializer> {
-    serializer: S::SerializeTuple,
-}
-struct StructTuple<S: serde::Serializer> {
-    serializer: S::SerializeTupleStruct,
-}
-struct VariantTuple<S: serde::Serializer> {
-    serializer: S::SerializeTupleVariant,
-}
-
-enum Tuple<S: serde::Serializer> {
-    Anonymous(AnonymousTuple<S>),
-    Struct(StructTuple<S>),
-    Variant(VariantTuple<S>),
 }
 
 struct Bytes<'sval>(&'sval [u8]);
