@@ -36,7 +36,66 @@ pub fn stream_ref<'sval>(
     value.stream_ref(stream)
 }
 
+/**
+Wrap an [`sval::Value`] in a [`ValueRef`]
+*/
+pub fn to_ref<'sval, V: sval::Value + ?Sized>(value: &'sval V) -> Ref<&'sval V> {
+    Ref::new(value)
+}
+
 use sval::{Result, Stream, Value};
+
+/**
+Adapt an [`sval::Value`] into a [`ValueRef`].
+*/
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy)]
+pub struct Ref<V: ?Sized>(V);
+
+impl<V> Ref<V> {
+    /**
+    Wrap a value.
+    */
+    pub fn new(value: V) -> Self {
+        Ref(value)
+    }
+
+    /**
+    Get a reference to the underlying value.
+    */
+    pub fn inner(&self) -> &V {
+        &self.0
+    }
+
+    /**
+    Take ownership of the underlying value.
+    */
+    pub fn into_inner(self) -> V {
+        self.0
+    }
+}
+
+impl<V: ?Sized> Ref<V> {
+    /**
+    Get a borrowed wrapper over a borrowed value.
+    */
+    pub fn new_borrowed<'a>(value: &'a V) -> &'a Ref<V> {
+        // SAFETY: `&'a V` and `&'a Ref<V>` have the same ABI
+        unsafe { &*(value as *const _ as *const Ref<V>) }
+    }
+}
+
+impl<V: sval::Value> sval::Value for Ref<V> {
+    fn stream<'sval, S: Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> Result {
+        self.0.stream(stream)
+    }
+}
+
+impl<'sval, V: sval::Value + ?Sized> ValueRef<'sval> for Ref<&'sval V> {
+    fn stream_ref<S: Stream<'sval> + ?Sized>(&self, stream: &mut S) -> Result {
+        self.0.stream(stream)
+    }
+}
 
 /**
 A producer of structured data that stores a reference internally.

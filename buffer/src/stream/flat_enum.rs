@@ -80,19 +80,19 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 
     type Enum = Unsupported<S::Ok>;
 
-    fn value<V: sval::Value + ?Sized>(self, value: &'sval V) -> Result<Self::Ok> {
+    fn value<V: sval_ref::ValueRef<'sval>>(self, value: V) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream, _| default_stream::value(stream, value),
-            |stream, _| stream.value(value),
-            (),
+            |stream, value| default_stream::value(stream, value),
+            |stream, value| stream.value(value),
+            value,
         )
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(self, value: &V) -> Result<Self::Ok> {
+    fn value_computed<V: sval::Value>(self, value: V) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream, _| default_stream::value_computed(stream, value),
-            |stream, _| stream.value_computed(value),
-            (),
+            |stream, value| default_stream::value_computed(stream, value),
+            |stream, value| stream.value_computed(value),
+            value,
         )
     }
 
@@ -139,31 +139,35 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
         )
     }
 
-    fn tagged<V: sval::Value + ?Sized>(
+    fn tagged<V: sval_ref::ValueRef<'sval>>(
         self,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
-        value: &'sval V,
+        value: V,
     ) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream, (tag, label, index)| stream.stream.tagged(tag, label, index, value),
-            |stream, (tag, label, index)| Stream::tagged(stream, tag, label, index, value),
-            (tag, label, index),
+            |stream, (value, tag, label, index)| stream.stream.tagged(tag, label, index, value),
+            |stream, (value, tag, label, index)| Stream::tagged(stream, tag, label, index, value),
+            (value, tag, label, index),
         )
     }
 
-    fn tagged_computed<V: sval::Value + ?Sized>(
+    fn tagged_computed<V: sval::Value>(
         self,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
-        value: &V,
+        value: V,
     ) -> Result<Self::Ok> {
         self.value_or_recurse(
-            |stream, (tag, label, index)| stream.stream.tagged_computed(tag, label, index, value),
-            |stream, (tag, label, index)| Stream::tagged_computed(stream, tag, label, index, value),
-            (tag, label, index),
+            |stream, (value, tag, label, index)| {
+                stream.stream.tagged_computed(tag, label, index, value)
+            },
+            |stream, (value, tag, label, index)| {
+                Stream::tagged_computed(stream, tag, label, index, value)
+            },
+            (value, tag, label, index),
         )
     }
 

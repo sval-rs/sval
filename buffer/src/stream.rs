@@ -20,14 +20,21 @@ pub trait Stream<'sval> {
 
     type Enum: StreamEnum<'sval, Ok = Self::Ok>;
 
-    fn value<V: sval::Value + ?Sized>(self, value: &'sval V) -> Result<Self::Ok>
+    fn value<V: sval_ref::ValueRef<'sval>>(self, value: V) -> Result<Self::Ok>
     where
         Self: Sized,
     {
         default_stream::value(self, value)
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(self, value: &V) -> Result<Self::Ok>
+    fn value_ref<V: sval::Value + ?Sized>(self, value: &'sval V) -> Result<Self::Ok>
+    where
+        Self: Sized,
+    {
+        default_stream::value_ref(self, value)
+    }
+
+    fn value_computed<V: sval::Value>(self, value: V) -> Result<Self::Ok>
     where
         Self: Sized,
     {
@@ -142,7 +149,20 @@ pub trait Stream<'sval> {
         index: Option<sval::Index>,
     ) -> Result<Self::Ok>;
 
-    fn tagged<V: sval::Value + ?Sized>(
+    fn tagged<V: sval_ref::ValueRef<'sval>>(
+        self,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        value: V,
+    ) -> Result<Self::Ok>
+    where
+        Self: Sized,
+    {
+        default_stream::tagged(self, tag, label, index, value)
+    }
+
+    fn tagged_ref<V: sval::Value + ?Sized>(
         self,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
@@ -152,15 +172,15 @@ pub trait Stream<'sval> {
     where
         Self: Sized,
     {
-        self.tagged_computed(tag, label, index, value)
+        default_stream::tagged_ref(self, tag, label, index, value)
     }
 
-    fn tagged_computed<V: sval::Value + ?Sized>(
+    fn tagged_computed<V: sval::Value>(
         self,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
-        value: &V,
+        value: V,
     ) -> Result<Self::Ok>;
 
     fn seq_begin(self, num_entries: Option<usize>) -> Result<Self::Seq>;
@@ -194,11 +214,15 @@ pub trait Stream<'sval> {
 pub trait StreamSeq<'sval> {
     type Ok;
 
-    fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+    fn value<V: sval_ref::ValueRef<'sval>>(&mut self, value: V) -> Result {
         default_stream::seq_value(self, value)
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result;
+    fn value_ref<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+        default_stream::seq_value_ref(self, value)
+    }
+
+    fn value_computed<V: sval::Value>(&mut self, value: V) -> Result;
 
     fn end(self) -> Result<Self::Ok>;
 }
@@ -206,17 +230,25 @@ pub trait StreamSeq<'sval> {
 pub trait StreamMap<'sval> {
     type Ok;
 
-    fn key<V: sval::Value + ?Sized>(&mut self, key: &'sval V) -> Result {
+    fn key<V: sval_ref::ValueRef<'sval>>(&mut self, key: V) -> Result {
         default_stream::map_key(self, key)
     }
 
-    fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> Result;
+    fn key_ref<V: sval::Value + ?Sized>(&mut self, key: &'sval V) -> Result {
+        default_stream::map_key_ref(self, key)
+    }
 
-    fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+    fn key_computed<V: sval::Value>(&mut self, key: V) -> Result;
+
+    fn value<V: sval_ref::ValueRef<'sval>>(&mut self, value: V) -> Result {
         default_stream::map_value(self, value)
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result;
+    fn value_ref<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+        default_stream::map_value_ref(self, value)
+    }
+
+    fn value_computed<V: sval::Value>(&mut self, value: V) -> Result;
 
     fn end(self) -> Result<Self::Ok>;
 }
@@ -224,20 +256,29 @@ pub trait StreamMap<'sval> {
 pub trait StreamTuple<'sval> {
     type Ok;
 
-    fn value<V: sval::Value + ?Sized>(
+    fn value<V: sval_ref::ValueRef<'sval>>(
+        &mut self,
+        tag: Option<sval::Tag>,
+        index: sval::Index,
+        value: V,
+    ) -> Result {
+        default_stream::tuple_value(self, tag, index, value)
+    }
+
+    fn value_ref<V: sval::Value + ?Sized>(
         &mut self,
         tag: Option<sval::Tag>,
         index: sval::Index,
         value: &'sval V,
     ) -> Result {
-        default_stream::tuple_value(self, tag, index, value)
+        default_stream::tuple_value_ref(self, tag, index, value)
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         tag: Option<sval::Tag>,
         index: sval::Index,
-        value: &V,
+        value: V,
     ) -> Result;
 
     fn end(self) -> Result<Self::Ok>;
@@ -246,20 +287,29 @@ pub trait StreamTuple<'sval> {
 pub trait StreamRecord<'sval> {
     type Ok;
 
-    fn value<V: sval::Value + ?Sized>(
+    fn value<V: sval_ref::ValueRef<'sval>>(
+        &mut self,
+        tag: Option<sval::Tag>,
+        label: sval::Label,
+        value: V,
+    ) -> Result {
+        default_stream::record_value(self, tag, label, value)
+    }
+
+    fn value_ref<V: sval::Value + ?Sized>(
         &mut self,
         tag: Option<sval::Tag>,
         label: sval::Label,
         value: &'sval V,
     ) -> Result {
-        default_stream::record_value(self, tag, label, value)
+        default_stream::record_value_ref(self, tag, label, value)
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         tag: Option<sval::Tag>,
         label: sval::Label,
-        value: &V,
+        value: V,
     ) -> Result;
 
     fn end(self) -> Result<Self::Ok>;
@@ -279,7 +329,20 @@ pub trait StreamEnum<'sval> {
         index: Option<sval::Index>,
     ) -> Result<Self::Ok>;
 
-    fn tagged<V: sval::Value + ?Sized>(
+    fn tagged<V: sval_ref::ValueRef<'sval>>(
+        self,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        value: V,
+    ) -> Result<Self::Ok>
+    where
+        Self: Sized,
+    {
+        default_stream::enum_tagged(self, tag, label, index, value)
+    }
+
+    fn tagged_ref<V: sval::Value + ?Sized>(
         self,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
@@ -289,15 +352,15 @@ pub trait StreamEnum<'sval> {
     where
         Self: Sized,
     {
-        default_stream::enum_tagged(self, tag, label, index, value)
+        default_stream::enum_tagged_ref(self, tag, label, index, value)
     }
 
-    fn tagged_computed<V: sval::Value + ?Sized>(
+    fn tagged_computed<V: sval::Value>(
         self,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
-        value: &V,
+        value: V,
     ) -> Result<Self::Ok>;
 
     fn tuple_begin(
@@ -373,12 +436,12 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
         Err(Error::invalid_value("tags are unsupported"))
     }
 
-    fn tagged_computed<V: sval::Value + ?Sized>(
+    fn tagged_computed<V: sval::Value>(
         self,
         _: Option<sval::Tag>,
         _: Option<sval::Label>,
         _: Option<sval::Index>,
-        _: &V,
+        _: V,
     ) -> Result<Self::Ok> {
         Err(Error::invalid_value("tagged values are unsupported"))
     }
@@ -424,7 +487,7 @@ impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
 impl<'sval, Ok> StreamSeq<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, _: &V) -> Result {
+    fn value_computed<V: sval::Value>(&mut self, _: V) -> Result {
         Err(Error::invalid_value("sequences are unsupported"))
     }
 
@@ -436,11 +499,11 @@ impl<'sval, Ok> StreamSeq<'sval> for Unsupported<Ok> {
 impl<'sval, Ok> StreamMap<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
-    fn key_computed<V: sval::Value + ?Sized>(&mut self, _: &V) -> Result {
+    fn key_computed<V: sval::Value>(&mut self, _: V) -> Result {
         Err(Error::invalid_value("maps are unsupported"))
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, _: &V) -> Result {
+    fn value_computed<V: sval::Value>(&mut self, _: V) -> Result {
         Err(Error::invalid_value("maps are unsupported"))
     }
 
@@ -452,11 +515,11 @@ impl<'sval, Ok> StreamMap<'sval> for Unsupported<Ok> {
 impl<'sval, Ok> StreamTuple<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         _: Option<sval::Tag>,
         _: sval::Index,
-        _: &V,
+        _: V,
     ) -> Result {
         Err(Error::invalid_value("tuples are unsupported"))
     }
@@ -469,11 +532,11 @@ impl<'sval, Ok> StreamTuple<'sval> for Unsupported<Ok> {
 impl<'sval, Ok> StreamRecord<'sval> for Unsupported<Ok> {
     type Ok = Ok;
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         _: Option<sval::Tag>,
         _: sval::Label,
-        _: &V,
+        _: V,
     ) -> Result {
         Err(Error::invalid_value("records are unsupported"))
     }
@@ -499,12 +562,12 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
         Err(Error::invalid_value("enums are unsupported"))
     }
 
-    fn tagged_computed<V: sval::Value + ?Sized>(
+    fn tagged_computed<V: sval::Value>(
         self,
         _: Option<sval::Tag>,
         _: Option<sval::Label>,
         _: Option<sval::Index>,
-        _: &V,
+        _: V,
     ) -> Result<Self::Ok> {
         Err(Error::invalid_value("enums are unsupported"))
     }
@@ -566,21 +629,28 @@ fn owned_label_ref(label: &sval::Label) -> Result<sval::Label<'static>> {
 pub mod default_stream {
     use super::*;
 
-    pub fn value<'sval, S: Stream<'sval>, V: sval::Value + ?Sized>(
+    pub fn value<'sval, S: Stream<'sval>, V: sval_ref::ValueRef<'sval>>(
         stream: S,
-        value: &'sval V,
+        value: V,
     ) -> Result<S::Ok> {
         let mut stream = FlatStream::new(stream);
-        let _ = sval::default_stream::value(&mut stream, value);
+        let _ = sval_ref::stream_ref(&mut stream, value);
         stream.finish()
     }
 
-    pub fn value_computed<'sval, S: Stream<'sval>, V: sval::Value + ?Sized>(
+    pub fn value_ref<'sval, S: Stream<'sval>, V: sval::Value + ?Sized>(
         stream: S,
-        value: &V,
+        value: &'sval V,
+    ) -> Result<S::Ok> {
+        stream.value(sval_ref::to_ref(value))
+    }
+
+    pub fn value_computed<'sval, S: Stream<'sval>, V: sval::Value>(
+        stream: S,
+        value: V,
     ) -> Result<S::Ok> {
         let mut stream = FlatStream::new(stream);
-        let _ = sval::default_stream::value_computed(&mut stream, value);
+        let _ = sval::default_stream::value_computed(&mut stream, &value);
         stream.finish()
     }
 
@@ -654,53 +724,122 @@ pub mod default_stream {
         seq.end()
     }
 
-    pub fn seq_value<'sval, S: StreamSeq<'sval> + ?Sized, V: sval::Value + ?Sized>(
-        seq: &mut S,
-        value: &'sval V,
-    ) -> Result {
-        seq.value_computed(value)
-    }
-
-    pub fn map_key<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
-        map: &mut S,
-        key: &'sval V,
-    ) -> Result {
-        map.key_computed(key)
-    }
-
-    pub fn map_value<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
-        map: &mut S,
-        value: &'sval V,
-    ) -> Result {
-        map.value_computed(value)
-    }
-
-    pub fn tuple_value<'sval, S: StreamTuple<'sval> + ?Sized, V: sval::Value + ?Sized>(
-        tuple: &mut S,
+    pub fn tagged<'sval, S: Stream<'sval>, V: sval_ref::ValueRef<'sval>>(
+        stream: S,
         tag: Option<sval::Tag>,
-        index: sval::Index,
-        value: &'sval V,
-    ) -> Result {
-        tuple.value_computed(tag, index, value)
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        value: V,
+    ) -> Result<S::Ok> {
+        stream.tagged_computed(tag, label, index, value)
     }
 
-    pub fn record_value<'sval, S: StreamRecord<'sval> + ?Sized, V: sval::Value + ?Sized>(
-        record: &mut S,
-        tag: Option<sval::Tag>,
-        label: sval::Label,
-        value: &'sval V,
-    ) -> Result {
-        record.value_computed(tag, label, value)
-    }
-
-    pub fn enum_tagged<'sval, S: StreamEnum<'sval>, V: sval::Value + ?Sized>(
+    pub fn tagged_ref<'sval, S: Stream<'sval>, V: sval::Value + ?Sized>(
         stream: S,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
         value: &'sval V,
     ) -> Result<S::Ok> {
+        stream.tagged(tag, label, index, sval_ref::to_ref(value))
+    }
+
+    pub fn seq_value<'sval, S: StreamSeq<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
+        seq: &mut S,
+        value: V,
+    ) -> Result {
+        seq.value_computed(value)
+    }
+
+    pub fn seq_value_ref<'sval, S: StreamSeq<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        seq: &mut S,
+        value: &'sval V,
+    ) -> Result {
+        seq.value(sval_ref::to_ref(value))
+    }
+
+    pub fn map_key<'sval, S: StreamMap<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
+        map: &mut S,
+        key: V,
+    ) -> Result {
+        map.key_computed(key)
+    }
+
+    pub fn map_key_ref<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        map: &mut S,
+        key: &'sval V,
+    ) -> Result {
+        map.key(sval_ref::to_ref(key))
+    }
+
+    pub fn map_value<'sval, S: StreamMap<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
+        map: &mut S,
+        value: V,
+    ) -> Result {
+        map.value_computed(value)
+    }
+
+    pub fn map_value_ref<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        map: &mut S,
+        value: &'sval V,
+    ) -> Result {
+        map.value(sval_ref::to_ref(value))
+    }
+
+    pub fn tuple_value<'sval, S: StreamTuple<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
+        tuple: &mut S,
+        tag: Option<sval::Tag>,
+        index: sval::Index,
+        value: V,
+    ) -> Result {
+        tuple.value_computed(tag, index, value)
+    }
+
+    pub fn tuple_value_ref<'sval, S: StreamTuple<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        tuple: &mut S,
+        tag: Option<sval::Tag>,
+        index: sval::Index,
+        value: &'sval V,
+    ) -> Result {
+        tuple.value(tag, index, sval_ref::to_ref(value))
+    }
+
+    pub fn record_value<'sval, S: StreamRecord<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
+        record: &mut S,
+        tag: Option<sval::Tag>,
+        label: sval::Label,
+        value: V,
+    ) -> Result {
+        record.value_computed(tag, label, value)
+    }
+
+    pub fn record_value_ref<'sval, S: StreamRecord<'sval> + ?Sized, V: sval::Value + ?Sized>(
+        record: &mut S,
+        tag: Option<sval::Tag>,
+        label: sval::Label,
+        value: &'sval V,
+    ) -> Result {
+        record.value(tag, label, sval_ref::to_ref(value))
+    }
+
+    pub fn enum_tagged<'sval, S: StreamEnum<'sval>, V: sval_ref::ValueRef<'sval>>(
+        stream: S,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        value: V,
+    ) -> Result<S::Ok> {
         stream.tagged_computed(tag, label, index, value)
+    }
+
+    pub fn enum_tagged_ref<'sval, S: StreamEnum<'sval>, V: sval::Value + ?Sized>(
+        stream: S,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        value: &'sval V,
+    ) -> Result<S::Ok> {
+        stream.tagged(tag, label, index, sval_ref::to_ref(value))
     }
 }
 
@@ -783,7 +922,7 @@ mod tests {
                 ]
             }),
             ToValue::default()
-                .value(&DeriveRecord {
+                .value_ref(&DeriveRecord {
                     a: 1,
                     b: DeriveTuple(
                         2,
@@ -799,17 +938,29 @@ mod tests {
 
     #[test]
     fn stream_primitive() {
-        assert_eq!(Value::Null, ToValue::default().value(&sval::Null).unwrap());
-        assert_eq!(Value::I64(42), ToValue::default().value(&42i64).unwrap());
-        assert_eq!(Value::F64(42.1), ToValue::default().value(&42.1).unwrap());
-        assert_eq!(Value::Bool(true), ToValue::default().value(&true).unwrap());
+        assert_eq!(
+            Value::Null,
+            ToValue::default().value_ref(&sval::Null).unwrap()
+        );
+        assert_eq!(
+            Value::I64(42),
+            ToValue::default().value_ref(&42i64).unwrap()
+        );
+        assert_eq!(
+            Value::F64(42.1),
+            ToValue::default().value_ref(&42.1).unwrap()
+        );
+        assert_eq!(
+            Value::Bool(true),
+            ToValue::default().value_ref(&true).unwrap()
+        );
     }
 
     #[test]
     fn stream_text_borrowed() {
         assert_eq!(
             Value::Text(Cow::Borrowed("borrowed")),
-            ToValue::default().value("borrowed").unwrap()
+            ToValue::default().value_ref("borrowed").unwrap()
         );
     }
 
@@ -818,7 +969,7 @@ mod tests {
         assert_eq!(
             Value::Binary(Cow::Borrowed(b"borrowed")),
             ToValue::default()
-                .value(sval::BinarySlice::new(b"borrowed"))
+                .value_ref(sval::BinarySlice::new(b"borrowed"))
                 .unwrap()
         );
     }
@@ -829,7 +980,7 @@ mod tests {
             Value::Seq(Seq {
                 entries: vec![Value::I64(1), Value::I64(2), Value::I64(3),]
             }),
-            ToValue::default().value(&[1, 2, 3] as &[_]).unwrap()
+            ToValue::default().value_ref(&[1, 2, 3] as &[_]).unwrap()
         );
     }
 
@@ -844,7 +995,7 @@ mod tests {
                 ]
             }),
             ToValue::default()
-                .value(sval::MapSlice::new(&[("a", 1), ("b", 2), ("c", 3),]))
+                .value_ref(sval::MapSlice::new(&[("a", 1), ("b", 2), ("c", 3),]))
                 .unwrap()
         );
     }
@@ -860,7 +1011,7 @@ mod tests {
                 ]
             }),
             ToValue::default()
-                .value(&{
+                .value_ref(&{
                     struct Tuple;
 
                     impl sval::Value for Tuple {
@@ -912,7 +1063,7 @@ mod tests {
                 })),
             }),
             ToValue::default()
-                .value(&{
+                .value_ref(&{
                     struct TupleVariant;
 
                     impl sval::Value for TupleVariant {
@@ -964,7 +1115,7 @@ mod tests {
                 ]
             }),
             ToValue::default()
-                .value(&{
+                .value_ref(&{
                     struct Record;
 
                     impl sval::Value for Record {
@@ -1016,7 +1167,7 @@ mod tests {
                 })),
             }),
             ToValue::default()
-                .value(&{
+                .value_ref(&{
                     struct RecordVariant;
 
                     impl sval::Value for RecordVariant {
@@ -1063,7 +1214,7 @@ mod tests {
         assert_eq!(
             Value::Text(Cow::Owned("owned".into())),
             ToValue::default()
-                .value(&{
+                .value_ref(&{
                     struct Text;
 
                     impl sval::Value for Text {
@@ -1092,7 +1243,7 @@ mod tests {
         assert_eq!(
             Value::Binary(Cow::Owned(b"owned".into())),
             ToValue::default()
-                .value(&{
+                .value_ref(&{
                     struct Binary;
 
                     impl sval::Value for Binary {
@@ -1157,7 +1308,7 @@ mod tests {
                     }))
                 })))
             }),
-            ToValue::default().value(&Layer).unwrap()
+            ToValue::default().value_ref(&Layer).unwrap()
         );
     }
 
@@ -1225,7 +1376,7 @@ mod tests {
                     })))
                 })))
             }),
-            ToValue::default().value(&Layer).unwrap()
+            ToValue::default().value_ref(&Layer).unwrap()
         );
     }
 
@@ -1406,12 +1557,12 @@ mod tests {
             Ok(Value::Tag(tag))
         }
 
-        fn tagged_computed<V: sval::Value + ?Sized>(
+        fn tagged_computed<V: sval::Value>(
             self,
             tag: Option<sval::Tag>,
             label: Option<sval::Label>,
             index: Option<sval::Index>,
-            value: &V,
+            value: V,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
             let value = ToValue::default().value_computed(value)?;
@@ -1485,7 +1636,7 @@ mod tests {
     impl<'sval> StreamSeq<'sval> for ToSeq<'sval> {
         type Ok = Value<'sval>;
 
-        fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+        fn value<V: sval_ref::ValueRef<'sval>>(&mut self, value: V) -> Result {
             let value = ToValue::default().value(value)?;
 
             self.seq.entries.push(value);
@@ -1493,7 +1644,7 @@ mod tests {
             Ok(())
         }
 
-        fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result {
+        fn value_computed<V: sval::Value>(&mut self, value: V) -> Result {
             let value = ToValue::default().value_computed(value)?;
 
             self.seq.entries.push(value);
@@ -1509,19 +1660,19 @@ mod tests {
     impl<'sval> StreamMap<'sval> for ToMap<'sval> {
         type Ok = Value<'sval>;
 
-        fn key<V: sval::Value + ?Sized>(&mut self, key: &'sval V) -> Result {
+        fn key<V: sval_ref::ValueRef<'sval>>(&mut self, key: V) -> Result {
             self.key = Some(ToValue::default().value(key)?);
 
             Ok(())
         }
 
-        fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> Result {
+        fn key_computed<V: sval::Value>(&mut self, key: V) -> Result {
             self.key = Some(ToValue::default().value_computed(key)?);
 
             Ok(())
         }
 
-        fn value<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
+        fn value<V: sval_ref::ValueRef<'sval>>(&mut self, value: V) -> Result {
             let key = self.key.take().unwrap();
             let value = ToValue::default().value(value)?;
 
@@ -1530,7 +1681,7 @@ mod tests {
             Ok(())
         }
 
-        fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> Result {
+        fn value_computed<V: sval::Value>(&mut self, value: V) -> Result {
             let key = self.key.take().unwrap();
             let value = ToValue::default().value_computed(value)?;
 
@@ -1547,11 +1698,11 @@ mod tests {
     impl<'sval> StreamTuple<'sval> for ToTuple<'sval> {
         type Ok = Value<'sval>;
 
-        fn value<V: sval::Value + ?Sized>(
+        fn value<V: sval_ref::ValueRef<'sval>>(
             &mut self,
             _: Option<sval::Tag>,
             index: sval::Index,
-            value: &'sval V,
+            value: V,
         ) -> Result {
             let value = ToValue::default().value(value)?;
 
@@ -1560,11 +1711,11 @@ mod tests {
             Ok(())
         }
 
-        fn value_computed<V: sval::Value + ?Sized>(
+        fn value_computed<V: sval::Value>(
             &mut self,
             _: Option<sval::Tag>,
             index: sval::Index,
-            value: &V,
+            value: V,
         ) -> Result {
             let value = ToValue::default().value_computed(value)?;
 
@@ -1581,11 +1732,11 @@ mod tests {
     impl<'sval> StreamRecord<'sval> for ToRecord<'sval> {
         type Ok = Value<'sval>;
 
-        fn value<V: sval::Value + ?Sized>(
+        fn value<V: sval_ref::ValueRef<'sval>>(
             &mut self,
             _: Option<sval::Tag>,
             label: sval::Label,
-            value: &'sval V,
+            value: V,
         ) -> Result {
             let label = owned_label(label)?;
             let value = ToValue::default().value(value)?;
@@ -1595,11 +1746,11 @@ mod tests {
             Ok(())
         }
 
-        fn value_computed<V: sval::Value + ?Sized>(
+        fn value_computed<V: sval::Value>(
             &mut self,
             _: Option<sval::Tag>,
             label: sval::Label,
-            value: &V,
+            value: V,
         ) -> Result {
             let label = owned_label(label)?;
             let value = ToValue::default().value_computed(value)?;
@@ -1635,12 +1786,12 @@ mod tests {
             }))
         }
 
-        fn tagged_computed<V: sval::Value + ?Sized>(
+        fn tagged_computed<V: sval::Value>(
             self,
             tag: Option<sval::Tag>,
             label: Option<sval::Label>,
             index: Option<sval::Index>,
-            value: &V,
+            value: V,
         ) -> Result<Self::Ok> {
             let tag = Tag::new(tag, label, index)?;
             let value = ToValue::default().value_computed(value)?;
@@ -1720,20 +1871,20 @@ mod tests {
     impl<'sval> StreamTuple<'sval> for ToVariant<ToTuple<'sval>> {
         type Ok = Value<'sval>;
 
-        fn value<V: sval::Value + ?Sized>(
+        fn value<V: sval_ref::ValueRef<'sval>>(
             &mut self,
             tag: Option<sval::Tag>,
             index: sval::Index,
-            value: &'sval V,
+            value: V,
         ) -> Result {
             self.stream.value(tag, index, value)
         }
 
-        fn value_computed<V: sval::Value + ?Sized>(
+        fn value_computed<V: sval::Value>(
             &mut self,
             tag: Option<sval::Tag>,
             index: sval::Index,
-            value: &V,
+            value: V,
         ) -> Result {
             self.stream.value_computed(tag, index, value)
         }
@@ -1749,20 +1900,20 @@ mod tests {
     impl<'sval> StreamRecord<'sval> for ToVariant<ToRecord<'sval>> {
         type Ok = Value<'sval>;
 
-        fn value<V: sval::Value + ?Sized>(
+        fn value<V: sval_ref::ValueRef<'sval>>(
             &mut self,
             tag: Option<sval::Tag>,
             label: sval::Label,
-            value: &'sval V,
+            value: V,
         ) -> Result {
             self.stream.value(tag, label, value)
         }
 
-        fn value_computed<V: sval::Value + ?Sized>(
+        fn value_computed<V: sval::Value>(
             &mut self,
             tag: Option<sval::Tag>,
             label: sval::Label,
-            value: &V,
+            value: V,
         ) -> Result {
             self.stream.value_computed(tag, label, value)
         }

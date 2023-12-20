@@ -42,7 +42,7 @@ impl<V: sval::Value + ?Sized> ToSerialize<V> {
 impl<V: sval::Value> serde::Serialize for ToSerialize<V> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         Serializer::new(serializer)
-            .value(&self.0)
+            .value_computed(&self.0)
             .unwrap_or_else(|e| Err(S::Error::custom(e)))
     }
 }
@@ -187,12 +187,12 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         }
     }
 
-    fn tagged_computed<V: sval::Value + ?Sized>(
+    fn tagged_computed<V: sval::Value>(
         self,
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         _: Option<sval::Index>,
-        value: &V,
+        value: V,
     ) -> sval_buffer::Result<Self::Ok> {
         match tag {
             Some(sval::tags::RUST_OPTION_SOME) => {
@@ -306,7 +306,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
 impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S::Error> {
     type Ok = Result<S::Ok, S::Error>;
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> sval_buffer::Result {
+    fn value_computed<V: sval::Value>(&mut self, value: V) -> sval_buffer::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_element(&ToSerialize::new(value)) {
                 Ok(()) => return Ok(()),
@@ -332,7 +332,7 @@ impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S:
 impl<'sval, S: serde::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S::Error> {
     type Ok = Result<S::Ok, S::Error>;
 
-    fn key_computed<V: sval::Value + ?Sized>(&mut self, key: &V) -> sval_buffer::Result {
+    fn key_computed<V: sval::Value>(&mut self, key: V) -> sval_buffer::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_key(&ToSerialize::new(key)) {
                 Ok(()) => return Ok(()),
@@ -347,7 +347,7 @@ impl<'sval, S: serde::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S:
         ))
     }
 
-    fn value_computed<V: sval::Value + ?Sized>(&mut self, value: &V) -> sval_buffer::Result {
+    fn value_computed<V: sval::Value>(&mut self, value: V) -> sval_buffer::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_value(&ToSerialize::new(value)) {
                 Ok(()) => return Ok(()),
@@ -380,11 +380,11 @@ impl<
 {
     type Ok = Result<TOk, TError>;
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         _: Option<sval::Tag>,
         label: sval::Label,
-        value: &V,
+        value: V,
     ) -> sval_buffer::Result {
         match self.serializer {
             Ok(MaybeNamed::Named { ref mut serializer }) => {
@@ -434,11 +434,11 @@ impl<
 {
     type Ok = Result<TOk, TError>;
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         _: Option<sval::Tag>,
         _: sval::Index,
-        value: &V,
+        value: V,
     ) -> sval_buffer::Result {
         match self.serializer {
             Ok(MaybeNamed::Named { ref mut serializer }) => {
@@ -502,12 +502,12 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
             .serialize_unit_variant(self.name, variant_index, variant))
     }
 
-    fn tagged_computed<V: sval::Value + ?Sized>(
+    fn tagged_computed<V: sval::Value>(
         self,
         _: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
-        value: &V,
+        value: V,
     ) -> sval_buffer::Result<Self::Ok> {
         let variant = label
             .and_then(|label| label.as_static_str())
@@ -605,11 +605,11 @@ impl<'sval, S: serde::ser::SerializeStructVariant> StreamRecord<'sval>
 {
     type Ok = Result<S::Ok, S::Error>;
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         _: Option<sval::Tag>,
         label: sval::Label,
-        value: &V,
+        value: V,
     ) -> sval_buffer::Result {
         let field = label
             .as_static_str()
@@ -642,11 +642,11 @@ impl<'sval, S: serde::ser::SerializeTupleVariant> StreamTuple<'sval>
 {
     type Ok = Result<S::Ok, S::Error>;
 
-    fn value_computed<V: sval::Value + ?Sized>(
+    fn value_computed<V: sval::Value>(
         &mut self,
         _: Option<sval::Tag>,
         _: sval::Index,
-        value: &V,
+        value: V,
     ) -> sval_buffer::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_field(&ToSerialize::new(value)) {

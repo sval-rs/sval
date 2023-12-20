@@ -186,7 +186,7 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                         .map_err(|_| Error::invalid_value("failed to stream value"))?;
                     Ok(None)
                 }
-                ref mut state => state.value(v, |stream, v| stream.value(v)),
+                ref mut state => state.value(&sval_ref::to_ref(v), |stream, v| stream.value(v)),
             },
         )
     }
@@ -564,7 +564,11 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
     fn null(&mut self) -> sval::Result {
         self.buffer_or_stream_with(
             |buf| buf.null(),
-            |stream| stream.state.value(&sval::Null, |stream, _| stream.null()),
+            |stream| {
+                stream
+                    .state
+                    .value(&sval_ref::to_ref(&sval::Null), |stream, _| stream.null())
+            },
         )
     }
 
@@ -739,7 +743,9 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                 let buf = stream.take_text()?;
 
                 if let Some(text) = buf.as_borrowed_str() {
-                    stream.state.value(text, |stream, text| stream.text(text))
+                    stream.state.value(&sval_ref::to_ref(text), |stream, text| {
+                        stream.text(text.into_inner())
+                    })
                 } else {
                     stream
                         .state
@@ -777,11 +783,10 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
                 let buf = stream.take_binary()?;
 
                 if let Some(binary) = buf.as_borrowed_slice() {
-                    stream
-                        .state
-                        .value(sval::BinarySlice::new(binary), |stream, binary| {
-                            stream.binary(binary.as_slice())
-                        })
+                    stream.state.value(
+                        &sval_ref::to_ref(sval::BinarySlice::new(binary)),
+                        |stream, binary| stream.binary(binary.into_inner().as_slice()),
+                    )
                 } else {
                     stream
                         .state
@@ -809,10 +814,10 @@ fn try_catch<'sval, T, S: Stream<'sval>>(
 }
 
 impl<'sval, S: Stream<'sval>> State<'sval, S> {
-    fn value<V: sval::Value + ?Sized>(
+    fn value<V: sval_ref::ValueRef<'sval> + ?Sized>(
         &mut self,
-        value: &'sval V,
-        any: impl FnOnce(S, &'sval V) -> Result<S::Ok>,
+        value: &V,
+        any: impl FnOnce(S, &V) -> Result<S::Ok>,
     ) -> Result<Option<S::Ok>> {
         self.value_with(
             |stream| any(stream, value),
