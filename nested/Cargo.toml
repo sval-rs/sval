@@ -15,6 +15,7 @@ categories = ["encoding", "no-std"]
 features = ["std"]
 
 [features]
+default = ["alloc"]
 std = ["alloc", "sval/std", "sval_buffer/std"]
 alloc = ["sval/alloc", "sval_buffer/alloc"]
 no_debug_assertions = []

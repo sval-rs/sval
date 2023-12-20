@@ -27,10 +27,6 @@ version = "2.10.2"
 path = "../nested"
 default-features = false
 
-[dependencies.sval_fmt]
-version = "2.10.2"
-path = "../fmt"
-
 [dependencies.serde]
 version = "1"
 default-features = false
