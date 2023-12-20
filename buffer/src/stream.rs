@@ -9,6 +9,8 @@ use self::flat::FlatStream;
 mod flat;
 mod flat_enum;
 
+pub use sval_ref::{Ref, ValueRef};
+
 pub trait Stream<'sval> {
     type Ok;
 
@@ -718,7 +720,7 @@ pub mod default_stream {
         let mut seq = stream.seq_begin(Some(binary.len()))?;
 
         for b in binary {
-            seq.value_computed(b)?;
+            StreamSeq::value_computed(&mut seq, b)?;
         }
 
         seq.end()

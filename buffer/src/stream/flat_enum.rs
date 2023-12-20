@@ -1,4 +1,7 @@
-use crate::{default_stream, Error, Result, Stream, StreamEnum, Unsupported};
+use crate::{
+    stream::{default_stream, Stream, StreamEnum, Unsupported},
+    Error, Result,
+};
 
 use super::owned_label;
 

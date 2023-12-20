@@ -1,8 +1,8 @@
 use core::{fmt, marker::PhantomData, mem};
 
 use crate::{
-    BinaryBuf, Error, Result, Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple,
-    TextBuf, ValueBuf,
+    stream::{Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple},
+    BinaryBuf, Error, Result, TextBuf, ValueBuf,
 };
 
 use super::{flat_enum::FlatStreamEnum, owned_label_ref};
@@ -822,9 +822,9 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
         self.value_with(
             |stream| any(stream, value),
             |stream, tag, label, index| stream.tagged(tag, label, index, value),
-            |stream| stream.value(value),
-            |stream| stream.key(value),
-            |stream| stream.value(value),
+            |stream| StreamSeq::value(stream, value),
+            |stream| StreamMap::key(stream, value),
+            |stream| StreamMap::value(stream, value),
             |stream, tag, index| stream.value(tag, index, value),
             |stream, tag, label| stream.value(tag, label, value),
             |stream, tag, label, index| stream.tagged(tag, label, index, value),
@@ -841,9 +841,9 @@ impl<'sval, S: Stream<'sval>> State<'sval, S> {
         self.value_with(
             |stream| any(stream, value),
             |stream, tag, label, index| stream.tagged_computed(tag, label, index, value),
-            |stream| stream.value_computed(value),
-            |stream| stream.key_computed(value),
-            |stream| stream.value_computed(value),
+            |stream| StreamSeq::value_computed(stream, value),
+            |stream| StreamMap::key_computed(stream, value),
+            |stream| StreamMap::value_computed(stream, value),
             |stream, tag, index| stream.value_computed(tag, index, value),
             |stream, tag, label| stream.value_computed(tag, label, value),
             |stream, tag, label, index| stream.tagged_computed(tag, label, index, value),

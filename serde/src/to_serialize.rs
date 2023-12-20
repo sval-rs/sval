@@ -1,6 +1,6 @@
 use serde::ser::{Error as _, Serialize as _};
 
-use sval_buffer::{
+use sval_buffer::stream::{
     Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple, Unsupported,
 };
 
