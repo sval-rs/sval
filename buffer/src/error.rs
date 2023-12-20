@@ -58,7 +58,7 @@ impl Error {
     /**
     The given value is invalid.
     */
-    pub fn invalid_value(reason: &'static str) -> Self {
+    pub(crate) fn invalid_value(reason: &'static str) -> Self {
         Error(ErrorKind::InvalidValue { reason })
     }
 

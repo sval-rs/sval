@@ -1,7 +1,4 @@
-use crate::{
-    stream::{default_stream, Stream, StreamEnum, Unsupported},
-    Error, Result,
-};
+use crate::{default_stream, Error, Result, Stream, StreamEnum, Unsupported};
 
 use super::owned_label;
 
@@ -219,7 +216,7 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
 #[derive(Default)]
 struct Queue {
     #[cfg(feature = "alloc")]
-    inner: crate::std::collections::VecDeque<NestedVariant>,
+    inner: alloc::collections::VecDeque<NestedVariant>,
 }
 
 impl Queue {

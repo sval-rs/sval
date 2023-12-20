@@ -1,27 +1,70 @@
-#![allow(missing_docs)]
+/*!
+A variant of [`sval::Stream`] for cases where a recursive API is needed.
+*/
 
-use core::marker::PhantomData;
+#![cfg_attr(not(test), no_std)]
+#![deny(missing_docs)]
 
-use crate::{Error, Result};
+#[cfg(feature = "alloc")]
+extern crate alloc;
 
-use self::flat::FlatStream;
+#[cfg(feature = "std")]
+extern crate std;
 
+mod error;
 mod flat;
 mod flat_enum;
 
 pub use sval_ref::{Ref, ValueRef};
 
+/**
+A generic streaming result.
+*/
+pub type Result<T = (), E = Error> = sval::Result<T, E>;
+
+pub use self::error::*;
+
+use core::marker::PhantomData;
+
+use self::flat::FlatStream;
+
+/**
+A recursive variant of [`sval::Stream`].
+*/
 pub trait Stream<'sval> {
+    /**
+    The type of value produced by this stream on completion.
+    */
     type Ok;
 
+    /**
+    Stream a sequence.
+    */
     type Seq: StreamSeq<'sval, Ok = Self::Ok>;
+
+    /**
+    Stream a map.
+    */
     type Map: StreamMap<'sval, Ok = Self::Ok>;
 
+    /**
+    Stream a tuple.
+    */
     type Tuple: StreamTuple<'sval, Ok = Self::Ok>;
+
+    /**
+    Stream a record.
+    */
     type Record: StreamRecord<'sval, Ok = Self::Ok>;
 
+    /**
+    Stream an enum.
+    */
     type Enum: StreamEnum<'sval, Ok = Self::Ok>;
 
+    /**
+    Recurse into a value.
+    */
     fn value<V: sval_ref::ValueRef<'sval>>(self, value: V) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -29,6 +72,9 @@ pub trait Stream<'sval> {
         default_stream::value(self, value)
     }
 
+    /**
+    Recurse into a value by reference.
+    */
     fn value_ref<V: sval::Value + ?Sized>(self, value: &'sval V) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -36,6 +82,9 @@ pub trait Stream<'sval> {
         default_stream::value_ref(self, value)
     }
 
+    /**
+    Recurse into a value for an arbitrarily short lifetime.
+    */
     fn value_computed<V: sval::Value>(self, value: V) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -43,10 +92,19 @@ pub trait Stream<'sval> {
         default_stream::value_computed(self, value)
     }
 
+    /**
+    Stream null, the absence of any other meaningful value.
+    */
     fn null(self) -> Result<Self::Ok>;
 
+    /**
+    Stream a boolean.
+    */
     fn bool(self, value: bool) -> Result<Self::Ok>;
 
+    /**
+    Stream a signed 8bit integer.
+    */
     fn i8(self, value: i8) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -54,6 +112,9 @@ pub trait Stream<'sval> {
         default_stream::i8(self, value)
     }
 
+    /**
+    Stream a signed 16bit integer.
+    */
     fn i16(self, value: i16) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -61,6 +122,9 @@ pub trait Stream<'sval> {
         default_stream::i16(self, value)
     }
 
+    /**
+    Stream a signed 32bit integer.
+    */
     fn i32(self, value: i32) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -68,8 +132,14 @@ pub trait Stream<'sval> {
         default_stream::i32(self, value)
     }
 
+    /**
+    Stream a signed 64bit integer.
+    */
     fn i64(self, value: i64) -> Result<Self::Ok>;
 
+    /**
+    Stream a signed 128bit integer.
+    */
     fn i128(self, value: i128) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -77,6 +147,9 @@ pub trait Stream<'sval> {
         default_stream::i128(self, value)
     }
 
+    /**
+    Stream an unsigned 8bit integer.
+    */
     fn u8(self, value: u8) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -84,6 +157,9 @@ pub trait Stream<'sval> {
         default_stream::u8(self, value)
     }
 
+    /**
+    Stream an unsigned 16bit integer.
+    */
     fn u16(self, value: u16) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -91,6 +167,9 @@ pub trait Stream<'sval> {
         default_stream::u16(self, value)
     }
 
+    /**
+    Stream an unsigned 32bit integer.
+    */
     fn u32(self, value: u32) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -98,6 +177,9 @@ pub trait Stream<'sval> {
         default_stream::u32(self, value)
     }
 
+    /**
+    Stream an unsigned 64bit integer.
+    */
     fn u64(self, value: u64) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -105,6 +187,9 @@ pub trait Stream<'sval> {
         default_stream::u64(self, value)
     }
 
+    /**
+    Stream an unsigned 128bit integer.
+    */
     fn u128(self, value: u128) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -112,6 +197,9 @@ pub trait Stream<'sval> {
         default_stream::u128(self, value)
     }
 
+    /**
+    Stream a 32bit floating point number.
+    */
     fn f32(self, value: f32) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -119,8 +207,14 @@ pub trait Stream<'sval> {
         default_stream::f32(self, value)
     }
 
+    /**
+    Stream a 64bit floating point number.
+    */
     fn f64(self, value: f64) -> Result<Self::Ok>;
 
+    /**
+    Stream UTF8 text.
+    */
     fn text(self, text: &'sval str) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -128,8 +222,14 @@ pub trait Stream<'sval> {
         default_stream::text(self, text)
     }
 
+    /**
+    Stream UTF8 text, borrowed for an arbitrarily short lifetime.
+    */
     fn text_computed(self, text: &str) -> Result<Self::Ok>;
 
+    /**
+    Streeam a bitstring.
+    */
     fn binary(self, binary: &'sval [u8]) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -137,6 +237,9 @@ pub trait Stream<'sval> {
         default_stream::binary(self, binary)
     }
 
+    /**
+    Stream a bitstring, borrowed for an arbitrarily short lifetime.
+    */
     fn binary_computed(self, binary: &[u8]) -> Result<Self::Ok>
     where
         Self: Sized,
@@ -144,6 +247,9 @@ pub trait Stream<'sval> {
         default_stream::binary_computed(self, binary)
     }
 
+    /**
+    Stream a tag.
+    */
     fn tag(
         self,
         tag: Option<sval::Tag>,
@@ -151,6 +257,9 @@ pub trait Stream<'sval> {
         index: Option<sval::Index>,
     ) -> Result<Self::Ok>;
 
+    /**
+    Stream a tagged value.
+    */
     fn tagged<V: sval_ref::ValueRef<'sval>>(
         self,
         tag: Option<sval::Tag>,
@@ -164,6 +273,9 @@ pub trait Stream<'sval> {
         default_stream::tagged(self, tag, label, index, value)
     }
 
+    /**
+    Stream a reference to a tagged value.
+    */
     fn tagged_ref<V: sval::Value + ?Sized>(
         self,
         tag: Option<sval::Tag>,
@@ -177,6 +289,9 @@ pub trait Stream<'sval> {
         default_stream::tagged_ref(self, tag, label, index, value)
     }
 
+    /**
+    Stream a tagged value, borrowed for an arbitrarily short lifetime.
+    */
     fn tagged_computed<V: sval::Value>(
         self,
         tag: Option<sval::Tag>,
@@ -185,10 +300,19 @@ pub trait Stream<'sval> {
         value: V,
     ) -> Result<Self::Ok>;
 
+    /**
+    Stream a sequence.
+    */
     fn seq_begin(self, num_entries: Option<usize>) -> Result<Self::Seq>;
 
+    /**
+    Stream a map.
+    */
     fn map_begin(self, num_entries: Option<usize>) -> Result<Self::Map>;
 
+    /**
+    Stream a tuple.
+    */
     fn tuple_begin(
         self,
         tag: Option<sval::Tag>,
@@ -197,6 +321,9 @@ pub trait Stream<'sval> {
         num_entries: Option<usize>,
     ) -> Result<Self::Tuple>;
 
+    /**
+    Stream a record.
+    */
     fn record_begin(
         self,
         tag: Option<sval::Tag>,
@@ -205,6 +332,9 @@ pub trait Stream<'sval> {
         num_entries: Option<usize>,
     ) -> Result<Self::Record>;
 
+    /**
+    Stream an enum.
+    */
     fn enum_begin(
         self,
         tag: Option<sval::Tag>,
@@ -213,51 +343,105 @@ pub trait Stream<'sval> {
     ) -> Result<Self::Enum>;
 }
 
+/**
+A stream for a sequence.
+*/
 pub trait StreamSeq<'sval> {
+    /**
+    The type of value produced by this stream on completion.
+    */
     type Ok;
 
+    /**
+    Stream a sequence element.
+    */
     fn value<V: sval_ref::ValueRef<'sval>>(&mut self, value: V) -> Result {
         default_stream::seq_value(self, value)
     }
 
+    /**
+    Stream a reference to a sequence element.
+    */
     fn value_ref<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
         default_stream::seq_value_ref(self, value)
     }
 
+    /**
+    Stream a sequence element, borrowed for an arbitrarily short lifetime.
+    */
     fn value_computed<V: sval::Value>(&mut self, value: V) -> Result;
 
+    /**
+    Complete the sequence.
+    */
     fn end(self) -> Result<Self::Ok>;
 }
 
+/**
+A stream for a map.
+*/
 pub trait StreamMap<'sval> {
+    /**
+    The type of value produced by this stream on completion.
+    */
     type Ok;
 
+    /**
+    Stream a map key.
+    */
     fn key<V: sval_ref::ValueRef<'sval>>(&mut self, key: V) -> Result {
         default_stream::map_key(self, key)
     }
 
+    /**
+    Stream a reference to a map key.
+    */
     fn key_ref<V: sval::Value + ?Sized>(&mut self, key: &'sval V) -> Result {
         default_stream::map_key_ref(self, key)
     }
 
+    /**
+    Stream a map key, borrowed for an arbitrarily short lifetime.
+    */
     fn key_computed<V: sval::Value>(&mut self, key: V) -> Result;
 
+    /**
+    Stream a map value.
+    */
     fn value<V: sval_ref::ValueRef<'sval>>(&mut self, value: V) -> Result {
         default_stream::map_value(self, value)
     }
 
+    /**
+    Stream a reference to a map value.
+    */
     fn value_ref<V: sval::Value + ?Sized>(&mut self, value: &'sval V) -> Result {
         default_stream::map_value_ref(self, value)
     }
 
+    /**
+    Stream a map value, borrowed for an arbitrarily short lifetime.
+    */
     fn value_computed<V: sval::Value>(&mut self, value: V) -> Result;
 
+    /**
+    Complete the map.
+    */
     fn end(self) -> Result<Self::Ok>;
 }
 
+/**
+A stream for a tuple.
+*/
 pub trait StreamTuple<'sval> {
+    /**
+    The type of value produced by this stream on completion.
+    */
     type Ok;
 
+    /**
+    Stream a tuple field.
+    */
     fn value<V: sval_ref::ValueRef<'sval>>(
         &mut self,
         tag: Option<sval::Tag>,
@@ -267,6 +451,9 @@ pub trait StreamTuple<'sval> {
         default_stream::tuple_value(self, tag, index, value)
     }
 
+    /**
+    Stream a reference to a tuple field.
+    */
     fn value_ref<V: sval::Value + ?Sized>(
         &mut self,
         tag: Option<sval::Tag>,
@@ -276,6 +463,9 @@ pub trait StreamTuple<'sval> {
         default_stream::tuple_value_ref(self, tag, index, value)
     }
 
+    /**
+    Stream a tuple field, borrowed for an arbitrarily short lifetime.
+    */
     fn value_computed<V: sval::Value>(
         &mut self,
         tag: Option<sval::Tag>,
@@ -283,12 +473,24 @@ pub trait StreamTuple<'sval> {
         value: V,
     ) -> Result;
 
+    /**
+    Complete the tuple.
+    */
     fn end(self) -> Result<Self::Ok>;
 }
 
+/**
+A stream for a record.
+*/
 pub trait StreamRecord<'sval> {
+    /**
+    The type of value produced by this stream on completion.
+    */
     type Ok;
 
+    /**
+    Stream a record field.
+    */
     fn value<V: sval_ref::ValueRef<'sval>>(
         &mut self,
         tag: Option<sval::Tag>,
@@ -298,6 +500,9 @@ pub trait StreamRecord<'sval> {
         default_stream::record_value(self, tag, label, value)
     }
 
+    /**
+    Stream a reference to a record field.
+    */
     fn value_ref<V: sval::Value + ?Sized>(
         &mut self,
         tag: Option<sval::Tag>,
@@ -307,6 +512,9 @@ pub trait StreamRecord<'sval> {
         default_stream::record_value_ref(self, tag, label, value)
     }
 
+    /**
+    Stream a record field, borrowed for an arbitrarily short lifetime.
+    */
     fn value_computed<V: sval::Value>(
         &mut self,
         tag: Option<sval::Tag>,
@@ -314,16 +522,39 @@ pub trait StreamRecord<'sval> {
         value: V,
     ) -> Result;
 
+    /**
+    Complete the record.
+    */
     fn end(self) -> Result<Self::Ok>;
 }
 
+/**
+A stream for an enum.
+*/
 pub trait StreamEnum<'sval> {
+    /**
+    The type of result produced by this stream on completion.
+    */
     type Ok;
 
+    /**
+    Stream a tuple variant.
+    */
     type Tuple: StreamTuple<'sval, Ok = Self::Ok>;
+
+    /**
+    Stream a record variant.
+    */
     type Record: StreamRecord<'sval, Ok = Self::Ok>;
+
+    /**
+    Stream a nested enum variant.
+    */
     type Nested: StreamEnum<'sval, Ok = Self::Ok, Nested = Self::Nested>;
 
+    /**
+    Stream a tag variant.
+    */
     fn tag(
         self,
         tag: Option<sval::Tag>,
@@ -331,6 +562,9 @@ pub trait StreamEnum<'sval> {
         index: Option<sval::Index>,
     ) -> Result<Self::Ok>;
 
+    /**
+    Stream a tagged value variant.
+    */
     fn tagged<V: sval_ref::ValueRef<'sval>>(
         self,
         tag: Option<sval::Tag>,
@@ -344,6 +578,9 @@ pub trait StreamEnum<'sval> {
         default_stream::enum_tagged(self, tag, label, index, value)
     }
 
+    /**
+    Stream a reference to a tagged value variant.
+    */
     fn tagged_ref<V: sval::Value + ?Sized>(
         self,
         tag: Option<sval::Tag>,
@@ -357,6 +594,9 @@ pub trait StreamEnum<'sval> {
         default_stream::enum_tagged_ref(self, tag, label, index, value)
     }
 
+    /**
+    Stream a tagged value variant, borrowed for an arbitrarily short lifetime.
+    */
     fn tagged_computed<V: sval::Value>(
         self,
         tag: Option<sval::Tag>,
@@ -365,6 +605,9 @@ pub trait StreamEnum<'sval> {
         value: V,
     ) -> Result<Self::Ok>;
 
+    /**
+    Stream a tuple variant.
+    */
     fn tuple_begin(
         self,
         tag: Option<sval::Tag>,
@@ -373,6 +616,9 @@ pub trait StreamEnum<'sval> {
         num_entries: Option<usize>,
     ) -> Result<Self::Tuple>;
 
+    /**
+    Stream a record variant.
+    */
     fn record_begin(
         self,
         tag: Option<sval::Tag>,
@@ -381,6 +627,9 @@ pub trait StreamEnum<'sval> {
         num_entries: Option<usize>,
     ) -> Result<Self::Record>;
 
+    /**
+    Recurse into a nested variant.
+    */
     fn nested<F: FnOnce(Self::Nested) -> Result<<Self::Nested as StreamEnum<'sval>>::Ok>>(
         self,
         tag: Option<sval::Tag>,
@@ -389,9 +638,15 @@ pub trait StreamEnum<'sval> {
         variant: F,
     ) -> Result<Self::Ok>;
 
-    fn end(self) -> Result<Self::Ok>;
+    /**
+    Stream an empty variant.
+    */
+    fn empty(self) -> Result<Self::Ok>;
 }
 
+/**
+A placeholder for a kind of value that isn't supported by a particular stream.
+*/
 pub struct Unsupported<Ok>(PhantomData<Result<Ok, Error>>);
 
 impl<Ok> Default for Unsupported<Ok> {
@@ -604,7 +859,7 @@ impl<'sval, Ok> StreamEnum<'sval> for Unsupported<Ok> {
         Err(Error::invalid_value("enums are unsupported"))
     }
 
-    fn end(self) -> Result<Self::Ok> {
+    fn empty(self) -> Result<Self::Ok> {
         Err(Error::invalid_value("enums are unsupported"))
     }
 }
@@ -629,8 +884,15 @@ fn owned_label_ref(label: &sval::Label) -> Result<sval::Label<'static>> {
 }
 
 pub mod default_stream {
+    /*!
+    Default method implementations for the [`Stream`] trait.
+    */
+
     use super::*;
 
+    /**
+    Recurse into a value.
+    */
     pub fn value<'sval, S: Stream<'sval>, V: sval_ref::ValueRef<'sval>>(
         stream: S,
         value: V,
@@ -640,6 +902,9 @@ pub mod default_stream {
         stream.finish()
     }
 
+    /**
+    Recurse into a value by reference.
+    */
     pub fn value_ref<'sval, S: Stream<'sval>, V: sval::Value + ?Sized>(
         stream: S,
         value: &'sval V,
@@ -647,6 +912,9 @@ pub mod default_stream {
         stream.value(sval_ref::to_ref(value))
     }
 
+    /**
+    Recurse into a value for an arbitrarily short lifetime.
+    */
     pub fn value_computed<'sval, S: Stream<'sval>, V: sval::Value>(
         stream: S,
         value: V,
@@ -656,18 +924,30 @@ pub mod default_stream {
         stream.finish()
     }
 
+    /**
+    Stream a signed 8bit integer.
+    */
     pub fn i8<'sval, S: Stream<'sval>>(stream: S, value: i8) -> Result<S::Ok> {
         stream.i16(value as i16)
     }
 
+    /**
+    Stream a signed 16bit integer.
+    */
     pub fn i16<'sval, S: Stream<'sval>>(stream: S, value: i16) -> Result<S::Ok> {
         stream.i32(value as i32)
     }
 
+    /**
+    Stream a signed 32bit integer.
+    */
     pub fn i32<'sval, S: Stream<'sval>>(stream: S, value: i32) -> Result<S::Ok> {
         stream.i64(value as i64)
     }
 
+    /**
+    Stream a signed 128bit integer.
+    */
     pub fn i128<'sval, S: Stream<'sval>>(stream: S, value: i128) -> Result<S::Ok> {
         if let Ok(value) = value.try_into() {
             stream.i64(value)
@@ -678,22 +958,37 @@ pub mod default_stream {
         }
     }
 
+    /**
+    Stream an unsigned 8bit integer.
+    */
     pub fn u8<'sval, S: Stream<'sval>>(stream: S, value: u8) -> Result<S::Ok> {
         stream.u16(value as u16)
     }
 
+    /**
+    Stream an unsigned 16bit integer.
+    */
     pub fn u16<'sval, S: Stream<'sval>>(stream: S, value: u16) -> Result<S::Ok> {
         stream.u32(value as u32)
     }
 
+    /**
+    Stream an unsigned 32bit integer.
+    */
     pub fn u32<'sval, S: Stream<'sval>>(stream: S, value: u32) -> Result<S::Ok> {
         stream.u64(value as u64)
     }
 
+    /**
+    Stream an unsigned 64bit integer.
+    */
     pub fn u64<'sval, S: Stream<'sval>>(stream: S, value: u64) -> Result<S::Ok> {
         stream.u128(value as u128)
     }
 
+    /**
+    Stream an unsigned 128bit integer.
+    */
     pub fn u128<'sval, S: Stream<'sval>>(stream: S, value: u128) -> Result<S::Ok> {
         if let Ok(value) = value.try_into() {
             stream.i64(value)
@@ -704,18 +999,30 @@ pub mod default_stream {
         }
     }
 
+    /**
+    Stream a 32bit floating point number.
+    */
     pub fn f32<'sval, S: Stream<'sval>>(stream: S, value: f32) -> Result<S::Ok> {
         stream.f64(value as f64)
     }
 
+    /**
+    Stream UTF8 text.
+    */
     pub fn text<'sval, S: Stream<'sval>>(stream: S, text: &'sval str) -> Result<S::Ok> {
         stream.text_computed(text)
     }
 
+    /**
+    Streeam a bitstring.
+    */
     pub fn binary<'sval, S: Stream<'sval>>(stream: S, binary: &'sval [u8]) -> Result<S::Ok> {
         stream.binary_computed(binary)
     }
 
+    /**
+    Stream a bitstring, borrowed for an arbitrarily short lifetime.
+    */
     pub fn binary_computed<'sval, S: Stream<'sval>>(stream: S, binary: &[u8]) -> Result<S::Ok> {
         let mut seq = stream.seq_begin(Some(binary.len()))?;
 
@@ -726,6 +1033,9 @@ pub mod default_stream {
         seq.end()
     }
 
+    /**
+    Stream a tagged value.
+    */
     pub fn tagged<'sval, S: Stream<'sval>, V: sval_ref::ValueRef<'sval>>(
         stream: S,
         tag: Option<sval::Tag>,
@@ -736,6 +1046,9 @@ pub mod default_stream {
         stream.tagged_computed(tag, label, index, value)
     }
 
+    /**
+    Stream a reference to a tagged value.
+    */
     pub fn tagged_ref<'sval, S: Stream<'sval>, V: sval::Value + ?Sized>(
         stream: S,
         tag: Option<sval::Tag>,
@@ -746,6 +1059,9 @@ pub mod default_stream {
         stream.tagged(tag, label, index, sval_ref::to_ref(value))
     }
 
+    /**
+    Stream a sequence element.
+    */
     pub fn seq_value<'sval, S: StreamSeq<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
         seq: &mut S,
         value: V,
@@ -753,6 +1069,9 @@ pub mod default_stream {
         seq.value_computed(value)
     }
 
+    /**
+    Stream a reference to a sequence element.
+    */
     pub fn seq_value_ref<'sval, S: StreamSeq<'sval> + ?Sized, V: sval::Value + ?Sized>(
         seq: &mut S,
         value: &'sval V,
@@ -760,6 +1079,9 @@ pub mod default_stream {
         seq.value(sval_ref::to_ref(value))
     }
 
+    /**
+    Stream a map key.
+    */
     pub fn map_key<'sval, S: StreamMap<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
         map: &mut S,
         key: V,
@@ -767,6 +1089,9 @@ pub mod default_stream {
         map.key_computed(key)
     }
 
+    /**
+    Stream a reference to a map key.
+    */
     pub fn map_key_ref<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
         map: &mut S,
         key: &'sval V,
@@ -774,6 +1099,9 @@ pub mod default_stream {
         map.key(sval_ref::to_ref(key))
     }
 
+    /**
+    Stream a map value.
+    */
     pub fn map_value<'sval, S: StreamMap<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
         map: &mut S,
         value: V,
@@ -781,6 +1109,9 @@ pub mod default_stream {
         map.value_computed(value)
     }
 
+    /**
+    Stream a reference to a map value.
+    */
     pub fn map_value_ref<'sval, S: StreamMap<'sval> + ?Sized, V: sval::Value + ?Sized>(
         map: &mut S,
         value: &'sval V,
@@ -788,6 +1119,9 @@ pub mod default_stream {
         map.value(sval_ref::to_ref(value))
     }
 
+    /**
+    Stream a tuple field.
+    */
     pub fn tuple_value<'sval, S: StreamTuple<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
         tuple: &mut S,
         tag: Option<sval::Tag>,
@@ -797,6 +1131,9 @@ pub mod default_stream {
         tuple.value_computed(tag, index, value)
     }
 
+    /**
+    Stream a reference to a tuple field.
+    */
     pub fn tuple_value_ref<'sval, S: StreamTuple<'sval> + ?Sized, V: sval::Value + ?Sized>(
         tuple: &mut S,
         tag: Option<sval::Tag>,
@@ -806,6 +1143,9 @@ pub mod default_stream {
         tuple.value(tag, index, sval_ref::to_ref(value))
     }
 
+    /**
+    Stream a record field.
+    */
     pub fn record_value<'sval, S: StreamRecord<'sval> + ?Sized, V: sval_ref::ValueRef<'sval>>(
         record: &mut S,
         tag: Option<sval::Tag>,
@@ -815,6 +1155,9 @@ pub mod default_stream {
         record.value_computed(tag, label, value)
     }
 
+    /**
+    Stream a reference to a record field.
+    */
     pub fn record_value_ref<'sval, S: StreamRecord<'sval> + ?Sized, V: sval::Value + ?Sized>(
         record: &mut S,
         tag: Option<sval::Tag>,
@@ -824,6 +1167,9 @@ pub mod default_stream {
         record.value(tag, label, sval_ref::to_ref(value))
     }
 
+    /**
+    Stream a tagged value variant.
+    */
     pub fn enum_tagged<'sval, S: StreamEnum<'sval>, V: sval_ref::ValueRef<'sval>>(
         stream: S,
         tag: Option<sval::Tag>,
@@ -834,6 +1180,9 @@ pub mod default_stream {
         stream.tagged_computed(tag, label, index, value)
     }
 
+    /**
+    Stream a reference to a tagged value variant.
+    */
     pub fn enum_tagged_ref<'sval, S: StreamEnum<'sval>, V: sval::Value + ?Sized>(
         stream: S,
         tag: Option<sval::Tag>,
@@ -1862,7 +2211,7 @@ mod tests {
             }))
         }
 
-        fn end(self) -> Result<Self::Ok> {
+        fn empty(self) -> Result<Self::Ok> {
             Ok(Value::Enum(Enum {
                 tag: self.tag,
                 variant: None,

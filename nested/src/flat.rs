@@ -1,9 +1,8 @@
 use core::{fmt, marker::PhantomData, mem};
 
-use crate::{
-    stream::{Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple},
-    BinaryBuf, Error, Result, TextBuf, ValueBuf,
-};
+use sval_buffer::{BinaryBuf, TextBuf, ValueBuf};
+
+use crate::{Error, Result, Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple};
 
 use super::{flat_enum::FlatStreamEnum, owned_label_ref};
 
@@ -725,14 +724,17 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
     fn text_fragment(&mut self, fragment: &'sval str) -> sval::Result {
         self.buffer_or_with(
             |buf| buf.text_fragment(fragment),
-            |stream| stream.with_text(|text| text.push_fragment(fragment)),
+            |stream| stream.with_text(|text| text.push_fragment(fragment).map_err(Error::buffer)),
         )
     }
 
     fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
         self.buffer_or_with(
             |buf| buf.text_fragment_computed(fragment),
-            |stream| stream.with_text(|text| text.push_fragment_computed(fragment)),
+            |stream| {
+                stream
+                    .with_text(|text| text.push_fragment_computed(fragment).map_err(Error::buffer))
+            },
         )
     }
 
@@ -765,14 +767,22 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
     fn binary_fragment(&mut self, fragment: &'sval [u8]) -> sval::Result {
         self.buffer_or_with(
             |buf| buf.binary_fragment(fragment),
-            |stream| stream.with_binary(|binary| binary.push_fragment(fragment)),
+            |stream| {
+                stream.with_binary(|binary| binary.push_fragment(fragment).map_err(Error::buffer))
+            },
         )
     }
 
     fn binary_fragment_computed(&mut self, fragment: &[u8]) -> sval::Result {
         self.buffer_or_with(
             |buf| buf.binary_fragment_computed(fragment),
-            |stream| stream.with_binary(|binary| binary.push_fragment_computed(fragment)),
+            |stream| {
+                stream.with_binary(|binary| {
+                    binary
+                        .push_fragment_computed(fragment)
+                        .map_err(Error::buffer)
+                })
+            },
         )
     }
 
@@ -1045,7 +1055,9 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
                 if buffer(buf).is_err() {
                     let buf = mem::take(buf);
 
-                    Err(buf.into_err())
+                    Err(buf.into_err().map(Error::buffer).unwrap_or_else(|| {
+                        Error::invalid_value("the value itself failed to stream")
+                    }))
                 } else {
                     Ok(())
                 }
@@ -1070,7 +1082,9 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
                 if buffer(buf).is_err() {
                     let buf = mem::take(buf);
 
-                    return Err(buf.into_err());
+                    return Err(buf.into_err().map(Error::buffer).unwrap_or_else(|| {
+                        Error::invalid_value("the value itself failed to stream")
+                    }));
                 }
 
                 Ok(None)
@@ -1103,7 +1117,9 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
             } => {
                 let mut buf = ValueBuf::new();
                 if buffer(&mut buf).is_err() {
-                    return Err(buf.into_err());
+                    return Err(buf.into_err().map(Error::buffer).unwrap_or_else(|| {
+                        Error::invalid_value("the value itself failed to stream")
+                    }));
                 }
 
                 Ok(Some(Buffered::Value(buf)))
@@ -1137,7 +1153,9 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
                 if buffer(buf).is_err() {
                     let buf = mem::take(buf);
 
-                    return Err(buf.into_err());
+                    return Err(buf.into_err().map(Error::buffer).unwrap_or_else(|| {
+                        Error::invalid_value("the value itself failed to stream")
+                    }));
                 }
 
                 if buf.is_complete() {

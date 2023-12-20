@@ -74,7 +74,9 @@ impl<'sval> ValueBuf<'sval> {
 
         match v.stream(&mut buf) {
             Ok(()) => Ok(buf),
-            Err(_) => Err(buf.into_err()),
+            Err(_) => Err(buf
+                .into_err()
+                .unwrap_or_else(|| Error::invalid_value("the value itself failed to stream"))),
         }
     }
 
@@ -202,9 +204,14 @@ impl<'sval> ValueBuf<'sval> {
         sval::error()
     }
 
-    pub(crate) fn into_err(self) -> Error {
+    /**
+    Take an error produced while attempting to buffer a value.
+
+    This method may return `None` even if streaming failed if a value failed
+    without ever calling into the buffer.
+    */
+    pub fn into_err(self) -> Option<Error> {
         self.err
-            .unwrap_or_else(|| Error::invalid_value("the value itself failed to stream"))
     }
 }
 
@@ -221,7 +228,9 @@ impl ValueBuf<'static> {
         // have to be converted into owned anyways
         match sval::stream_computed(&mut buf, v) {
             Ok(()) => Ok(buf),
-            Err(_) => Err(buf.into_err()),
+            Err(_) => Err(buf
+                .into_err()
+                .unwrap_or_else(|| Error::invalid_value("the value itself failed to stream"))),
         }
     }
 }

@@ -12,11 +12,6 @@ out functionality when an allocator isn't available.
 #![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
 
-/**
-A generic streaming result.
-*/
-pub type Result<T = (), E = Error> = sval::Result<T, E>;
-
 mod error;
 
 #[cfg(feature = "std")]
@@ -43,10 +38,9 @@ mod std {
 }
 
 mod fragments;
-pub mod stream;
 mod value;
 
 #[cfg(feature = "alloc")]
 fn assert_static<T: 'static>(_: &mut T) {}
 
-pub use self::{error::*, fragments::*, stream::Stream, value::*};
+pub use self::{error::*, fragments::*, value::*};

@@ -1,6 +1,6 @@
 use serde::ser::{Error as _, Serialize as _};
 
-use sval_buffer::stream::{
+use sval_nested::{
     Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple, Unsupported,
 };
 
@@ -104,67 +104,67 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
 
     type Enum = SerializeEnum<S>;
 
-    fn null(self) -> sval_buffer::Result<Self::Ok> {
+    fn null(self) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_none())
     }
 
-    fn bool(self, value: bool) -> sval_buffer::Result<Self::Ok> {
+    fn bool(self, value: bool) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_bool(value))
     }
 
-    fn i8(self, value: i8) -> sval_buffer::Result<Self::Ok> {
+    fn i8(self, value: i8) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_i8(value))
     }
 
-    fn i16(self, value: i16) -> sval_buffer::Result<Self::Ok> {
+    fn i16(self, value: i16) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_i16(value))
     }
 
-    fn i32(self, value: i32) -> sval_buffer::Result<Self::Ok> {
+    fn i32(self, value: i32) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_i32(value))
     }
 
-    fn i64(self, value: i64) -> sval_buffer::Result<Self::Ok> {
+    fn i64(self, value: i64) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_i64(value))
     }
 
-    fn i128(self, value: i128) -> sval_buffer::Result<Self::Ok> {
+    fn i128(self, value: i128) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_i128(value))
     }
 
-    fn u8(self, value: u8) -> sval_buffer::Result<Self::Ok> {
+    fn u8(self, value: u8) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_u8(value))
     }
 
-    fn u16(self, value: u16) -> sval_buffer::Result<Self::Ok> {
+    fn u16(self, value: u16) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_u16(value))
     }
 
-    fn u32(self, value: u32) -> sval_buffer::Result<Self::Ok> {
+    fn u32(self, value: u32) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_u32(value))
     }
 
-    fn u64(self, value: u64) -> sval_buffer::Result<Self::Ok> {
+    fn u64(self, value: u64) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_u64(value))
     }
 
-    fn u128(self, value: u128) -> sval_buffer::Result<Self::Ok> {
+    fn u128(self, value: u128) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_u128(value))
     }
 
-    fn f32(self, value: f32) -> sval_buffer::Result<Self::Ok> {
+    fn f32(self, value: f32) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_f32(value))
     }
 
-    fn f64(self, value: f64) -> sval_buffer::Result<Self::Ok> {
+    fn f64(self, value: f64) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_f64(value))
     }
 
-    fn text_computed(self, text: &str) -> sval_buffer::Result<Self::Ok> {
+    fn text_computed(self, text: &str) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_str(text))
     }
 
-    fn binary_computed(self, binary: &[u8]) -> sval_buffer::Result<Self::Ok> {
+    fn binary_computed(self, binary: &[u8]) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_bytes(binary))
     }
 
@@ -173,14 +173,14 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         _: Option<sval::Index>,
-    ) -> sval_buffer::Result<Self::Ok> {
+    ) -> sval_nested::Result<Self::Ok> {
         match tag {
             Some(sval::tags::RUST_OPTION_NONE) => Ok(self.serializer.serialize_none()),
             Some(sval::tags::RUST_UNIT) => Ok(self.serializer.serialize_unit()),
             _ => {
                 let name = label
                     .and_then(|label| label.as_static_str())
-                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing unit label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("missing unit label"))?;
 
                 Ok(self.serializer.serialize_unit_struct(name))
             }
@@ -193,7 +193,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         label: Option<sval::Label>,
         _: Option<sval::Index>,
         value: V,
-    ) -> sval_buffer::Result<Self::Ok> {
+    ) -> sval_nested::Result<Self::Ok> {
         match tag {
             Some(sval::tags::RUST_OPTION_SOME) => {
                 Ok(self.serializer.serialize_some(&ToSerialize::new(value)))
@@ -201,7 +201,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
             _ => {
                 let name = label
                     .and_then(|label| label.as_static_str())
-                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing newtype label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("missing newtype label"))?;
 
                 Ok(self
                     .serializer
@@ -210,13 +210,13 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         }
     }
 
-    fn seq_begin(self, num_entries: Option<usize>) -> sval_buffer::Result<Self::Seq> {
+    fn seq_begin(self, num_entries: Option<usize>) -> sval_nested::Result<Self::Seq> {
         Ok(SerializeSeq {
             serializer: self.serializer.serialize_seq(num_entries),
         })
     }
 
-    fn map_begin(self, num_entries: Option<usize>) -> sval_buffer::Result<Self::Map> {
+    fn map_begin(self, num_entries: Option<usize>) -> sval_nested::Result<Self::Map> {
         Ok(SerializeMap {
             serializer: self.serializer.serialize_map(num_entries),
         })
@@ -228,15 +228,15 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         label: Option<sval::Label>,
         _: Option<sval::Index>,
         num_entries: Option<usize>,
-    ) -> sval_buffer::Result<Self::Tuple> {
+    ) -> sval_nested::Result<Self::Tuple> {
         let len =
-            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple len"))?;
+            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing tuple len"))?;
 
         match label {
             Some(label) => {
                 let name = label
                     .as_static_str()
-                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple label"))?;
 
                 Ok(SerializeTuple {
                     serializer: self
@@ -260,15 +260,15 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         label: Option<sval::Label>,
         _: Option<sval::Index>,
         num_entries: Option<usize>,
-    ) -> sval_buffer::Result<Self::Record> {
+    ) -> sval_nested::Result<Self::Record> {
         let len =
-            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple len"))?;
+            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing tuple len"))?;
 
         match label {
             Some(label) => {
                 let name = label
                     .as_static_str()
-                    .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple label"))?;
+                    .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple label"))?;
 
                 Ok(SerializeRecord {
                     serializer: self
@@ -291,10 +291,10 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
         _: Option<sval::Tag>,
         label: Option<sval::Label>,
         _: Option<sval::Index>,
-    ) -> sval_buffer::Result<Self::Enum> {
+    ) -> sval_nested::Result<Self::Enum> {
         let name = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing enum label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing enum label"))?;
 
         Ok(SerializeEnum {
             name,
@@ -306,7 +306,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
 impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S::Error> {
     type Ok = Result<S::Ok, S::Error>;
 
-    fn value_computed<V: sval::Value>(&mut self, value: V) -> sval_buffer::Result {
+    fn value_computed<V: sval::Value>(&mut self, value: V) -> sval_nested::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_element(&ToSerialize::new(value)) {
                 Ok(()) => return Ok(()),
@@ -316,12 +316,12 @@ impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S:
             }
         }
 
-        Err(sval_buffer::Error::invalid_value(
+        Err(sval_nested::Error::invalid_value(
             "failed to serialize sequence element",
         ))
     }
 
-    fn end(self) -> sval_buffer::Result<Self::Ok> {
+    fn end(self) -> sval_nested::Result<Self::Ok> {
         match self.serializer {
             Ok(serializer) => Ok(serializer.end()),
             Err(err) => Ok(Err(err)),
@@ -332,7 +332,7 @@ impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S:
 impl<'sval, S: serde::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S::Error> {
     type Ok = Result<S::Ok, S::Error>;
 
-    fn key_computed<V: sval::Value>(&mut self, key: V) -> sval_buffer::Result {
+    fn key_computed<V: sval::Value>(&mut self, key: V) -> sval_nested::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_key(&ToSerialize::new(key)) {
                 Ok(()) => return Ok(()),
@@ -342,12 +342,12 @@ impl<'sval, S: serde::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S:
             }
         }
 
-        Err(sval_buffer::Error::invalid_value(
+        Err(sval_nested::Error::invalid_value(
             "failed to serialize map key",
         ))
     }
 
-    fn value_computed<V: sval::Value>(&mut self, value: V) -> sval_buffer::Result {
+    fn value_computed<V: sval::Value>(&mut self, value: V) -> sval_nested::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_value(&ToSerialize::new(value)) {
                 Ok(()) => return Ok(()),
@@ -357,12 +357,12 @@ impl<'sval, S: serde::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S:
             }
         }
 
-        Err(sval_buffer::Error::invalid_value(
+        Err(sval_nested::Error::invalid_value(
             "failed to serialize map value",
         ))
     }
 
-    fn end(self) -> sval_buffer::Result<Self::Ok> {
+    fn end(self) -> sval_nested::Result<Self::Ok> {
         match self.serializer {
             Ok(serializer) => Ok(serializer.end()),
             Err(err) => Ok(Err(err)),
@@ -385,11 +385,11 @@ impl<
         _: Option<sval::Tag>,
         label: sval::Label,
         value: V,
-    ) -> sval_buffer::Result {
+    ) -> sval_nested::Result {
         match self.serializer {
             Ok(MaybeNamed::Named { ref mut serializer }) => {
                 let field = label.as_static_str().ok_or_else(|| {
-                    sval_buffer::Error::invalid_value("missing struct field label")
+                    sval_nested::Error::invalid_value("missing struct field label")
                 })?;
 
                 match serializer.serialize_field(field, &ToSerialize::new(value)) {
@@ -410,12 +410,12 @@ impl<
             Err(_) => (),
         }
 
-        Err(sval_buffer::Error::invalid_value(
+        Err(sval_nested::Error::invalid_value(
             "failed to serialize tuple field",
         ))
     }
 
-    fn end(self) -> sval_buffer::Result<Self::Ok> {
+    fn end(self) -> sval_nested::Result<Self::Ok> {
         match self.serializer {
             Ok(MaybeNamed::Named { serializer }) => Ok(serializer.end()),
             Ok(MaybeNamed::Unnamed { serializer }) => Ok(serializer.end()),
@@ -439,7 +439,7 @@ impl<
         _: Option<sval::Tag>,
         _: sval::Index,
         value: V,
-    ) -> sval_buffer::Result {
+    ) -> sval_nested::Result {
         match self.serializer {
             Ok(MaybeNamed::Named { ref mut serializer }) => {
                 match serializer.serialize_field(&ToSerialize::new(value)) {
@@ -460,12 +460,12 @@ impl<
             Err(_) => (),
         }
 
-        Err(sval_buffer::Error::invalid_value(
+        Err(sval_nested::Error::invalid_value(
             "failed to serialize tuple field",
         ))
     }
 
-    fn end(self) -> sval_buffer::Result<Self::Ok> {
+    fn end(self) -> sval_nested::Result<Self::Ok> {
         match self.serializer {
             Ok(MaybeNamed::Named { serializer }) => Ok(serializer.end()),
             Ok(MaybeNamed::Unnamed { serializer }) => Ok(serializer.end()),
@@ -488,14 +488,14 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
         _: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
-    ) -> sval_buffer::Result<Self::Ok> {
+    ) -> sval_nested::Result<Self::Ok> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing unit label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing unit label"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing unit index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing unit index"))?;
 
         Ok(self
             .serializer
@@ -508,14 +508,14 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
         label: Option<sval::Label>,
         index: Option<sval::Index>,
         value: V,
-    ) -> sval_buffer::Result<Self::Ok> {
+    ) -> sval_nested::Result<Self::Ok> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing newtype label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing newtype label"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing newtype index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing newtype index"))?;
 
         Ok(self.serializer.serialize_newtype_variant(
             self.name,
@@ -531,17 +531,17 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
         label: Option<sval::Label>,
         index: Option<sval::Index>,
         num_entries: Option<usize>,
-    ) -> sval_buffer::Result<Self::Tuple> {
+    ) -> sval_nested::Result<Self::Tuple> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple label"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing tuple index"))?;
 
         let len =
-            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing tuple len"))?;
+            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing tuple len"))?;
 
         Ok(SerializeTupleVariant {
             serializer: self.serializer.serialize_tuple_variant(
@@ -559,17 +559,17 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
         label: Option<sval::Label>,
         index: Option<sval::Index>,
         num_entries: Option<usize>,
-    ) -> sval_buffer::Result<Self::Record> {
+    ) -> sval_nested::Result<Self::Record> {
         let variant = label
             .and_then(|label| label.as_static_str())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing struct label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing struct label"))?;
 
         let variant_index = index
             .and_then(|index| index.to_u32())
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing struct index"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing struct index"))?;
 
         let len =
-            num_entries.ok_or_else(|| sval_buffer::Error::invalid_value("missing struct len"))?;
+            num_entries.ok_or_else(|| sval_nested::Error::invalid_value("missing struct len"))?;
 
         Ok(SerializeRecordVariant {
             serializer: self.serializer.serialize_struct_variant(
@@ -582,20 +582,20 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
     }
 
     fn nested<
-        F: FnOnce(Self::Nested) -> sval_buffer::Result<<Self::Nested as StreamEnum<'sval>>::Ok>,
+        F: FnOnce(Self::Nested) -> sval_nested::Result<<Self::Nested as StreamEnum<'sval>>::Ok>,
     >(
         self,
         _: Option<sval::Tag>,
         _: Option<sval::Label>,
         _: Option<sval::Index>,
         _: F,
-    ) -> sval_buffer::Result<Self::Ok> {
-        Err(sval_buffer::Error::invalid_value(
+    ) -> sval_nested::Result<Self::Ok> {
+        Err(sval_nested::Error::invalid_value(
             "nested enums aren't supported",
         ))
     }
 
-    fn end(self) -> sval_buffer::Result<Self::Ok> {
+    fn empty(self) -> sval_nested::Result<Self::Ok> {
         Ok(self.serializer.serialize_unit_struct(self.name))
     }
 }
@@ -610,10 +610,10 @@ impl<'sval, S: serde::ser::SerializeStructVariant> StreamRecord<'sval>
         _: Option<sval::Tag>,
         label: sval::Label,
         value: V,
-    ) -> sval_buffer::Result {
+    ) -> sval_nested::Result {
         let field = label
             .as_static_str()
-            .ok_or_else(|| sval_buffer::Error::invalid_value("missing struct field label"))?;
+            .ok_or_else(|| sval_nested::Error::invalid_value("missing struct field label"))?;
 
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_field(field, &ToSerialize::new(value)) {
@@ -624,12 +624,12 @@ impl<'sval, S: serde::ser::SerializeStructVariant> StreamRecord<'sval>
             }
         }
 
-        Err(sval_buffer::Error::invalid_value(
+        Err(sval_nested::Error::invalid_value(
             "failed to serialize struct value",
         ))
     }
 
-    fn end(self) -> sval_buffer::Result<Self::Ok> {
+    fn end(self) -> sval_nested::Result<Self::Ok> {
         match self.serializer {
             Ok(serializer) => Ok(serializer.end()),
             Err(err) => Ok(Err(err)),
@@ -647,7 +647,7 @@ impl<'sval, S: serde::ser::SerializeTupleVariant> StreamTuple<'sval>
         _: Option<sval::Tag>,
         _: sval::Index,
         value: V,
-    ) -> sval_buffer::Result {
+    ) -> sval_nested::Result {
         if let Ok(ref mut serializer) = self.serializer {
             match serializer.serialize_field(&ToSerialize::new(value)) {
                 Ok(()) => return Ok(()),
@@ -657,12 +657,12 @@ impl<'sval, S: serde::ser::SerializeTupleVariant> StreamTuple<'sval>
             }
         }
 
-        Err(sval_buffer::Error::invalid_value(
+        Err(sval_nested::Error::invalid_value(
             "failed to serialize tuple value",
         ))
     }
 
-    fn end(self) -> sval_buffer::Result<Self::Ok> {
+    fn end(self) -> sval_nested::Result<Self::Ok> {
         match self.serializer {
             Ok(serializer) => Ok(serializer.end()),
             Err(err) => Ok(Err(err)),
