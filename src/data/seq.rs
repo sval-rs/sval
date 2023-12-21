@@ -17,15 +17,7 @@ impl<T: Value> Value for [T] {
 impl<T: Value, const N: usize> Value for [T; N] {
     fn stream<'a, S: Stream<'a> + ?Sized>(&'a self, stream: &mut S) -> Result {
         stream.tagged_begin(Some(&tags::CONSTANT_SIZE), None, None)?;
-        stream.seq_begin(Some(self.len()))?;
-
-        for elem in self {
-            stream.seq_value_begin()?;
-            stream.value(elem)?;
-            stream.seq_value_end()?;
-        }
-
-        stream.seq_end()?;
+        stream.value(self as &'a [T])?;
         stream.tagged_end(Some(&tags::CONSTANT_SIZE), None, None)
     }
 }

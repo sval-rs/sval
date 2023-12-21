@@ -40,7 +40,7 @@ version = "1"
 version = "1"
 
 [dependencies.erased-serde]
-version = "0.3"
+version = "0.4"
 
 [dependencies.miniserde]
 version = "0.1"

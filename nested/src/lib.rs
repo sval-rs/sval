@@ -1308,6 +1308,52 @@ mod tests {
     }
 
     #[test]
+    fn stream_option() {
+        #[derive(Value)]
+        struct Inner {
+            a: i32,
+            b: bool,
+        }
+
+        assert_eq!(
+            Value::Tag(Tag::new(
+                Some(sval::tags::RUST_OPTION_NONE),
+                Some(sval::Label::new("None")),
+                Some(sval::Index::new(0))
+            )
+            .unwrap()),
+            ToValue::default().value_ref(&None::<Inner>).unwrap()
+        );
+
+        assert_eq!(
+            Value::Tagged(Tagged {
+                tag: Tag::new(
+                    Some(sval::tags::RUST_OPTION_SOME),
+                    Some(sval::Label::new("Some")),
+                    Some(sval::Index::new(1)),
+                )
+                .unwrap(),
+                value: Box::new(Value::Record(Record {
+                    tag: Tag::new(
+                        None,
+                        Some(sval::Label::new("Inner")),
+                        None,
+                    )
+                    .unwrap(),
+                    entries: vec![
+                        (sval::Label::new("a"), Value::I64(42)),
+                        (sval::Label::new("b"), Value::Bool(true)),
+                    ]
+                }))
+            }),
+            ToValue::default().value_ref(&Some(Inner {
+                a: 42,
+                b: true,
+            })).unwrap()
+        );
+    }
+
+    #[test]
     fn stream_text_borrowed() {
         assert_eq!(
             Value::Text(Cow::Borrowed("borrowed")),
@@ -1322,6 +1368,19 @@ mod tests {
             ToValue::default()
                 .value_ref(sval::BinarySlice::new(b"borrowed"))
                 .unwrap()
+        );
+    }
+
+    #[test]
+    fn stream_array() {
+        assert_eq!(
+            Value::Tagged(Tagged {
+                tag: Tag::new(Some(sval::tags::CONSTANT_SIZE), None, None).unwrap(),
+                value: Box::new(Value::Seq(Seq {
+                    entries: vec![Value::I64(1), Value::I64(2), Value::I64(3),]
+                })),
+            }),
+            ToValue::default().value_ref(&[1, 2, 3] as &[_; 3]).unwrap()
         );
     }
 
@@ -1614,6 +1673,29 @@ mod tests {
                     Binary
                 })
                 .unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn stream_number() {
+        struct Number<N>(N);
+
+        impl<N: std::fmt::Display> sval::Value for Number<N> {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                sval::stream_number(stream, &self.0)
+            }
+        }
+
+        assert_eq!(
+            Value::Tagged(Tagged {
+                tag: Tag::new(Some(sval::tags::NUMBER), None, None).unwrap(),
+                value: Box::new(Value::Text(Cow::Owned("42".into()))),
+            }),
+            ToValue::default().value_ref(&Number(42)).unwrap()
         );
     }
 
