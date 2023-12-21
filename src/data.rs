@@ -133,6 +133,27 @@ impl<'computed> Label<'computed> {
     pub const fn tag(&self) -> Option<&Tag> {
         self.tag.as_ref()
     }
+
+    /**
+    Try create an owned label from this one.
+
+    This method will always return `Ok` if the `alloc` feature is enabled.
+    If the `alloc` feature is not enabled then this method will only return `Ok`
+    if the underlying value is already `'static`.
+    */
+    #[inline(always)]
+    pub fn try_to_owned(&self) -> Result<Label<'static>> {
+        #[cfg(feature = "alloc")]
+        {
+            Ok(self.to_owned())
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            self.as_static_str()
+                .map(Label::new)
+                .ok_or_else(crate::Error::new)
+        }
+    }
 }
 
 impl<'a, 'b> PartialEq<Label<'b>> for Label<'a> {
