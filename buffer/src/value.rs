@@ -1430,6 +1430,52 @@ mod array_vec {
             *self = Default::default()
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        use alloc::rc::Rc;
+
+        #[test]
+        fn push_pop() {
+            let mut vec = ArrayVec::<_, 2>::default();
+
+            assert!(vec.pop().is_none());
+
+            assert!(vec.push(1).is_ok());
+            assert!(vec.push(2).is_ok());
+            assert!(vec.push(3).is_err());
+
+            assert_eq!(2, vec.pop().unwrap());
+            assert_eq!(1, vec.pop().unwrap());
+            assert!(vec.pop().is_none());
+
+            assert!(vec.push(1).is_ok());
+
+            assert_eq!(1, vec.pop().unwrap());
+            assert!(vec.pop().is_none());
+        }
+
+        #[test]
+        fn destructors() {
+            let mut vec = ArrayVec::<_, 5>::default();
+
+            let a = Rc::new(1);
+            let b = Rc::new(2);
+
+            vec.push(a.clone()).unwrap();
+            vec.push(b.clone()).unwrap();
+
+            assert_eq!(2, Rc::strong_count(&a));
+            assert_eq!(2, Rc::strong_count(&b));
+
+            drop(vec);
+
+            assert_eq!(1, Rc::strong_count(&a));
+            assert_eq!(1, Rc::strong_count(&b));
+        }
+    }
 }
 
 #[cfg(test)]
