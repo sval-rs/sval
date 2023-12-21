@@ -1437,7 +1437,6 @@ mod tests {
     use super::*;
 
     use sval::Stream as _;
-    use sval_derive_macros::*;
 
     #[test]
     fn is_send_sync() {
@@ -1463,11 +1462,11 @@ mod tests {
 
         buf.text_begin(None).unwrap();
 
-        assert!(!buf.is_complete(), "{:?}", buf);
+        assert!(!buf.is_complete());
 
         buf.text_end().unwrap();
 
-        assert!(buf.is_complete(), "{:?}", buf);
+        assert!(buf.is_complete());
     }
 
     #[test]
@@ -1609,8 +1608,180 @@ mod tests {
                     kind: ValueKind::Binary(BinaryBuf::from(b"abc")),
                 }],
             ),
+            (
+                ValueBuf::collect(sval::MapSlice::<&str, i32>::new(&[])).unwrap(),
+                vec![ValuePart {
+                    kind: ValueKind::Map {
+                        len: 0,
+                        num_entries_hint: Some(0),
+                    },
+                }],
+            ),
+            (
+                ValueBuf::collect(&[] as &[i32]).unwrap(),
+                vec![ValuePart {
+                    kind: ValueKind::Seq {
+                        len: 0,
+                        num_entries_hint: Some(0),
+                    },
+                }],
+            ),
         ] {
             assert_eq!(expected, &*value.parts, "{:?}", value);
+        }
+    }
+
+    #[test]
+    fn buffer_empty_enum() {
+        let mut buf = ValueBuf::new();
+
+        buf.enum_begin(None, Some(&sval::Label::new("Enum")), None)
+            .unwrap();
+        buf.enum_end(None, Some(&sval::Label::new("Enum")), None)
+            .unwrap();
+
+        assert_eq!(
+            &[ValuePart {
+                kind: ValueKind::Enum {
+                    len: 0,
+                    tag: None,
+                    label: Some(sval::Label::new("Enum")),
+                    index: None
+                }
+            }],
+            &*buf.parts
+        );
+    }
+
+    #[test]
+    fn buffer_empty_record() {
+        let mut buf = ValueBuf::new();
+
+        buf.record_begin(None, Some(&sval::Label::new("Record")), None, Some(0))
+            .unwrap();
+        buf.record_end(None, Some(&sval::Label::new("Record")), None)
+            .unwrap();
+
+        assert_eq!(
+            &[ValuePart {
+                kind: ValueKind::Record {
+                    len: 0,
+                    tag: None,
+                    label: Some(sval::Label::new("Record")),
+                    index: None,
+                    num_entries: Some(0)
+                }
+            }],
+            &*buf.parts
+        );
+    }
+
+    #[test]
+    fn buffer_empty_tuple() {
+        let mut buf = ValueBuf::new();
+
+        buf.tuple_begin(None, Some(&sval::Label::new("Tuple")), None, Some(0))
+            .unwrap();
+        buf.tuple_end(None, Some(&sval::Label::new("Tuple")), None)
+            .unwrap();
+
+        assert_eq!(
+            &[ValuePart {
+                kind: ValueKind::Tuple {
+                    len: 0,
+                    tag: None,
+                    label: Some(sval::Label::new("Tuple")),
+                    index: None,
+                    num_entries: Some(0)
+                }
+            }],
+            &*buf.parts
+        );
+    }
+
+    #[test]
+    fn buffer_reuse() {
+        let mut buf = ValueBuf::new();
+
+        buf.i32(42).unwrap();
+
+        assert_eq!(
+            &*Value::collect(&42i32).unwrap().parts,
+            &*buf.to_value().parts
+        );
+
+        buf.clear();
+
+        buf.bool(true).unwrap();
+
+        assert_eq!(
+            &*Value::collect(&true).unwrap().parts,
+            &*buf.to_value().parts
+        );
+    }
+
+    #[test]
+    fn buffer_invalid() {
+        struct Kaboom;
+
+        impl sval::Value for Kaboom {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                _: &mut S,
+            ) -> sval::Result {
+                sval::error()
+            }
+        }
+
+        // Ensure we don't panic
+        let _ = Value::collect(&Kaboom);
+        let _ = Value::collect_owned(&Kaboom);
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "alloc")]
+mod alloc_tests {
+    use super::*;
+
+    use sval::Stream as _;
+    use sval_derive_macros::*;
+
+    #[test]
+    fn collect_owned() {
+        let short_lived = String::from("abc");
+
+        let buf = ValueBuf::collect_owned(&short_lived).unwrap();
+        drop(short_lived);
+
+        match buf.parts[0].kind {
+            ValueKind::Text(ref text) => {
+                assert!(text.as_borrowed_str().is_none());
+                assert_eq!("abc", text.as_str());
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn into_owned() {
+        let short_lived = String::from("abc");
+
+        let buf = ValueBuf::collect(&short_lived).unwrap();
+        let borrowed_ptr = buf.parts.as_ptr() as *const ();
+
+        let owned = buf.into_owned().unwrap();
+        let owned_ptr = owned.parts.as_ptr() as *const ();
+        drop(short_lived);
+
+        assert!(core::ptr::eq(borrowed_ptr, owned_ptr));
+
+        match owned.parts[0].kind {
+            ValueKind::Text(ref text) => {
+                assert!(text.as_borrowed_str().is_none());
+                assert_eq!("abc", text.as_str());
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -2043,103 +2214,5 @@ mod tests {
 
             assert_eq!(&*value_1.parts, &*value_2.parts, "{:?}", value_1);
         }
-    }
-
-    #[test]
-    fn buffer_reuse() {
-        let mut buf = ValueBuf::new();
-
-        buf.i32(42).unwrap();
-
-        assert_eq!(
-            &*Value::collect(&42i32).unwrap().parts,
-            &*buf.to_value().parts
-        );
-
-        buf.clear();
-
-        buf.bool(true).unwrap();
-
-        assert_eq!(
-            &*Value::collect(&true).unwrap().parts,
-            &*buf.to_value().parts
-        );
-    }
-
-    #[test]
-    fn buffer_invalid() {
-        struct Kaboom;
-
-        impl sval::Value for Kaboom {
-            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
-                &'sval self,
-                _: &mut S,
-            ) -> sval::Result {
-                sval::error()
-            }
-        }
-
-        // Ensure we don't panic
-        let _ = Value::collect(&Kaboom);
-        let _ = Value::collect_owned(&Kaboom);
-    }
-
-    #[test]
-    fn into_owned() {
-        let short_lived = String::from("abc");
-
-        let buf = ValueBuf::collect(&short_lived).unwrap();
-        let borrowed_ptr = buf.parts.as_ptr() as *const ();
-
-        let owned = buf.into_owned().unwrap();
-        let owned_ptr = owned.parts.as_ptr() as *const ();
-        drop(short_lived);
-
-        assert!(core::ptr::eq(borrowed_ptr, owned_ptr));
-
-        match owned.parts[0].kind {
-            ValueKind::Text(ref text) => {
-                assert!(text.as_borrowed_str().is_none());
-                assert_eq!("abc", text.as_str());
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    #[test]
-    fn collect_owned() {
-        let short_lived = String::from("abc");
-
-        let buf = ValueBuf::collect_owned(&short_lived).unwrap();
-        drop(short_lived);
-
-        match buf.parts[0].kind {
-            ValueKind::Text(ref text) => {
-                assert!(text.as_borrowed_str().is_none());
-                assert_eq!("abc", text.as_str());
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[cfg(test)]
-#[cfg(not(feature = "alloc"))]
-mod no_std_tests {
-    use super::*;
-
-    use sval::Stream as _;
-
-    #[test]
-    fn buffer_reuse() {
-        let mut buf = ValueBuf::new();
-
-        buf.i32(42).unwrap_err();
-
-        assert!(buf.err.is_some());
-
-        buf.clear();
-
-        assert!(buf.err.is_none());
     }
 }
