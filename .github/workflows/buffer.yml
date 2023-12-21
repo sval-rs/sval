@@ -62,3 +62,23 @@ jobs:
       - name: Powerset
         working-directory: ./buffer
         run: cargo hack check --each-feature --exclude-features std,alloc -Z avoid-dev-deps --target thumbv6m-none-eabi
+
+  miri:
+    name: Test (Miri)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          cargo +nightly miri setup
+
+      - name: Default features
+        working-directory: ./buffer
+        run: cargo +nightly miri test --lib
+
+      - name: No features
+        working-directory: ./buffer
+        run: cargo +nightly miri test --lib --no-default-features
