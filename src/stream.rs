@@ -781,6 +781,11 @@ impl<S: ?Sized> Computed<S> {
 
 impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
     #[inline]
+    fn value<V: Value + ?Sized>(&mut self, v: &'b V) -> Result {
+        default_stream::value(self, v)
+    }
+
+    #[inline]
     fn value_computed<V: Value + ?Sized>(&mut self, v: &V) -> Result {
         self.0.value_computed(v)
     }

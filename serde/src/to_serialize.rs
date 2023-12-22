@@ -42,7 +42,7 @@ impl<V: sval::Value + ?Sized> ToSerialize<V> {
 impl<V: sval::Value> serde::Serialize for ToSerialize<V> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         Serializer::new(serializer)
-            .value_computed(&self.0)
+            .value_ref(&self.0)
             .unwrap_or_else(|e| Err(S::Error::custom(e)))
     }
 }

@@ -1,10 +1,4 @@
-use crate::{
-    std::{
-        fmt::{self, Write as _},
-        write,
-    },
-    tags, Result, Stream, Value,
-};
+use crate::{std::fmt, tags, Result, Stream, Value};
 
 macro_rules! stream_default {
     ($($fi:ident => $i:ty, $fu:ident => $u:ty,)*) => {
@@ -63,25 +57,11 @@ Stream an arbitrary precision number conforming to [`tags::NUMBER`]
 using its [`fmt::Display`] implementation.
 */
 pub fn stream_number<'sval>(
-    mut stream: &mut (impl Stream<'sval> + ?Sized),
+    stream: &mut (impl Stream<'sval> + ?Sized),
     number: impl fmt::Display,
 ) -> Result {
-    struct Writer<S>(S);
-
-    impl<'a, S: Stream<'a>> fmt::Write for Writer<S> {
-        fn write_str(&mut self, s: &str) -> fmt::Result {
-            self.0.text_fragment_computed(s).map_err(|_| fmt::Error)?;
-
-            Ok(())
-        }
-    }
-
     stream.tagged_begin(Some(&tags::NUMBER), None, None)?;
-    stream.text_begin(None)?;
-
-    write!(Writer(&mut stream), "{}", number).map_err(|_| crate::Error::new())?;
-
-    stream.text_end()?;
+    stream.value_computed(&crate::Display::new(number))?;
     stream.tagged_end(Some(&tags::NUMBER), None, None)
 }
 

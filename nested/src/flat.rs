@@ -178,7 +178,7 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
 impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
     fn value<V: sval::Value + ?Sized>(&mut self, v: &'sval V) -> sval::Result {
         self.buffer_or_stream_with(
-            |buf| buf.value(v),
+            |buf| sval::Stream::value(buf, v),
             |stream| match stream.state {
                 State::Enum(_) => {
                     sval::default_stream::value(stream, v)
@@ -192,7 +192,7 @@ impl<'sval, S: Stream<'sval>> sval::Stream<'sval> for FlatStream<'sval, S> {
 
     fn value_computed<V: sval::Value + ?Sized>(&mut self, v: &V) -> sval::Result {
         self.buffer_or_stream_with(
-            |buf| buf.value_computed(v),
+            |buf| sval::Stream::value_computed(buf, v),
             |stream| match stream.state {
                 State::Enum(_) => {
                     sval::default_stream::value_computed(stream, v)
