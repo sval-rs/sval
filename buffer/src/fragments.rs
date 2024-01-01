@@ -24,6 +24,7 @@ impl<'sval> TextBuf<'sval> {
     /**
     Create a new empty text buffer.
     */
+    #[inline(always)]
     pub fn new() -> Self {
         TextBuf {
             buf: FragmentBuf::new(""),
@@ -59,6 +60,7 @@ impl<'sval> TextBuf<'sval> {
     /**
     Clear the text buffer so it can be re-used.
     */
+    #[inline(always)]
     pub fn clear(&mut self) {
         *self = Default::default();
     }
@@ -66,6 +68,7 @@ impl<'sval> TextBuf<'sval> {
     /**
     Push a borrowed text fragment onto the buffer.
     */
+    #[inline(always)]
     pub fn push_fragment(&mut self, fragment: &'sval str) -> Result<(), Error> {
         self.buf.push(fragment)
     }
@@ -76,6 +79,7 @@ impl<'sval> TextBuf<'sval> {
     If the `std` feature of this library is enabled, this method will
     buffer the fragment. In no-std environments this method will fail.
     */
+    #[inline(always)]
     pub fn push_fragment_computed(&mut self, fragment: &str) -> Result<(), Error> {
         self.buf.push_computed(fragment)
     }
@@ -119,6 +123,7 @@ impl<'sval> TextBuf<'sval> {
     /**
     Try get the contents of the buffer as a string borrowed for the `'sval` lifetime.
     */
+    #[inline(always)]
     pub fn as_borrowed_str(&self) -> Option<&'sval str> {
         self.buf.as_borrowed_inner()
     }
@@ -126,6 +131,7 @@ impl<'sval> TextBuf<'sval> {
     /**
     Get the contents of the buffer as a string.
     */
+    #[inline(always)]
     pub fn as_str(&self) -> &str {
         self.buf.as_inner()
     }
@@ -217,12 +223,14 @@ impl<'sval> fmt::Write for TextBuf<'sval> {
 }
 
 impl<'sval> Default for TextBuf<'sval> {
+    #[inline(always)]
     fn default() -> Self {
         TextBuf::new()
     }
 }
 
 impl<'sval> From<&'sval str> for TextBuf<'sval> {
+    #[inline(always)]
     fn from(fragment: &'sval str) -> Self {
         TextBuf {
             buf: FragmentBuf::new(fragment),
@@ -231,6 +239,7 @@ impl<'sval> From<&'sval str> for TextBuf<'sval> {
 }
 
 impl<'sval> AsRef<str> for TextBuf<'sval> {
+    #[inline(always)]
     fn as_ref(&self) -> &str {
         self.as_str()
     }
@@ -272,6 +281,7 @@ impl<'sval> BinaryBuf<'sval> {
     /**
     Create a new empty binary buffer.
     */
+    #[inline(always)]
     pub fn new() -> Self {
         BinaryBuf {
             buf: FragmentBuf::new(&[]),
@@ -297,6 +307,7 @@ impl<'sval> BinaryBuf<'sval> {
     /**
     Clear the binary buffer so it can be re-used.
     */
+    #[inline(always)]
     pub fn clear(&mut self) {
         *self = Default::default();
     }
@@ -304,6 +315,7 @@ impl<'sval> BinaryBuf<'sval> {
     /**
     Push a borrowed binary fragment onto the buffer.
     */
+    #[inline(always)]
     pub fn push_fragment(&mut self, fragment: &'sval [u8]) -> Result<(), Error> {
         self.buf.push(fragment)
     }
@@ -314,6 +326,7 @@ impl<'sval> BinaryBuf<'sval> {
     If the `std` feature of this library is enabled, this method will
     buffer the fragment. In no-std environments this method will fail.
     */
+    #[inline(always)]
     pub fn push_fragment_computed(&mut self, fragment: &[u8]) -> Result<(), Error> {
         self.buf.push_computed(fragment)
     }
@@ -321,6 +334,7 @@ impl<'sval> BinaryBuf<'sval> {
     /**
     Try get the contents of the buffer as a slice borrowed for the `'sval` lifetime.
     */
+    #[inline(always)]
     pub fn as_borrowed_slice(&self) -> Option<&'sval [u8]> {
         self.buf.as_borrowed_inner()
     }
@@ -328,6 +342,7 @@ impl<'sval> BinaryBuf<'sval> {
     /**
     Get the contents of the buffer as a slice.
     */
+    #[inline(always)]
     pub fn as_slice(&self) -> &[u8] {
         self.buf.as_inner()
     }
@@ -436,12 +451,14 @@ impl<'a> sval::Stream<'a> for BinaryCollector<'a> {
 }
 
 impl<'sval> Default for BinaryBuf<'sval> {
+    #[inline(always)]
     fn default() -> Self {
         BinaryBuf::new()
     }
 }
 
 impl<'sval> From<&'sval [u8]> for BinaryBuf<'sval> {
+    #[inline(always)]
     fn from(fragment: &'sval [u8]) -> Self {
         BinaryBuf {
             buf: FragmentBuf::new(fragment),
@@ -458,6 +475,7 @@ impl<'sval, const N: usize> From<&'sval [u8; N]> for BinaryBuf<'sval> {
 }
 
 impl<'sval> AsRef<[u8]> for BinaryBuf<'sval> {
+    #[inline(always)]
     fn as_ref(&self) -> &[u8] {
         self.as_slice()
     }
@@ -480,6 +498,7 @@ impl<'sval> sval_ref::ValueRef<'sval> for BinaryBuf<'sval> {
 
 #[cfg(not(feature = "alloc"))]
 trait Fragment {
+    #[inline(always)]
     fn to_fragment<'sval>(&'sval self) -> &'sval Self {
         self
     }
@@ -489,6 +508,7 @@ trait Fragment {
 
 #[cfg(feature = "alloc")]
 trait Fragment: ToOwned {
+    #[inline(always)]
     fn to_fragment<'sval>(&'sval self) -> Cow<'sval, Self> {
         Cow::Borrowed(self)
     }
@@ -509,6 +529,7 @@ trait Fragment: ToOwned {
 
 impl Fragment for str {
     #[cfg(feature = "alloc")]
+    #[inline(always)]
     fn extend(buf: &mut Cow<Self>, fragment: &Self) {
         buf.to_mut().push_str(fragment);
     }
@@ -520,6 +541,7 @@ impl Fragment for str {
 
 impl Fragment for [u8] {
     #[cfg(feature = "alloc")]
+    #[inline(always)]
     fn extend(buf: &mut Cow<Self>, fragment: &Self) {
         buf.to_mut().extend(fragment);
     }
@@ -596,12 +618,14 @@ impl<'sval, T: ?Sized + Fragment + PartialEq> Eq for FragmentBuf<'sval, T> {}
 impl<'sval, T: ?Sized + Fragment + Eq> Eq for FragmentBuf<'sval, T> where T::Owned: Eq {}
 
 impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
+    #[inline(always)]
     fn new(value: &'sval T) -> Self {
         FragmentBuf {
             value: value.to_fragment(),
         }
     }
 
+    #[inline(always)]
     fn push(&mut self, fragment: &'sval T) -> Result<(), Error> {
         if self.value.can_replace() {
             self.value = fragment.to_fragment();
@@ -612,6 +636,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         }
     }
 
+    #[inline(always)]
     fn push_computed(&mut self, fragment: &T) -> Result<(), Error> {
         #[cfg(feature = "alloc")]
         {
@@ -627,6 +652,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         }
     }
 
+    #[inline(always)]
     fn as_borrowed_inner(&self) -> Option<&'sval T> {
         #[cfg(feature = "alloc")]
         {
@@ -642,6 +668,7 @@ impl<'sval, T: ?Sized + Fragment> FragmentBuf<'sval, T> {
         }
     }
 
+    #[inline(always)]
     fn as_inner(&self) -> &T {
         #[cfg(feature = "alloc")]
         {
