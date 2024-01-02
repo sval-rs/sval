@@ -20,21 +20,9 @@ fn main() -> sval::Result {
     stream(Some(42))?;
     stream(None::<i32>)?;
 
-    #[cfg(feature = "alloc")]
-    stream({
-        use std::collections::BTreeMap;
+    stream(sval::MapSlice::new(&[("a", 1), ("b", 2), ("c", 3)]))?;
 
-        let mut map = BTreeMap::new();
-
-        map.insert("a", 1);
-        map.insert("b", 2);
-        map.insert("c", 3);
-
-        map
-    })?;
-
-    #[cfg(feature = "alloc")]
-    stream(vec![vec!["Hello", "world"], vec!["Hello", "world"]])?;
+    stream(&[&["Hello", "world"], &["Hello", "world"]])?;
 
     Ok(())
 }

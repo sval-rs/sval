@@ -172,11 +172,11 @@ impl<'sval, S: StreamEnum<'sval>> Stream<'sval> for FlatStreamEnum<S> {
     }
 
     fn seq_begin(self, _: Option<usize>) -> Result<Self::Seq> {
-        Ok(Unsupported::default())
+        Err(Error::invalid_value("sequences are unsupported"))
     }
 
     fn map_begin(self, _: Option<usize>) -> Result<Self::Map> {
-        Ok(Unsupported::default())
+        Err(Error::invalid_value("maps are unsupported"))
     }
 
     fn tuple_begin(
