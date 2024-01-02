@@ -31,7 +31,10 @@ use self::flat::FlatStream;
 /**
 Stream a value through a stream.
 */
-pub fn stream<'sval, S: Stream<'sval>>(stream: S, value: impl ValueRef<'sval>) -> Result<S::Ok> {
+pub fn stream<'sval, S: Stream<'sval>>(
+    stream: S,
+    value: impl ValueRef<'sval>,
+) -> Result<S::Ok> {
     stream.value(value)
 }
 
@@ -684,13 +687,10 @@ pub trait StreamEnum<'sval> {
 /**
 A placeholder for a kind of value that isn't supported by a particular stream.
 */
-pub struct Unsupported<Ok>(PhantomData<Result<Ok, Error>>);
+pub struct Unsupported<Ok>(Void, PhantomData<Result<Ok, Error>>);
 
-impl<Ok> Default for Unsupported<Ok> {
-    fn default() -> Self {
-        Unsupported(PhantomData)
-    }
-}
+// Ensure `Unsupported` can't be constructed
+enum Void {}
 
 impl<'sval, Ok> Stream<'sval> for Unsupported<Ok> {
     type Ok = Ok;
@@ -1085,10 +1085,7 @@ pub mod default_stream {
         }
 
         impl<'a> sval::Value for Tag<'a> {
-            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
-                &'sval self,
-                stream: &mut S,
-            ) -> sval::Result {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
                 self.stream_ref(stream)
             }
         }
@@ -1114,15 +1111,7 @@ pub mod default_stream {
             }
         }
 
-        stream.tagged(
-            tag.clone(),
-            label.clone(),
-            index,
-            Tag {
-                tag: tag.as_ref(),
-                label: label.as_ref(),
-            },
-        )
+        stream.tagged(tag.clone(), label.clone(), index, Tag { tag: tag.as_ref(), label: label.as_ref() })
     }
 
     /**
@@ -1423,14 +1412,12 @@ mod tests {
         }
 
         assert_eq!(
-            Value::Tag(
-                Tag::new(
-                    Some(sval::tags::RUST_OPTION_NONE),
-                    Some(sval::Label::new("None")),
-                    Some(sval::Index::new(0))
-                )
-                .unwrap()
-            ),
+            Value::Tag(Tag::new(
+                Some(sval::tags::RUST_OPTION_NONE),
+                Some(sval::Label::new("None")),
+                Some(sval::Index::new(0))
+            )
+            .unwrap()),
             ToValue::default().value_ref(&None::<Inner>).unwrap()
         );
 
@@ -1443,16 +1430,22 @@ mod tests {
                 )
                 .unwrap(),
                 value: Box::new(Value::Record(Record {
-                    tag: Tag::new(None, Some(sval::Label::new("Inner")), None,).unwrap(),
+                    tag: Tag::new(
+                        None,
+                        Some(sval::Label::new("Inner")),
+                        None,
+                    )
+                    .unwrap(),
                     entries: vec![
                         (sval::Label::new("a"), Value::I64(42)),
                         (sval::Label::new("b"), Value::Bool(true)),
                     ]
                 }))
             }),
-            ToValue::default()
-                .value_ref(&Some(Inner { a: 42, b: true }))
-                .unwrap()
+            ToValue::default().value_ref(&Some(Inner {
+                a: 42,
+                b: true,
+            })).unwrap()
         );
     }
 
