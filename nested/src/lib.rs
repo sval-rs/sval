@@ -29,6 +29,33 @@ use core::marker::PhantomData;
 use self::flat::FlatStream;
 
 /**
+Stream a value through a stream.
+*/
+pub fn stream<'sval, S: Stream<'sval>>(stream: S, value: impl ValueRef<'sval>) -> Result<S::Ok> {
+    stream.value(value)
+}
+
+/**
+Stream a value through a stream.
+*/
+pub fn stream_ref<'sval, S: Stream<'sval>>(
+    stream: S,
+    value: &'sval (impl sval::Value + ?Sized),
+) -> Result<S::Ok> {
+    stream.value_ref(value)
+}
+
+/**
+Stream a value through a stream with an arbitrarily short lifetime.
+*/
+pub fn stream_computed<'sval, S: Stream<'sval>>(
+    stream: S,
+    value: impl sval::Value,
+) -> Result<S::Ok> {
+    stream.value_computed(&value)
+}
+
+/**
 A recursive variant of [`sval::Stream`].
 */
 pub trait Stream<'sval> {
@@ -255,7 +282,12 @@ pub trait Stream<'sval> {
         tag: Option<sval::Tag>,
         label: Option<sval::Label>,
         index: Option<sval::Index>,
-    ) -> Result<Self::Ok>;
+    ) -> Result<Self::Ok>
+    where
+        Self: Sized,
+    {
+        default_stream::tag(self, tag, label, index)
+    }
 
     /**
     Stream a tagged value.
@@ -298,7 +330,12 @@ pub trait Stream<'sval> {
         label: Option<sval::Label>,
         index: Option<sval::Index>,
         value: V,
-    ) -> Result<Self::Ok>;
+    ) -> Result<Self::Ok>
+    where
+        Self: Sized,
+    {
+        default_stream::tagged_computed(self, tag, label, index, value)
+    }
 
     /**
     Stream a sequence.
@@ -1034,6 +1071,61 @@ pub mod default_stream {
     }
 
     /**
+    Stream a tag.
+    */
+    pub fn tag<'sval, S: Stream<'sval>>(
+        stream: S,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+    ) -> Result<S::Ok> {
+        struct Tag<'a> {
+            tag: Option<&'a sval::Tag>,
+            label: Option<&'a sval::Label<'a>>,
+        }
+
+        impl<'a> sval::Value for Tag<'a> {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                self.stream_ref(stream)
+            }
+        }
+
+        impl<'a, 'sval> ValueRef<'sval> for Tag<'a> {
+            fn stream_ref<S: sval::Stream<'sval> + ?Sized>(&self, stream: &mut S) -> sval::Result {
+                // Rust's `Option` is fundamental enough that we handle it specially here
+                if let Some(&sval::tags::RUST_OPTION_NONE) = self.tag {
+                    stream.null()
+                }
+                // If the tag has a label then stream it as its value
+                else if let Some(ref label) = self.label {
+                    if let Some(label) = label.as_static_str() {
+                        stream.value(label)
+                    } else {
+                        stream.value_computed(label.as_str())
+                    }
+                }
+                // If the tag doesn't have a label then stream null
+                else {
+                    stream.null()
+                }
+            }
+        }
+
+        stream.tagged(
+            tag.clone(),
+            label.clone(),
+            index,
+            Tag {
+                tag: tag.as_ref(),
+                label: label.as_ref(),
+            },
+        )
+    }
+
+    /**
     Stream a tagged value.
     */
     pub fn tagged<'sval, S: Stream<'sval>, V: sval_ref::ValueRef<'sval>>(
@@ -1057,6 +1149,21 @@ pub mod default_stream {
         value: &'sval V,
     ) -> Result<S::Ok> {
         stream.tagged(tag, label, index, sval_ref::to_ref(value))
+    }
+
+    /**
+    Stream a reference to a tagged value.
+    */
+    pub fn tagged_computed<'sval, S: Stream<'sval>, V: sval::Value>(
+        stream: S,
+        tag: Option<sval::Tag>,
+        label: Option<sval::Label>,
+        index: Option<sval::Index>,
+        value: V,
+    ) -> Result<S::Ok> {
+        let _ = (tag, label, index);
+
+        stream.value_computed(value)
     }
 
     /**
@@ -1316,12 +1423,14 @@ mod tests {
         }
 
         assert_eq!(
-            Value::Tag(Tag::new(
-                Some(sval::tags::RUST_OPTION_NONE),
-                Some(sval::Label::new("None")),
-                Some(sval::Index::new(0))
-            )
-            .unwrap()),
+            Value::Tag(
+                Tag::new(
+                    Some(sval::tags::RUST_OPTION_NONE),
+                    Some(sval::Label::new("None")),
+                    Some(sval::Index::new(0))
+                )
+                .unwrap()
+            ),
             ToValue::default().value_ref(&None::<Inner>).unwrap()
         );
 
@@ -1334,22 +1443,16 @@ mod tests {
                 )
                 .unwrap(),
                 value: Box::new(Value::Record(Record {
-                    tag: Tag::new(
-                        None,
-                        Some(sval::Label::new("Inner")),
-                        None,
-                    )
-                    .unwrap(),
+                    tag: Tag::new(None, Some(sval::Label::new("Inner")), None,).unwrap(),
                     entries: vec![
                         (sval::Label::new("a"), Value::I64(42)),
                         (sval::Label::new("b"), Value::Bool(true)),
                     ]
                 }))
             }),
-            ToValue::default().value_ref(&Some(Inner {
-                a: 42,
-                b: true,
-            })).unwrap()
+            ToValue::default()
+                .value_ref(&Some(Inner { a: 42, b: true }))
+                .unwrap()
         );
     }
 
