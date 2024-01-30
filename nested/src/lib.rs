@@ -1747,7 +1747,7 @@ mod tests {
     #[cfg(feature = "alloc")]
     fn stream_binary_owned() {
         assert_eq!(
-            Value::Binary(Cow::Owned(b"owned".into())),
+            Value::Binary(Cow::Owned(b"owned".to_vec())),
             ToValue::default()
                 .value_ref(&{
                     struct Binary;
