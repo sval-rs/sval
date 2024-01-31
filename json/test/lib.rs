@@ -52,6 +52,9 @@ struct EmptyMap {}
 #[derive(Value, Serialize)]
 struct Tagged<T>(T);
 
+#[derive(Value, Serialize)]
+struct UnitStruct;
+
 #[derive(Clone, Value, Serialize)]
 enum Enum<F0, F1> {
     Constant,
@@ -152,6 +155,13 @@ fn stream_option() {
 #[test]
 fn stream_unit() {
     assert_json(());
+}
+
+#[test]
+fn stream_unit_struct() {
+    // NOTE: This is an incompatibility with `serde_json`
+    // In `serde_json` this would produce `null`
+    assert_stream("\"UnitStruct\"", UnitStruct);
 }
 
 #[test]
