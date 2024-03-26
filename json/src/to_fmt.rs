@@ -359,7 +359,7 @@ where
         &mut self,
         tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
         self.is_internally_tagged = false;
         self.is_current_depth_empty = false;
@@ -369,6 +369,8 @@ where
             _ => {
                 if let Some(label) = label {
                     self.value(label.as_str())
+                } else if let Some(index) = index.and_then(|ix| ix.to_i64()) {
+                    self.value(&index)
                 } else {
                     self.null()
                 }
@@ -674,14 +676,3 @@ static ESCAPE: [u8; 256] = [
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // E
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // F
 ];
-
-struct Escape<W>(W);
-
-impl<W> Write for Escape<W>
-where
-    W: Write,
-{
-    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
-        escape_str(s, &mut self.0)
-    }
-}

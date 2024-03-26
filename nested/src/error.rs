@@ -22,7 +22,7 @@ enum ErrorKind {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.0 {
-            ErrorKind::Buffer(_) => {
+            ErrorKind::Buffer(ref _e) => {
                 write!(f, "failed to buffer a value")
             }
             ErrorKind::InvalidValue { reason } => {

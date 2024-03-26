@@ -259,6 +259,7 @@ fn stream_untagged_enum() {
     #[derive(Value)]
     #[sval(dynamic)]
     enum Dynamic<'a> {
+        Constant,
         Null(sval::Null),
         Text(&'a str),
         Number(f64),
@@ -266,6 +267,10 @@ fn stream_untagged_enum() {
         Array(&'a [Dynamic<'a>]),
     }
 
+    assert_eq!(
+        "\"Constant\"",
+        sval_json::stream_to_string(Dynamic::Constant).unwrap()
+    );
     assert_eq!(
         "\"Some text\"",
         sval_json::stream_to_string(Dynamic::Text("Some text")).unwrap()
@@ -326,6 +331,90 @@ fn stream_empty_enum() {
     }
 
     assert_eq!("\"Enum\"", sval_json::stream_to_string(Enum).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_tag() {
+    struct Tag;
+
+    impl sval::Value for Tag {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.tag(None, None, Some(&sval::Index::new(1)))
+        }
+    }
+
+    assert_eq!("1", sval_json::stream_to_string(Tag).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_tag_variant() {
+    struct Enum;
+
+    impl sval::Value for Enum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+            stream.tag(None, None, Some(&sval::Index::new(1)))?;
+            stream.enum_end(None, Some(&sval::Label::new("Enum")), None)
+        }
+    }
+
+    assert_eq!("1", sval_json::stream_to_string(Enum).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_unindexed_tag() {
+    struct Tag;
+
+    impl sval::Value for Tag {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.tag(None, None, None)
+        }
+    }
+
+    assert_eq!("null", sval_json::stream_to_string(Tag).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_empty_enum() {
+    struct Enum;
+
+    impl sval::Value for Enum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, None, Some(&sval::Index::new(1)))?;
+            stream.enum_end(None, None, Some(&sval::Index::new(1)))
+        }
+    }
+
+    assert_eq!("1", sval_json::stream_to_string(Enum).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_unindexed_empty_enum() {
+    struct Enum;
+
+    impl sval::Value for Enum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, None, None)?;
+            stream.enum_end(None, None, None)
+        }
+    }
+
+    assert_eq!("null", sval_json::stream_to_string(Enum).unwrap());
 }
 
 #[test]

@@ -681,11 +681,3 @@ impl<'sval, S: serde::ser::SerializeTupleVariant> StreamTuple<'sval>
         }
     }
 }
-
-struct Bytes<'sval>(&'sval [u8]);
-
-impl<'sval> serde::Serialize for Bytes<'sval> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_bytes(self.0)
-    }
-}
