@@ -50,6 +50,9 @@ impl EnumAttrs {
             assert!(tag.is_none(), "dynamic enums can't have tags");
             assert!(label.is_none(), "dynamic enums can't have labels");
             assert!(index.is_none(), "dynamic enums can't have indexes");
+
+            assert!(!unlabeled_variants, "dynamic enums don't have variants");
+            assert!(!unindexed_variants, "dynamic enums don't have variants");
         }
 
         EnumAttrs {
