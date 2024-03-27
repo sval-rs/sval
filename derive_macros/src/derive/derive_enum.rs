@@ -40,8 +40,10 @@ impl EnumAttrs {
         let tag = attr::get_unchecked("enum", attr::TagAttr, attrs);
         let label = attr::get_unchecked("enum", attr::LabelAttr, attrs);
         let index = attr::get_unchecked("enum", attr::IndexAttr, attrs);
-        let unlabeled_variants = attr::get_unchecked("enum", attr::UnlabeledVariantsAttr, attrs).unwrap_or(false);
-        let unindexed_variants = attr::get_unchecked("enum", attr::UnindexedVariantsAttr, attrs).unwrap_or(false);
+        let unlabeled_variants =
+            attr::get_unchecked("enum", attr::UnlabeledVariantsAttr, attrs).unwrap_or(false);
+        let unindexed_variants =
+            attr::get_unchecked("enum", attr::UnindexedVariantsAttr, attrs).unwrap_or(false);
         let dynamic = attr::get_unchecked("enum", attr::DynamicAttr, attrs).unwrap_or(false);
 
         if dynamic {
