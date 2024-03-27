@@ -235,6 +235,56 @@ impl RawAttribute for UnindexedFieldsAttr {
 }
 
 /**
+The `unlabeled_variants` attribute.
+
+This attribute signals that all variants should be unlabeled.
+*/
+pub(crate) struct UnlabeledVariantsAttr;
+
+impl SvalAttribute for UnlabeledVariantsAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for UnlabeledVariantsAttr {
+    fn key(&self) -> &str {
+        "unlabeled_variants"
+    }
+}
+
+/**
+The `unindexed_variants` attribute.
+
+This attribute signals that all variants should be unindexed.
+*/
+pub(crate) struct UnindexedVariantsAttr;
+
+impl SvalAttribute for UnindexedVariantsAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> Self::Result {
+        if let Lit::Bool(ref b) = lit {
+            b.value
+        } else {
+            panic!("unexpected value")
+        }
+    }
+}
+
+impl RawAttribute for UnindexedVariantsAttr {
+    fn key(&self) -> &str {
+        "unindexed_variants"
+    }
+}
+
+/**
 The `dynamic` attribute.
 
 This attribute signals that an enum should be dynamic.

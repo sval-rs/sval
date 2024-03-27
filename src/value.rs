@@ -1,4 +1,4 @@
-use crate::{std::convert::TryInto, Index, Label, Result, Stream, Tag};
+use crate::{Index, Label, Result, Stream, Tag};
 
 /**
 A producer of structured data.

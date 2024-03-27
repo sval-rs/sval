@@ -46,7 +46,7 @@ struct NestedMap {
     field_1: bool,
 }
 
-#[derive(Value, Serialize)]
+#[derive(Clone, Value, Serialize)]
 struct EmptyMap {}
 
 #[derive(Value, Serialize)]
@@ -60,10 +60,45 @@ enum Enum<F0, F1> {
     Constant,
     Tagged(F0),
     MapStruct { field_0: F0, field_1: F1 },
-    EmptyMapStruct,
+    EmptyMapStruct(EmptyMap),
     SeqStruct(F0, F1),
     EmptySeq(&'static [i32]),
     Nested(Box<Enum<F0, F1>>),
+}
+
+#[derive(Clone, Value)]
+#[sval(unlabeled_variants)]
+enum UnlabeledEnum<F0, F1> {
+    Constant,
+    Tagged(F0),
+    MapStruct { field_0: F0, field_1: F1 },
+    EmptyMapStruct(EmptyMap),
+    SeqStruct(F0, F1),
+    EmptySeq(&'static [i32]),
+    Nested(Box<UnlabeledEnum<F0, F1>>),
+}
+
+#[derive(Clone, Value)]
+#[sval(unlabeled_variants, unindexed_variants)]
+enum UnlabeledUnindexedEnum<F0, F1> {
+    Constant,
+    Tagged(F0),
+    MapStruct { field_0: F0, field_1: F1 },
+    EmptyMapStruct(EmptyMap),
+    SeqStruct(F0, F1),
+    EmptySeq(&'static [i32]),
+    Nested(Box<UnlabeledUnindexedEnum<F0, F1>>),
+}
+
+#[derive(Value)]
+#[sval(dynamic)]
+enum DynamicEnum<'a> {
+    Constant,
+    Null(sval::Null),
+    Text(&'a str),
+    Number(f64),
+    Boolean(bool),
+    Array(&'a [DynamicEnum<'a>]),
 }
 
 #[derive(Value)]
@@ -239,7 +274,7 @@ fn stream_enum() {
             field_0: 42,
             field_1: true,
         },
-        Enum::EmptyMapStruct,
+        Enum::EmptyMapStruct(EmptyMap {}),
         Enum::SeqStruct(42, true),
         Enum::EmptySeq(&[]),
         Enum::Tagged(42),
@@ -255,39 +290,122 @@ fn stream_enum() {
 }
 
 #[test]
-fn stream_untagged_enum() {
-    #[derive(Value)]
-    #[sval(dynamic)]
-    enum Dynamic<'a> {
-        Null(sval::Null),
-        Text(&'a str),
-        Number(f64),
-        Boolean(bool),
-        Array(&'a [Dynamic<'a>]),
-    }
-
+fn stream_dynamic_enum() {
+    assert_eq!(
+        "\"Constant\"",
+        sval_json::stream_to_string(DynamicEnum::Constant).unwrap()
+    );
     assert_eq!(
         "\"Some text\"",
-        sval_json::stream_to_string(Dynamic::Text("Some text")).unwrap()
+        sval_json::stream_to_string(DynamicEnum::Text("Some text")).unwrap()
     );
     assert_eq!(
         "3.14",
-        sval_json::stream_to_string(Dynamic::Number(3.14)).unwrap()
+        sval_json::stream_to_string(DynamicEnum::Number(3.14)).unwrap()
     );
     assert_eq!(
         "true",
-        sval_json::stream_to_string(Dynamic::Boolean(true)).unwrap()
+        sval_json::stream_to_string(DynamicEnum::Boolean(true)).unwrap()
     );
     assert_eq!(
         "null",
-        sval_json::stream_to_string(Dynamic::Null(sval::Null)).unwrap()
+        sval_json::stream_to_string(DynamicEnum::Null(sval::Null)).unwrap()
     );
     assert_eq!(
         "[true,false]",
-        sval_json::stream_to_string(Dynamic::Array(&[
-            Dynamic::Boolean(true),
-            Dynamic::Boolean(false),
+        sval_json::stream_to_string(DynamicEnum::Array(&[
+            DynamicEnum::Boolean(true),
+            DynamicEnum::Boolean(false),
         ]))
+        .unwrap()
+    );
+}
+
+#[test]
+fn stream_unlabeled_enum() {
+    assert_eq!(
+        "0",
+        sval_json::stream_to_string(UnlabeledEnum::<i32, bool>::Constant).unwrap()
+    );
+    assert_eq!(
+        "{\"1\":4}",
+        sval_json::stream_to_string(UnlabeledEnum::<i32, bool>::Tagged(4)).unwrap()
+    );
+    assert_eq!(
+        "{\"3\":{}}",
+        sval_json::stream_to_string(UnlabeledEnum::<i32, bool>::EmptyMapStruct(EmptyMap {}))
+            .unwrap()
+    );
+    assert_eq!(
+        "{\"5\":[]}",
+        sval_json::stream_to_string(UnlabeledEnum::<i32, bool>::EmptySeq(&[])).unwrap()
+    );
+    assert_eq!(
+        "{\"2\":{\"field_0\":1,\"field_1\":true}}",
+        sval_json::stream_to_string(UnlabeledEnum::<i32, bool>::MapStruct {
+            field_0: 1,
+            field_1: true
+        })
+        .unwrap()
+    );
+    assert_eq!(
+        "{\"4\":[1,true]}",
+        sval_json::stream_to_string(UnlabeledEnum::<i32, bool>::SeqStruct(1, true)).unwrap()
+    );
+    assert_eq!(
+        "{\"6\":{\"2\":{\"field_0\":1,\"field_1\":true}}}",
+        sval_json::stream_to_string(UnlabeledEnum::<i32, bool>::Nested(Box::new(
+            UnlabeledEnum::<i32, bool>::MapStruct {
+                field_0: 1,
+                field_1: true
+            }
+        )))
+        .unwrap()
+    );
+}
+
+#[test]
+fn stream_unlabeled_unindexed_enum() {
+    assert_eq!(
+        "null",
+        sval_json::stream_to_string(UnlabeledUnindexedEnum::<i32, bool>::Constant).unwrap()
+    );
+    assert_eq!(
+        "4",
+        sval_json::stream_to_string(UnlabeledUnindexedEnum::<i32, bool>::Tagged(4)).unwrap()
+    );
+    assert_eq!(
+        "{}",
+        sval_json::stream_to_string(UnlabeledUnindexedEnum::<i32, bool>::EmptyMapStruct(
+            EmptyMap {}
+        ))
+        .unwrap()
+    );
+    assert_eq!(
+        "[]",
+        sval_json::stream_to_string(UnlabeledUnindexedEnum::<i32, bool>::EmptySeq(&[])).unwrap()
+    );
+    assert_eq!(
+        "{\"field_0\":1,\"field_1\":true}",
+        sval_json::stream_to_string(UnlabeledUnindexedEnum::<i32, bool>::MapStruct {
+            field_0: 1,
+            field_1: true
+        })
+        .unwrap()
+    );
+    assert_eq!(
+        "[1,true]",
+        sval_json::stream_to_string(UnlabeledUnindexedEnum::<i32, bool>::SeqStruct(1, true))
+            .unwrap()
+    );
+    assert_eq!(
+        "{\"field_0\":1,\"field_1\":true}",
+        sval_json::stream_to_string(UnlabeledUnindexedEnum::<i32, bool>::Nested(Box::new(
+            UnlabeledUnindexedEnum::<i32, bool>::MapStruct {
+                field_0: 1,
+                field_1: true
+            }
+        )))
         .unwrap()
     );
 }
@@ -326,6 +444,123 @@ fn stream_empty_enum() {
     }
 
     assert_eq!("\"Enum\"", sval_json::stream_to_string(Enum).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_empty_enum() {
+    struct Enum;
+
+    impl sval::Value for Enum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, None, Some(&sval::Index::new(1)))?;
+            stream.enum_end(None, None, Some(&sval::Index::new(1)))
+        }
+    }
+
+    assert_eq!("1", sval_json::stream_to_string(Enum).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_unindexed_empty_enum() {
+    struct Enum;
+
+    impl sval::Value for Enum {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.enum_begin(None, None, None)?;
+            stream.enum_end(None, None, None)
+        }
+    }
+
+    assert_eq!("null", sval_json::stream_to_string(Enum).unwrap());
+}
+
+#[test]
+fn stream_empty_tagged() {
+    struct Tagged;
+
+    impl sval::Value for Tagged {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.tagged_begin(None, Some(&sval::Label::new("Tagged")), None)?;
+            stream.tagged_end(None, Some(&sval::Label::new("Tagged")), None)
+        }
+    }
+
+    assert_eq!("\"Tagged\"", sval_json::stream_to_string(Tagged).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_empty_tagged() {
+    struct Tagged;
+
+    impl sval::Value for Tagged {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.tagged_begin(None, None, Some(&sval::Index::new(1)))?;
+            stream.tagged_end(None, None, Some(&sval::Index::new(1)))
+        }
+    }
+
+    assert_eq!("1", sval_json::stream_to_string(Tagged).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_unindexed_empty_tagged() {
+    struct Tagged;
+
+    impl sval::Value for Tagged {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.tagged_begin(None, None, None)?;
+            stream.tagged_end(None, None, None)
+        }
+    }
+
+    assert_eq!("null", sval_json::stream_to_string(Tagged).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_tag() {
+    struct Tag;
+
+    impl sval::Value for Tag {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.tag(None, None, Some(&sval::Index::new(1)))
+        }
+    }
+
+    assert_eq!("1", sval_json::stream_to_string(Tag).unwrap());
+}
+
+#[test]
+fn stream_unlabeled_unindexed_tag() {
+    struct Tag;
+
+    impl sval::Value for Tag {
+        fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+            &'sval self,
+            stream: &mut S,
+        ) -> sval::Result {
+            stream.tag(None, None, None)
+        }
+    }
+
+    assert_eq!("null", sval_json::stream_to_string(Tag).unwrap());
 }
 
 #[test]

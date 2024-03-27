@@ -61,19 +61,37 @@ impl<W> Formatter<W> {
     }
 }
 
+impl<W> fmt::Debug for Formatter<W> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Formatter")
+            .field("is_internally_tagged", &self.is_internally_tagged)
+            .field("is_current_depth_empty", &self.is_current_depth_empty)
+            .field("is_text_quoted", &self.is_text_quoted)
+            .field("err", &self.err)
+            .field("text_handler", &self.text_handler.as_ref().map(|_| ()))
+            .finish()
+    }
+}
+
 impl<'sval, W> sval::Stream<'sval> for Formatter<W>
 where
     W: Write,
 {
     fn null(&mut self) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         Ok(_try!(self.out.write_str("null")))
     }
 
     fn bool(&mut self, v: bool) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         Ok(_try!(self.out.write_str(if v { "true" } else { "false" })))
     }
 
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         if self.is_text_quoted {
             _try!(self.out.write_char('"'));
         }
@@ -99,66 +117,88 @@ where
     }
 
     fn u8(&mut self, v: u8) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u16(&mut self, v: u16) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u32(&mut self, v: u32) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u64(&mut self, v: u64) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn u128(&mut self, v: u128) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i8(&mut self, v: i8) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i16(&mut self, v: i16) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i32(&mut self, v: i32) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i64(&mut self, v: i64) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn i128(&mut self, v: i128) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         _try!(self.out.write_str(itoa::Buffer::new().format(v)));
 
         Ok(())
     }
 
     fn f32(&mut self, v: f32) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         if v.is_nan() || v.is_infinite() {
             self.null()
         } else {
@@ -169,6 +209,8 @@ where
     }
 
     fn f64(&mut self, v: f64) -> sval::Result {
+        self.is_current_depth_empty = false;
+
         if v.is_nan() || v.is_infinite() {
             self.null()
         } else {
@@ -197,7 +239,6 @@ where
         if !self.is_current_depth_empty {
             _try!(self.out.write_str(",\""));
         } else {
-            self.is_current_depth_empty = false;
             _try!(self.out.write_char('"'));
         }
 
@@ -244,8 +285,6 @@ where
 
         if !self.is_current_depth_empty {
             _try!(self.out.write_char(','));
-        } else {
-            self.is_current_depth_empty = false;
         }
 
         Ok(())
@@ -266,9 +305,9 @@ where
         &mut self,
         _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
-        _try_no_conv!(self.internally_tagged_begin(label));
+        _try_no_conv!(self.internally_tagged_begin(label, index));
 
         self.is_internally_tagged = true;
         self.is_current_depth_empty = true;
@@ -289,7 +328,7 @@ where
         if self.is_internally_tagged {
             self.internally_tagged_map_end()
         } else {
-            self.internally_tagged_end(label)
+            self.internally_tagged_end(label, index)
         }
     }
 
@@ -297,7 +336,7 @@ where
         &mut self,
         tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
         match tag {
             Some(&tags::JSON_TEXT) => {
@@ -321,14 +360,17 @@ where
             _ => (),
         }
 
-        self.internally_tagged_begin(label)
+        _try_no_conv!(self.internally_tagged_begin(label, index));
+        self.is_current_depth_empty = true;
+
+        Ok(())
     }
 
     fn tagged_end(
         &mut self,
         tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
         match tag {
             Some(&tags::JSON_TEXT) => {
@@ -352,14 +394,18 @@ where
             _ => (),
         }
 
-        self.internally_tagged_end(label)
+        if self.is_current_depth_empty {
+            _try_no_conv!(self.tag(tag, label, index));
+        }
+
+        self.internally_tagged_end(label, index)
     }
 
     fn tag(
         &mut self,
         tag: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
         self.is_internally_tagged = false;
         self.is_current_depth_empty = false;
@@ -369,6 +415,8 @@ where
             _ => {
                 if let Some(label) = label {
                     self.value(label.as_str())
+                } else if let Some(index) = index.and_then(|ix| ix.to_i64()) {
+                    self.value(&index)
                 } else {
                     self.null()
                 }
@@ -380,10 +428,10 @@ where
         &mut self,
         _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
         num_entries_hint: Option<usize>,
     ) -> sval::Result {
-        _try_no_conv!(self.internally_tagged_begin(label));
+        _try_no_conv!(self.internally_tagged_begin(label, index));
         self.map_begin(num_entries_hint)
     }
 
@@ -393,7 +441,6 @@ where
         if !self.is_current_depth_empty {
             _try!(self.out.write_str(",\""));
         } else {
-            self.is_current_depth_empty = false;
             _try!(self.out.write_char('"'));
         }
 
@@ -413,20 +460,20 @@ where
         &mut self,
         _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
         _try_no_conv!(self.map_end());
-        self.internally_tagged_end(label)
+        self.internally_tagged_end(label, index)
     }
 
     fn tuple_begin(
         &mut self,
         _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
         num_entries_hint: Option<usize>,
     ) -> sval::Result {
-        _try_no_conv!(self.internally_tagged_begin(label));
+        _try_no_conv!(self.internally_tagged_begin(label, index));
         self.seq_begin(num_entries_hint)
     }
 
@@ -434,10 +481,10 @@ where
         &mut self,
         _: Option<&sval::Tag>,
         label: Option<&sval::Label>,
-        _: Option<&sval::Index>,
+        index: Option<&sval::Index>,
     ) -> sval::Result {
         _try_no_conv!(self.seq_end());
-        self.internally_tagged_end(label)
+        self.internally_tagged_end(label, index)
     }
 }
 
@@ -445,33 +492,51 @@ impl<'sval, W> Formatter<W>
 where
     W: Write,
 {
-    fn internally_tagged_begin(&mut self, label: Option<&sval::Label>) -> sval::Result {
+    fn internally_tagged_begin(
+        &mut self,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> sval::Result {
         // If there's a label then begin a map, using the label as the key
         if self.is_internally_tagged {
-            self.is_current_depth_empty = false;
             self.is_internally_tagged = false;
 
             if let Some(label) = label {
-                return self.internally_tagged_map_begin(label);
+                return self.internally_tagged_map_begin_label(label.as_str());
+            } else if let Some(index) = index.and_then(|index| index.to_i64()) {
+                return self.internally_tagged_map_begin_index(index);
             }
         }
 
         Ok(())
     }
 
-    fn internally_tagged_end(&mut self, label: Option<&sval::Label>) -> sval::Result {
-        if label.is_some() {
-            self.is_internally_tagged = true;
-        }
+    fn internally_tagged_end(
+        &mut self,
+        label: Option<&sval::Label>,
+        index: Option<&sval::Index>,
+    ) -> sval::Result {
+        self.is_internally_tagged =
+            label.is_some() || index.and_then(|index| index.to_i64()).is_some();
 
         Ok(())
     }
 
-    fn internally_tagged_map_begin(&mut self, label: &sval::Label) -> sval::Result {
+    fn internally_tagged_map_begin_label(&mut self, label: &str) -> sval::Result {
         _try_no_conv!(self.map_begin(Some(1)));
 
         _try_no_conv!(self.map_key_begin());
-        _try!(escape_str(label.as_str(), &mut self.out));
+        _try!(escape_str(label, &mut self.out));
+        _try_no_conv!(self.map_key_end());
+
+        self.map_value_begin()
+    }
+
+    fn internally_tagged_map_begin_index(&mut self, index: i64) -> sval::Result {
+        _try_no_conv!(self.map_begin(Some(1)));
+
+        _try_no_conv!(self.map_key_begin());
+        _try_no_conv!(self.i64(index));
         _try_no_conv!(self.map_key_end());
 
         self.map_value_begin()
@@ -674,14 +739,3 @@ static ESCAPE: [u8; 256] = [
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // E
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // F
 ];
-
-struct Escape<W>(W);
-
-impl<W> Write for Escape<W>
-where
-    W: Write,
-{
-    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
-        escape_str(s, &mut self.0)
-    }
-}

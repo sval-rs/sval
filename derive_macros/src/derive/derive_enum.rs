@@ -17,6 +17,8 @@ pub(crate) struct EnumAttrs {
     tag: Option<Path>,
     label: Option<LabelValue>,
     index: Option<IndexValue>,
+    unlabeled_variants: bool,
+    unindexed_variants: bool,
     dynamic: bool,
 }
 
@@ -29,6 +31,8 @@ impl EnumAttrs {
                 &attr::LabelAttr,
                 &attr::IndexAttr,
                 &attr::DynamicAttr,
+                &attr::UnlabeledVariantsAttr,
+                &attr::UnindexedVariantsAttr,
             ],
             attrs,
         );
@@ -36,18 +40,27 @@ impl EnumAttrs {
         let tag = attr::get_unchecked("enum", attr::TagAttr, attrs);
         let label = attr::get_unchecked("enum", attr::LabelAttr, attrs);
         let index = attr::get_unchecked("enum", attr::IndexAttr, attrs);
+        let unlabeled_variants =
+            attr::get_unchecked("enum", attr::UnlabeledVariantsAttr, attrs).unwrap_or(false);
+        let unindexed_variants =
+            attr::get_unchecked("enum", attr::UnindexedVariantsAttr, attrs).unwrap_or(false);
         let dynamic = attr::get_unchecked("enum", attr::DynamicAttr, attrs).unwrap_or(false);
 
         if dynamic {
             assert!(tag.is_none(), "dynamic enums can't have tags");
             assert!(label.is_none(), "dynamic enums can't have labels");
             assert!(index.is_none(), "dynamic enums can't have indexes");
+
+            assert!(!unlabeled_variants, "dynamic enums don't have variants");
+            assert!(!unindexed_variants, "dynamic enums don't have variants");
         }
 
         EnumAttrs {
             tag,
             label,
             index,
+            unlabeled_variants,
+            unindexed_variants,
             dynamic,
         }
     }
@@ -81,7 +94,7 @@ pub(crate) fn derive_enum<'a>(
 
     let mut variant_index = |index: Option<Index>, discriminant: Option<IndexValue>| {
         index.or_else(|| {
-            if attrs.dynamic {
+            if attrs.dynamic || attrs.unindexed_variants {
                 None
             } else {
                 Some(index_allocator.next_const_index(discriminant))
@@ -90,7 +103,15 @@ pub(crate) fn derive_enum<'a>(
     };
 
     let variant_label = |label: Option<LabelValue>, ident: &Ident| {
-        if attrs.dynamic {
+        if attrs.dynamic || attrs.unlabeled_variants {
+            None
+        } else {
+            Some(label_or_ident(label, ident))
+        }
+    };
+
+    let unit_variant_label = |label: Option<LabelValue>, ident: &Ident| {
+        if attrs.unlabeled_variants {
             None
         } else {
             Some(label_or_ident(label, ident))
@@ -142,7 +163,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_tag(
                     quote!(#ident :: #variant_ident),
                     attrs.tag(),
-                    Some(label_or_ident(attrs.label(), variant_ident)),
+                    unit_variant_label(attrs.label(), variant_ident),
                     variant_index(attrs.index(), discriminant),
                 )
             }
