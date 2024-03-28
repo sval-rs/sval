@@ -361,6 +361,8 @@ mod tests {
 
     use super::*;
 
+    use alloc::borrow::ToOwned;
+
     struct Outer<I> {
         a: i32,
         // #[sval(flatten)]
