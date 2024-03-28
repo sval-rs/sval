@@ -49,9 +49,10 @@ value is stringified and concatenated together.
 - **tuples**: tuple values are passed through directly.
 */
 
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![deny(missing_docs)]
 
+#[cfg(any(test, feature = "alloc"))]
 extern crate alloc;
 
 mod flattener;

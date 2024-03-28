@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{borrow::Borrow, fmt};
 
 /**
 A string containing encoded JSON.
@@ -24,6 +24,19 @@ impl JsonStr {
     */
     pub const fn as_str(&self) -> &str {
         &self.0
+    }
+
+    /**
+    Get a reference to the bytes of the underlying string.
+    */
+    pub const fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+}
+
+impl<'a> From<&'a str> for &'a JsonStr {
+    fn from(value: &'a str) -> Self {
+        JsonStr::new(value)
     }
 }
 
@@ -53,6 +66,18 @@ impl sval::Value for JsonStr {
     }
 }
 
+impl AsRef<str> for JsonStr {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Borrow<str> for JsonStr {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
 #[cfg(feature = "alloc")]
 mod alloc_support {
     use super::*;
@@ -68,6 +93,13 @@ mod alloc_support {
 
             // SAFETY: `JsonStr` and `str` have the same ABI
             unsafe { Box::from_raw(Box::into_raw(json) as *mut str as *mut JsonStr) }
+        }
+    }
+
+    impl From<Box<str>> for Box<JsonStr> {
+        fn from(value: Box<str>) -> Self {
+            // SAFETY: `JsonStr` and `str` have the same ABI
+            unsafe { Box::from_raw(Box::into_raw(value) as *mut JsonStr) }
         }
     }
 }

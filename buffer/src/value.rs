@@ -1790,6 +1790,8 @@ mod tests {
 mod alloc_tests {
     use super::*;
 
+    use crate::std::string::String;
+
     use sval::Stream as _;
     use sval_derive_macros::*;
 

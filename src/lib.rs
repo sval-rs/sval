@@ -79,7 +79,7 @@ The [`Value`] and [`Stream`] traits aren't object-safe themselves, but object-sa
 wrappers are provided by the `sval_dynamic` crate. This wrapper works in no-std.
 */
 
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 #![deny(missing_docs)]
 
 #[cfg(feature = "std")]

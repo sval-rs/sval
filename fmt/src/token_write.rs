@@ -535,6 +535,8 @@ impl<'a, W: TokenWrite + ?Sized> TokenWrite for &'a mut W {
 mod tests {
     use super::*;
 
+    use alloc::string::String;
+
     #[test]
     fn escape_debug() {
         let cases = [

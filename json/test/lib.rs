@@ -200,6 +200,20 @@ fn stream_unit_struct() {
 }
 
 #[test]
+fn stream_json_str() {
+    let json = "{\"a\":[1,true,4.3]}";
+
+    assert_eq!(
+        json,
+        sval_json::stream_to_string(sval_json::JsonStr::new(json)).unwrap()
+    );
+    assert_eq!(
+        json,
+        sval_json::stream_to_string(sval_json::JsonStr::boxed(json)).unwrap()
+    );
+}
+
+#[test]
 fn stream_map_struct() {
     assert_json(MapStruct {
         field_0: 42,
