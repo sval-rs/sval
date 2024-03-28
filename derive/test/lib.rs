@@ -501,6 +501,7 @@ mod derive_tuple {
 
     #[test]
     fn skip() {
+        #[allow(dead_code)]
         #[derive(Value)]
         struct Tuple(#[sval(skip)] i32, i32);
 
@@ -1045,6 +1046,7 @@ mod derive_enum {
     #[test]
     fn skip() {
         #[derive(Value)]
+        #[allow(dead_code)]
         enum Enum {
             Record {
                 #[sval(skip)]

@@ -9,18 +9,22 @@ Rather than conditionally compile these methods, this library stubs
 out functionality when an allocator isn't available.
 */
 
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 #![deny(missing_docs)]
 
 mod error;
 
 #[cfg(feature = "std")]
+#[macro_use]
+#[allow(unused_imports)]
 extern crate std as libstd;
 
 #[cfg(not(feature = "alloc"))]
 extern crate core as std;
 
 #[cfg(any(test, feature = "alloc"))]
+#[macro_use]
+#[allow(unused_imports)]
 extern crate alloc;
 #[cfg(feature = "alloc")]
 extern crate core;

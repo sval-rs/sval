@@ -6,10 +6,10 @@ that formats it using the same output that you'd get if you
 derived [`core::fmt::Debug`].
 */
 
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 #![deny(missing_docs)]
 
-#[cfg(feature = "alloc")]
+#[cfg(any(test, feature = "alloc"))]
 extern crate alloc;
 
 mod writer;

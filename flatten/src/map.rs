@@ -357,7 +357,6 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for PassThru<S> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::borrow::ToOwned;
     use sval_derive_macros::*;
 
     use super::*;
