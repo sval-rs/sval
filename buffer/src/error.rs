@@ -69,11 +69,11 @@ impl Error {
         `sval_serde`, then you can enable their `alloc` or `std` features instead.
         */
 
-        #[cfg(all(debug_assertions, not(no_debug_assertions), not(test)))]
+        #[cfg(all(debug_assertions, not(feature = "no_debug_assertions"), not(test)))]
         {
-            panic!("attempt to allocate for {} would fail; add the `alloc` feature of `sval_buffer` or the depdendent `sval_*` library to support allocation. This call will error instead of panicking in release builds. Add the `no_debug_assertions` feature of `sval_buffer` if this error is expected.", method);
+            panic!("attempt to allocate for {} would fail; add the `alloc` feature of `sval_buffer` or the depdendent `sval_*` library to support allocation. This call will error instead of panicking in release builds. Add the `feature = no_debug_assertions` feature of `sval_buffer` if this error is expected.", method);
         }
-        #[cfg(not(all(debug_assertions, not(no_debug_assertions), not(test))))]
+        #[cfg(not(all(debug_assertions, not(feature = "no_debug_assertions"), not(test))))]
         {
             Error(ErrorKind::NoAlloc { method })
         }

@@ -1,4 +1,4 @@
-use syn::Ident;
+use syn::{ext::IdentExt, Ident};
 
 #[derive(Debug, Clone)]
 pub(crate) enum LabelValue {
@@ -22,7 +22,7 @@ fn explicit_label(explicit: LabelValue) -> Label {
 
 fn ident_label(ident: &Ident) -> Label {
     Label::Implicit({
-        let ident = ident.to_string();
+        let ident = ident.unraw().to_string();
         quote!(#ident)
     })
 }

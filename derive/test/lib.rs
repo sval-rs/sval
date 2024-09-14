@@ -27,6 +27,26 @@ mod derive_struct {
     }
 
     #[test]
+    fn uncooked() {
+        #[derive(Value)]
+        struct RecordTuple {
+            r#type: i32,
+        }
+
+        assert_tokens(&RecordTuple { r#type: 42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
+                RecordTupleValueBegin(None, sval::Label::new("type"), sval::Index::new(0)),
+                I32(42),
+                RecordTupleValueEnd(None, sval::Label::new("type"), sval::Index::new(0)),
+                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+            ]
+        })
+    }
+
+    #[test]
     fn generic() {
         #[derive(Value)]
         struct RecordTuple<S> {
@@ -608,6 +628,19 @@ mod derive_unit_struct {
             &[Tag(None, Some(sval::Label::new("Tag")), None)]
         })
     }
+
+    #[test]
+    #[allow(non_camel_case_types)]
+    fn uncooked() {
+        #[derive(Value)]
+        struct r#type;
+
+        assert_tokens(&r#type, {
+            use sval_test::Token::*;
+
+            &[Tag(None, Some(sval::Label::new("type")), None)]
+        })
+    }
 }
 
 mod derive_enum {
@@ -701,6 +734,29 @@ mod derive_enum {
                     None,
                     Some(sval::Label::new("Tuple")),
                     Some(sval::Index::new(3)),
+                ),
+                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+            ]
+        });
+    }
+
+    #[test]
+    #[allow(non_camel_case_types)]
+    fn uncooked() {
+        #[derive(Value)]
+        enum Enum {
+            r#type,
+        }
+
+        assert_tokens(&Enum::r#type, {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    None,
+                    Some(sval::Label::new("type")),
+                    Some(sval::Index::new(0)),
                 ),
                 EnumEnd(None, Some(sval::Label::new("Enum")), None),
             ]
