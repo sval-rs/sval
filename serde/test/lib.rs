@@ -142,6 +142,26 @@ fn option_none_to_serialize() {
 }
 
 #[test]
+fn u128_to_serialize() {
+    // NOTE: Can't check the `serde` end of this because `serde_test`
+    // lacks 128bit number support
+    let v = 42u128;
+
+    let sval = &{
+        use sval_test::Token::*;
+
+        [U128(42)]
+    };
+
+    assert_tokens(&sval_serde::ToValue::new(&v), sval);
+
+    assert_tokens(
+        &sval_serde::ToValue::new(sval_serde::ToSerialize::new(&v)),
+        sval,
+    );
+}
+
+#[test]
 fn map_to_serialize() {
     test_case(
         {

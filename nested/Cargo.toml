@@ -14,6 +14,9 @@ categories = ["encoding", "no-std"]
 [package.metadata.docs.rs]
 features = ["std"]
 
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(no_debug_assertions)'] }
+
 [features]
 default = ["alloc"]
 std = ["alloc", "sval/std", "sval_buffer/std"]
