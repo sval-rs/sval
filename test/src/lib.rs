@@ -12,13 +12,30 @@ pub fn assert_tokens<'sval, V: sval::Value + ?Sized>(value: &'sval V, tokens: &[
     let mut stream = TokenBuf::new();
 
     match value.stream(&mut stream) {
-        Ok(()) => assert_eq!(
-            tokens,
-            stream.as_tokens(),
-            "{} != {}",
-            sval_fmt::stream_to_string(AsValue(tokens)),
-            sval_fmt::stream_to_string(AsValue(stream.as_tokens()))
-        ),
+        Ok(()) => {
+            assert_eq!(
+                tokens,
+                stream.as_tokens(),
+                "{} != {}",
+                sval_fmt::stream_to_string(AsValue(tokens)),
+                sval_fmt::stream_to_string(AsValue(stream.as_tokens()))
+            );
+
+            #[cfg(test)]
+            {
+                let mut dyn_stream = &mut TokenBuf::new();
+
+                value.stream(&mut dyn_stream as &mut dyn sval_dynamic::Stream<'sval>).unwrap();
+
+                assert_eq!(
+                    tokens,
+                    dyn_stream.as_tokens(),
+                    "(dyn) {} != {}",
+                    sval_fmt::stream_to_string(AsValue(tokens)),
+                    sval_fmt::stream_to_string(AsValue(dyn_stream.as_tokens()))
+                );
+            }
+        },
         Err(_) => stream.fail::<V>(),
     }
 }
@@ -1101,7 +1118,29 @@ mod tests {
 
     #[test]
     fn stream_tag_hints() {
-        todo!()
+        struct WithHints;
+
+        impl sval::Value for WithHints {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.tag_hint(&sval::Tag::new("test"))?;
+
+                stream.value(&42)?;
+
+                stream.tag_hint(&sval::Tag::new("test"))
+            }
+        }
+
+        assert_tokens(
+            &WithHints,
+            &[
+                Token::TagHint(sval::Tag::new("test")),
+                Token::I32(42),
+                Token::TagHint(sval::Tag::new("test")),
+            ],
+        );
     }
 
     #[test]

@@ -2244,7 +2244,62 @@ mod alloc_tests {
 
     #[test]
     fn buffer_tag_hints() {
-        todo!()
+        let mut value = ValueBuf::new();
+
+        value.tag_hint(&sval::Tag::new("test")).unwrap();
+
+        value.seq_begin(Some(2)).unwrap();
+
+        value.seq_value_begin().unwrap();
+        value.tag_hint(&sval::Tag::new("test")).unwrap();
+        value.bool(false).unwrap();
+        value.seq_value_end().unwrap();
+
+        value.seq_value_begin().unwrap();
+        value.bool(true).unwrap();
+        value.seq_value_end().unwrap();
+
+        value.seq_end().unwrap();
+
+        value.tag_hint(&sval::Tag::new("test")).unwrap();
+
+        let expected = vec![
+            ValuePart {
+                kind: ValueKind::TagHint {
+                    tag: sval::Tag::new("test"),
+                },
+            },
+            ValuePart {
+                kind: ValueKind::Seq {
+                    len: 5,
+                    num_entries_hint: Some(2),
+                },
+            },
+            ValuePart {
+                kind: ValueKind::SeqValue { len: 2 },
+            },
+            ValuePart {
+                kind: ValueKind::TagHint {
+                    tag: sval::Tag::new("test"),
+                },
+            },
+            ValuePart {
+                kind: ValueKind::Bool(false),
+            },
+            ValuePart {
+                kind: ValueKind::SeqValue { len: 1 },
+            },
+            ValuePart {
+                kind: ValueKind::Bool(true),
+            },
+            ValuePart {
+                kind: ValueKind::TagHint {
+                    tag: sval::Tag::new("test"),
+                },
+            },
+        ];
+
+        assert_eq!(expected, &*value.parts);
     }
 
     #[test]
