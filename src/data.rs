@@ -35,9 +35,22 @@ pub struct Label<'computed> {
     // Only one `backing_field_*` may be `Some`
     backing_field_static: Option<&'static str>,
     #[cfg(feature = "alloc")]
-    backing_field_owned: Option<Box<str>>,
+    // Owned is a `Box<str>`
+    backing_field_owned: Option<*mut str>,
     tag: Option<Tag>,
     _marker: PhantomData<&'computed str>,
+}
+
+impl<'computed> Drop for Label<'computed> {
+    fn drop(&mut self) {
+        #[cfg(feature = "alloc")]
+        {
+            if let Some(owned) = self.backing_field_owned {
+                // SAFETY: We're dropping the value
+                drop(unsafe { Box::from_raw(owned) });
+            }
+        }
+    }
 }
 
 // SAFETY: Label doesn't mutate or synchronize: it acts just like a `&str`
@@ -555,8 +568,9 @@ mod alloc_support {
 
     impl<'computed> Clone for Label<'computed> {
         fn clone(&self) -> Self {
-            if let Some(ref owned) = self.backing_field_owned {
-                Label::new_owned((**owned).to_owned())
+            if let Some(owned) = self.backing_field_owned {
+                // SAFETY: `owned` lives as long as `Label`
+                Label::new_owned(unsafe { &*owned }.to_owned())
             } else {
                 Label {
                     value_computed: self.value_computed,
@@ -589,10 +603,12 @@ mod alloc_support {
         Create a new label from an owned string value.
         */
         pub fn new_owned(label: String) -> Self {
+            let owned = Box::into_raw(label.into_boxed_str());
+
             Label {
-                value_computed: label.as_str() as *const str,
+                value_computed: owned as *const str,
                 backing_field_static: None,
-                backing_field_owned: Some(label.into_boxed_str()),
+                backing_field_owned: Some(owned),
                 tag: None,
                 _marker: PhantomData,
             }
@@ -754,8 +770,8 @@ mod tests {
             let b = a.clone();
 
             assert_ne!(
-                a.backing_field_owned.as_ref().unwrap().as_ptr(),
-                b.backing_field_owned.as_ref().unwrap().as_ptr()
+                a.backing_field_owned.as_ref().unwrap(),
+                b.backing_field_owned.as_ref().unwrap(),
             );
         }
     }
