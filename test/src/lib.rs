@@ -12,13 +12,30 @@ pub fn assert_tokens<'sval, V: sval::Value + ?Sized>(value: &'sval V, tokens: &[
     let mut stream = TokenBuf::new();
 
     match value.stream(&mut stream) {
-        Ok(()) => assert_eq!(
-            tokens,
-            stream.as_tokens(),
-            "{} != {}",
-            sval_fmt::stream_to_string(AsValue(tokens)),
-            sval_fmt::stream_to_string(AsValue(stream.as_tokens()))
-        ),
+        Ok(()) => {
+            assert_eq!(
+                tokens,
+                stream.as_tokens(),
+                "{} != {}",
+                sval_fmt::stream_to_string(AsValue(tokens)),
+                sval_fmt::stream_to_string(AsValue(stream.as_tokens()))
+            );
+
+            #[cfg(test)]
+            {
+                let mut dyn_stream = &mut TokenBuf::new();
+
+                value.stream(&mut dyn_stream as &mut dyn sval_dynamic::Stream<'sval>).unwrap();
+
+                assert_eq!(
+                    tokens,
+                    dyn_stream.as_tokens(),
+                    "(dyn) {} != {}",
+                    sval_fmt::stream_to_string(AsValue(tokens)),
+                    sval_fmt::stream_to_string(AsValue(dyn_stream.as_tokens()))
+                );
+            }
+        },
         Err(_) => stream.fail::<V>(),
     }
 }
@@ -121,6 +138,10 @@ pub enum Token<'a> {
         Option<sval::Label<'static>>,
         Option<sval::Index>,
     ),
+    /**
+    [`sval::Stream::tag_hint`]
+    */
+    TagHint(sval::Tag),
     /**
     [`sval::Stream::text_begin`].
     */
@@ -326,6 +347,9 @@ impl<'a, 'b> sval::Value for AsValue<'a, 'b> {
                 Token::Null => stream.null()?,
                 Token::Tag(tag, label, index) => {
                     stream.tag(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::TagHint(tag) => {
+                    stream.tag_hint(tag)?;
                 }
                 Token::TextBegin(num_bytes) => stream.text_begin(*num_bytes)?,
                 Token::TextFragment(v) => stream.text_fragment(*v)?,
@@ -677,6 +701,12 @@ impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
             label.map(|label| label.to_owned()),
             index.cloned(),
         ));
+        Ok(())
+    }
+
+    fn tag_hint(&mut self, tag: &sval::Tag) -> sval::Result {
+        self.push(Token::TagHint(tag.clone()));
+
         Ok(())
     }
 
@@ -1082,6 +1112,33 @@ mod tests {
                 Token::TextFragmentComputed("123456".to_owned()),
                 Token::TextEnd,
                 Token::TaggedEnd(Some(sval::tags::NUMBER), None, None),
+            ],
+        );
+    }
+
+    #[test]
+    fn stream_tag_hints() {
+        struct WithHints;
+
+        impl sval::Value for WithHints {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.tag_hint(&sval::Tag::new("test"))?;
+
+                stream.value(&42)?;
+
+                stream.tag_hint(&sval::Tag::new("test"))
+            }
+        }
+
+        assert_tokens(
+            &WithHints,
+            &[
+                Token::TagHint(sval::Tag::new("test")),
+                Token::I32(42),
+                Token::TagHint(sval::Tag::new("test")),
             ],
         );
     }

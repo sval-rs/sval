@@ -1,5 +1,10 @@
 /*!
 A variant of [`sval::Stream`] for cases where a recursive API is needed.
+
+# Limitations
+
+Streaming via `sval_nested` will discard any [`sval::Stream::tag_hint`]s. `sval` allows tag hints to
+appear anywhere in a stream, but this library enforces a stricter lifecycle, making those hints unreliable.
 */
 
 #![cfg_attr(not(test), no_std)]

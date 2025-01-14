@@ -301,6 +301,15 @@ pub trait Stream<'sval> {
     }
 
     /**
+    Use a tag as a hint without streaming it as a value.
+
+    Hints may be given at any point in a stream and may be interpreted by a stream in any way, but can't be required for a correct result.
+    */
+    fn tag_hint(&mut self, tag: &Tag) -> Result {
+        default_stream::tag_hint(self, tag)
+    }
+
+    /**
     Start a record type.
 
     Records may be used as enum variants.
@@ -668,6 +677,12 @@ macro_rules! impl_stream_forward {
             }
 
             #[inline]
+            fn tag_hint(&mut self, tag: &Tag) -> Result {
+                let $bind = self;
+                ($($forward)*).tag_hint(tag)
+            }
+
+            #[inline]
             fn record_begin(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>, num_entries: Option<usize>) -> Result {
                 let $bind = self;
                 ($($forward)*).record_begin(tag, label, index, num_entries)
@@ -973,6 +988,11 @@ impl<'a, 'b, S: Stream<'a> + ?Sized> Stream<'b> for Computed<S> {
     #[inline]
     fn tag(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
         self.0.tag(tag, label, index)
+    }
+
+    #[inline]
+    fn tag_hint(&mut self, tag: &Tag) -> Result {
+        self.0.tag_hint(tag)
     }
 
     #[inline]
@@ -1397,6 +1417,18 @@ pub mod default_stream {
         }
 
         stream.tagged_end(tag, label, index)
+    }
+
+    /**
+    Use a tag as a hint without streaming it as a value.
+
+    Hints may be given at any point in a stream and may be interpreted by a stream in any way, but can't be required for a correct result.
+    */
+    pub fn tag_hint<'sval>(stream: &mut (impl Stream<'sval> + ?Sized), tag: &Tag) -> Result {
+        let _ = stream;
+        let _ = tag;
+
+        Ok(())
     }
 
     /**

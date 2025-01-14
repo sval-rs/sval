@@ -635,6 +635,17 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         })
     }
 
+    fn tag_hint(
+        &mut self,
+        tag: &sval::Tag,
+    ) -> sval::Result {
+        self.try_catch(|buf| {
+            buf.push_kind(ValueKind::TagHint {
+                tag: tag.clone(),
+            })
+        })
+    }
+
     fn record_begin(
         &mut self,
         tag: Option<&sval::Tag>,
@@ -856,6 +867,9 @@ enum ValueKind<'sval> {
         label: Option<sval::Label<'static>>,
         index: Option<sval::Index>,
     },
+    TagHint {
+        tag: sval::Tag,
+    },
     Enum {
         len: usize,
         tag: Option<sval::Tag>,
@@ -955,7 +969,8 @@ impl<'sval> ValueBuf<'sval> {
             | ValueKind::F64(_)
             | ValueKind::Text(_)
             | ValueKind::Binary(_)
-            | ValueKind::Tag { .. } => return Err(Error::invalid_value("can't end at this index")),
+            | ValueKind::Tag { .. } 
+            | ValueKind::TagHint { .. } => return Err(Error::invalid_value("can't end at this index")),
         } = len;
 
         Ok(())
@@ -1031,6 +1046,9 @@ impl<'sval> ValuePart<'sval> {
                 crate::assert_static(tag);
                 crate::assert_static(label);
                 crate::assert_static(index)
+            }
+            ValueKind::TagHint { tag } => {
+                crate::assert_static(tag);
             }
             ValueKind::Enum {
                 len,
@@ -1214,6 +1232,9 @@ impl<'sval> sval_ref::ValueRef<'sval> for ValueSlice<'sval> {
                 }
                 ValueKind::Tag { tag, label, index } => {
                     stream.tag(tag.as_ref(), label.as_ref(), index.as_ref())?;
+                }
+                ValueKind::TagHint { tag } => {
+                    stream.tag_hint(tag)?;
                 }
                 ValueKind::Enum {
                     len,
@@ -2214,6 +2235,66 @@ mod alloc_tests {
                     tag: None,
                     label: Some(sval::Label::new("B")),
                     index: Some(sval::Index::new(0)),
+                },
+            },
+        ];
+
+        assert_eq!(expected, &*value.parts);
+    }
+
+    #[test]
+    fn buffer_tag_hints() {
+        let mut value = ValueBuf::new();
+
+        value.tag_hint(&sval::Tag::new("test")).unwrap();
+
+        value.seq_begin(Some(2)).unwrap();
+
+        value.seq_value_begin().unwrap();
+        value.tag_hint(&sval::Tag::new("test")).unwrap();
+        value.bool(false).unwrap();
+        value.seq_value_end().unwrap();
+
+        value.seq_value_begin().unwrap();
+        value.bool(true).unwrap();
+        value.seq_value_end().unwrap();
+
+        value.seq_end().unwrap();
+
+        value.tag_hint(&sval::Tag::new("test")).unwrap();
+
+        let expected = vec![
+            ValuePart {
+                kind: ValueKind::TagHint {
+                    tag: sval::Tag::new("test"),
+                },
+            },
+            ValuePart {
+                kind: ValueKind::Seq {
+                    len: 5,
+                    num_entries_hint: Some(2),
+                },
+            },
+            ValuePart {
+                kind: ValueKind::SeqValue { len: 2 },
+            },
+            ValuePart {
+                kind: ValueKind::TagHint {
+                    tag: sval::Tag::new("test"),
+                },
+            },
+            ValuePart {
+                kind: ValueKind::Bool(false),
+            },
+            ValuePart {
+                kind: ValueKind::SeqValue { len: 1 },
+            },
+            ValuePart {
+                kind: ValueKind::Bool(true),
+            },
+            ValuePart {
+                kind: ValueKind::TagHint {
+                    tag: sval::Tag::new("test"),
                 },
             },
         ];
