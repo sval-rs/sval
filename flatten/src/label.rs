@@ -114,15 +114,18 @@ impl<'sval> LabelBuf<'sval> {
             LabelBuf::Text(text) => f(&Label::new_computed(text.as_str())),
             LabelBuf::I128(v) => {
                 let mut buf = itoa::Buffer::new();
-                f(&Label::new_computed(buf.format(*v)))
+                let r= f(&Label::new_computed(buf.format(*v)));
+                r
             }
             LabelBuf::U128(v) => {
                 let mut buf = itoa::Buffer::new();
-                f(&Label::new_computed(buf.format(*v)))
+                let r = f(&Label::new_computed(buf.format(*v)));
+                r
             }
             LabelBuf::F64(v) => {
                 let mut buf = ryu::Buffer::new();
-                f(&Label::new_computed(buf.format(*v)))
+                let r =f(&Label::new_computed(buf.format(*v)));
+                r
             }
         }
     }
