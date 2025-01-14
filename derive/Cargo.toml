@@ -1,6 +1,6 @@
 [package]
 name = "sval_derive"
-version = "2.13.2"
+version = "2.14.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -17,10 +17,10 @@ std = ["sval_flatten?/std"]
 flatten = ["dep:sval_flatten", "sval_derive_macros/flatten"]
 
 [dependencies.sval_derive_macros]
-version = "2.13.2"
+version = "2.14.0"
 path = "../derive_macros"
 
 [dependencies.sval_flatten]
-version = "2.13.2"
+version = "2.14.0"
 path = "../flatten"
 optional = true
