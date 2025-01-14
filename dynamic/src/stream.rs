@@ -87,6 +87,8 @@ mod private {
             index: Option<&sval::Index>,
         ) -> sval::Result;
 
+        fn dispatch_tag_hint(&mut self, tag: &sval::Tag) -> sval::Result;
+
         fn dispatch_record_begin(
             &mut self,
             tag: Option<&sval::Tag>,
@@ -368,6 +370,10 @@ impl<'sval, R: sval::Stream<'sval>> private::DispatchStream<'sval> for R {
         self.tag(tag, label, index)
     }
 
+    fn dispatch_tag_hint(&mut self, tag: &sval::Tag) -> sval::Result {
+        self.tag_hint(tag)
+    }
+
     fn dispatch_record_begin(
         &mut self,
         tag: Option<&sval::Tag>,
@@ -644,6 +650,10 @@ macro_rules! impl_stream {
                 index: Option<&sval::Index>,
             ) -> sval::Result {
                 self.erase_stream().0.dispatch_tag(tag, label, index)
+            }
+
+            fn tag_hint(&mut self, tag: &sval::Tag) -> sval::Result {
+                self.erase_stream().0.dispatch_tag_hint(tag)
             }
 
             fn record_begin(&mut self, tag: Option<&sval::Tag>, label: Option<&sval::Label>, index: Option<&sval::Index>, num_entries_hint: Option<usize>) -> sval::Result {

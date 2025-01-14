@@ -122,6 +122,10 @@ pub enum Token<'a> {
         Option<sval::Index>,
     ),
     /**
+    [`sval::Stream::tag_hint`]
+    */
+    TagHint(sval::Tag),
+    /**
     [`sval::Stream::text_begin`].
     */
     TextBegin(Option<usize>),
@@ -326,6 +330,9 @@ impl<'a, 'b> sval::Value for AsValue<'a, 'b> {
                 Token::Null => stream.null()?,
                 Token::Tag(tag, label, index) => {
                     stream.tag(tag.as_ref(), label.as_ref(), index.as_ref())?
+                }
+                Token::TagHint(tag) => {
+                    stream.tag_hint(tag)?;
                 }
                 Token::TextBegin(num_bytes) => stream.text_begin(*num_bytes)?,
                 Token::TextFragment(v) => stream.text_fragment(*v)?,
@@ -677,6 +684,12 @@ impl<'sval> sval::Stream<'sval> for TokenBuf<'sval> {
             label.map(|label| label.to_owned()),
             index.cloned(),
         ));
+        Ok(())
+    }
+
+    fn tag_hint(&mut self, tag: &sval::Tag) -> sval::Result {
+        self.push(Token::TagHint(tag.clone()));
+
         Ok(())
     }
 
@@ -1084,6 +1097,11 @@ mod tests {
                 Token::TaggedEnd(Some(sval::tags::NUMBER), None, None),
             ],
         );
+    }
+
+    #[test]
+    fn stream_tag_hints() {
+        todo!()
     }
 
     #[test]

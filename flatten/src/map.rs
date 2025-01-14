@@ -262,6 +262,10 @@ impl<'sval, S: Stream<'sval>> Stream<'sval> for PassThru<S> {
         self.stream.tag(tag, label, index)
     }
 
+    fn tag_hint(&mut self, tag: &Tag) -> sval::Result {
+        self.stream.tag_hint(tag)
+    }
+
     fn record_begin(
         &mut self,
         tag: Option<&Tag>,

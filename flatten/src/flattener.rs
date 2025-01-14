@@ -499,6 +499,17 @@ impl<'sval, S: Flatten<'sval>> Stream<'sval> for Flattener<'sval, S> {
     }
 
     #[inline]
+    fn tag_hint(
+        &mut self,
+        tag: &Tag,
+    ) -> sval::Result {
+        self.value(
+            |buf| buf.tag_hint(tag),
+            |stream| stream.tag_hint(tag),
+        )
+    }
+
+    #[inline]
     fn record_begin(
         &mut self,
         tag: Option<&Tag>,
