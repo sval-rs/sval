@@ -1144,7 +1144,9 @@ impl<'sval, S: Stream<'sval>> FlatStream<'sval, S> {
         let r = try_catch(self, |stream| match stream {
             FlatStream { buffered: None, .. } => Ok(Some(transition(stream)?)),
             FlatStream { buffered, .. } => {
-                let Some(Buffered::Value(ref mut buf)) = buffered else {
+                let buf = if let Some(Buffered::Value(ref mut buf)) = buffered {
+                    buf
+                } else {
                     return Err(Error::invalid_value(
                         "cannot end buffering value; the stream is in an invalid state",
                     ));
