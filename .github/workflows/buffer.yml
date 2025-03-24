@@ -44,6 +44,22 @@ jobs:
         working-directory: ./buffer
         run: cargo hack bench --feature-powerset --no-run
 
+  msrv:
+    name: Build (MSRV)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain add 1.61.0 --profile minimal
+          rustup default 1.61.0
+
+      - name: Check
+        working-directory: ./buffer
+        run: cargo check --all-features
+
   embedded:
     name: Build (embedded)
     runs-on: ubuntu-latest
