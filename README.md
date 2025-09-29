@@ -463,6 +463,132 @@ Implementations of [`Value`]() should provide a [`Stream`]() with borrowed data 
 
 `sval`'s [`Error`]() type doesn't carry any state of its own. It only signals early termination of the [`Stream`]() which may be because its job is done, or because it failed. It's up to the [`Stream`]() to carry whatever state it needs to provide meaningful errors.
 
+## Data model
+
+This section descibes `sval`'s data model in detail using examples in Rust syntax. Some types in `sval`'s model aren't representable in Rust yet, so they use pseudo syntax.
+
+### Base model
+
+#### Nulls
+
+```rust
+null
+```
+
+```rust
+stream.null()?;
+```
+
+#### Booleans
+
+```rust
+bool
+```
+
+```rust
+stream.bool(true)?;
+```
+
+#### Integers
+
+```rust
+i64
+```
+
+```rust
+stream.i64(-1)?;
+```
+
+#### Binary floating point numbers
+
+```rust
+f64
+```
+
+```rust
+stream.f64(3.14)?;
+```
+
+#### Text
+
+```rust
+[str]
+```
+
+```rust
+stream.text_begin(None)?;
+
+stream.text_fragment("Hello, ")?;
+stream.text_fragment("World")?;
+
+stream.text_end()?;
+```
+
+Note that `sval` text is an array of strings.
+
+#### Sequences
+
+```rust
+[dyn T]
+```
+
+```rust
+stream.seq_begin(None)?;
+
+stream.seq_value_begin()?;
+stream.i64(-1)?;
+stream.seq_value_end()?;
+
+stream.seq_value_begin()?;
+stream.bool(true)?;
+stream.seq_value_end()?;
+
+stream.seq_end()?;
+```
+
+Note that Rust arrays are homogeneous, but `sval` sequences are heterogeneous.
+
+### Extended model
+
+#### Maps
+
+```rust
+[(dyn K, dyn V)]
+```
+
+```rust
+stream.map_begin(None)?;
+
+stream.map_key_begin()?;
+stream.i64(0)?;
+stream.map_key_end()?;
+
+stream.map_value_begin()?;
+stream.bool(false)?;
+stream.map_value_end()?;
+
+stream.map_key_begin()?;
+stream.i64(1)?;
+stream.map_key_end()?;
+
+stream.map_value_begin()?;
+stream.bool(true)?;
+stream.map_value_end()?;
+
+stream.map_end()?;
+```
+
+Note that most Rust maps are homogeneous, but `sval` maps are heterogeneous.
+
+Maps reduce to a sequence of 2D sequences in the base data model.
+
+### Type system
+
+`sval` has an implicit structural type system based on the sequence of calls a [`Stream`]() receives, and any [`Label`](), [`Index`](), or [`Tag`]() on them, with the following exceptions:
+
+1. Maps and sequences are untyped. Their type doesn't depend on the types of their elements, or on their length.
+2. Enums holding differently typed variants have the same type.
+
 ## Ecosystem
 
 `sval` is a general framework with specific serialization formats and utilities provided as external libraries:
