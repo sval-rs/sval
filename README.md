@@ -31,7 +31,7 @@ version = "2.14.1"
 features = ["derive"]
 ```
 
-### Serializing a value as JSON
+### Serializing values
 
 As a quick example, here's how you can use `sval` to serialize a runtime value as JSON.
 
@@ -317,16 +317,161 @@ let my_record = MyRecord {
 assert_eq!(Some(1), get_i32("field_0", &my_record));
 ```
 
-`sval` includes utility [`Stream`]()s for some common use-cases:
+### Chunking strings
 
-- [`sval_buffer`](): Losslessly buffers any [`Value`]() into an owned, thread-safe variant.
-- [`sval_flatten`](): Flatten the fields of a value onto its parent, like `#[serde(flatten)]`.
-- [`sval_nested`](): Buffer `sval`'s flat [`Stream`]() API into a recursive one like `serde`'s. For types that `#[derive(Value)]`, the translation is non-allocating.
+Strings in `sval` don't need to be streamed in a single call. As an example, say we have a template type like this:
+
+```rust
+enum Part<'a> {
+    Literal(&'a str),
+    Property(&'a str),
+}
+
+pub struct Template<'a>(&'a [Part<'a>]);
+```
+
+If we wanted to serialize `Template` to a string, we could implement [`Value`](), handling each literal and property as a separate fragment:
+
+```rust
+impl<'a> sval::Value for Template<'a> {
+    fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
+        stream.text_begin(None)?;
+
+        for part in self.0 {
+            match part {
+                Part::Literal(lit) => stream.text_fragment(lit)?,
+                Part::Property(prop) => {
+                    stream.text_fragment("{")?;
+                    stream.text_fragment(prop)?;
+                    stream.text_fragment("}")?;
+                }
+            }
+        }
+
+        stream.text_end()
+    }
+}
+```
+
+When streamed as JSON, `Template` would produce something like this:
+
+```rust
+let template = Template(&[
+    Part::Literal("some literal text and "),
+    Part::Property("x"),
+    Part::Literal(" and more literal text"),
+]);
+
+// Produces:
+//
+// "some literal text and {x} and more literal text"
+let json = sval_json::stream_to_string(template)?;
+```
 
 ### Borrowed data
 
-- `'sval` lifetime and optional borrowing
+The [`Stream`]() trait carries a `'sval` lifetime it can use to accept borrowed text and binary values. Borrowing in `sval` is an optimization. Even if a [`Stream`]() uses a concrete `'sval` lifetime, it still needs to handle computed values. Here's an example of a [`Stream`]() that attempts to extract a borrowed string from a value by making use of the `'sval` lifetime:
 
-### Chunking strings
+```rust
+pub fn to_text(value: &(impl Value + ?Sized)) -> Option<&str> {
+    struct Extract<'sval> {
+        extracted: Option<&'sval str>,
+        seen_fragment: bool,
+    }
 
-- `text_fragment` for split strings
+    impl<'sval> Stream<'sval> for Extract<'sval> {
+        fn text_begin(&mut self, _: Option<usize>) -> Result {
+            Ok(())
+        }
+
+        // `text_fragment` accepts a string borrowed for `'sval`.
+        //
+        // Implementations of `Value` will send borrowed data if they can
+        fn text_fragment(&mut self, fragment: &'sval str) -> Result {
+            // Allow either independent strings, or fragments of a single borrowed string
+            if !self.seen_fragment {
+                self.extracted = Some(fragment);
+                self.seen_fragment = true;
+            } else {
+                self.extracted = None;
+            }
+
+            Ok(())
+        }
+
+        // `text_fragment_computed` accepts a string for an arbitrarily short lifetime.
+        //
+        // The fragment can't be borrowed outside of the function call, so would need to
+        // be buffered.
+        fn text_fragment_computed(&mut self, _: &str) -> Result {
+            self.extracted = None;
+            self.seen_fragment = true;
+
+            sval::error()
+        }
+
+        fn text_end(&mut self) -> Result {
+            Ok(())
+        }
+
+        fn null(&mut self) -> Result {
+            sval::error()
+        }
+
+        fn bool(&mut self, _: bool) -> Result {
+            sval::error()
+        }
+
+        fn i64(&mut self, _: i64) -> Result {
+            sval::error()
+        }
+
+        fn f64(&mut self, _: f64) -> Result {
+            sval::error()
+        }
+
+        fn seq_begin(&mut self, _: Option<usize>) -> Result {
+            sval::error()
+        }
+
+        fn seq_value_begin(&mut self) -> Result {
+            sval::error()
+        }
+
+        fn seq_value_end(&mut self) -> Result {
+            sval::error()
+        }
+
+        fn seq_end(&mut self) -> Result {
+            sval::error()
+        }
+    }
+
+    let mut extract = Extract {
+        extracted: None,
+        seen_fragment: false,
+    };
+
+    value.stream(&mut extract).ok()?;
+    extract.extracted
+}
+```
+
+Implementations of [`Value`]() should provide a [`Stream`]() with borrowed data where possible, and only compute it if it needs to.
+
+### Error handling
+
+`sval`'s [`Error`]() type doesn't carry any state of its own. It only signals early termination of the [`Stream`]() which may be because its job is done, or because it failed. It's up to the [`Stream`]() to carry whatever state it needs to provide meaningful errors.
+
+## Ecosystem
+
+`sval` is a general framework with specific serialization formats and utilities provided as external libraries:
+
+- [`sval_fmt`](): Colorized Rust-style debug formatting.
+- [`sval_json`](): Serialize values as JSON in a `serde`-compatible format.
+- [`sval_protobuf`](): Serialize values as protobuf messages.
+- [`sval_serde`](): Convert between `serde` and `sval`.
+- [`sval_buffer`](): Losslessly buffers any [`Value`]() into an owned, thread-safe variant.
+- [`sval_flatten`](): Flatten the fields of a value onto its parent, like `#[serde(flatten)]`.
+- [`sval_nested`](): Buffer `sval`'s flat [`Stream`]() API into a recursive one like `serde`'s. For types that `#[derive(Value)]`, the translation is non-allocating.
+- [`sval_ref`](): A variant of [`Value`]() for types that are internally borrowed (like `MyType<'a>`) instead of externally (like `&'a MyType`).
