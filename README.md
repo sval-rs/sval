@@ -18,7 +18,7 @@ The core of `sval` is the [`Stream`]() trait. It defines the data model and feat
 
 `sval`'s data model takes inspiration from [CBOR](), specifically:
 
-1. **Small core.** The base data model of `sval` is small. The required members of the [`Stream`]() trait only includes nulls, booleans, text, 64-bit signed integers, 64-bit floating point numbers, and sequences. All other types, like arbitrary-precision floating point numbers, records, and tuples, are representable in the base data model.
+1. **Small core.** The base data model of `sval` is small. The required members of the [`Stream`]() trait only includes nulls, booleans, text, 64-bit signed integers, 64-bit floating point numbers, and sequences. All other types, like arbitrary-precision floating point numbers, records, and tuples, are representable in the base model.
 2. **Extensible tags.** Users can define _tags_ that extend `sval`'s data model with new semantics. Examples of tags include Rust's `Some` and `None` variants, constant-sized arrays, text that doesn't require JSON escaping, and anything else you might need.
 
 ## Getting started
@@ -476,7 +476,7 @@ bool
 stream.bool(true)?;
 ```
 
-#### Integers
+#### 64bit signed integers
 
 ```rust
 i64
@@ -527,6 +527,155 @@ Note that Rust arrays are homogeneous, but `sval` sequences are heterogeneous.
 
 ### Extended model
 
+#### 8bit unsigned integers
+
+```rust
+u8
+```
+
+```rust
+stream.u8(1)?;
+```
+
+8bit unsigned integers reduce to 64bit signed integers in the base model.
+
+#### 16bit unsigned integers
+
+```rust
+u16
+```
+
+```rust
+stream.u16(1)?;
+```
+
+16bit unsigned integers reduce to 64bit signed integers in the base model.
+
+#### 32bit unsigned integers
+
+```rust
+u32
+```
+
+```rust
+stream.u32(1)?;
+```
+
+32bit unsigned integers reduce to 64bit signed integers in the base model.
+
+#### 64bit unsigned integers
+
+```rust
+u64
+```
+
+```rust
+stream.u64(1)?;
+```
+
+64bit unsigned integers reduce to 64bit signed integers in the base data model if they fit, or base10 ASCII text if they don't.
+
+#### 128bit unsigned integers
+
+```rust
+u128
+```
+
+```rust
+stream.u128(1)?;
+```
+
+128bit unsigned integers reduce to 64bit signed integers in the base data model if they fit, or base10 ASCII text if they don't.
+
+#### 8bit signed integers
+
+```rust
+i8
+```
+
+```rust
+stream.i8(1)?;
+```
+
+8bit signed integers reduce to 64bit signed integers in the base model.
+
+#### 16bit signed integers
+
+```rust
+i16
+```
+
+```rust
+stream.i16(1)?;
+```
+
+16bit signed integers reduce to 64bit signed integers in the base model.
+
+#### 32bit signed integers
+
+```rust
+i32
+```
+
+```rust
+stream.i32(1)?;
+```
+
+32bit signed integers reduce to 64bit signed integers in the base model.
+
+#### 128bit signed integers
+
+```rust
+i128
+```
+
+```rust
+stream.i128(1)?;
+```
+
+128bit signed integers reduce to 64bit signed integers in the base data model if they fit, or base10 ASCII text if they don't.
+
+#### 32bit binary floating point numbers
+
+```rust
+f32
+```
+
+```rust
+stream.f32(1)?;
+```
+
+32bit binary floating point numbers reduce to base10 ASCII text in the base model.
+
+#### 64bit binary floating point numbers
+
+```rust
+f64
+```
+
+```rust
+stream.f64(1)?;
+```
+
+64bit binary floating point numbers reduce to base10 ASCII text in the base model.
+
+#### Binary
+
+```rust
+[[u8]]
+```
+
+```rust
+stream.binary_begin(None)?;
+
+stream.binary_fragment(b"Hello, ")?;
+stream.binary_fragment(b"World")?;
+
+stream.binary_end()?;
+```
+
+Binary values reduce to sequences of numbers in the base model.
+
 #### Maps
 
 ```rust
@@ -557,14 +706,291 @@ stream.map_end()?;
 
 Note that most Rust maps are homogeneous, but `sval` maps are heterogeneous.
 
-Maps reduce to a sequence of 2D sequences in the base data model.
+Maps reduce to a sequence of 2D sequences in the base model.
+
+#### Tags
+
+```rust
+struct Tag
+```
+
+```rust
+stream.tag(None, Some(&sval::Label::new("Tag")), None)?;
+```
+
+Tags reduce to null in the base model.
+
+#### Tagged values
+
+```rust
+struct Tagged(i64);
+```
+
+```rust
+stream.tagged_begin(None, Some(&sval::Label::new("Tagged")), None)?;
+stream.i64(1)?;
+stream.tagged_end(None, Some(&sval::Label::new("Tagged")), None)?;
+```
+
+Tagged values reduce to their wrapped value in the base model.
+
+#### Tuples
+
+```rust
+struct Tuple(i64, bool)
+```
+
+```rust
+stream.tuple_begin(None, Some(&sval::Label::new("Tuple")), None, None)?;
+
+stream.tuple_value_begin(None, &sval::Index::new(0))?;
+stream.i64(1)?;
+stream.tuple_value_end(None, &sval::Index::new(0))?;
+
+stream.tuple_value_begin(None, &sval::Index::new(1))?;
+stream.bool(true)?;
+stream.tuple_value_end(None, &sval::Index::new(1))?;
+
+stream.tuple_end(None, Some(&sval::Label::new("Tuple")), None)?;
+```
+
+`sval` tuples may also be unnamed:
+
+```rust
+(i64, bool)
+```
+
+```rust
+stream.tuple_begin(None, None, None, None)?;
+
+stream.tuple_value_begin(None, &sval::Index::new(0))?;
+stream.i64(1)?;
+stream.tuple_value_end(None, &sval::Index::new(0))?;
+
+stream.tuple_value_begin(None, &sval::Index::new(1))?;
+stream.bool(true)?;
+stream.tuple_value_end(None, &sval::Index::new(1))?;
+
+stream.tuple_end(None, None, None)?;
+```
+
+Tuples reduce to sequences in the base model.
+
+#### Records
+
+```rust
+struct Record { a: i64, b: bool }
+```
+
+```rust
+stream.record_begin(None, Some(&sval::Label::new("Record")), None, None)?;
+
+stream.record_value_begin(None, &sval::Label::new("a"))?;
+stream.i64(1)?;
+stream.record_value_end(None, &sval::Label::new("a"))?;
+
+stream.record_value_begin(None, &sval::Label::new("b"))?;
+stream.bool(true)?;
+stream.record_value_end(None, &sval::Label::new("b"))?;
+
+stream.record_end(None, Some(&sval::Label::new("Record")), None)?;
+```
+
+`sval` records may also be unnamed:
+
+```rust
+{ a: i64, b: bool }
+```
+
+```rust
+stream.record_begin(None, None, None, None)?;
+
+stream.record_value_begin(None, &sval::Label::new("a"))?;
+stream.i64(1)?;
+stream.record_value_end(None, &sval::Label::new("a"))?;
+
+stream.record_value_begin(None, &sval::Label::new("b"))?;
+stream.bool(true)?;
+stream.record_value_end(None, &sval::Label::new("b"))?;
+
+stream.record_end(None, None, None)?;
+```
+
+Records reduce to a sequence of 2D sequences in the base model.
+
+#### Enums
+
+`sval` enums wrap a variant, which may be any of the following types:
+
+- Tags
+- Tagged values
+- Records
+- Tuples
+- Enums
+
+```rust
+Enum::Tag
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.tag(None, Some(&sval::Label::new("Tag")), Some(&sval::Index::new(0)))?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+```rust
+Enum::Tagged(i64)
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.tagged_begin(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(1)))?;
+stream.i64(1)?;
+stream.tagged_end(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(1)))?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+```rust
+Enum::Tuple(i64, bool)
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.tuple_begin(None, Some(&sval::Label::new("Tuple")), Some(&sval::Index::new(2)), None)?;
+
+stream.tuple_value_begin(None, &sval::Index::new(0))?;
+stream.i64(1)?;
+stream.tuple_value_end(None, &sval::Index::new(0))?;
+
+stream.tuple_value_begin(None, &sval::Index::new(1))?;
+stream.bool(true)?;
+stream.tuple_value_end(None, &sval::Index::new(1))?;
+
+stream.tuple_end(None, Some(&sval::Label::new("Tuple")), Some(&sval::Index::new(2)))?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+```rust
+Enum::Record { a: i64, b: bool }
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.record_begin(None, Some(&sval::Label::new("Record")), Some(&sval::Index::new(3)), None)?;
+
+stream.record_value_begin(None, &sval::Label::new("a"))?;
+stream.i64(1)?;
+stream.record_value_end(None, &sval::Label::new("a"))?;
+
+stream.record_value_begin(None, &sval::Label::new("b"))?;
+stream.bool(true)?;
+stream.record_value_end(None, &sval::Label::new("b"))?;
+
+stream.record_end(None, Some(&sval::Label::new("Record")), Some(&sval::Index::new(3)))?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+`sval` enum variants may also be unnamed:
+
+```rust
+Enum::<i32>
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.tagged_begin(None, None, Some(&sval::Index::new(1)))?;
+stream.i64(1)?;
+stream.tagged_end(None, None, Some(&sval::Index::new(1)))?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+```rust
+Enum::<(i64, bool)>
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.tuple_begin(None, None, None, None)?;
+
+stream.tuple_value_begin(None, &sval::Index::new(0))?;
+stream.i64(1)?;
+stream.tuple_value_end(None, &sval::Index::new(0))?;
+
+stream.tuple_value_begin(None, &sval::Index::new(1))?;
+stream.bool(true)?;
+stream.tuple_value_end(None, &sval::Index::new(1))?;
+
+stream.tuple_end(None, None, None)?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+```rust
+Enum::<{ a: i64, b: bool }>
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.record_begin(None, None, None, None)?;
+
+stream.record_value_begin(None, &sval::Label::new("a"))?;
+stream.i64(1)?;
+stream.record_value_end(None, &sval::Label::new("a"))?;
+
+stream.record_value_begin(None, &sval::Label::new("b"))?;
+stream.bool(true)?;
+stream.record_value_end(None, &sval::Label::new("b"))?;
+
+stream.record_end(None, None, None)?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+`sval` enum variants may be other enums:
+
+```rust
+Enum::Inner::Tagged(i64)
+```
+
+```rust
+stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
+
+stream.enum_begin(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(0)))?;
+
+stream.tagged_begin(None, None, Some(&sval::Index::new(1)))?;
+stream.i64(1)?;
+stream.tagged_end(None, None, Some(&sval::Index::new(1)))?;
+
+stream.enum_end(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(0)))?;
+
+stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
+```
+
+#### User-defined tags
+
+`sval` tags, tagged values, records, tuples, enums, and their values can carry a user-defined [`Tag`]() that alters their semantics. A [`Stream`]() may understand a [`Tag`]() and treat its annotated value differently, or it may ignore them. An example of a [`Tag`]() is [`NUMBER`](), which is for text that encodes an arbitrary-precision decimal floating point number with a standardized format. A [`Stream`]() may parse these numbers and encode them differently to regular text.
+
+The [`Label`]() and [`Index`]() types can also carry a [`Tag`]().
 
 ### Type system
 
 `sval` has an implicit structural type system based on the sequence of calls a [`Stream`]() receives, and any [`Label`](), [`Index`](), or [`Tag`]() on them, with the following exceptions:
 
-1. Maps and sequences are untyped. Their type doesn't depend on the types of their elements, or on their length.
-2. Enums holding differently typed variants have the same type.
+- Sequences are untyped. Their type doesn't depend on the types of their elements, or on their length.
+- Maps are untyped. Their type doesn't depend on the types of their keys or values, or on their length.
+- Enums holding differently typed variants have the same type.
 
 ## Ecosystem
 
