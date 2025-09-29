@@ -167,7 +167,9 @@ pub trait Stream<'sval> {
     /**
     Stream a 64bit binary floating point number.
     */
-    fn f64(&mut self, value: f64) -> Result;
+    fn f64(&mut self, value: f64) -> Result {
+        default_stream::f64(self, value)
+    }
 
     /**
     Start a homogenous mapping of arbitrary keys to values.
@@ -1275,6 +1277,13 @@ pub mod default_stream {
     */
     pub fn f32<'sval>(stream: &mut (impl Stream<'sval> + ?Sized), value: f32) -> Result {
         stream.f64(value as f64)
+    }
+
+    /**
+    Stream a 64bit binary floating point number.
+    */
+    pub fn f64<'sval>(stream: &mut (impl Stream<'sval> + ?Sized), value: f64) -> Result {
+        data::stream_f64(value, stream)
     }
 
     /**

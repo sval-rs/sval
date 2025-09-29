@@ -159,11 +159,6 @@ impl<'sval> sval::Stream<'sval> for MyStream {
         Ok(())
     }
 
-    fn f64(&mut self, v: f64) -> sval::Result {
-        print!("{}", v);
-        Ok(())
-    }
-
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
         print!("\"");
         Ok(())
@@ -289,10 +284,6 @@ pub fn get_i32<'sval>(field: &str, value: impl sval::Value) -> Option<i32> {
         }
     
         fn text_end(&mut self) -> sval::Result {
-            Ok(())
-        }
-    
-        fn f64(&mut self, _: f64) -> sval::Result {
             Ok(())
         }
     }
@@ -426,10 +417,6 @@ pub fn to_text(value: &(impl Value + ?Sized)) -> Option<&str> {
             sval::error()
         }
 
-        fn f64(&mut self, _: f64) -> Result {
-            sval::error()
-        }
-
         fn seq_begin(&mut self, _: Option<usize>) -> Result {
             sval::error()
         }
@@ -497,16 +484,6 @@ i64
 
 ```rust
 stream.i64(-1)?;
-```
-
-#### Binary floating point numbers
-
-```rust
-f64
-```
-
-```rust
-stream.f64(3.14)?;
 ```
 
 #### Text

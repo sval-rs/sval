@@ -1,13 +1,9 @@
 use crate::{std::fmt, tags, Result, Stream, Value};
 
 macro_rules! stream_default {
-    ($($fi:ident => $i:ty, $fu:ident => $u:ty,)*) => {
+    ($($fi:ident => $i:ty,)*) => {
         $(
             pub(crate) fn $fi<'sval>(v: $i, stream: &mut (impl Stream<'sval> + ?Sized)) -> crate::Result {
-                stream_number(stream, v)
-            }
-
-            pub(crate) fn $fu<'sval>(v: $u, stream: &mut (impl Stream<'sval> + ?Sized)) -> crate::Result {
                 stream_number(stream, v)
             }
         )*
@@ -35,6 +31,7 @@ macro_rules! impl_value {
 stream_default!(
     stream_i128 => i128,
     stream_u128 => u128,
+    stream_f64 => f64,
 );
 
 impl_value!(
