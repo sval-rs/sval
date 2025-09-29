@@ -377,9 +377,9 @@ pub fn to_text(value: &(impl Value + ?Sized)) -> Option<&str> {
 
         // `text_fragment` accepts a string borrowed for `'sval`.
         //
-        // Implementations of `Value` will send borrowed data if they can
+        // Implementations of `Value` will send borrowed data if they can.
         fn text_fragment(&mut self, fragment: &'sval str) -> Result {
-            // Allow either independent strings, or fragments of a single borrowed string
+            // Allow either independent strings, or fragments of a single borrowed string.
             if !self.seen_fragment {
                 self.extracted = Some(fragment);
                 self.seen_fragment = true;
@@ -907,9 +907,9 @@ Enum::<i32>
 ```rust
 stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
 
-stream.tagged_begin(None, None, Some(&sval::Index::new(1)))?;
+stream.tagged_begin(None, None, None)?;
 stream.i64(1)?;
-stream.tagged_end(None, None, Some(&sval::Index::new(1)))?;
+stream.tagged_end(None, None, None)?;
 
 stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
 ```
@@ -967,13 +967,13 @@ Enum::Inner::Tagged(i64)
 ```rust
 stream.enum_begin(None, Some(&sval::Label::new("Enum")), None)?;
 
-stream.enum_begin(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(0)))?;
+stream.enum_begin(None, Some(&sval::Label::new("Inner")), Some(&sval::Index::new(0)))?;
 
-stream.tagged_begin(None, None, Some(&sval::Index::new(1)))?;
+stream.tagged_begin(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(1)))?;
 stream.i64(1)?;
-stream.tagged_end(None, None, Some(&sval::Index::new(1)))?;
+stream.tagged_end(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(1)))?;
 
-stream.enum_end(None, Some(&sval::Label::new("Tagged")), Some(&sval::Index::new(0)))?;
+stream.enum_end(None, Some(&sval::Label::new("Inner")), Some(&sval::Index::new(0)))?;
 
 stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
 ```
