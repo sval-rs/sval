@@ -308,7 +308,7 @@ let my_record = MyRecord {
 assert_eq!(Some(1), get_i32("field_0", &my_record));
 ```
 
-### Chunking strings
+### Streaming text
 
 Strings in `sval` don't need to be streamed in a single call. As an example, say we have a template type like this:
 
@@ -982,15 +982,126 @@ stream.enum_end(None, Some(&sval::Label::new("Enum")), None)?;
 
 `sval` tags, tagged values, records, tuples, enums, and their values can carry a user-defined [`Tag`]() that alters their semantics. A [`Stream`]() may understand a [`Tag`]() and treat its annotated value differently, or it may ignore them. An example of a [`Tag`]() is [`NUMBER`](), which is for text that encodes an arbitrary-precision decimal floating point number with a standardized format. A [`Stream`]() may parse these numbers and encode them differently to regular text.
 
-The [`Label`]() and [`Index`]() types can also carry a [`Tag`]().
+Here's an example of a user-defined [`Tag`]() for treating integers as Unix timestamps, and a [`Stream`]() that understands them:
+
+```rust
+// Define a tag as a constant.
+//
+// Tags are expected to have unique names.
+//
+// The rules of our tag are that 64bit unsigned integers that carry it are seconds since
+// the Unix epoch.
+pub const UNIX_TIMESTAMP: sval::Tag = sval::Tag::new("unixts");
+
+// Derive `Value` on a type, annotating it with our tag.
+//
+// We could also implement `Value` manually using `stream.tagged_begin(Some(&UNIX_TIMESTAMP), ..)`.
+#[derive(Value)]
+#[sval(tag = "UNIX_TIMESTAMP")]
+pub struct Timestamp(u64);
+
+// Here's an example of a `Stream` that understands our tag.
+pub struct MyStream {
+    is_unix_ts: bool,
+}
+
+impl<'sval> sval::Stream<'sval> for MyStream {
+    fn tagged_begin(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+    ) -> sval::Result {
+        // When beginning a tagged value, check to see if it's a tag we understand.
+        if let Some(&UNIX_TIMESTAMP) = tag {
+            self.is_unix_ts = true;
+        }
+
+        Ok(())
+    }
+
+    fn tagged_end(
+        &mut self,
+        tag: Option<&sval::Tag>,
+        _: Option<&sval::Label>,
+        _: Option<&sval::Index>,
+    ) -> sval::Result {
+        if let Some(&UNIX_TIMESTAMP) = tag {
+            self.is_unix_ts = false;
+        }
+
+        Ok(())
+    }
+
+    fn u64(&mut self, v: u64) -> sval::Result {
+        // If the value is tagged as a Unix timestamp then print it using a human-readable RFC3339 format.
+        if self.is_unix_ts {
+            print!(
+                "{}",
+                humantime::format_rfc3339(
+                    std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(v)
+                )
+            );
+        }
+
+        Ok(())
+    }
+
+    fn null(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn bool(&mut self, _: bool) -> sval::Result {
+        Ok(())
+    }
+
+    fn i64(&mut self, _: i64) -> sval::Result {
+
+        Ok(())
+    }
+
+    fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_fragment_computed(&mut self, fragment: &str) -> sval::Result {
+        Ok(())
+    }
+
+    fn text_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_begin(&mut self, _: Option<usize>) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_value_begin(&mut self) -> sval::Result {
+    }
+
+    fn seq_value_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+
+    fn seq_end(&mut self) -> sval::Result {
+        Ok(())
+    }
+}
+```
+
+The [`Label`]() and [`Index`]() types can also carry a [`Tag`](). An example of a [`Tag`]() you might use on a [`Label`]() is [`VALUE_IDENT`](), for labels that hold a valid Rust identifier.
 
 ### Type system
 
-`sval` has an implicit structural type system based on the sequence of calls a [`Stream`]() receives, and any [`Label`](), [`Index`](), or [`Tag`]() on them, with the following exceptions:
+`sval` has an implicit structural type system based on the sequence of calls a [`Stream`]() receives, and the values of any [`Label`](), [`Index`](), or [`Tag`]() on them, with the following exceptions:
 
+- Text type does not depend on the composition of fragments, or on their length.
+- Binary type does not depend on the composition of fragments, or on their length.
 - Sequences are untyped. Their type doesn't depend on the types of their elements, or on their length.
 - Maps are untyped. Their type doesn't depend on the types of their keys or values, or on their length.
 - Enums holding differently typed variants have the same type.
+
+These rules may be better formalized in the future.
 
 ## Ecosystem
 

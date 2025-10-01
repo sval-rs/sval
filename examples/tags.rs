@@ -87,11 +87,6 @@ impl<'sval> sval::Stream<'sval> for MyStream {
         Ok(())
     }
 
-    fn f64(&mut self, v: f64) -> sval::Result {
-        print!("{}", v);
-        Ok(())
-    }
-
     fn text_begin(&mut self, _: Option<usize>) -> sval::Result {
         print!("\"");
         Ok(())
