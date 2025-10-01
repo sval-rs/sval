@@ -1,13 +1,13 @@
-use serde::ser::{Error as _, Serialize as _};
+use serde_core::ser::{Error as _, Serialize as _};
 
 use sval_nested::{
     Stream, StreamEnum, StreamMap, StreamRecord, StreamSeq, StreamTuple, Unsupported,
 };
 
 /**
-Serialize an [`sval::Value`] into a [`serde::Serializer`].
+Serialize an [`sval::Value`] into a [`serde_core::Serializer`].
 */
-pub fn serialize<S: serde::Serializer>(
+pub fn serialize<S: serde_core::Serializer>(
     serializer: S,
     value: impl sval::Value,
 ) -> Result<S::Ok, S::Error> {
@@ -15,14 +15,14 @@ pub fn serialize<S: serde::Serializer>(
 }
 
 /**
-Adapt an [`sval::Value`] into a [`serde::Serialize`].
+Adapt an [`sval::Value`] into a [`serde_core::Serialize`].
 */
 #[repr(transparent)]
 pub struct ToSerialize<V: ?Sized>(V);
 
 impl<V: sval::Value> ToSerialize<V> {
     /**
-    Adapt an [`sval::Value`] into a [`serde::Serialize`].
+    Adapt an [`sval::Value`] into a [`serde_core::Serialize`].
     */
     pub const fn new(value: V) -> ToSerialize<V> {
         ToSerialize(value)
@@ -31,7 +31,7 @@ impl<V: sval::Value> ToSerialize<V> {
 
 impl<V: sval::Value + ?Sized> ToSerialize<V> {
     /**
-    Adapt a reference to an [`sval::Value`] into a [`serde::Serialize`].
+    Adapt a reference to an [`sval::Value`] into a [`serde_core::Serialize`].
     */
     pub const fn new_borrowed<'a>(value: &'a V) -> &'a ToSerialize<V> {
         // SAFETY: `&'a V` and `&'a ToSerialize<V>` have the same ABI
@@ -39,8 +39,8 @@ impl<V: sval::Value + ?Sized> ToSerialize<V> {
     }
 }
 
-impl<V: sval::Value> serde::Serialize for ToSerialize<V> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+impl<V: sval::Value> serde_core::Serialize for ToSerialize<V> {
+    fn serialize<S: serde_core::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         Serializer::new(serializer)
             .value_ref(&self.0)
             .unwrap_or_else(|e| Err(S::Error::custom(e)))
@@ -91,7 +91,7 @@ impl<S> Serializer<S> {
     }
 }
 
-impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
+impl<'sval, S: serde_core::Serializer> Stream<'sval> for Serializer<S> {
     type Ok = Result<S::Ok, S::Error>;
 
     type Seq = SerializeSeq<S::SerializeSeq, S::Error>;
@@ -307,7 +307,7 @@ impl<'sval, S: serde::Serializer> Stream<'sval> for Serializer<S> {
     }
 }
 
-impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S::Error> {
+impl<'sval, S: serde_core::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S::Error> {
     type Ok = Result<S::Ok, S::Error>;
 
     fn value_computed<V: sval::Value>(&mut self, value: V) -> sval_nested::Result {
@@ -333,7 +333,7 @@ impl<'sval, S: serde::ser::SerializeSeq> StreamSeq<'sval> for SerializeSeq<S, S:
     }
 }
 
-impl<'sval, S: serde::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S::Error> {
+impl<'sval, S: serde_core::ser::SerializeMap> StreamMap<'sval> for SerializeMap<S, S::Error> {
     type Ok = Result<S::Ok, S::Error>;
 
     fn key_computed<V: sval::Value>(&mut self, key: V) -> sval_nested::Result {
@@ -378,8 +378,8 @@ impl<
         'sval,
         TOk,
         TError,
-        TNamed: serde::ser::SerializeStruct<Ok = TOk, Error = TError>,
-        TUnnamed: serde::ser::SerializeTuple<Ok = TOk, Error = TError>,
+        TNamed: serde_core::ser::SerializeStruct<Ok = TOk, Error = TError>,
+        TUnnamed: serde_core::ser::SerializeTuple<Ok = TOk, Error = TError>,
     > StreamRecord<'sval> for SerializeRecord<TNamed, TUnnamed, TError>
 {
     type Ok = Result<TOk, TError>;
@@ -432,8 +432,8 @@ impl<
         'sval,
         TOk,
         TError,
-        TNamed: serde::ser::SerializeTupleStruct<Ok = TOk, Error = TError>,
-        TUnnamed: serde::ser::SerializeTuple<Ok = TOk, Error = TError>,
+        TNamed: serde_core::ser::SerializeTupleStruct<Ok = TOk, Error = TError>,
+        TUnnamed: serde_core::ser::SerializeTuple<Ok = TOk, Error = TError>,
     > StreamTuple<'sval> for SerializeTuple<TNamed, TUnnamed, TError>
 {
     type Ok = Result<TOk, TError>;
@@ -478,7 +478,7 @@ impl<
     }
 }
 
-impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
+impl<'sval, S: serde_core::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
     type Ok = Result<S::Ok, S::Error>;
 
     type Tuple = SerializeTupleVariant<S::SerializeTupleVariant, S::Error>;
@@ -612,7 +612,7 @@ impl<'sval, S: serde::Serializer> StreamEnum<'sval> for SerializeEnum<S> {
     }
 }
 
-impl<'sval, S: serde::ser::SerializeStructVariant> StreamRecord<'sval>
+impl<'sval, S: serde_core::ser::SerializeStructVariant> StreamRecord<'sval>
     for SerializeRecordVariant<S, S::Error>
 {
     type Ok = Result<S::Ok, S::Error>;
@@ -649,7 +649,7 @@ impl<'sval, S: serde::ser::SerializeStructVariant> StreamRecord<'sval>
     }
 }
 
-impl<'sval, S: serde::ser::SerializeTupleVariant> StreamTuple<'sval>
+impl<'sval, S: serde_core::ser::SerializeTupleVariant> StreamTuple<'sval>
     for SerializeTupleVariant<S, S::Error>
 {
     type Ok = Result<S::Ok, S::Error>;

@@ -15,8 +15,8 @@ categories = ["encoding", "no-std"]
 features = ["std"]
 
 [features]
-std = ["alloc", "serde/std", "sval/std", "sval_nested/std"]
-alloc = ["serde/alloc", "sval/alloc", "sval_nested/alloc"]
+std = ["alloc", "serde_core/std", "sval/std", "sval_nested/std"]
+alloc = ["serde_core/alloc", "sval/alloc", "sval_nested/alloc"]
 
 [dependencies.sval]
 version = "2.14.1"
@@ -27,6 +27,6 @@ version = "2.14.1"
 path = "../nested"
 default-features = false
 
-[dependencies.serde]
+[dependencies.serde_core]
 version = "1"
 default-features = false
