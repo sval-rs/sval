@@ -1,6 +1,6 @@
 [package]
 name = "sval_serde"
-version = "2.14.1"
+version = "2.15.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -19,11 +19,11 @@ std = ["alloc", "serde_core/std", "sval/std", "sval_nested/std"]
 alloc = ["serde_core/alloc", "sval/alloc", "sval_nested/alloc"]
 
 [dependencies.sval]
-version = "2.14.1"
+version = "2.15.0"
 path = "../"
 
 [dependencies.sval_nested]
-version = "2.14.1"
+version = "2.15.0"
 path = "../nested"
 default-features = false
 
