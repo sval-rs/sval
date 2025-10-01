@@ -2,6 +2,8 @@ use crate::{data, tags, Index, Label, Result, Tag, Value};
 
 /**
 A consumer of structured data.
+
+Each instance of a stream is expected to receive a single complete value.
 */
 pub trait Stream<'sval> {
     /**
@@ -20,21 +22,33 @@ pub trait Stream<'sval> {
 
     /**
     Stream null, the absence of any other meaningful value.
+
+    Null is a complete value.
     */
     fn null(&mut self) -> Result;
 
     /**
     Stream a boolean.
+
+    A boolean is complete values.
     */
     fn bool(&mut self, value: bool) -> Result;
 
     /**
     Start a UTF8 text string.
+
+    After this call, a stream expects a series of zero or more calls to [`Stream::text_fragment`] and [`Stream::text_fragment_computed`].
+    A call to [`Stream::text_end`] completes the value.
+
+    This method accepts a `num_bytes` hint, which hints the length of the text value in bytes.
+    If a value for `num_bytes` is provided, it must be accurate.
     */
     fn text_begin(&mut self, num_bytes: Option<usize>) -> Result;
 
     /**
     Stream a fragment of UTF8 text.
+
+    This method may only be called in the context of a text value, between a call to [`Stream::text_begin`] and [`Stream::text_end`].
     */
     #[inline]
     fn text_fragment(&mut self, fragment: &'sval str) -> Result {
@@ -43,16 +57,26 @@ pub trait Stream<'sval> {
 
     /**
     Stream a fragment of UTF8 text, borrowed for some arbitrarily short lifetime.
+
+    This method may only be called in the context of a text value, between a call to [`Stream::text_begin`] and [`Stream::text_end`].
     */
     fn text_fragment_computed(&mut self, fragment: &str) -> Result;
 
     /**
     Complete a UTF8 text string.
+
+    This method may only be called in the context of a text value, after a call to [`Stream::text_begin`].
     */
     fn text_end(&mut self) -> Result;
 
     /**
     Start a bitstring.
+
+    After this call, a stream expects a series of zero or more calls to [`Stream::binary_fragment`] and [`Stream::binary_fragment_computed`].
+    A call to [`Stream::binary_end`] completes the value.
+
+    This method accepts a `num_bytes` hint, which hints the length of the bitstring value in bytes.
+    If a value for `num_bytes` is provided, it must be accurate.
     */
     fn binary_begin(&mut self, num_bytes: Option<usize>) -> Result {
         default_stream::binary_begin(self, num_bytes)
@@ -60,6 +84,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream a fragment of a bitstring.
+
+    This method may only be called in the context of a bitstring value, between a call to [`Stream::binary_begin`] and [`Stream::binary_end`].
     */
     #[inline]
     fn binary_fragment(&mut self, fragment: &'sval [u8]) -> Result {
@@ -68,6 +94,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream a fragment of a bitstring, borrowed for some arbitrarily short lifetime.
+
+    This method may only be called in the context of a bitstring value, between a call to [`Stream::binary_begin`] and [`Stream::binary_end`].
     */
     fn binary_fragment_computed(&mut self, fragment: &[u8]) -> Result {
         default_stream::binary_fragment_computed(self, fragment)
@@ -75,6 +103,8 @@ pub trait Stream<'sval> {
 
     /**
     Complete a bitstring.
+
+    This method may only be called in the context of a bitstring value, after a call to [`Stream::binary_begin`].
     */
     #[inline]
     fn binary_end(&mut self) -> Result {
@@ -83,6 +113,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream an unsigned 8bit integer.
+
+    An integer is a complete value.
     */
     #[inline]
     fn u8(&mut self, value: u8) -> Result {
@@ -91,6 +123,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream an unsigned 16bit integer.
+
+    An integer is a complete value.
     */
     #[inline]
     fn u16(&mut self, value: u16) -> Result {
@@ -99,6 +133,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream an unsigned 32bit integer.
+
+    An integer is a complete value.
     */
     #[inline]
     fn u32(&mut self, value: u32) -> Result {
@@ -107,6 +143,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream an unsigned 64bit integer.
+
+    An integer is a complete value.
     */
     #[inline]
     fn u64(&mut self, value: u64) -> Result {
@@ -115,6 +153,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream an unsigned 128bit integer.
+
+    An integer is a complete value.
     */
     fn u128(&mut self, value: u128) -> Result {
         default_stream::u128(self, value)
@@ -122,6 +162,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream a signed 8bit integer.
+
+    An integer is a complete value.
     */
     #[inline]
     fn i8(&mut self, value: i8) -> Result {
@@ -130,6 +172,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream a signed 16bit integer.
+
+    An integer is a complete value.
     */
     #[inline]
     fn i16(&mut self, value: i16) -> Result {
@@ -138,6 +182,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream a signed 32bit integer.
+
+    An integer is a complete value.
     */
     #[inline]
     fn i32(&mut self, value: i32) -> Result {
@@ -146,11 +192,15 @@ pub trait Stream<'sval> {
 
     /**
     Stream a signed 64bit integer.
+
+    An integer is a complete value.
     */
     fn i64(&mut self, value: i64) -> Result;
 
     /**
     Stream a signed 128bit integer.
+
+    An integer is a complete value.
     */
     fn i128(&mut self, value: i128) -> Result {
         default_stream::i128(self, value)
@@ -158,6 +208,8 @@ pub trait Stream<'sval> {
 
     /**
     Stream a 32bit binary floating point number.
+
+    An integer is a complete value.
     */
     #[inline]
     fn f32(&mut self, value: f32) -> Result {
@@ -166,11 +218,30 @@ pub trait Stream<'sval> {
 
     /**
     Stream a 64bit binary floating point number.
+
+    An integer is a complete value.
     */
-    fn f64(&mut self, value: f64) -> Result;
+    fn f64(&mut self, value: f64) -> Result {
+        default_stream::f64(self, value)
+    }
 
     /**
-    Start a homogenous mapping of arbitrary keys to values.
+    Start a heterogeneous mapping of arbitrary keys to values.
+
+    After this call, a stream expects a series of zero or more map key-value pairs.
+    Each key-value pair is a sequence of the following calls:
+
+    1. [`Stream::map_key_begin`].
+    2. A complete value.
+    3. [`Stream::map_key_end`].
+    4. [`Stream::map_value_begin`].
+    5. A complete value.
+    6. [`Stream::map_value_end`].
+
+    A call to [`Stream::map_end`] completes the value.
+
+    This method accepts a `num_entries` hint, which hints the number of key-value pairs in the map.
+    If a value for `num_entries` is provided, it must be accurate.
     */
     #[inline]
     fn map_begin(&mut self, num_entries: Option<usize>) -> Result {
@@ -179,6 +250,11 @@ pub trait Stream<'sval> {
 
     /**
     Start a key in a key-value mapping.
+
+    This method may only be called in the context of a map value, after a call to [`Stream::map_begin`].
+    This call must be followed by a complete value, then a call to [`Stream::map_key_end`].
+    Map keys cannot be empty.
+    Each map key must be followed by a map value.
     */
     #[inline]
     fn map_key_begin(&mut self) -> Result {
@@ -187,6 +263,10 @@ pub trait Stream<'sval> {
 
     /**
     Complete a key in a key-value mapping.
+
+    This method may only be called in the context of a key in a map value, after a call to [`Stream::map_key_begin`].
+    Map keys cannot be empty.
+    Each map key must be followed by a map value.
     */
     #[inline]
     fn map_key_end(&mut self) -> Result {
@@ -195,6 +275,10 @@ pub trait Stream<'sval> {
 
     /**
     Start a value in a key-value mapping.
+
+    This method may only be called in the context of a map value, after a call to [`Stream::map_begin`].
+    This call must be followed by a complete value.
+    Map values cannot be empty.
     */
     #[inline]
     fn map_value_begin(&mut self) -> Result {
@@ -203,6 +287,9 @@ pub trait Stream<'sval> {
 
     /**
     Complete a value in a key-value mapping.
+
+    This method may only be called in the context of a value in a map value, after a call to [`Stream::map_value_begin`].
+    Map values cannot be empty.
     */
     #[inline]
     fn map_value_end(&mut self) -> Result {
@@ -210,7 +297,9 @@ pub trait Stream<'sval> {
     }
 
     /**
-    Complete a homogenous mapping of arbitrary keys to values.
+    Complete a heterogeneous mapping of arbitrary keys to values.
+
+    This method may only be called in the context of a map value, after a call to [`Stream::map_begin`].
     */
     #[inline]
     fn map_end(&mut self) -> Result {
@@ -218,27 +307,62 @@ pub trait Stream<'sval> {
     }
 
     /**
-    Start a homogenous sequence of values.
+    Start a heterogeneous sequence of values.
+
+    After this call, a stream expects a series of zero or more sequence elements.
+    Each element is a sequence of the following calls:
+
+    1. [`Stream::seq_value_begin`].
+    2. A complete value.
+    3. [`Stream::seq_value_end`].
+
+    A call to [`Stream::seq_end`] completes the value.
+
+    This method accepts a `num_entries` hint, which hints the number of elements in the sequence.
+    If a value for `num_entries` is provided, it must be accurate.
     */
     fn seq_begin(&mut self, num_entries: Option<usize>) -> Result;
 
     /**
     Start an individual value in a sequence.
+
+    This method may only be called in the context of a sequence value, after a call to [`Stream::seq_begin`].
+    This call must be followed by a complete value, then a call to [`Stream::seq_value_end`].
+    Sequence elements cannot be empty.
     */
     fn seq_value_begin(&mut self) -> Result;
 
     /**
     Complete an individual value in a sequence.
+
+    This method may only be called in the context of an element in a sequence value, after a call to [`Stream::seq_value_begin`].
+    Sequence elements cannot be empty.
     */
     fn seq_value_end(&mut self) -> Result;
 
     /**
-    Complete a homogenous sequence of values.
+    Complete a heterogeneous sequence of values.
+
+    This method may only be called in the context of a sequence value, after a call to [`Stream::seq_begin`].
     */
     fn seq_end(&mut self) -> Result;
 
     /**
     Start a variant in an enumerated type.
+
+    After this call, a stream expects a complete value as the enum variant.
+    An enum variant can be any type that accepts a [`Tag`], [`Label`], and [`Index`] parameter.
+    That includes:
+
+    - Tags ([`Stream::tag`]).
+    - Tagged values ([`Stream::tagged_begin`]).
+    - Records ([`Stream::record_begin`]).
+    - Tuples ([`Stream::tuple_begin`]).
+    - Enums ([`Stream::enum_begin`]).
+
+    Enum variants may be empty.
+
+    A call to [`Stream::enum_end`] completes the value.
     */
     #[inline]
     fn enum_begin(
@@ -252,6 +376,8 @@ pub trait Stream<'sval> {
 
     /**
     Complete a variant in an enumerated type.
+
+    This method may only be called in the context of an enum value, after a call to [`Stream::enum_begin`].
     */
     #[inline]
     fn enum_end(
@@ -266,7 +392,9 @@ pub trait Stream<'sval> {
     /**
     Start a tagged value.
 
-    Tagged values may be used as enum variants.
+    After this call, a stream expects a complete value.
+
+    A call to [`Stream::tagged_end`] completes the value.
     */
     #[inline]
     fn tagged_begin(
@@ -280,6 +408,8 @@ pub trait Stream<'sval> {
 
     /**
     Complete a tagged value.
+
+    This method may only be called in the context of a tagged value, after a call to [`Stream::tagged_begin`].
     */
     #[inline]
     fn tagged_end(
@@ -294,7 +424,7 @@ pub trait Stream<'sval> {
     /**
     Stream a standalone tag.
 
-    Standalone tags may be used as enum variants.
+    Standalone tags are complete values.
     */
     fn tag(&mut self, tag: Option<&Tag>, label: Option<&Label>, index: Option<&Index>) -> Result {
         default_stream::tag(self, tag, label, index)
@@ -310,9 +440,19 @@ pub trait Stream<'sval> {
     }
 
     /**
-    Start a record type.
+    Start a record.
 
-    Records may be used as enum variants.
+    After this call, a stream expects a series of zero or more record fields.
+    Each field is a sequence of the following calls:
+
+    1. [`Stream::record_value_begin`].
+    2. A complete value.
+    3. [`Stream::record_value_end`].
+
+    A call to [`Stream::record_end`] completes the value.
+
+    This method accepts a `num_entries` hint, which hints the number of fields in the record.
+    If a value for `num_entries` is provided, it must be accurate.
     */
     #[inline]
     fn record_begin(
@@ -327,6 +467,10 @@ pub trait Stream<'sval> {
 
     /**
     Start a field in a record.
+
+    This method may only be called in the context of a record value, after a call to [`Stream::record_begin`].
+    This call must be followed by a complete value, then a call to [`Stream::record_value_end`].
+    Record fields cannot be empty.
     */
     #[inline]
     fn record_value_begin(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
@@ -335,6 +479,9 @@ pub trait Stream<'sval> {
 
     /**
     Complete a field in a record.
+
+    This method may only be called in the context of a field in a record value, after a call to [`Stream::record_value_begin`].
+    Record fields cannot be empty.
     */
     #[inline]
     fn record_value_end(&mut self, tag: Option<&Tag>, label: &Label) -> Result {
@@ -342,7 +489,9 @@ pub trait Stream<'sval> {
     }
 
     /**
-    Complete a record type.
+    Complete a record.
+
+    This method may only be called in the context of a record value, after a call to [`Stream::record_begin`].
     */
     #[inline]
     fn record_end(
@@ -355,9 +504,19 @@ pub trait Stream<'sval> {
     }
 
     /**
-    Start a tuple type.
+    Start a tuple.
 
-    Tuples may be used as enum variants.
+    After this call, a stream expects a series of zero or more tuple fields.
+    Each field is a sequence of the following calls:
+
+    1. [`Stream::tuple_value_begin`].
+    2. A complete value.
+    3. [`Stream::tuple_value_end`].
+
+    A call to [`Stream::tuple_end`] completes the value.
+
+    This method accepts a `num_entries` hint, which hints the number of fields in the tuple.
+    If a value for `num_entries` is provided, it must be accurate.
     */
     #[inline]
     fn tuple_begin(
@@ -372,6 +531,10 @@ pub trait Stream<'sval> {
 
     /**
     Start a field in a tuple.
+
+    This method may only be called in the context of a tuple value, after a call to [`Stream::tuple_begin`].
+    This call must be followed by a complete value, then a call to [`Stream::tuple_value_end`].
+    Tuple fields cannot be empty.
     */
     #[inline]
     fn tuple_value_begin(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
@@ -380,6 +543,9 @@ pub trait Stream<'sval> {
 
     /**
     Complete a field in a tuple.
+
+    This method may only be called in the context of a field in a tuple value, after a call to [`Stream::tuple_value_begin`].
+    Tuple fields cannot be empty.
     */
     #[inline]
     fn tuple_value_end(&mut self, tag: Option<&Tag>, index: &Index) -> Result {
@@ -387,7 +553,9 @@ pub trait Stream<'sval> {
     }
 
     /**
-    Complete a tuple type.
+    Complete a tuple.
+
+    This method may only be called in the context of a tuple value, after a call to [`Stream::tuple_begin`].
     */
     #[inline]
     fn tuple_end(
@@ -401,6 +569,18 @@ pub trait Stream<'sval> {
 
     /**
     Begin a type that may be treated as either a record or a tuple.
+
+    After this call, a stream expects a series of zero or more record tuple fields.
+    Each field is a sequence of the following calls:
+
+    1. [`Stream::record_tuple_value_begin`].
+    2. A complete value.
+    3. [`Stream::record_tuple_value_end`].
+
+    A call to [`Stream::record_tuple_end`] completes the value.
+
+    This method accepts a `num_entries` hint, which hints the number of fields in the record tuple.
+    If a value for `num_entries` is provided, it must be accurate.
     */
     #[inline]
     fn record_tuple_begin(
@@ -415,6 +595,10 @@ pub trait Stream<'sval> {
 
     /**
     Begin a field in a type that may be treated as either a record or a tuple.
+
+    This method may only be called in the context of a record tuple value, after a call to [`Stream::record_tuple_begin`].
+    This call must be followed by a complete value, then a call to [`Stream::record_tuple_value_end`].
+    Record tuple fields cannot be empty.
     */
     #[inline]
     fn record_tuple_value_begin(
@@ -428,6 +612,9 @@ pub trait Stream<'sval> {
 
     /**
     Complete a field in a type that may be treated as either a record or a tuple.
+
+    This method may only be called in the context of a field in a record tuple value, after a call to [`Stream::record_tuple_value_begin`].
+    Record tuple fields cannot be empty.
     */
     #[inline]
     fn record_tuple_value_end(
@@ -441,6 +628,8 @@ pub trait Stream<'sval> {
 
     /**
     Complete a type that may be treated as either a record or a tuple.
+
+    This method may only be called in the context of a record tuple value, after a call to [`Stream::record_tuple_begin`].
     */
     #[inline]
     fn record_tuple_end(
@@ -1278,7 +1467,14 @@ pub mod default_stream {
     }
 
     /**
-    Start a homogenous mapping of arbitrary keys to values.
+    Stream a 64bit binary floating point number.
+    */
+    pub fn f64<'sval>(stream: &mut (impl Stream<'sval> + ?Sized), value: f64) -> Result {
+        data::stream_f64(value, stream)
+    }
+
+    /**
+    Start a heterogeneous mapping of arbitrary keys to values.
     */
     pub fn map_begin<'sval>(
         stream: &mut (impl Stream<'sval> + ?Sized),
@@ -1320,7 +1516,7 @@ pub mod default_stream {
     }
 
     /**
-    Complete a homogenous mapping of arbitrary keys to values.
+    Complete a heterogeneous mapping of arbitrary keys to values.
     */
     pub fn map_end<'sval>(stream: &mut (impl Stream<'sval> + ?Sized)) -> Result {
         stream.seq_end()
@@ -1432,7 +1628,7 @@ pub mod default_stream {
     }
 
     /**
-    Start a record type.
+    Start a record.
 
     Records may be used as enum variants.
     */
@@ -1485,7 +1681,7 @@ pub mod default_stream {
     }
 
     /**
-    Complete a record type.
+    Complete a record.
     */
     pub fn record_end<'sval>(
         stream: &mut (impl Stream<'sval> + ?Sized),
@@ -1498,7 +1694,7 @@ pub mod default_stream {
     }
 
     /**
-    Start a tuple type.
+    Start a tuple.
 
     Tuples may be used as enum variants.
     */
@@ -1542,7 +1738,7 @@ pub mod default_stream {
     }
 
     /**
-    Complete a tuple type.
+    Complete a tuple.
     */
     pub fn tuple_end<'sval>(
         stream: &mut (impl Stream<'sval> + ?Sized),

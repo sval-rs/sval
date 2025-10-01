@@ -1,35 +1,35 @@
 use core::fmt;
 
-use serde::ser::Error as _;
+use serde_core::ser::Error as _;
 
 /**
-Stream a [`serde::Serialize`] into an [`sval::Stream`].
+Stream a [`serde_core::Serialize`] into an [`sval::Stream`].
 */
 pub fn stream<'sval>(
     stream: &mut (impl sval::Stream<'sval> + ?Sized),
-    value: impl serde::Serialize,
+    value: impl serde_core::Serialize,
 ) -> sval::Result {
     stream.value_computed(&ToValue::new(value))
 }
 
 /**
-Adapt a [`serde::Serialize`] into a [`sval::Value`].
+Adapt a [`serde_core::Serialize`] into a [`sval::Value`].
 */
 #[repr(transparent)]
 pub struct ToValue<V: ?Sized>(V);
 
-impl<V: serde::Serialize> ToValue<V> {
+impl<V: serde_core::Serialize> ToValue<V> {
     /**
-    Adapt a [`serde::Serialize`] into a [`sval::Value`].
+    Adapt a [`serde_core::Serialize`] into a [`sval::Value`].
     */
     pub const fn new(value: V) -> ToValue<V> {
         ToValue(value)
     }
 }
 
-impl<V: serde::Serialize + ?Sized> ToValue<V> {
+impl<V: serde_core::Serialize + ?Sized> ToValue<V> {
     /**
-    Adapt a reference to a [`serde::Serialize`] into an [`sval::Value`].
+    Adapt a reference to a [`serde_core::Serialize`] into an [`sval::Value`].
     */
     pub const fn new_borrowed<'a>(value: &'a V) -> &'a ToValue<V> {
         // SAFETY: `&'a V` and `&'a ToValue<V>` have the same ABI
@@ -37,7 +37,7 @@ impl<V: serde::Serialize + ?Sized> ToValue<V> {
     }
 }
 
-impl<V: serde::Serialize> sval::Value for ToValue<V> {
+impl<V: serde_core::Serialize> sval::Value for ToValue<V> {
     fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(&'sval self, stream: &mut S) -> sval::Result {
         self.0.serialize(Stream { stream })?;
 
@@ -96,7 +96,7 @@ impl fmt::Display for Error {
     }
 }
 
-impl serde::ser::Error for Error {
+impl serde_core::ser::Error for Error {
     fn custom<T>(_: T) -> Self
     where
         T: fmt::Display,
@@ -105,7 +105,7 @@ impl serde::ser::Error for Error {
     }
 }
 
-impl serde::ser::StdError for Error {}
+impl serde_core::ser::StdError for Error {}
 
 impl<'sval, S: sval::Stream<'sval>> Stream<S> {
     fn stream_value(&mut self, v: impl sval::Value) -> Result<(), Error> {
@@ -115,7 +115,7 @@ impl<'sval, S: sval::Stream<'sval>> Stream<S> {
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::Serializer for Stream<S> {
     type Ok = ();
     type Error = Error;
 
@@ -205,7 +205,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
 
     fn serialize_some<T: ?Sized>(mut self, value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream_value(Some(ToValue(value)))
     }
@@ -247,7 +247,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .tagged_begin(None, Some(&sval::Label::new(name)), None)
@@ -268,7 +268,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .enum_begin(None, Some(&sval::Label::new(name)), None)
@@ -410,13 +410,13 @@ impl<'sval, S: sval::Stream<'sval>> serde::Serializer for Stream<S> {
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeSeq for Stream<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::ser::SerializeSeq for Stream<S> {
     type Ok = ();
     type Error = Error;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .seq_value_begin()
@@ -436,13 +436,13 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeSeq for Stream<S> {
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeTuple for StreamTuple<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::ser::SerializeTuple for StreamTuple<S> {
     type Ok = ();
     type Error = Error;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .tuple_value_begin(None, &sval::Index::new(self.index))
@@ -466,13 +466,13 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeTuple for StreamTuple<S
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeTupleStruct for StreamTuple<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::ser::SerializeTupleStruct for StreamTuple<S> {
     type Ok = ();
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .tuple_value_begin(None, &sval::Index::new(self.index))
@@ -496,13 +496,15 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeTupleStruct for StreamT
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeTupleVariant for StreamTupleVariant<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::ser::SerializeTupleVariant
+    for StreamTupleVariant<S>
+{
     type Ok = ();
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .tuple_value_begin(None, &sval::Index::new(self.index))
@@ -529,13 +531,13 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeTupleVariant for Stream
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeMap for Stream<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::ser::SerializeMap for Stream<S> {
     type Ok = ();
     type Error = Error;
 
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .map_key_begin()
@@ -550,7 +552,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeMap for Stream<S> {
 
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .map_value_begin()
@@ -570,7 +572,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeMap for Stream<S> {
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeStruct for StreamRecord<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::ser::SerializeStruct for StreamRecord<S> {
     type Ok = ();
     type Error = Error;
 
@@ -580,7 +582,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeStruct for StreamRecord
         value: &T,
     ) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .record_value_begin(None, &sval::Label::new(key))
@@ -600,7 +602,9 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeStruct for StreamRecord
     }
 }
 
-impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeStructVariant for StreamRecordVariant<S> {
+impl<'sval, S: sval::Stream<'sval>> serde_core::ser::SerializeStructVariant
+    for StreamRecordVariant<S>
+{
     type Ok = ();
     type Error = Error;
 
@@ -610,7 +614,7 @@ impl<'sval, S: sval::Stream<'sval>> serde::ser::SerializeStructVariant for Strea
         value: &T,
     ) -> Result<(), Self::Error>
     where
-        T: serde::Serialize,
+        T: serde_core::Serialize,
     {
         self.stream
             .record_value_begin(None, &sval::Label::new(key))

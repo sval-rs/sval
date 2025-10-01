@@ -2,6 +2,8 @@ use crate::{Index, Label, Result, Stream, Tag};
 
 /**
 A producer of structured data.
+
+Each call to [`Value::stream`] is expected to produce a single complete value.
 */
 pub trait Value {
     /**

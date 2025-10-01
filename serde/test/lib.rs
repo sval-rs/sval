@@ -47,7 +47,7 @@ enum Enum {
 }
 
 fn test_case(
-    v: (impl sval::Value + serde::Serialize),
+    v: impl sval::Value + serde::Serialize,
     serde: &[serde_test::Token],
     sval: &[sval_test::Token],
 ) {

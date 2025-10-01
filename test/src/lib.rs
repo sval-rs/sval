@@ -25,7 +25,9 @@ pub fn assert_tokens<'sval, V: sval::Value + ?Sized>(value: &'sval V, tokens: &[
             {
                 let mut dyn_stream = &mut TokenBuf::new();
 
-                value.stream(&mut dyn_stream as &mut dyn sval_dynamic::Stream<'sval>).unwrap();
+                value
+                    .stream(&mut dyn_stream as &mut dyn sval_dynamic::Stream<'sval>)
+                    .unwrap();
 
                 assert_eq!(
                     tokens,
@@ -35,7 +37,7 @@ pub fn assert_tokens<'sval, V: sval::Value + ?Sized>(value: &'sval V, tokens: &[
                     sval_fmt::stream_to_string(AsValue(dyn_stream.as_tokens()))
                 );
             }
-        },
+        }
         Err(_) => stream.fail::<V>(),
     }
 }

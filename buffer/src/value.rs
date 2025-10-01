@@ -635,15 +635,8 @@ impl<'sval> sval::Stream<'sval> for ValueBuf<'sval> {
         })
     }
 
-    fn tag_hint(
-        &mut self,
-        tag: &sval::Tag,
-    ) -> sval::Result {
-        self.try_catch(|buf| {
-            buf.push_kind(ValueKind::TagHint {
-                tag: tag.clone(),
-            })
-        })
+    fn tag_hint(&mut self, tag: &sval::Tag) -> sval::Result {
+        self.try_catch(|buf| buf.push_kind(ValueKind::TagHint { tag: tag.clone() }))
     }
 
     fn record_begin(
@@ -969,8 +962,10 @@ impl<'sval> ValueBuf<'sval> {
             | ValueKind::F64(_)
             | ValueKind::Text(_)
             | ValueKind::Binary(_)
-            | ValueKind::Tag { .. } 
-            | ValueKind::TagHint { .. } => return Err(Error::invalid_value("can't end at this index")),
+            | ValueKind::Tag { .. }
+            | ValueKind::TagHint { .. } => {
+                return Err(Error::invalid_value("can't end at this index"))
+            }
         } = len;
 
         Ok(())
