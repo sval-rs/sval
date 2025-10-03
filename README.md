@@ -6,7 +6,7 @@
 
 ## What is it?
 
-`sval` is a serialization-only framework for Rust. It has a simple, but expressive design that can express any Rust data structure, plus some it can't yet. It was originally designed as a niche framework for structured logging, targeting serialization to [JSON](https://www.json.org, [protobuf](https://protobuf.dev), and Rust's [Debug-style formatting](https://doc.rust-lang.org/std/fmt/trait.Debug.html). The project has evolved beyond this point into a fully general and capable framework for introspecting runtime data.
+`sval` is a serialization-only framework for Rust. It has a simple, but expressive design that can express any Rust data structure, plus some it can't yet. It was originally designed as a niche framework for structured logging, targeting serialization to [JSON](https://www.json.org), [protobuf](https://protobuf.dev), and Rust's [Debug-style formatting](https://doc.rust-lang.org/std/fmt/trait.Debug.html). The project has evolved beyond this point into a fully general and capable framework for introspecting runtime data.
 
 The core of `sval` is the [`Stream`](https://docs.rs/sval/2.15.0/sval/trait.Stream.html) trait. It defines the data model and features of the framework. `sval` makes a few different API design decisions compared to [`serde`](https://serde.rs), the de-facto choice, to better accommodate the needs of Rust diagnostic frameworks:
 
