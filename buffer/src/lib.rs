@@ -9,6 +9,7 @@ Rather than conditionally compile these methods, this library stubs
 out functionality when an allocator isn't available.
 */
 
+#![doc(html_logo_url = "https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg")]
 #![no_std]
 #![deny(missing_docs)]
 

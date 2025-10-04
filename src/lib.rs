@@ -74,6 +74,7 @@ The [`tags`] module contains built-in tags.
 Other libraries may define their own tags too.
 */
 
+#![doc(html_logo_url = "https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg")]
 #![no_std]
 #![deny(missing_docs)]
 
