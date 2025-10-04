@@ -1,4 +1,6 @@
-# `sval`: Streaming, structured values
+<h1 style="display: flex; align-items: center">
+<img style="display: inline" height="80px" width="160px" src="https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg" alt="sval">
+</h1>
 
 [![Rust](https://github.com/sval-rs/sval/workflows/sval/badge.svg)](https://github.com/sval-rs/sval/actions)
 [![Latest version](https://img.shields.io/crates/v/sval.svg)](https://crates.io/crates/sval)

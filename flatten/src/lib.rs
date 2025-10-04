@@ -49,6 +49,7 @@ value is stringified and concatenated together.
 - **tuples**: tuple values are passed through directly.
 */
 
+#![doc(html_logo_url = "https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg")]
 #![no_std]
 #![deny(missing_docs)]
 

@@ -2,6 +2,7 @@
 A variant of [`sval::Value`] for types that store references internally.
 */
 
+#![doc(html_logo_url = "https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg")]
 #![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
 

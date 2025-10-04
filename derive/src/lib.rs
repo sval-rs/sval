@@ -50,6 +50,8 @@ Variant attributes:
 - `#[sval(index = 1)]`: Set an index on the enum variant. The zero-based offset of the variant is used by default.
 */
 
+#![doc(html_logo_url = "https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg")]
+
 #[doc(inline)]
 pub use sval_derive_macros::*;
 
