@@ -20,7 +20,7 @@ The core of `sval` is the [`Stream`](https://docs.rs/sval/2.15.0/sval/trait.Stre
 
 `sval`'s data model takes inspiration from [CBOR](https://cbor.io), specifically:
 
-1. **Small core.** The base data model of `sval` is small. The required members of the [`Stream`](https://docs.rs/sval/2.15.0/sval/trait.Stream.html) trait only includes nulls, booleans, text, 64-bit signed integers, 64-bit floating point numbers, and sequences. All other types, like arbitrary-precision floating point numbers, records, and tuples, are representable in the base model.
+1. **Small core.** The base data model of `sval` is small. The required members of the [`Stream`](https://docs.rs/sval/2.15.0/sval/trait.Stream.html) trait only includes nulls, booleans, text, 64-bit signed integers, and sequences. All other types, like arbitrary-precision floating point numbers, records, and tuples, are representable in the base model.
 2. **Extensible tags.** Users can define _tags_ that extend `sval`'s data model with new semantics. Examples of tags include Rust's `Some` and `None` variants, constant-sized arrays, text that doesn't require JSON escaping, and anything else you might need.
 
 ## Getting started
