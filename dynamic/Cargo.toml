@@ -1,6 +1,6 @@
 [package]
 name = "sval_dynamic"
-version = "2.15.0"
+version = "2.16.0"
 authors = ["Ashley Mannix <ashleymannix@live.com.au>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -12,5 +12,5 @@ keywords = ["serialization", "no_std"]
 categories = ["encoding", "no-std"]
 
 [dependencies.sval]
-version = "2.15.0"
+version = "2.16.0"
 path = "../"

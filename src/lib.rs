@@ -13,7 +13,7 @@ Add `sval` to your `Cargo.toml`:
 
 ```toml
 [dependencies.sval]
-version = "2.15.0"
+version = "2.16.0"
 ```
 
 By default, `sval` doesn't depend on Rust's standard library or integrate with its collection types.
@@ -21,7 +21,7 @@ To include them, add the `alloc` or `std` Cargo features:
 
 ```toml
 [dependencies.sval]
-version = "2.15.0"
+version = "2.16.0"
 features = ["std"]
 ```
 
@@ -30,7 +30,7 @@ Add the `derive` Cargo feature to enable them:
 
 ```toml
 [dependencies.sval]
-version = "2.15.0"
+version = "2.16.0"
 features = ["derive"]
 ```
 
