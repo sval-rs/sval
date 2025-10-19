@@ -18,7 +18,7 @@ proc-macro = true
 flatten = []
 
 [dependencies.syn]
-version = "2"
+version = "2.0.106"
 features = ["derive", "parsing", "extra-traits"]
 
 [dependencies.quote]
