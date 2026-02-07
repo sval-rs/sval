@@ -6,6 +6,9 @@ use sval_test::assert_tokens;
 mod derive_struct {
     use super::*;
 
+    #[allow(unused_imports)]
+    use crate::shadow::*;
+
     #[test]
     fn basic() {
         #[derive(Value)]
@@ -17,11 +20,28 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -37,11 +57,28 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("type"), sval::Index::new(0)),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("type"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("type"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("type"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -57,11 +94,28 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -82,14 +136,39 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(2)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(1)),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(1),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(1)),
-                RecordTupleValueBegin(None, sval::Label::new("b"), sval::Index::new(3)),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(3),
+                ),
                 I32(57),
-                RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(3)),
-                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(3),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -106,11 +185,20 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(1)),
-                TupleValueBegin(None, sval::Index::new(0)),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -127,11 +215,20 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
-                RecordValueBegin(None, sval::Label::new("a")),
+                RecordBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordValueBegin(::std::option::Option::None, sval::Label::new("a")),
                 I32(42),
-                RecordValueEnd(None, sval::Label::new("a")),
-                RecordEnd(None, Some(sval::Label::new("Record")), None),
+                RecordValueEnd(::std::option::Option::None, sval::Label::new("a")),
+                RecordEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -148,13 +245,21 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
-                SeqBegin(Some(1)),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+                SeqBegin(::std::option::Option::Some(1)),
                 SeqValueBegin,
                 I32(42),
                 SeqValueEnd,
                 SeqEnd,
-                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -171,13 +276,38 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
-                TaggedBegin(Some(sval::tags::NUMBER), None, None),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                TaggedBegin(
+                    ::std::option::Option::Some(sval::tags::NUMBER),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
                 I32(42),
-                TaggedEnd(Some(sval::tags::NUMBER), None, None),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                TaggedEnd(
+                    ::std::option::Option::Some(sval::tags::NUMBER),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -195,15 +325,31 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
-                SeqBegin(Some(1)),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+                SeqBegin(::std::option::Option::Some(1)),
                 SeqValueBegin,
-                TaggedBegin(Some(sval::tags::NUMBER), None, None),
+                TaggedBegin(
+                    ::std::option::Option::Some(sval::tags::NUMBER),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
                 I32(42),
-                TaggedEnd(Some(sval::tags::NUMBER), None, None),
+                TaggedEnd(
+                    ::std::option::Option::Some(sval::tags::NUMBER),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
                 SeqValueEnd,
                 SeqEnd,
-                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -234,20 +380,61 @@ mod derive_struct {
                 use sval_test::Token::*;
 
                 &[
-                    RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, None),
-                    RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                    RecordTupleBegin(
+                        ::std::option::Option::None,
+                        ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                        ::std::option::Option::None,
+                        ::std::option::Option::None,
+                    ),
+                    RecordTupleValueBegin(
+                        ::std::option::Option::None,
+                        sval::Label::new("a"),
+                        sval::Index::new(0),
+                    ),
                     I32(1),
-                    RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                    RecordTupleValueBegin(None, sval::Label::new("b"), sval::Index::new(1)),
+                    RecordTupleValueEnd(
+                        ::std::option::Option::None,
+                        sval::Label::new("a"),
+                        sval::Index::new(0),
+                    ),
+                    RecordTupleValueBegin(
+                        ::std::option::Option::None,
+                        sval::Label::new("b"),
+                        sval::Index::new(1),
+                    ),
                     I32(2),
-                    RecordTupleValueEnd(None, sval::Label::new("b"), sval::Index::new(1)),
-                    RecordTupleValueBegin(None, sval::Label::new("c"), sval::Index::new(2)),
+                    RecordTupleValueEnd(
+                        ::std::option::Option::None,
+                        sval::Label::new("b"),
+                        sval::Index::new(1),
+                    ),
+                    RecordTupleValueBegin(
+                        ::std::option::Option::None,
+                        sval::Label::new("c"),
+                        sval::Index::new(2),
+                    ),
                     I32(3),
-                    RecordTupleValueEnd(None, sval::Label::new("c"), sval::Index::new(2)),
-                    RecordTupleValueBegin(None, sval::Label::new("d"), sval::Index::new(3)),
+                    RecordTupleValueEnd(
+                        ::std::option::Option::None,
+                        sval::Label::new("c"),
+                        sval::Index::new(2),
+                    ),
+                    RecordTupleValueBegin(
+                        ::std::option::Option::None,
+                        sval::Label::new("d"),
+                        sval::Index::new(3),
+                    ),
                     I32(4),
-                    RecordTupleValueEnd(None, sval::Label::new("d"), sval::Index::new(3)),
-                    RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                    RecordTupleValueEnd(
+                        ::std::option::Option::None,
+                        sval::Label::new("d"),
+                        sval::Index::new(3),
+                    ),
+                    RecordTupleEnd(
+                        ::std::option::Option::None,
+                        ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                        ::std::option::Option::None,
+                    ),
                 ]
             },
         )
@@ -270,18 +457,26 @@ mod derive_struct {
 
             &[
                 RecordTupleBegin(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("record")),
-                    Some(sval::Index::new(0)),
-                    Some(1),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("record")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(1),
                 ),
-                RecordTupleValueBegin(Some(FIELD), sval::Label::new("field0"), sval::Index::new(0)),
+                RecordTupleValueBegin(
+                    ::std::option::Option::Some(FIELD),
+                    sval::Label::new("field0"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(Some(FIELD), sval::Label::new("field0"), sval::Index::new(0)),
+                RecordTupleValueEnd(
+                    ::std::option::Option::Some(FIELD),
+                    sval::Label::new("field0"),
+                    sval::Index::new(0),
+                ),
                 RecordTupleEnd(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("record")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("record")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
             ]
         })
@@ -296,8 +491,17 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -316,11 +520,28 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -328,6 +549,9 @@ mod derive_struct {
 
 mod derive_tuple {
     use super::*;
+
+    #[allow(unused_imports)]
+    use crate::shadow::*;
 
     #[test]
     fn basic() {
@@ -338,14 +562,23 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(2)),
-                TupleValueBegin(None, sval::Index::new(0)),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(1)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -361,14 +594,39 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, Some(sval::Label::new("RecordTuple")), None, Some(2)),
-                RecordTupleValueBegin(None, sval::Label::new("A"), sval::Index::new(0)),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("A"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("A"), sval::Index::new(0)),
-                RecordTupleValueBegin(None, sval::Label::new("B"), sval::Index::new(1)),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("A"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("B"),
+                    sval::Index::new(1),
+                ),
                 I32(43),
-                RecordTupleValueEnd(None, sval::Label::new("B"), sval::Index::new(1)),
-                RecordTupleEnd(None, Some(sval::Label::new("RecordTuple")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("B"),
+                    sval::Index::new(1),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -382,14 +640,23 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(2)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(1)),
-                TupleValueBegin(None, sval::Index::new(2)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(2)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(2)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(2)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -404,8 +671,12 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
-                SeqBegin(Some(2)),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+                SeqBegin(::std::option::Option::Some(2)),
                 SeqValueBegin,
                 I32(42),
                 SeqValueEnd,
@@ -413,7 +684,11 @@ mod derive_tuple {
                 I32(43),
                 SeqValueEnd,
                 SeqEnd,
-                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -430,20 +705,29 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, None),
-                TupleValueBegin(None, sval::Index::new(0)),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(1),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(2),
-                TupleValueEnd(None, sval::Index::new(1)),
-                TupleValueBegin(None, sval::Index::new(2)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(2)),
                 I32(3),
-                TupleValueEnd(None, sval::Index::new(2)),
-                TupleValueBegin(None, sval::Index::new(3)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(2)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(3)),
                 I32(4),
-                TupleValueEnd(None, sval::Index::new(3)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(3)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -462,8 +746,12 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                TaggedBegin(None, Some(sval::Label::new("Seq")), None),
-                SeqBegin(None),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+                SeqBegin(::std::option::Option::None),
                 SeqValueBegin,
                 I32(1),
                 SeqValueEnd,
@@ -477,7 +765,11 @@ mod derive_tuple {
                 I32(4),
                 SeqValueEnd,
                 SeqEnd,
-                TaggedEnd(None, Some(sval::Label::new("Seq")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -499,21 +791,21 @@ mod derive_tuple {
 
             &[
                 TupleBegin(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("tuple")),
-                    Some(sval::Index::new(0)),
-                    Some(2),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("tuple")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(2),
                 ),
-                TupleValueBegin(Some(FIELD), sval::Index::new(1)),
+                TupleValueBegin(::std::option::Option::Some(FIELD), sval::Index::new(1)),
                 I32(42),
-                TupleValueEnd(Some(FIELD), sval::Index::new(1)),
-                TupleValueBegin(Some(FIELD), sval::Index::new(2)),
+                TupleValueEnd(::std::option::Option::Some(FIELD), sval::Index::new(1)),
+                TupleValueBegin(::std::option::Option::Some(FIELD), sval::Index::new(2)),
                 I32(43),
-                TupleValueEnd(Some(FIELD), sval::Index::new(2)),
+                TupleValueEnd(::std::option::Option::Some(FIELD), sval::Index::new(2)),
                 TupleEnd(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("tuple")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("tuple")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
             ]
         })
@@ -529,11 +821,20 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(1)),
-                TupleValueBegin(None, sval::Index::new(0)),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -547,8 +848,17 @@ mod derive_tuple {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(0)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(0),
+                ),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -556,6 +866,9 @@ mod derive_tuple {
 
 mod derive_newtype {
     use super::*;
+
+    #[allow(unused_imports)]
+    use crate::shadow::*;
 
     #[test]
     fn basic() {
@@ -566,9 +879,17 @@ mod derive_newtype {
             use sval_test::Token::*;
 
             &[
-                TaggedBegin(None, Some(sval::Label::new("Tagged")), None),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
                 I32(42),
-                TaggedEnd(None, Some(sval::Label::new("Tagged")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -599,15 +920,15 @@ mod derive_newtype {
 
             &[
                 TaggedBegin(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("tagged")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
                 I32(42),
                 TaggedEnd(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("tagged")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
             ]
         })
@@ -617,6 +938,9 @@ mod derive_newtype {
 mod derive_unit_struct {
     use super::*;
 
+    #[allow(unused_imports)]
+    use crate::shadow::*;
+
     #[test]
     fn basic() {
         #[derive(Value)]
@@ -625,7 +949,11 @@ mod derive_unit_struct {
         assert_tokens(&Tag, {
             use sval_test::Token::*;
 
-            &[Tag(None, Some(sval::Label::new("Tag")), None)]
+            &[Tag(
+                ::std::option::Option::None,
+                ::std::option::Option::Some(sval::Label::new("Tag")),
+                ::std::option::Option::None,
+            )]
         })
     }
 
@@ -638,13 +966,20 @@ mod derive_unit_struct {
         assert_tokens(&r#type, {
             use sval_test::Token::*;
 
-            &[Tag(None, Some(sval::Label::new("type")), None)]
+            &[Tag(
+                ::std::option::Option::None,
+                ::std::option::Option::Some(sval::Label::new("type")),
+                ::std::option::Option::None,
+            )]
         })
     }
 }
 
 mod derive_enum {
     use super::*;
+
+    #[allow(unused_imports)]
+    use crate::shadow::*;
 
     #[test]
     fn basic() {
@@ -660,13 +995,21 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                Tag(
-                    None,
-                    Some(sval::Label::new("Tag")),
-                    Some(sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tag")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -674,19 +1017,27 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
                 TaggedBegin(
-                    None,
-                    Some(sval::Label::new("Tagged")),
-                    Some(sval::Index::new(1)),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
                 ),
                 I32(42),
                 TaggedEnd(
-                    None,
-                    Some(sval::Label::new("Tagged")),
-                    Some(sval::Index::new(1)),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -694,22 +1045,38 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
                 RecordTupleBegin(
-                    None,
-                    Some(sval::Label::new("Record")),
-                    Some(sval::Index::new(2)),
-                    Some(1),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                    ::std::option::Option::Some(1),
                 ),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(
-                    None,
-                    Some(sval::Label::new("Record")),
-                    Some(sval::Index::new(2)),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -717,25 +1084,33 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
                 TupleBegin(
-                    None,
-                    Some(sval::Label::new("Tuple")),
-                    Some(sval::Index::new(3)),
-                    Some(2),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::Some(sval::Index::new(3)),
+                    ::std::option::Option::Some(2),
                 ),
-                TupleValueBegin(None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
                 TupleEnd(
-                    None,
-                    Some(sval::Label::new("Tuple")),
-                    Some(sval::Index::new(3)),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::Some(sval::Index::new(3)),
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
@@ -752,13 +1127,21 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                Tag(
-                    None,
-                    Some(sval::Label::new("type")),
-                    Some(sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("type")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
@@ -778,9 +1161,21 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                Tag(None, None, Some(sval::Index::new(0))),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -788,11 +1183,27 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                TaggedBegin(None, None, Some(sval::Index::new(1))),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
                 I32(42),
-                TaggedEnd(None, None, Some(sval::Index::new(1))),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -800,13 +1211,38 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                RecordTupleBegin(None, None, Some(sval::Index::new(2)), Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, None, Some(sval::Index::new(2))),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -814,16 +1250,33 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                TupleBegin(None, None, Some(sval::Index::new(3)), Some(2)),
-                TupleValueBegin(None, sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(3)),
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(1)),
-                TupleEnd(None, None, Some(sval::Index::new(3))),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(3)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
@@ -843,9 +1296,21 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                Tag(None, Some(sval::Label::new("Tag")), None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tag")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -853,11 +1318,27 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                TaggedBegin(None, Some(sval::Label::new("Tagged")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
                 I32(42),
-                TaggedEnd(None, Some(sval::Label::new("Tagged")), None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -865,13 +1346,38 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                RecordTupleBegin(None, Some(sval::Label::new("Record")), None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, Some(sval::Label::new("Record")), None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -879,16 +1385,33 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                TupleBegin(None, Some(sval::Label::new("Tuple")), None, Some(2)),
-                TupleValueBegin(None, sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(1)),
-                TupleEnd(None, Some(sval::Label::new("Tuple")), None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
@@ -908,9 +1431,21 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                Tag(None, None, None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -918,11 +1453,27 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                TaggedBegin(None, None, None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
                 I32(42),
-                TaggedEnd(None, None, None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -930,13 +1481,38 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                RecordTupleBegin(None, None, None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, None, None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -944,16 +1520,33 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                TupleBegin(None, None, None, Some(2)),
-                TupleValueBegin(None, sval::Index::new(0)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(1)),
-                TupleEnd(None, None, None),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
@@ -988,19 +1581,19 @@ mod derive_enum {
 
             &[
                 EnumBegin(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
                 Tag(
-                    Some(VARIANT),
-                    Some(sval::Label::new("tag")),
-                    Some(sval::Index::new_isize(-1)),
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tag")),
+                    ::std::option::Option::Some(sval::Index::new_isize(-1)),
                 ),
                 EnumEnd(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
             ]
         });
@@ -1010,25 +1603,25 @@ mod derive_enum {
 
             &[
                 EnumBegin(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
                 TaggedBegin(
-                    Some(VARIANT),
-                    Some(sval::Label::new("tagged")),
-                    Some(sval::Index::new_isize(-2)),
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new_isize(-2)),
                 ),
                 I32(42),
                 TaggedEnd(
-                    Some(VARIANT),
-                    Some(sval::Label::new("tagged")),
-                    Some(sval::Index::new_isize(-2)),
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new_isize(-2)),
                 ),
                 EnumEnd(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
             ]
         });
@@ -1038,28 +1631,36 @@ mod derive_enum {
 
             &[
                 EnumBegin(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
                 RecordTupleBegin(
-                    Some(VARIANT),
-                    Some(sval::Label::new("record")),
-                    Some(sval::Index::new_isize(-3)),
-                    Some(1),
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("record")),
+                    ::std::option::Option::Some(sval::Index::new_isize(-3)),
+                    ::std::option::Option::Some(1),
                 ),
-                RecordTupleValueBegin(Some(FIELD), sval::Label::new("field"), sval::Index::new(0)),
+                RecordTupleValueBegin(
+                    ::std::option::Option::Some(FIELD),
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(Some(FIELD), sval::Label::new("field"), sval::Index::new(0)),
+                RecordTupleValueEnd(
+                    ::std::option::Option::Some(FIELD),
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
                 RecordTupleEnd(
-                    Some(VARIANT),
-                    Some(sval::Label::new("record")),
-                    Some(sval::Index::new_isize(-3)),
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("record")),
+                    ::std::option::Option::Some(sval::Index::new_isize(-3)),
                 ),
                 EnumEnd(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
             ]
         });
@@ -1069,31 +1670,31 @@ mod derive_enum {
 
             &[
                 EnumBegin(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
                 TupleBegin(
-                    Some(VARIANT),
-                    Some(sval::Label::new("tuple")),
-                    Some(sval::Index::new_isize(-4)),
-                    Some(2),
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tuple")),
+                    ::std::option::Option::Some(sval::Index::new_isize(-4)),
+                    ::std::option::Option::Some(2),
                 ),
-                TupleValueBegin(Some(FIELD), sval::Index::new(1)),
+                TupleValueBegin(::std::option::Option::Some(FIELD), sval::Index::new(1)),
                 I32(42),
-                TupleValueEnd(Some(FIELD), sval::Index::new(1)),
-                TupleValueBegin(Some(FIELD), sval::Index::new(2)),
+                TupleValueEnd(::std::option::Option::Some(FIELD), sval::Index::new(1)),
+                TupleValueBegin(::std::option::Option::Some(FIELD), sval::Index::new(2)),
                 I32(43),
-                TupleValueEnd(Some(FIELD), sval::Index::new(2)),
+                TupleValueEnd(::std::option::Option::Some(FIELD), sval::Index::new(2)),
                 TupleEnd(
-                    Some(VARIANT),
-                    Some(sval::Label::new("tuple")),
-                    Some(sval::Index::new_isize(-4)),
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tuple")),
+                    ::std::option::Option::Some(sval::Index::new_isize(-4)),
                 ),
                 EnumEnd(
-                    Some(CONTAINER),
-                    Some(sval::Label::new("enum")),
-                    Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
                 ),
             ]
         });
@@ -1117,22 +1718,38 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
                 RecordTupleBegin(
-                    None,
-                    Some(sval::Label::new("Record")),
-                    Some(sval::Index::new(0)),
-                    Some(1),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                    ::std::option::Option::Some(1),
                 ),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(
-                    None,
-                    Some(sval::Label::new("Record")),
-                    Some(sval::Index::new(0)),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -1140,22 +1757,30 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
                 TupleBegin(
-                    None,
-                    Some(sval::Label::new("Tuple")),
-                    Some(sval::Index::new(1)),
-                    Some(1),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                    ::std::option::Option::Some(1),
                 ),
-                TupleValueBegin(None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(0)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
                 TupleEnd(
-                    None,
-                    Some(sval::Label::new("Tuple")),
-                    Some(sval::Index::new(1)),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
@@ -1175,13 +1800,21 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                Tag(
-                    None,
-                    Some(sval::Label::new("A")),
-                    Some(sval::Index::new_i32(-3)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("A")),
+                    ::std::option::Option::Some(sval::Index::new_i32(-3)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -1189,13 +1822,21 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
-                Tag(
-                    None,
-                    Some(sval::Label::new("B")),
-                    Some(sval::Index::new_i32(-2)),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("B")),
+                    ::std::option::Option::Some(sval::Index::new_i32(-2)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -1203,19 +1844,27 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                EnumBegin(None, Some(sval::Label::new("Enum")), None),
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
                 TaggedBegin(
-                    None,
-                    Some(sval::Label::new("C")),
-                    Some(sval::Index::new_i32(-1)),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("C")),
+                    ::std::option::Option::Some(sval::Index::new_i32(-1)),
                 ),
                 I32(42),
                 TaggedEnd(
-                    None,
-                    Some(sval::Label::new("C")),
-                    Some(sval::Index::new_i32(-1)),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("C")),
+                    ::std::option::Option::Some(sval::Index::new_i32(-1)),
                 ),
-                EnumEnd(None, Some(sval::Label::new("Enum")), None),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
@@ -1244,7 +1893,11 @@ mod derive_enum {
         assert_tokens(&Dynamic::Tag, {
             use sval_test::Token::*;
 
-            &[Tag(None, Some(sval::Label::new("Tag")), None)]
+            &[Tag(
+                ::std::option::Option::None,
+                ::std::option::Option::Some(sval::Label::new("Tag")),
+                ::std::option::Option::None,
+            )]
         });
 
         assert_tokens(&Dynamic::Bool(true), {
@@ -1263,11 +1916,28 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                RecordTupleBegin(None, None, None, Some(1)),
-                RecordTupleValueBegin(None, sval::Label::new("a"), sval::Index::new(0)),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
                 I32(42),
-                RecordTupleValueEnd(None, sval::Label::new("a"), sval::Index::new(0)),
-                RecordTupleEnd(None, None, None),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
             ]
         });
 
@@ -1275,17 +1945,41 @@ mod derive_enum {
             use sval_test::Token::*;
 
             &[
-                TupleBegin(None, None, None, Some(2)),
-                TupleValueBegin(None, sval::Index::new(0)),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
                 I32(42),
-                TupleValueEnd(None, sval::Index::new(0)),
-                TupleValueBegin(None, sval::Index::new(1)),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
                 I32(43),
-                TupleValueEnd(None, sval::Index::new(1)),
-                TupleEnd(None, None, None),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
             ]
         });
     }
+}
+
+mod shadow {
+    // Shadow core imports
+    #![allow(dead_code)]
+
+    pub struct Result;
+    pub struct Ok;
+    pub struct Err;
+    pub struct Some;
+    pub struct None;
+    pub struct String;
+    pub struct Vec;
+    pub mod core {}
+    pub mod std {}
 }
 
 #[test]

@@ -135,3 +135,10 @@ pub fn stream_computed<'sval>(
 }
 
 // NOTE: Tests for implementations of `Value` are in `sval_test`
+
+#[doc(hidden)]
+pub mod __private {
+    // Internal to `#[derive]` macros
+
+    pub use core;
+}

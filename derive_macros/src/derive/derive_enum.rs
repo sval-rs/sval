@@ -209,7 +209,7 @@ pub(crate) fn derive_enum<'a>(
                     #(#variant_match_arms)*
                 }
 
-                Ok(())
+                sval::__private::core::result::Result::Ok(())
             }),
             None,
         )
