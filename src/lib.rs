@@ -88,9 +88,10 @@ extern crate core;
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 mod std {
+    #[allow(unused_imports)]
     pub use crate::{
         alloc::{borrow, boxed, collections, string, vec},
-        core::{cmp, convert, fmt, hash, marker, mem, ops, result, str, write},
+        core::{cmp, convert, fmt, hash, marker, mem, ops, option, result, str, write},
     };
 }
 
@@ -135,3 +136,10 @@ pub fn stream_computed<'sval>(
 }
 
 // NOTE: Tests for implementations of `Value` are in `sval_test`
+
+#[doc(hidden)]
+pub mod __private {
+    // Internal to `#[derive]` macros
+
+    pub use crate::std::{option, result};
+}

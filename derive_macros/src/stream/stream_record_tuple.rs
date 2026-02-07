@@ -110,11 +110,13 @@ pub(crate) fn stream_record_tuple<'a>(
             attr::get_unchecked("struct field", attr::DataTagAttr, &field.attrs)
         {
             let data_tag = quote_optional_tag(Some(&data_tag));
+            let data_label = quote_optional_label(None);
+            let data_index = quote_optional_index(None);
 
             quote!({
-                stream.tagged_begin(#data_tag, None, None)?;
+                stream.tagged_begin(#data_tag, #data_label, #data_index)?;
                 stream.value(#ident)?;
-                stream.tagged_end(#data_tag, None, None)?
+                stream.tagged_end(#data_tag, #data_label, #data_index)?
             })
         } else {
             quote!(stream.value(#ident)?)
@@ -200,9 +202,9 @@ pub(crate) fn stream_record_tuple<'a>(
     );
 
     let field_count = if const_size {
-        quote!(Some(#field_count))
+        quote!(sval::__private::option::Option::Some(#field_count))
     } else {
-        quote!(None)
+        quote!(sval::__private::option::Option::None)
     };
 
     match target {

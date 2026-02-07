@@ -85,8 +85,8 @@ pub(crate) fn quote_optional_index(index: Option<Index>) -> proc_macro2::TokenSt
     match index {
         Some(index) => {
             let index = quote_index(index);
-            quote!(Some(#index))
+            quote!(sval::__private::option::Option::Some(#index))
         }
-        None => quote!(None),
+        None => quote!(sval::__private::option::Option::None),
     }
 }

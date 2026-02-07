@@ -56,8 +56,8 @@ pub(crate) fn quote_optional_label(label: Option<Label>) -> proc_macro2::TokenSt
     match label {
         Some(label) => {
             let label = quote_label(label);
-            quote!(Some(#label))
+            quote!(sval::__private::option::Option::Some(#label))
         }
-        None => quote!(None),
+        None => quote!(sval::__private::option::Option::None),
     }
 }

@@ -63,7 +63,7 @@ fn impl_tokens(
 
     let tag_fn = if let Some(tag_body) = tag_body {
         quote!(
-            fn tag(&self) -> Option<sval::Tag> {
+            fn tag(&self) -> sval::__private::option::Option<sval::Tag> {
                 #tag_body
             }
         )

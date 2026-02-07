@@ -110,7 +110,7 @@ pub(crate) fn derive_struct<'a>(
                 #match_arm
             }
 
-            Ok(())
+            sval::__private::result::Result::Ok(())
         }),
         Some(tag),
     )

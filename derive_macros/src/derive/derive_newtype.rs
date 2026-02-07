@@ -98,7 +98,7 @@ pub(crate) fn derive_newtype<'a>(
                 #match_arm
             }
 
-            Ok(())
+            sval::__private::result::Result::Ok(())
         }),
         Some(tag),
     )
