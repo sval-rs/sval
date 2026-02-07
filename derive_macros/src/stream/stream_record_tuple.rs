@@ -202,9 +202,9 @@ pub(crate) fn stream_record_tuple<'a>(
     );
 
     let field_count = if const_size {
-        quote!(sval::__private::core::option::Option::Some(#field_count))
+        quote!(sval::__private::option::Option::Some(#field_count))
     } else {
-        quote!(sval::__private::core::option::Option::None)
+        quote!(sval::__private::option::Option::None)
     };
 
     match target {
