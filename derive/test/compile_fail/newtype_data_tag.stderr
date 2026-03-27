@@ -1,7 +1,5 @@
-error: proc-macro derive panicked
- --> compile_fail/newtype_data_tag.rs:3:10
+error: unsupported attribute `data_tag` on newtype field
+ --> compile_fail/newtype_data_tag.rs:4:27
   |
-3 | #[derive(Value)]
-  |          ^^^^^
-  |
-  = help: message: unsupported attribute `data_tag` on newtype field
+4 | pub struct Newtype(#[sval(data_tag = "sval::tags::NUMBER")] i32);
+  |                           ^^^^^^^^

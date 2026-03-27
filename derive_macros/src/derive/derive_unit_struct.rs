@@ -16,18 +16,18 @@ pub(crate) struct UnitStructAttrs {
 }
 
 impl UnitStructAttrs {
-    pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
+    pub(crate) fn from_attrs(attrs: &[Attribute]) -> syn::Result<Self> {
         attr::check(
             "unit struct",
             &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
             attrs,
-        );
+        )?;
 
-        let tag = attr::get_unchecked("unit struct", attr::TagAttr, attrs);
-        let label = attr::get_unchecked("unit struct", attr::LabelAttr, attrs);
-        let index = attr::get_unchecked("unit struct", attr::IndexAttr, attrs);
+        let tag = attr::get("unit struct", attr::TagAttr, attrs)?;
+        let label = attr::get("unit struct", attr::LabelAttr, attrs)?;
+        let index = attr::get("unit struct", attr::IndexAttr, attrs)?;
 
-        UnitStructAttrs { tag, label, index }
+        Ok(UnitStructAttrs { tag, label, index })
     }
 
     pub(crate) fn tag(&self) -> Option<&Path> {
@@ -47,7 +47,7 @@ pub(crate) fn derive_unit_struct<'a>(
     ident: &Ident,
     generics: &Generics,
     attrs: &UnitStructAttrs,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
@@ -58,11 +58,11 @@ pub(crate) fn derive_unit_struct<'a>(
         attrs.tag(),
         Some(label_or_ident(attrs.label(), ident)),
         attrs.index(),
-    );
+    )?;
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    impl_tokens(
+    Ok(impl_tokens(
         impl_generics,
         ident,
         ty_generics,
@@ -75,5 +75,5 @@ pub(crate) fn derive_unit_struct<'a>(
             sval::__private::result::Result::Ok(())
         }),
         Some(tag),
-    )
+    ))
 }

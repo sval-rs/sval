@@ -34,7 +34,7 @@ pub(crate) fn stream_record_tuple<'a>(
     index: Option<Index>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let tag = quote_optional_tag(tag);
     let label = quote_optional_label(label);
     let index = quote_optional_index(index);
@@ -64,63 +64,60 @@ pub(crate) fn stream_record_tuple<'a>(
                 &attr::FlattenAttr,
             ],
             &field.attrs,
-        );
+        )?;
 
         let i = syn::Index::from(i);
 
-        if attr::get_unchecked("struct field", attr::SkipAttr, &field.attrs).unwrap_or(false) {
+        if attr::get("struct field", attr::SkipAttr, &field.attrs)?.unwrap_or(false) {
             field_binding.push(quote_field_skip(&i, field));
             continue;
         }
 
         let (ident, binding) = get_field(&i, field);
 
-        let field_tag = quote_optional_tag(
-            attr::get_unchecked("struct field", attr::TagAttr, &field.attrs).as_ref(),
-        );
+        let field_tag =
+            quote_optional_tag(attr::get("struct field", attr::TagAttr, &field.attrs)?.as_ref());
 
         let label = if unlabeled_fields {
-            attr::ensure_missing("struct field", attr::LabelAttr, &field.attrs);
+            attr::ensure_missing("struct field", attr::LabelAttr, &field.attrs)?;
 
             None
         } else {
             get_label(
-                attr::get_unchecked("struct field", attr::LabelAttr, &field.attrs),
+                attr::get("struct field", attr::LabelAttr, &field.attrs)?,
                 field.ident.as_ref(),
             )
         };
 
         let index = if unindexed_fields {
-            attr::ensure_missing("struct field", attr::IndexAttr, &field.attrs);
+            attr::ensure_missing("struct field", attr::IndexAttr, &field.attrs)?;
 
             None
         } else {
             Some(quote_index(index_allocator.next_computed_index(
                 &index_ident,
-                attr::get_unchecked("struct field", attr::IndexAttr, &field.attrs),
+                attr::get("struct field", attr::IndexAttr, &field.attrs)?,
             )))
         };
 
-        let flatten =
-            attr::get_unchecked("struct field", attr::FlattenAttr, &field.attrs).unwrap_or(false);
+        let flatten = attr::get("struct field", attr::FlattenAttr, &field.attrs)?.unwrap_or(false);
 
         const_size = const_size && !flatten;
 
-        let value = if let Some(data_tag) =
-            attr::get_unchecked("struct field", attr::DataTagAttr, &field.attrs)
-        {
-            let data_tag = quote_optional_tag(Some(&data_tag));
-            let data_label = quote_optional_label(None);
-            let data_index = quote_optional_index(None);
+        let value =
+            if let Some(data_tag) = attr::get("struct field", attr::DataTagAttr, &field.attrs)? {
+                let data_tag = quote_optional_tag(Some(&data_tag));
+                let data_label = quote_optional_label(None);
+                let data_index = quote_optional_index(None);
 
-            quote!({
-                stream.tagged_begin(#data_tag, #data_label, #data_index)?;
-                stream.value(#ident)?;
-                stream.tagged_end(#data_tag, #data_label, #data_index)?
-            })
-        } else {
-            quote!(stream.value(#ident)?)
-        };
+                quote!({
+                    stream.tagged_begin(#data_tag, #data_label, #data_index)?;
+                    stream.value(#ident)?;
+                    stream.tagged_end(#data_tag, #data_label, #data_index)?
+                })
+            } else {
+                quote!(stream.value(#ident)?)
+            };
 
         match (&label, &index) {
             (Some(label), Some(index)) => {
@@ -192,14 +189,18 @@ pub(crate) fn stream_record_tuple<'a>(
         field_count += 1;
     }
 
-    assert!(
-        labeled_field_count == 0 || labeled_field_count == field_count,
-        "if any fields have a label then all fields need one"
-    );
-    assert!(
-        indexed_field_count == 0 || indexed_field_count == field_count,
-        "if any fields have an index then all fields need one"
-    );
+    if labeled_field_count != 0 && labeled_field_count != field_count {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "if any fields have a label then all fields need one",
+        ));
+    }
+    if indexed_field_count != 0 && indexed_field_count != field_count {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "if any fields have an index then all fields need one",
+        ));
+    }
 
     let field_count = if const_size {
         quote!(sval::__private::option::Option::Some(#field_count))
@@ -207,7 +208,7 @@ pub(crate) fn stream_record_tuple<'a>(
         quote!(sval::__private::option::Option::None)
     };
 
-    match target {
+    Ok(match target {
         RecordTupleTarget::RecordTuple => {
             quote!(#path { #(#field_binding,)* } => {
                 stream.record_tuple_begin(#tag, #label, #index, #field_count)?;
@@ -260,7 +261,7 @@ pub(crate) fn stream_record_tuple<'a>(
                 stream.tagged_end(#tag, #label, #index)?;
             })
         }
-    }
+    })
 }
 
 fn get_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenStream) {

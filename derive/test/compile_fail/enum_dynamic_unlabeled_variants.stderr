@@ -1,7 +1,7 @@
-error: proc-macro derive panicked
+error: dynamic enums don't have variants
  --> compile_fail/enum_dynamic_unlabeled_variants.rs:3:10
   |
 3 | #[derive(Value)]
   |          ^^^^^
   |
-  = help: message: dynamic enums don't have variants
+  = note: this error originates in the derive macro `Value` (in Nightly builds, run with -Z macro-backtrace for more info)

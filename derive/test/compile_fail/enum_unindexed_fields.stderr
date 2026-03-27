@@ -1,7 +1,5 @@
-error: proc-macro derive panicked
- --> compile_fail/enum_unindexed_fields.rs:3:10
+error: unsupported attribute `unindexed_fields` on enum
+ --> compile_fail/enum_unindexed_fields.rs:4:8
   |
-3 | #[derive(Value)]
-  |          ^^^^^
-  |
-  = help: message: unsupported attribute `unindexed_fields` on enum
+4 | #[sval(unindexed_fields)]
+  |        ^^^^^^^^^^^^^^^^

@@ -1,7 +1,5 @@
-error: proc-macro derive panicked
- --> compile_fail/union.rs:3:10
+error: unions are not supported for sval derive
+ --> compile_fail/union.rs:4:5
   |
-3 | #[derive(Value)]
-  |          ^^^^^
-  |
-  = help: message: unsupported container type
+4 | pub union Union {
+  |     ^^^^^

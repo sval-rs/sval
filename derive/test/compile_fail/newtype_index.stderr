@@ -1,7 +1,5 @@
-error: proc-macro derive panicked
- --> compile_fail/newtype_index.rs:3:10
+error: unsupported attribute `index` on newtype field
+ --> compile_fail/newtype_index.rs:4:27
   |
-3 | #[derive(Value)]
-  |          ^^^^^
-  |
-  = help: message: unsupported attribute `index` on newtype field
+4 | pub struct Newtype(#[sval(index = 1)] i32);
+  |                           ^^^^^
