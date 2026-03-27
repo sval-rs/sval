@@ -163,7 +163,7 @@ pub(crate) fn derive_enum<'a>(
         )?;
 
         let discriminant = if let Some((_, discriminant)) = &variant.discriminant {
-            Some(attr::IndexAttr.try_from_expr(discriminant)?)
+            Some(attr::IndexAttr.from_expr(discriminant)?)
         } else {
             None
         };

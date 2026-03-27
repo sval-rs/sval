@@ -15,7 +15,7 @@ pub(crate) struct TagAttr;
 impl SvalAttribute for TagAttr {
     type Result = syn::Path;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
             Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
             Expr::Path(path) => Ok(path.path.clone()),
@@ -59,7 +59,7 @@ pub(crate) struct DataTagAttr;
 impl SvalAttribute for DataTagAttr {
     type Result = syn::Path;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
             Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
             Expr::Path(path) => Ok(path.path.clone()),
@@ -103,7 +103,7 @@ pub(crate) struct LabelAttr;
 impl SvalAttribute for LabelAttr {
     type Result = LabelValue;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
             Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
             Expr::Path(path) => Ok(LabelValue::Ident(quote!(#path))),
@@ -159,7 +159,7 @@ impl IndexAttr {
 impl SvalAttribute for IndexAttr {
     type Result = IndexValue;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
             // Take `-` into account
             Expr::Unary(ExprUnary {
@@ -431,7 +431,7 @@ pub(crate) trait RawAttribute {
 pub(crate) trait SvalAttribute: RawAttribute {
     type Result: 'static;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         if let Expr::Lit(lit) = expr {
             Ok(self.from_lit(&lit.lit)?)
         } else {
@@ -550,7 +550,7 @@ pub(crate) fn get<T: SvalAttribute>(
 
         for (value_key, value) in meta {
             if value_key.is_ident(request_key) {
-                return Ok(Some(request.try_from_expr(&value)?));
+                return Ok(Some(request.from_expr(&value)?));
             }
         }
     }
