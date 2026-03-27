@@ -1,4 +1,4 @@
-use syn::{Attribute, Error, Field, Generics, Ident, Path};
+use syn::{Attribute, Field, Generics, Ident, Path};
 
 use crate::{
     attr, bound,
@@ -37,19 +37,19 @@ impl NewtypeAttrs {
 
         if transparent {
             if tag.is_some() {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "transparent values cannot have tags",
                 ));
             }
             if label.is_some() {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "transparent values cannot have labels",
                 ));
             }
             if index.is_some() {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "transparent values cannot have indexes",
                 ));

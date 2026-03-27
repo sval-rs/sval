@@ -4,14 +4,14 @@ mod derive_struct;
 mod derive_unit_struct;
 mod derive_void;
 
-use syn::{spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Error, Fields};
+use syn::{spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields};
 
 use self::{
     derive_enum::*, derive_newtype::*, derive_struct::*, derive_unit_struct::*, derive_void::*,
 };
 
 pub(crate) fn derive(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
-    let tokens = match &input.data {
+    Ok(match &input.data {
         Data::Struct(DataStruct {
             fields: Fields::Unit,
             ..
@@ -44,13 +44,12 @@ pub(crate) fn derive(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream
             derive_enum(&input.ident, &input.generics, variants.iter(), &attrs)?
         }
         Data::Union(u) => {
-            return Err(Error::new(
+            return Err(syn::Error::new(
                 u.union_token.span(),
                 "unions are not supported for sval derive",
             ));
         }
-    };
-    Ok(tokens)
+    })
 }
 
 fn impl_tokens(

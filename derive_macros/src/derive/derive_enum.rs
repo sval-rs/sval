@@ -1,4 +1,4 @@
-use syn::{Attribute, Error, Fields, Generics, Ident, Path, Variant};
+use syn::{Attribute, Fields, Generics, Ident, Path, Variant};
 
 use crate::{
     attr::{self, SvalAttribute},
@@ -48,32 +48,32 @@ impl EnumAttrs {
 
         if dynamic {
             if tag.is_some() {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "dynamic enums can't have tags",
                 ));
             }
             if label.is_some() {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "dynamic enums can't have labels",
                 ));
             }
             if index.is_some() {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "dynamic enums can't have indexes",
                 ));
             }
 
             if unlabeled_variants {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "dynamic enums don't have variants",
                 ));
             }
             if unindexed_variants {
-                return Err(Error::new(
+                return Err(syn::Error::new(
                     proc_macro2::Span::call_site(),
                     "dynamic enums don't have variants",
                 ));

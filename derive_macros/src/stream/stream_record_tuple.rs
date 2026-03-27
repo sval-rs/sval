@@ -1,4 +1,4 @@
-use syn::{spanned::Spanned, Error, Field, Ident, Path};
+use syn::{spanned::Spanned, Field, Ident, Path};
 
 use crate::label::{optional_label_or_ident, Label, LabelValue};
 use crate::{
@@ -193,13 +193,13 @@ pub(crate) fn stream_record_tuple<'a>(
     }
 
     if labeled_field_count != 0 && labeled_field_count != field_count {
-        return Err(Error::new(
+        return Err(syn::Error::new(
             proc_macro2::Span::call_site(),
             "if any fields have a label then all fields need one",
         ));
     }
     if indexed_field_count != 0 && indexed_field_count != field_count {
-        return Err(Error::new(
+        return Err(syn::Error::new(
             proc_macro2::Span::call_site(),
             "if any fields have an index then all fields need one",
         ));
