@@ -1,7 +1,5 @@
 error: unsupported attribute `label` on struct field
- --> compile_fail/record_as_seq_incomplete_labels.rs:3:10
+ --> compile_fail/record_as_seq_incomplete_labels.rs:6:12
   |
-3 | #[derive(Value)]
-  |          ^^^^^
-  |
-  = note: this error originates in the derive macro `Value` (in Nightly builds, run with -Z macro-backtrace for more info)
+6 |     #[sval(label = "a")]
+  |            ^^^^^

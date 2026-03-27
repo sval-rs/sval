@@ -470,9 +470,9 @@ pub(crate) fn ensure_missing<T: SvalAttribute>(
 ) -> syn::Result<()> {
     let key = request.key().to_owned();
 
-    if get::<T>(ctxt, request, attrs)?.is_some() {
+    if let Some((unexpected, _)) = find(ctxt, request.key(), attrs)? {
         return Err(syn::Error::new(
-            proc_macro2::Span::call_site(),
+            unexpected.span(),
             format_args!("unsupported attribute `{}` on {}", key, ctxt),
         ));
     }
@@ -499,8 +499,8 @@ pub(crate) fn check(
         for (value_key, _) in meta {
             let mut is_valid_attr = false;
 
-            for attr in allowed {
-                let attr_key = attr.key();
+            for allowed in allowed {
+                let attr_key = allowed.key();
 
                 if value_key.is_ident(attr_key) {
                     is_valid_attr = true;
@@ -541,8 +541,14 @@ pub(crate) fn get<T: SvalAttribute>(
     request: T,
     attrs: &[Attribute],
 ) -> syn::Result<Option<T::Result>> {
-    let request_key = request.key();
+    let Some((_, value)) = find(ctxt, request.key(), attrs)? else {
+        return Ok(None);
+    };
 
+    Ok(Some(request.from_expr(&value)?))
+}
+
+fn find(ctxt: &str, request_key: &str, attrs: &[Attribute]) -> syn::Result<Option<(Path, Expr)>> {
     for attr in attrs {
         let Some(meta) = sval_attr(ctxt, attr)? else {
             continue;
@@ -550,7 +556,7 @@ pub(crate) fn get<T: SvalAttribute>(
 
         for (value_key, value) in meta {
             if value_key.is_ident(request_key) {
-                return Ok(Some(request.from_expr(&value)?));
+                return Ok(Some((value_key, value)));
             }
         }
     }
