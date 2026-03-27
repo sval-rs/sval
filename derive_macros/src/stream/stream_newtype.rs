@@ -15,10 +15,10 @@ pub(crate) fn stream_newtype(
     label: Option<Label>,
     index: Option<Index>,
     transparent: bool,
-) -> proc_macro2::TokenStream {
-    attr::ensure_empty("newtype field", &field.attrs);
+) -> syn::Result<proc_macro2::TokenStream> {
+    attr::ensure_empty("newtype field", &field.attrs)?;
 
-    if transparent {
+    Ok(if transparent {
         quote!(#path(ref field0) => {
             stream.value(field0)?;
         })
@@ -32,5 +32,5 @@ pub(crate) fn stream_newtype(
             stream.value(field0)?;
             stream.tagged_end(#tag, #label, #index)?;
         })
-    }
+    })
 }

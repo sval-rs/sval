@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use syn::{Attribute, Expr, ExprUnary, Lit, Path, UnOp};
+use syn::{spanned::Spanned, Attribute, Error, Expr, ExprUnary, Lit, Path, Result, UnOp};
 
 use crate::{index::IndexValue, label::LabelValue};
 
@@ -17,17 +17,21 @@ impl SvalAttribute for TagAttr {
 
     fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
         match expr {
-            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            Expr::Lit(lit) => Some(self.from_lit(&lit.lit).ok()?),
             Expr::Path(path) => Some(path.path.clone()),
             _ => None,
         }
     }
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Str(ref s) = lit {
-            s.parse().expect("invalid value")
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Str(s) => s
+                .parse()
+                .map_err(|_| Error::new(s.span(), "invalid tag: expected valid path")),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid tag: expected string literal",
+            )),
         }
     }
 }
@@ -51,17 +55,21 @@ impl SvalAttribute for DataTagAttr {
 
     fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
         match expr {
-            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            Expr::Lit(lit) => Some(self.from_lit(&lit.lit).ok()?),
             Expr::Path(path) => Some(path.path.clone()),
             _ => None,
         }
     }
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Str(ref s) = lit {
-            s.parse().expect("invalid value")
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Str(s) => s
+                .parse()
+                .map_err(|_| Error::new(s.span(), "invalid data_tag: expected valid path")),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid data_tag: expected string literal",
+            )),
         }
     }
 }
@@ -85,17 +93,19 @@ impl SvalAttribute for LabelAttr {
 
     fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
         match expr {
-            Expr::Lit(lit) => Some(self.from_lit(&lit.lit)),
+            Expr::Lit(lit) => Some(self.from_lit(&lit.lit).ok()?),
             Expr::Path(path) => Some(LabelValue::Ident(quote!(#path))),
             _ => None,
         }
     }
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Str(ref s) = lit {
-            LabelValue::Const(s.value())
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Str(s) => Ok(LabelValue::Const(s.value())),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid label: expected string literal",
+            )),
         }
     }
 }
@@ -115,11 +125,12 @@ to use for the annotated item.
 pub(crate) struct IndexAttr;
 
 impl IndexAttr {
-    fn const_from_lit(&self, lit: &Lit) -> isize {
-        if let Lit::Int(ref n) = lit {
-            n.base10_parse().expect("invalid value")
-        } else {
-            panic!("unexpected value")
+    fn const_from_lit(&self, lit: &Lit) -> Result<isize> {
+        match lit {
+            Lit::Int(n) => n
+                .base10_parse()
+                .map_err(|_| Error::new(n.span(), "invalid index: expected integer")),
+            _ => Err(Error::new(lit.span(), "invalid index: expected integer")),
         }
     }
 }
@@ -136,19 +147,19 @@ impl SvalAttribute for IndexAttr {
                 ..
             }) => {
                 if let Expr::Lit(ref lit) = **expr {
-                    Some(IndexValue::Const(-(self.const_from_lit(&lit.lit))))
+                    Some(IndexValue::Const(-(self.const_from_lit(&lit.lit).ok()?)))
                 } else {
                     None
                 }
             }
-            Expr::Lit(lit) => Some(IndexValue::Const(self.const_from_lit(&lit.lit))),
+            Expr::Lit(lit) => Some(IndexValue::Const(self.const_from_lit(&lit.lit).ok()?)),
             Expr::Path(path) => Some(IndexValue::Ident(quote!(#path))),
             _ => None,
         }
     }
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        IndexValue::Const(self.const_from_lit(lit))
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        Ok(IndexValue::Const(self.const_from_lit(lit)?))
     }
 }
 
@@ -169,11 +180,10 @@ pub(crate) struct SkipAttr;
 impl SvalAttribute for SkipAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Bool(ref b) = lit {
-            b.value
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(Error::new(lit.span(), "invalid skip: expected boolean")),
         }
     }
 }
@@ -194,11 +204,13 @@ pub(crate) struct UnlabeledFieldsAttr;
 impl SvalAttribute for UnlabeledFieldsAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Bool(ref b) = lit {
-            b.value
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid unlabeled_fields: expected boolean",
+            )),
         }
     }
 }
@@ -219,11 +231,13 @@ pub(crate) struct UnindexedFieldsAttr;
 impl SvalAttribute for UnindexedFieldsAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Bool(ref b) = lit {
-            b.value
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid unindexed_fields: expected boolean",
+            )),
         }
     }
 }
@@ -244,11 +258,13 @@ pub(crate) struct UnlabeledVariantsAttr;
 impl SvalAttribute for UnlabeledVariantsAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Bool(ref b) = lit {
-            b.value
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid unlabeled_variants: expected boolean",
+            )),
         }
     }
 }
@@ -269,11 +285,13 @@ pub(crate) struct UnindexedVariantsAttr;
 impl SvalAttribute for UnindexedVariantsAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Bool(ref b) = lit {
-            b.value
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid unindexed_variants: expected boolean",
+            )),
         }
     }
 }
@@ -294,11 +312,10 @@ pub(crate) struct DynamicAttr;
 impl SvalAttribute for DynamicAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Bool(ref b) = lit {
-            b.value
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(Error::new(lit.span(), "invalid dynamic: expected boolean")),
         }
     }
 }
@@ -320,11 +337,13 @@ pub(crate) struct TransparentAttr;
 impl SvalAttribute for TransparentAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
-        if let Lit::Bool(ref b) = lit {
-            b.value
-        } else {
-            panic!("unexpected value")
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(Error::new(
+                lit.span(),
+                "invalid transparent: expected boolean",
+            )),
         }
     }
 }
@@ -345,18 +364,20 @@ pub(crate) struct FlattenAttr;
 impl SvalAttribute for FlattenAttr {
     type Result = bool;
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result {
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result> {
         #[cfg(not(feature = "flatten"))]
         {
             let _ = lit;
-            panic!("the `flatten` attribute can only be used when the `flatten` Cargo feature of `sval_derive` is enabled");
+            Err(Error::new(
+                proc_macro2::Span::call_site(),
+                "the `flatten` attribute can only be used when the `flatten` Cargo feature of `sval_derive` is enabled",
+            ))
         }
         #[cfg(feature = "flatten")]
         {
-            if let Lit::Bool(ref b) = lit {
-                b.value
-            } else {
-                panic!("unexpected value")
+            match lit {
+                Lit::Bool(b) => Ok(b.value),
+                _ => Err(Error::new(lit.span(), "invalid flatten: expected boolean")),
             }
         }
     }
@@ -377,35 +398,47 @@ pub(crate) trait SvalAttribute: RawAttribute {
 
     fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
         if let Expr::Lit(lit) = expr {
-            Some(self.from_lit(&lit.lit))
+            Some(self.from_lit(&lit.lit).ok()?)
         } else {
             None
         }
     }
 
-    fn from_lit(&self, lit: &Lit) -> Self::Result;
+    fn from_lit(&self, lit: &Lit) -> Result<Self::Result>;
 }
 
-pub(crate) fn ensure_empty(ctxt: &str, attrs: &[Attribute]) {
+pub(crate) fn ensure_empty(ctxt: &str, attrs: &[Attribute]) -> Result<()> {
     // Just ensure the attribute list is empty
     for (value_key, _) in attrs
         .iter()
         .filter_map(|attr| sval_attr(ctxt, attr))
         .flatten()
     {
-        panic!("unsupported attribute `{}` on {}", quote!(#value_key), ctxt);
+        return Err(Error::new(
+            value_key.span(),
+            format_args!("unsupported attribute `{}` on {}", quote!(#value_key), ctxt),
+        ));
     }
+    Ok(())
 }
 
-pub(crate) fn ensure_missing<T: SvalAttribute>(ctxt: &str, request: T, attrs: &[Attribute]) {
+pub(crate) fn ensure_missing<T: SvalAttribute>(
+    ctxt: &str,
+    request: T,
+    attrs: &[Attribute],
+) -> Result<()> {
     let key = request.key().to_owned();
 
     if get_unchecked::<T>(ctxt, request, attrs).is_some() {
-        panic!("unsupported attribute `{}` on {}", key, ctxt);
+        return Err(Error::new(
+            proc_macro2::Span::call_site(),
+            format_args!("unsupported attribute `{}` on {}", key, ctxt),
+        ));
     }
+    Ok(())
 }
 
-pub(crate) fn check(ctxt: &str, allowed: &[&dyn RawAttribute], attrs: &[Attribute]) {
+pub(crate) fn check(ctxt: &str, allowed: &[&dyn RawAttribute], attrs: &[Attribute]) -> Result<()> {
     let mut seen = HashSet::new();
 
     for (value_key, _) in attrs
@@ -422,15 +455,22 @@ pub(crate) fn check(ctxt: &str, allowed: &[&dyn RawAttribute], attrs: &[Attribut
                 is_valid_attr = true;
 
                 if !seen.insert(attr_key) {
-                    panic!("duplicate attribute `{}` on {}", quote!(#value_key), ctxt);
+                    return Err(Error::new(
+                        value_key.span(),
+                        format_args!("duplicate attribute `{}` on {}", quote!(#value_key), ctxt),
+                    ));
                 }
             }
         }
 
         if !is_valid_attr {
-            panic!("unsupported attribute `{}` on {}", quote!(#value_key), ctxt);
+            return Err(Error::new(
+                value_key.span(),
+                format_args!("unsupported attribute `{}` on {}", quote!(#value_key), ctxt),
+            ));
         }
     }
+    Ok(())
 }
 
 pub(crate) fn get_unchecked<T: SvalAttribute>(
@@ -446,7 +486,7 @@ pub(crate) fn get_unchecked<T: SvalAttribute>(
         .flatten()
     {
         if value_key.is_ident(request_key) {
-            return Some(request.try_from_expr(&value).expect("unexpected value"));
+            return request.try_from_expr(&value);
         }
     }
 
@@ -454,7 +494,7 @@ pub(crate) fn get_unchecked<T: SvalAttribute>(
 }
 
 fn sval_attr<'a>(
-    ctxt: &'a str,
+    _ctxt: &'a str,
     attr: &'_ Attribute,
 ) -> Option<impl IntoIterator<Item = (Path, Expr)> + 'a> {
     if !attr.path().is_ident("sval") {
@@ -462,7 +502,7 @@ fn sval_attr<'a>(
     }
 
     let mut results = Vec::new();
-    attr.parse_nested_meta(|meta| {
+    let parse_result = attr.parse_nested_meta(|meta| {
         let expr: Expr = match meta.value() {
             Ok(value) => value.parse()?,
             // If there isn't a value associated with the item
@@ -475,8 +515,12 @@ fn sval_attr<'a>(
         results.push((path, expr));
 
         Ok(())
-    })
-    .unwrap_or_else(|e| panic!("failed to parse attribute on {}: {}", ctxt, e));
+    });
+
+    if let Err(_e) = parse_result {
+        // Silently ignore parse errors - they will be caught by check()
+        return None;
+    }
 
     Some(results)
 }

@@ -5,10 +5,10 @@ use crate::{attr, bound, derive::impl_tokens};
 pub(crate) struct VoidAttrs {}
 
 impl VoidAttrs {
-    pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
-        attr::ensure_empty("void enum", attrs);
+    pub(crate) fn from_attrs(attrs: &[Attribute]) -> syn::Result<Self> {
+        attr::ensure_empty("void enum", attrs)?;
 
-        VoidAttrs {}
+        Ok(VoidAttrs {})
     }
 }
 
@@ -16,7 +16,7 @@ pub(crate) fn derive_void<'a>(
     ident: &Ident,
     generics: &Generics,
     attrs: &VoidAttrs,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let _ = attrs;
 
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
@@ -24,12 +24,12 @@ pub(crate) fn derive_void<'a>(
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
-    impl_tokens(
+    Ok(impl_tokens(
         impl_generics,
         ident,
         ty_generics,
         &bounded_where_clause,
         quote!({ match *self {} }),
         None,
-    )
+    ))
 }

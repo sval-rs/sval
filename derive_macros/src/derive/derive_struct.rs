@@ -18,7 +18,7 @@ pub(crate) struct StructAttrs {
 }
 
 impl StructAttrs {
-    pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
+    pub(crate) fn from_attrs(attrs: &[Attribute]) -> syn::Result<Self> {
         attr::check(
             "struct",
             &[
@@ -29,7 +29,7 @@ impl StructAttrs {
                 &attr::UnindexedFieldsAttr,
             ],
             attrs,
-        );
+        )?;
 
         let tag = attr::get_unchecked("struct", attr::TagAttr, attrs);
         let label = attr::get_unchecked("struct", attr::LabelAttr, attrs);
@@ -40,13 +40,13 @@ impl StructAttrs {
         let unindexed_fields =
             attr::get_unchecked("struct", attr::UnindexedFieldsAttr, attrs).unwrap_or(false);
 
-        StructAttrs {
+        Ok(StructAttrs {
             tag,
             label,
             index,
             unlabeled_fields,
             unindexed_fields,
-        }
+        })
     }
 
     pub(crate) fn tag(&self) -> Option<&Path> {
@@ -75,7 +75,7 @@ pub(crate) fn derive_struct<'a>(
     generics: &Generics,
     fields: &Fields,
     attrs: &StructAttrs,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
@@ -84,7 +84,10 @@ pub(crate) fn derive_struct<'a>(
     let (fields, target) = match fields {
         Fields::Named(ref fields) => (&fields.named, RecordTupleTarget::named_fields()),
         Fields::Unnamed(ref fields) => (&fields.unnamed, RecordTupleTarget::unnamed_fields()),
-        _ => unreachable!(),
+        Fields::Unit => {
+            // Unreachable: unit structs are handled separately in derive()
+            unreachable!()
+        }
     };
 
     let match_arm = stream_record_tuple(
@@ -96,11 +99,11 @@ pub(crate) fn derive_struct<'a>(
         attrs.index(),
         attrs.unlabeled_fields(),
         attrs.unindexed_fields(),
-    );
+    )?;
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    impl_tokens(
+    Ok(impl_tokens(
         impl_generics,
         ident,
         ty_generics,
@@ -113,5 +116,5 @@ pub(crate) fn derive_struct<'a>(
             sval::__private::result::Result::Ok(())
         }),
         Some(tag),
-    )
+    ))
 }

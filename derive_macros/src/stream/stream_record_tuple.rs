@@ -1,4 +1,4 @@
-use syn::{spanned::Spanned, Field, Ident, Path};
+use syn::{spanned::Spanned, Error, Field, Ident, Path};
 
 use crate::label::{optional_label_or_ident, Label, LabelValue};
 use crate::{
@@ -34,7 +34,7 @@ pub(crate) fn stream_record_tuple<'a>(
     index: Option<Index>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let tag = quote_optional_tag(tag);
     let label = quote_optional_label(label);
     let index = quote_optional_index(index);
@@ -64,7 +64,7 @@ pub(crate) fn stream_record_tuple<'a>(
                 &attr::FlattenAttr,
             ],
             &field.attrs,
-        );
+        )?;
 
         let i = syn::Index::from(i);
 
@@ -80,7 +80,7 @@ pub(crate) fn stream_record_tuple<'a>(
         );
 
         let label = if unlabeled_fields {
-            attr::ensure_missing("struct field", attr::LabelAttr, &field.attrs);
+            attr::ensure_missing("struct field", attr::LabelAttr, &field.attrs)?;
 
             None
         } else {
@@ -91,7 +91,7 @@ pub(crate) fn stream_record_tuple<'a>(
         };
 
         let index = if unindexed_fields {
-            attr::ensure_missing("struct field", attr::IndexAttr, &field.attrs);
+            attr::ensure_missing("struct field", attr::IndexAttr, &field.attrs)?;
 
             None
         } else {
@@ -192,14 +192,18 @@ pub(crate) fn stream_record_tuple<'a>(
         field_count += 1;
     }
 
-    assert!(
-        labeled_field_count == 0 || labeled_field_count == field_count,
-        "if any fields have a label then all fields need one"
-    );
-    assert!(
-        indexed_field_count == 0 || indexed_field_count == field_count,
-        "if any fields have an index then all fields need one"
-    );
+    if labeled_field_count != 0 && labeled_field_count != field_count {
+        return Err(Error::new(
+            proc_macro2::Span::call_site(),
+            "if any fields have a label then all fields need one",
+        ));
+    }
+    if indexed_field_count != 0 && indexed_field_count != field_count {
+        return Err(Error::new(
+            proc_macro2::Span::call_site(),
+            "if any fields have an index then all fields need one",
+        ));
+    }
 
     let field_count = if const_size {
         quote!(sval::__private::option::Option::Some(#field_count))
@@ -207,7 +211,7 @@ pub(crate) fn stream_record_tuple<'a>(
         quote!(sval::__private::option::Option::None)
     };
 
-    match target {
+    Ok(match target {
         RecordTupleTarget::RecordTuple => {
             quote!(#path { #(#field_binding,)* } => {
                 stream.record_tuple_begin(#tag, #label, #index, #field_count)?;
@@ -260,7 +264,7 @@ pub(crate) fn stream_record_tuple<'a>(
                 stream.tagged_end(#tag, #label, #index)?;
             })
         }
-    }
+    })
 }
 
 fn get_field(index: &syn::Index, field: &Field) -> (Ident, proc_macro2::TokenStream) {

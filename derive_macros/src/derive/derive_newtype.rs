@@ -1,4 +1,4 @@
-use syn::{Attribute, Field, Generics, Ident, Path};
+use syn::{Attribute, Error, Field, Generics, Ident, Path};
 
 use crate::{
     attr, bound,
@@ -17,7 +17,7 @@ pub(crate) struct NewtypeAttrs {
 }
 
 impl NewtypeAttrs {
-    pub(crate) fn from_attrs(attrs: &[Attribute]) -> Self {
+    pub(crate) fn from_attrs(attrs: &[Attribute]) -> syn::Result<Self> {
         attr::check(
             "newtype",
             &[
@@ -27,7 +27,7 @@ impl NewtypeAttrs {
                 &attr::TransparentAttr,
             ],
             attrs,
-        );
+        )?;
 
         let tag = attr::get_unchecked("newtype", attr::TagAttr, attrs);
         let label = attr::get_unchecked("newtype", attr::LabelAttr, attrs);
@@ -36,17 +36,32 @@ impl NewtypeAttrs {
             attr::get_unchecked("newtype", attr::TransparentAttr, attrs).unwrap_or(false);
 
         if transparent {
-            assert!(tag.is_none(), "transparent values cannot have tags");
-            assert!(label.is_none(), "transparent values cannot have labels");
-            assert!(index.is_none(), "transparent values cannot have indexes");
+            if tag.is_some() {
+                return Err(Error::new(
+                    proc_macro2::Span::call_site(),
+                    "transparent values cannot have tags",
+                ));
+            }
+            if label.is_some() {
+                return Err(Error::new(
+                    proc_macro2::Span::call_site(),
+                    "transparent values cannot have labels",
+                ));
+            }
+            if index.is_some() {
+                return Err(Error::new(
+                    proc_macro2::Span::call_site(),
+                    "transparent values cannot have indexes",
+                ));
+            }
         }
 
-        NewtypeAttrs {
+        Ok(NewtypeAttrs {
             tag,
             label,
             index,
             transparent,
-        }
+        })
     }
 
     pub(crate) fn tag(&self) -> Option<&Path> {
@@ -71,7 +86,7 @@ pub(crate) fn derive_newtype<'a>(
     generics: &Generics,
     field: &Field,
     attrs: &NewtypeAttrs,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
     let bound = parse_quote!(sval::Value);
@@ -84,11 +99,11 @@ pub(crate) fn derive_newtype<'a>(
         Some(label_or_ident(attrs.label(), ident)),
         attrs.index(),
         attrs.transparent(),
-    );
+    )?;
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    impl_tokens(
+    Ok(impl_tokens(
         impl_generics,
         ident,
         ty_generics,
@@ -101,5 +116,5 @@ pub(crate) fn derive_newtype<'a>(
             sval::__private::result::Result::Ok(())
         }),
         Some(tag),
-    )
+    ))
 }
