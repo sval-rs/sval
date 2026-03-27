@@ -1,7 +1,7 @@
-error: proc-macro derive panicked
+error: unsupported attribute `index` on struct field
  --> compile_fail/record_as_seq_incomplete_indexes.rs:3:10
   |
 3 | #[derive(Value)]
   |          ^^^^^
   |
-  = help: message: unsupported attribute `index` on struct field
+  = note: this error originates in the derive macro `Value` (in Nightly builds, run with -Z macro-backtrace for more info)

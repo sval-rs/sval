@@ -15,11 +15,11 @@ pub(crate) struct TagAttr;
 impl SvalAttribute for TagAttr {
     type Result = syn::Path;
 
-    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+    fn try_from_expr(&self, expr: &Expr) -> Result<Option<Self::Result>> {
         match expr {
-            Expr::Lit(lit) => Some(self.from_lit(&lit.lit).ok()?),
-            Expr::Path(path) => Some(path.path.clone()),
-            _ => None,
+            Expr::Lit(lit) => Ok(Some(self.from_lit(&lit.lit)?)),
+            Expr::Path(path) => Ok(Some(path.path.clone())),
+            _ => Ok(None),
         }
     }
 
@@ -53,11 +53,11 @@ pub(crate) struct DataTagAttr;
 impl SvalAttribute for DataTagAttr {
     type Result = syn::Path;
 
-    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+    fn try_from_expr(&self, expr: &Expr) -> Result<Option<Self::Result>> {
         match expr {
-            Expr::Lit(lit) => Some(self.from_lit(&lit.lit).ok()?),
-            Expr::Path(path) => Some(path.path.clone()),
-            _ => None,
+            Expr::Lit(lit) => Ok(Some(self.from_lit(&lit.lit)?)),
+            Expr::Path(path) => Ok(Some(path.path.clone())),
+            _ => Ok(None),
         }
     }
 
@@ -91,11 +91,11 @@ pub(crate) struct LabelAttr;
 impl SvalAttribute for LabelAttr {
     type Result = LabelValue;
 
-    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+    fn try_from_expr(&self, expr: &Expr) -> Result<Option<Self::Result>> {
         match expr {
-            Expr::Lit(lit) => Some(self.from_lit(&lit.lit).ok()?),
-            Expr::Path(path) => Some(LabelValue::Ident(quote!(#path))),
-            _ => None,
+            Expr::Lit(lit) => Ok(Some(self.from_lit(&lit.lit)?)),
+            Expr::Path(path) => Ok(Some(LabelValue::Ident(quote!(#path)))),
+            _ => Ok(None),
         }
     }
 
@@ -138,7 +138,7 @@ impl IndexAttr {
 impl SvalAttribute for IndexAttr {
     type Result = IndexValue;
 
-    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+    fn try_from_expr(&self, expr: &Expr) -> Result<Option<Self::Result>> {
         match expr {
             // Take `-` into account
             Expr::Unary(ExprUnary {
@@ -147,14 +147,14 @@ impl SvalAttribute for IndexAttr {
                 ..
             }) => {
                 if let Expr::Lit(ref lit) = **expr {
-                    Some(IndexValue::Const(-(self.const_from_lit(&lit.lit).ok()?)))
+                    Ok(Some(IndexValue::Const(-(self.const_from_lit(&lit.lit)?))))
                 } else {
-                    None
+                    Ok(None)
                 }
             }
-            Expr::Lit(lit) => Some(IndexValue::Const(self.const_from_lit(&lit.lit).ok()?)),
-            Expr::Path(path) => Some(IndexValue::Ident(quote!(#path))),
-            _ => None,
+            Expr::Lit(lit) => Ok(Some(IndexValue::Const(self.const_from_lit(&lit.lit)?))),
+            Expr::Path(path) => Ok(Some(IndexValue::Ident(quote!(#path)))),
+            _ => Ok(None),
         }
     }
 
@@ -396,11 +396,11 @@ pub(crate) trait RawAttribute {
 pub(crate) trait SvalAttribute: RawAttribute {
     type Result: 'static;
 
-    fn try_from_expr(&self, expr: &Expr) -> Option<Self::Result> {
+    fn try_from_expr(&self, expr: &Expr) -> Result<Option<Self::Result>> {
         if let Expr::Lit(lit) = expr {
-            Some(self.from_lit(&lit.lit).ok()?)
+            Ok(Some(self.from_lit(&lit.lit)?))
         } else {
-            None
+            Ok(None)
         }
     }
 
@@ -429,7 +429,7 @@ pub(crate) fn ensure_missing<T: SvalAttribute>(
 ) -> Result<()> {
     let key = request.key().to_owned();
 
-    if get_unchecked::<T>(ctxt, request, attrs).is_some() {
+    if get_unchecked::<T>(ctxt, request, attrs)?.is_some() {
         return Err(Error::new(
             proc_macro2::Span::call_site(),
             format_args!("unsupported attribute `{}` on {}", key, ctxt),
@@ -477,7 +477,7 @@ pub(crate) fn get_unchecked<T: SvalAttribute>(
     ctxt: &str,
     request: T,
     attrs: &[Attribute],
-) -> Option<T::Result> {
+) -> Result<Option<T::Result>> {
     let request_key = request.key();
 
     for (value_key, value) in attrs
@@ -490,7 +490,7 @@ pub(crate) fn get_unchecked<T: SvalAttribute>(
         }
     }
 
-    None
+    Ok(None)
 }
 
 fn sval_attr<'a>(

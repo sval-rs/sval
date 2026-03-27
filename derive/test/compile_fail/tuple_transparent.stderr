@@ -1,7 +1,5 @@
-error: proc-macro derive panicked
- --> compile_fail/tuple_transparent.rs:3:10
+error: unsupported attribute `transparent` on struct
+ --> compile_fail/tuple_transparent.rs:4:8
   |
-3 | #[derive(Value)]
-  |          ^^^^^
-  |
-  = help: message: unsupported attribute `transparent` on struct
+4 | #[sval(transparent)]
+  |        ^^^^^^^^^^^
