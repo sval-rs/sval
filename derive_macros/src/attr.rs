@@ -15,11 +15,14 @@ pub(crate) struct TagAttr;
 impl SvalAttribute for TagAttr {
     type Result = syn::Path;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Option<Self::Result>> {
+    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
-            Expr::Lit(lit) => Ok(Some(self.from_lit(&lit.lit)?)),
-            Expr::Path(path) => Ok(Some(path.path.clone())),
-            _ => Ok(None),
+            Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
+            Expr::Path(path) => Ok(path.path.clone()),
+            _ => Err(syn::Error::new(
+                expr.span(),
+                "invalid `tag`: expected literal or path",
+            )),
         }
     }
 
@@ -56,11 +59,14 @@ pub(crate) struct DataTagAttr;
 impl SvalAttribute for DataTagAttr {
     type Result = syn::Path;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Option<Self::Result>> {
+    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
-            Expr::Lit(lit) => Ok(Some(self.from_lit(&lit.lit)?)),
-            Expr::Path(path) => Ok(Some(path.path.clone())),
-            _ => Ok(None),
+            Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
+            Expr::Path(path) => Ok(path.path.clone()),
+            _ => Err(syn::Error::new(
+                expr.span(),
+                "invalid `data_tag`: expected literal or path",
+            )),
         }
     }
 
@@ -97,11 +103,14 @@ pub(crate) struct LabelAttr;
 impl SvalAttribute for LabelAttr {
     type Result = LabelValue;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Option<Self::Result>> {
+    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
-            Expr::Lit(lit) => Ok(Some(self.from_lit(&lit.lit)?)),
-            Expr::Path(path) => Ok(Some(LabelValue::Ident(quote!(#path)))),
-            _ => Ok(None),
+            Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
+            Expr::Path(path) => Ok(LabelValue::Ident(quote!(#path))),
+            _ => Err(syn::Error::new(
+                expr.span(),
+                "invalid `label`: expected literal or path",
+            )),
         }
     }
 
@@ -150,23 +159,29 @@ impl IndexAttr {
 impl SvalAttribute for IndexAttr {
     type Result = IndexValue;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Option<Self::Result>> {
+    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         match expr {
             // Take `-` into account
             Expr::Unary(ExprUnary {
                 op: UnOp::Neg(_),
-                expr,
+                expr: inner_expr,
                 ..
             }) => {
-                if let Expr::Lit(ref lit) = **expr {
-                    Ok(Some(IndexValue::Const(-(self.const_from_lit(&lit.lit)?))))
+                if let Expr::Lit(ref lit) = **inner_expr {
+                    Ok(IndexValue::Const(-(self.const_from_lit(&lit.lit)?)))
                 } else {
-                    Ok(None)
+                    Err(syn::Error::new(
+                        inner_expr.span(),
+                        "invalid `index`: expected integer",
+                    ))
                 }
             }
-            Expr::Lit(lit) => Ok(Some(IndexValue::Const(self.const_from_lit(&lit.lit)?))),
-            Expr::Path(path) => Ok(Some(IndexValue::Ident(quote!(#path)))),
-            _ => Ok(None),
+            Expr::Lit(lit) => Ok(IndexValue::Const(self.const_from_lit(&lit.lit)?)),
+            Expr::Path(path) => Ok(IndexValue::Ident(quote!(#path))),
+            _ => Err(syn::Error::new(
+                expr.span(),
+                "invalid `index`: expected literal, path, or integer",
+            )),
         }
     }
 
@@ -416,11 +431,14 @@ pub(crate) trait RawAttribute {
 pub(crate) trait SvalAttribute: RawAttribute {
     type Result: 'static;
 
-    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Option<Self::Result>> {
+    fn try_from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         if let Expr::Lit(lit) = expr {
-            Ok(Some(self.from_lit(&lit.lit)?))
+            Ok(self.from_lit(&lit.lit)?)
         } else {
-            Ok(None)
+            Err(syn::Error::new(
+                expr.span(),
+                format_args!("invalid {}: expected literal", self.key()),
+            ))
         }
     }
 
@@ -452,7 +470,7 @@ pub(crate) fn ensure_missing<T: SvalAttribute>(
 ) -> syn::Result<()> {
     let key = request.key().to_owned();
 
-    if get_unchecked::<T>(ctxt, request, attrs)?.is_some() {
+    if get::<T>(ctxt, request, attrs)?.is_some() {
         return Err(syn::Error::new(
             proc_macro2::Span::call_site(),
             format_args!("unsupported attribute `{}` on {}", key, ctxt),
@@ -462,6 +480,10 @@ pub(crate) fn ensure_missing<T: SvalAttribute>(
     Ok(())
 }
 
+/**
+Check the set of attributes, failing if any are duplicated, or aren't known or supported by
+the derive context.
+*/
 pub(crate) fn check(
     ctxt: &str,
     allowed: &[&dyn RawAttribute],
@@ -508,7 +530,13 @@ pub(crate) fn check(
     Ok(())
 }
 
-pub(crate) fn get_unchecked<T: SvalAttribute>(
+/**
+Get the value of an attribute, without checking the set itself for validity.
+
+This function will still fail if the requested attribute is invalid, but won't
+handle duplicates, which are expected to have been caught by an earlier call to `check`.
+*/
+pub(crate) fn get<T: SvalAttribute>(
     ctxt: &str,
     request: T,
     attrs: &[Attribute],
@@ -522,7 +550,7 @@ pub(crate) fn get_unchecked<T: SvalAttribute>(
 
         for (value_key, value) in meta {
             if value_key.is_ident(request_key) {
-                return request.try_from_expr(&value);
+                return Ok(Some(request.try_from_expr(&value)?));
             }
         }
     }

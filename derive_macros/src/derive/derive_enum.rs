@@ -37,14 +37,14 @@ impl EnumAttrs {
             attrs,
         )?;
 
-        let tag = attr::get_unchecked("enum", attr::TagAttr, attrs)?;
-        let label = attr::get_unchecked("enum", attr::LabelAttr, attrs)?;
-        let index = attr::get_unchecked("enum", attr::IndexAttr, attrs)?;
+        let tag = attr::get("enum", attr::TagAttr, attrs)?;
+        let label = attr::get("enum", attr::LabelAttr, attrs)?;
+        let index = attr::get("enum", attr::IndexAttr, attrs)?;
         let unlabeled_variants =
-            attr::get_unchecked("enum", attr::UnlabeledVariantsAttr, attrs)?.unwrap_or(false);
+            attr::get("enum", attr::UnlabeledVariantsAttr, attrs)?.unwrap_or(false);
         let unindexed_variants =
-            attr::get_unchecked("enum", attr::UnindexedVariantsAttr, attrs)?.unwrap_or(false);
-        let dynamic = attr::get_unchecked("enum", attr::DynamicAttr, attrs)?.unwrap_or(false);
+            attr::get("enum", attr::UnindexedVariantsAttr, attrs)?.unwrap_or(false);
+        let dynamic = attr::get("enum", attr::DynamicAttr, attrs)?.unwrap_or(false);
 
         if dynamic {
             if tag.is_some() {
@@ -163,7 +163,7 @@ pub(crate) fn derive_enum<'a>(
         )?;
 
         let discriminant = if let Some((_, discriminant)) = &variant.discriminant {
-            attr::IndexAttr.try_from_expr(discriminant)?
+            Some(attr::IndexAttr.try_from_expr(discriminant)?)
         } else {
             None
         };

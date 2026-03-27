@@ -29,11 +29,10 @@ impl NewtypeAttrs {
             attrs,
         )?;
 
-        let tag = attr::get_unchecked("newtype", attr::TagAttr, attrs)?;
-        let label = attr::get_unchecked("newtype", attr::LabelAttr, attrs)?;
-        let index = attr::get_unchecked("newtype", attr::IndexAttr, attrs)?;
-        let transparent =
-            attr::get_unchecked("newtype", attr::TransparentAttr, attrs)?.unwrap_or(false);
+        let tag = attr::get("newtype", attr::TagAttr, attrs)?;
+        let label = attr::get("newtype", attr::LabelAttr, attrs)?;
+        let index = attr::get("newtype", attr::IndexAttr, attrs)?;
+        let transparent = attr::get("newtype", attr::TransparentAttr, attrs)?.unwrap_or(false);
 
         if transparent {
             if tag.is_some() {

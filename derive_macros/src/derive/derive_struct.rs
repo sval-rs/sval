@@ -31,14 +31,14 @@ impl StructAttrs {
             attrs,
         )?;
 
-        let tag = attr::get_unchecked("struct", attr::TagAttr, attrs)?;
-        let label = attr::get_unchecked("struct", attr::LabelAttr, attrs)?;
-        let index = attr::get_unchecked("struct", attr::IndexAttr, attrs)?;
+        let tag = attr::get("struct", attr::TagAttr, attrs)?;
+        let label = attr::get("struct", attr::LabelAttr, attrs)?;
+        let index = attr::get("struct", attr::IndexAttr, attrs)?;
 
         let unlabeled_fields =
-            attr::get_unchecked("struct", attr::UnlabeledFieldsAttr, attrs)?.unwrap_or(false);
+            attr::get("struct", attr::UnlabeledFieldsAttr, attrs)?.unwrap_or(false);
         let unindexed_fields =
-            attr::get_unchecked("struct", attr::UnindexedFieldsAttr, attrs)?.unwrap_or(false);
+            attr::get("struct", attr::UnindexedFieldsAttr, attrs)?.unwrap_or(false);
 
         Ok(StructAttrs {
             tag,

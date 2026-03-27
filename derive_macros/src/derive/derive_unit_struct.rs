@@ -23,9 +23,9 @@ impl UnitStructAttrs {
             attrs,
         )?;
 
-        let tag = attr::get_unchecked("unit struct", attr::TagAttr, attrs)?;
-        let label = attr::get_unchecked("unit struct", attr::LabelAttr, attrs)?;
-        let index = attr::get_unchecked("unit struct", attr::IndexAttr, attrs)?;
+        let tag = attr::get("unit struct", attr::TagAttr, attrs)?;
+        let label = attr::get("unit struct", attr::LabelAttr, attrs)?;
+        let index = attr::get("unit struct", attr::IndexAttr, attrs)?;
 
         Ok(UnitStructAttrs { tag, label, index })
     }
