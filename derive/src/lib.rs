@@ -58,4 +58,7 @@ pub use sval_derive_macros::*;
 pub mod extensions {
     #[cfg(feature = "flatten")]
     pub use sval_flatten as flatten;
+
+    #[cfg(feature = "ref")]
+    pub use sval_ref as value_ref;
 }

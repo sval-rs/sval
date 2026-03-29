@@ -2,7 +2,7 @@ use syn::{Attribute, Generics, Ident, Path};
 
 use crate::{
     attr, bound,
-    derive::impl_tokens,
+    derive::{self, ImplTokens},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::stream_tag,
@@ -13,21 +13,33 @@ pub(crate) struct UnitStructAttrs {
     tag: Option<Path>,
     label: Option<LabelValue>,
     index: Option<IndexValue>,
+    lifetime: Option<derive::LifetimeValue>,
 }
 
 impl UnitStructAttrs {
     pub(crate) fn from_attrs(attrs: &[Attribute]) -> syn::Result<Self> {
         attr::check(
             "unit struct",
-            &[&attr::TagAttr, &attr::LabelAttr, &attr::IndexAttr],
+            &[
+                &attr::TagAttr,
+                &attr::LabelAttr,
+                &attr::IndexAttr,
+                &attr::LifetimeAttr,
+            ],
             attrs,
         )?;
 
         let tag = attr::get("unit struct", attr::TagAttr, attrs)?;
         let label = attr::get("unit struct", attr::LabelAttr, attrs)?;
         let index = attr::get("unit struct", attr::IndexAttr, attrs)?;
+        let lifetime = attr::get("unit struct", attr::LifetimeAttr, attrs)?;
 
-        Ok(UnitStructAttrs { tag, label, index })
+        Ok(UnitStructAttrs {
+            tag,
+            label,
+            index,
+            lifetime,
+        })
     }
 
     pub(crate) fn tag(&self) -> Option<&Path> {
@@ -41,9 +53,13 @@ impl UnitStructAttrs {
     pub(crate) fn index(&self) -> Option<Index> {
         self.index.clone().map(IndexAllocator::const_index_of)
     }
+
+    pub(crate) fn lifetime(&self) -> Option<derive::LifetimeValue> {
+        self.lifetime.clone()
+    }
 }
 
-pub(crate) fn derive_unit_struct<'a>(
+pub(crate) fn derive_unit_struct<'a, T: ImplTokens>(
     ident: &Ident,
     generics: &Generics,
     attrs: &UnitStructAttrs,
@@ -62,11 +78,12 @@ pub(crate) fn derive_unit_struct<'a>(
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    Ok(impl_tokens(
+    Ok(T::impl_tokens(
         impl_generics,
         ident,
         ty_generics,
         &bounded_where_clause,
+        attrs.lifetime(),
         quote!({
             match self {
                 #match_arm

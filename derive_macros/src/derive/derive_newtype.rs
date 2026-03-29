@@ -2,7 +2,7 @@ use syn::{Attribute, Field, Generics, Ident, Path};
 
 use crate::{
     attr, bound,
-    derive::impl_tokens,
+    derive::{self, ImplTokens},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::stream_newtype,
@@ -14,6 +14,7 @@ pub(crate) struct NewtypeAttrs {
     label: Option<LabelValue>,
     index: Option<IndexValue>,
     transparent: bool,
+    lifetime: Option<derive::LifetimeValue>,
 }
 
 impl NewtypeAttrs {
@@ -25,6 +26,7 @@ impl NewtypeAttrs {
                 &attr::LabelAttr,
                 &attr::IndexAttr,
                 &attr::TransparentAttr,
+                &attr::LifetimeAttr,
             ],
             attrs,
         )?;
@@ -33,6 +35,7 @@ impl NewtypeAttrs {
         let label = attr::get("newtype", attr::LabelAttr, attrs)?;
         let index = attr::get("newtype", attr::IndexAttr, attrs)?;
         let transparent = attr::get("newtype", attr::TransparentAttr, attrs)?.unwrap_or(false);
+        let lifetime = attr::get("newtype", attr::LifetimeAttr, attrs)?;
 
         if transparent {
             if tag.is_some() {
@@ -60,6 +63,7 @@ impl NewtypeAttrs {
             label,
             index,
             transparent,
+            lifetime,
         })
     }
 
@@ -78,9 +82,13 @@ impl NewtypeAttrs {
     pub(crate) fn transparent(&self) -> bool {
         self.transparent
     }
+
+    pub(crate) fn lifetime(&self) -> Option<derive::LifetimeValue> {
+        self.lifetime.clone()
+    }
 }
 
-pub(crate) fn derive_newtype<'a>(
+pub(crate) fn derive_newtype<'a, T: ImplTokens>(
     ident: &Ident,
     generics: &Generics,
     field: &Field,
@@ -102,11 +110,12 @@ pub(crate) fn derive_newtype<'a>(
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    Ok(impl_tokens(
+    Ok(T::impl_tokens(
         impl_generics,
         ident,
         ty_generics,
         &bounded_where_clause,
+        attrs.lifetime(),
         quote!({
             match self {
                 #match_arm

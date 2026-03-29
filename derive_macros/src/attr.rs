@@ -424,6 +424,43 @@ impl RawAttribute for FlattenAttr {
     }
 }
 
+/**
+The `lifetime` attribute.
+
+This attribute specifies a lifetime to use for `ValueRef` derive.
+*/
+pub(crate) struct LifetimeAttr;
+
+impl SvalAttribute for LifetimeAttr {
+    type Result = crate::derive::LifetimeValue;
+
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+        match expr {
+            Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
+            _ => Err(syn::Error::new(
+                expr.span(),
+                "invalid `lifetime`: expected string literal",
+            )),
+        }
+    }
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        match lit {
+            Lit::Str(s) => syn::parse_str(&s.value()),
+            _ => Err(syn::Error::new(
+                lit.span(),
+                "invalid `lifetime`: expected string literal",
+            )),
+        }
+    }
+}
+
+impl RawAttribute for LifetimeAttr {
+    fn key(&self) -> &str {
+        "lifetime"
+    }
+}
+
 pub(crate) trait RawAttribute {
     fn key(&self) -> &str;
 }

@@ -5,7 +5,7 @@ use crate::{
     bound,
     derive::{
         derive_newtype::NewtypeAttrs, derive_struct::StructAttrs,
-        derive_unit_struct::UnitStructAttrs, impl_tokens,
+        derive_unit_struct::UnitStructAttrs, ImplTokens,
     },
     index::{quote_optional_index, Index, IndexAllocator, IndexValue},
     label::{label_or_ident, quote_optional_label, LabelValue},
@@ -20,6 +20,7 @@ pub(crate) struct EnumAttrs {
     unlabeled_variants: bool,
     unindexed_variants: bool,
     dynamic: bool,
+    lifetime: Option<crate::derive::LifetimeValue>,
 }
 
 impl EnumAttrs {
@@ -33,6 +34,7 @@ impl EnumAttrs {
                 &attr::DynamicAttr,
                 &attr::UnlabeledVariantsAttr,
                 &attr::UnindexedVariantsAttr,
+                &attr::LifetimeAttr,
             ],
             attrs,
         )?;
@@ -45,6 +47,7 @@ impl EnumAttrs {
         let unindexed_variants =
             attr::get("enum", attr::UnindexedVariantsAttr, attrs)?.unwrap_or(false);
         let dynamic = attr::get("enum", attr::DynamicAttr, attrs)?.unwrap_or(false);
+        let lifetime = attr::get("enum", attr::LifetimeAttr, attrs)?;
 
         if dynamic {
             if tag.is_some() {
@@ -87,6 +90,7 @@ impl EnumAttrs {
             unlabeled_variants,
             unindexed_variants,
             dynamic,
+            lifetime,
         })
     }
 
@@ -101,9 +105,13 @@ impl EnumAttrs {
     pub(crate) fn index(&self) -> Option<Index> {
         self.index.clone().map(IndexAllocator::const_index_of)
     }
+
+    pub(crate) fn lifetime(&self) -> Option<crate::derive::LifetimeValue> {
+        self.lifetime.clone()
+    }
 }
 
-pub(crate) fn derive_enum<'a>(
+pub(crate) fn derive_enum<'a, T: ImplTokens>(
     ident: &Ident,
     generics: &Generics,
     variants: impl Iterator<Item = &'a Variant> + 'a,
@@ -225,11 +233,12 @@ pub(crate) fn derive_enum<'a>(
     }
 
     Ok(if attrs.dynamic {
-        impl_tokens(
+        T::impl_tokens(
             impl_generics,
             ident,
             ty_generics,
             &bounded_where_clause,
+            attrs.lifetime(),
             quote!({
                 match self {
                     #(#variant_match_arms)*
@@ -245,11 +254,12 @@ pub(crate) fn derive_enum<'a>(
         let label = quote_optional_label(Some(label_or_ident(attrs.label(), ident)));
         let index = quote_optional_index(attrs.index());
 
-        impl_tokens(
+        T::impl_tokens(
             impl_generics,
             ident,
             ty_generics,
             &bounded_where_clause,
+            attrs.lifetime(),
             quote!({
                 stream.enum_begin(#tag, #label, #index)?;
 

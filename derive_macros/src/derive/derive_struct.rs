@@ -2,7 +2,7 @@ use syn::{Attribute, Fields, Generics, Ident, Path};
 
 use crate::{
     attr, bound,
-    derive::impl_tokens,
+    derive::{self, ImplTokens},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::{stream_record_tuple, RecordTupleTarget},
@@ -15,6 +15,7 @@ pub(crate) struct StructAttrs {
     index: Option<IndexValue>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
+    lifetime: Option<derive::LifetimeValue>,
 }
 
 impl StructAttrs {
@@ -27,6 +28,7 @@ impl StructAttrs {
                 &attr::IndexAttr,
                 &attr::UnlabeledFieldsAttr,
                 &attr::UnindexedFieldsAttr,
+                &attr::LifetimeAttr,
             ],
             attrs,
         )?;
@@ -39,6 +41,7 @@ impl StructAttrs {
             attr::get("struct", attr::UnlabeledFieldsAttr, attrs)?.unwrap_or(false);
         let unindexed_fields =
             attr::get("struct", attr::UnindexedFieldsAttr, attrs)?.unwrap_or(false);
+        let lifetime = attr::get("struct", attr::LifetimeAttr, attrs)?;
 
         Ok(StructAttrs {
             tag,
@@ -46,6 +49,7 @@ impl StructAttrs {
             index,
             unlabeled_fields,
             unindexed_fields,
+            lifetime,
         })
     }
 
@@ -68,9 +72,13 @@ impl StructAttrs {
     pub(crate) fn unindexed_fields(&self) -> bool {
         self.unindexed_fields
     }
+
+    pub(crate) fn lifetime(&self) -> Option<derive::LifetimeValue> {
+        self.lifetime.clone()
+    }
 }
 
-pub(crate) fn derive_struct<'a>(
+pub(crate) fn derive_struct<'a, T: ImplTokens>(
     ident: &Ident,
     generics: &Generics,
     fields: &Fields,
@@ -103,11 +111,12 @@ pub(crate) fn derive_struct<'a>(
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    Ok(impl_tokens(
+    Ok(T::impl_tokens(
         impl_generics,
         ident,
         ty_generics,
         &bounded_where_clause,
+        attrs.lifetime(),
         quote!({
             match self {
                 #match_arm

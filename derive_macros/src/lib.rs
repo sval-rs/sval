@@ -20,7 +20,17 @@ use syn::DeriveInput;
 pub fn derive_value(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    match derive::derive(input) {
+    match derive::derive_value(input) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_derive(ValueRef, attributes(sval))]
+pub fn derive_value_ref(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    match derive::derive_value_ref(input) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
