@@ -14,6 +14,9 @@ features = ["flatten", "ref"]
 [dependencies.sval]
 path = "../../"
 
+[dependencies.sval_ref]
+path = "../../ref"
+
 [dependencies.sval_test]
 path = "../../test"
 

@@ -1,7 +1,206 @@
 #![cfg(test)]
 
-use sval_derive::Value;
+use sval_derive::{Value, ValueRef};
 use sval_test::assert_tokens;
+
+mod derive_value_ref {
+    use super::*;
+
+    #[allow(unused_imports)]
+    use crate::shadow::*;
+
+    #[test]
+    fn single_lifetime() {
+        //#[derive(Value, ValueRef)]
+        //#[sval(lifetime = "'x")]
+        struct MyRef<'x> {
+            data: &'x str,
+        }
+
+        /*
+        This doesn't work yet; we can't exactly re-use the same infra for `Value`
+        and `ValueRef` here.
+
+        For `ValueRef`, we need to stream fields as computed unless we detect or
+        signal that it should be a ref. We could try detect, and bail requiring an
+        explicit attribute if we can't.
+        */
+        const _: () = {
+            extern crate sval;
+            impl<'x> sval::Value for MyRef<'x> {
+                fn stream<'sval, __SvalStream: sval::Stream<'sval> + ?Sized>(
+                    &'sval self,
+                    stream: &mut __SvalStream,
+                ) -> sval::Result {
+                    {
+                        match self {
+                            MyRef { data: ref field0 } => {
+                                stream.record_tuple_begin(
+                                    sval::__private::option::Option::None,
+                                    sval::__private::option::Option::Some(
+                                        &sval::Label::new("MyRef")
+                                            .with_tag(&sval::tags::VALUE_IDENT),
+                                    ),
+                                    sval::__private::option::Option::None,
+                                    sval::__private::option::Option::Some(1usize),
+                                )?;
+                                let mut __sval_index = 0;
+                                {
+                                    let __sval_index = &sval::Index::from({
+                                        let index = __sval_index;
+                                        __sval_index += 1;
+                                        index
+                                    })
+                                    .with_tag(&sval::tags::VALUE_OFFSET);
+                                    let __sval_label = &sval::Label::new("data")
+                                        .with_tag(&sval::tags::VALUE_IDENT);
+                                    stream.record_tuple_value_begin(
+                                        sval::__private::option::Option::None,
+                                        __sval_label,
+                                        __sval_index,
+                                    )?;
+                                    stream.value(field0)?;
+                                    stream.record_tuple_value_end(
+                                        sval::__private::option::Option::None,
+                                        __sval_label,
+                                        __sval_index,
+                                    )?;
+                                }
+                                stream.record_tuple_end(
+                                    sval::__private::option::Option::None,
+                                    sval::__private::option::Option::Some(
+                                        &sval::Label::new("MyRef")
+                                            .with_tag(&sval::tags::VALUE_IDENT),
+                                    ),
+                                    sval::__private::option::Option::None,
+                                )?;
+                            }
+                        }
+                        sval::__private::result::Result::Ok(())
+                    }
+                }
+                fn tag(&self) -> sval::__private::option::Option<sval::Tag> {
+                    sval::__private::option::Option::None
+                }
+            }
+        };
+        const _: () = {
+            extern crate sval;
+            impl<'x> sval_derive::extensions::value_ref::ValueRef<'x> for MyRef<'x> {
+                fn stream_ref<__S: sval::Stream<'x> + ?Sized>(
+                    &self,
+                    stream: &mut __S,
+                ) -> sval::Result {
+                    {
+                        match *self {
+                            MyRef { data: ref field0 } => {
+                                stream.record_tuple_begin(
+                                    sval::__private::option::Option::None,
+                                    sval::__private::option::Option::Some(
+                                        &sval::Label::new("MyRef")
+                                            .with_tag(&sval::tags::VALUE_IDENT),
+                                    ),
+                                    sval::__private::option::Option::None,
+                                    sval::__private::option::Option::Some(1usize),
+                                )?;
+                                let mut __sval_index = 0;
+                                {
+                                    let __sval_index = &sval::Index::from({
+                                        let index = __sval_index;
+                                        __sval_index += 1;
+                                        index
+                                    })
+                                    .with_tag(&sval::tags::VALUE_OFFSET);
+                                    let __sval_label = &sval::Label::new("data")
+                                        .with_tag(&sval::tags::VALUE_IDENT);
+                                    stream.record_tuple_value_begin(
+                                        sval::__private::option::Option::None,
+                                        __sval_label,
+                                        __sval_index,
+                                    )?;
+                                    // TODO: Needs to emit `value_computed` unless we have a `#[sval(stream_ref)]` or similar
+                                    stream.value_computed(field0)?;
+                                    // stream.value(*field0)?;
+                                    stream.record_tuple_value_end(
+                                        sval::__private::option::Option::None,
+                                        __sval_label,
+                                        __sval_index,
+                                    )?;
+                                }
+                                stream.record_tuple_end(
+                                    sval::__private::option::Option::None,
+                                    sval::__private::option::Option::Some(
+                                        &sval::Label::new("MyRef")
+                                            .with_tag(&sval::tags::VALUE_IDENT),
+                                    ),
+                                    sval::__private::option::Option::None,
+                                )?;
+                            }
+                        }
+                        sval::__private::result::Result::Ok(())
+                    }
+                }
+            }
+        };
+    }
+
+    /*
+    #[test]
+    fn bounded_lifetime() {
+        #[derive(ValueRef)]
+        #[sval(lifetime = "'x: 'a + 'b")]
+        struct MyRef<'a, 'b> {
+            a: &'a str,
+            b: &'b str,
+        }
+
+        let a: &'static str = "hello";
+        let b: &'static str = "world";
+        let value = MyRef { a, b };
+        assert_tokens_ref(&value, {
+            &[
+                Token::RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("MyRef")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                Token::RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                Token::TextBegin(::std::option::Option::Some(5)),
+                Token::TextFragment("hello"),
+                Token::TextEnd,
+                Token::RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                Token::RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                Token::TextBegin(::std::option::Option::Some(5)),
+                Token::TextFragment("world"),
+                Token::TextEnd,
+                Token::RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                Token::RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("MyRef")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        });
+    }
+    */
+}
 
 mod derive_struct {
     use super::*;
