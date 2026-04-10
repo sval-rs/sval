@@ -424,6 +424,179 @@ impl RawAttribute for FlattenAttr {
     }
 }
 
+/**
+The `ref` attribute for enabling ValueRef derive.
+*/
+pub(crate) struct RefAttr;
+
+impl SvalAttribute for RefAttr {
+    type Result = RefAttrValue;
+
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+        match expr {
+            Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
+            Expr::Path(_) => Ok(RefAttrValue::Infer),
+            _ => Err(syn::Error::new(
+                expr.span(),
+                "invalid `ref`: expected lifetime or path",
+            )),
+        }
+    }
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        match lit {
+            Lit::Str(s) => {
+                // Use syn's parser to parse lifetime and optional bounds
+                // Format: "'a" or "'c: 'a + 'b"
+                let spec: RefLifetimeSpec = s.parse().map_err(|e| {
+                    let mut r = syn::Error::new(
+                        s.span(),
+                        "invalid `ref`: expected lifetime or lifetime with bounds",
+                    );
+                    r.combine(e);
+                    r
+                })?;
+                Ok(RefAttrValue::Explicit(spec))
+            }
+            _ => Err(syn::Error::new(
+                lit.span(),
+                "invalid `ref`: expected string literal",
+            )),
+        }
+    }
+}
+
+impl RawAttribute for RefAttr {
+    fn key(&self) -> &str {
+        "ref"
+    }
+}
+
+/**
+Parsed value for the `ref` attribute.
+*/
+#[derive(Clone)]
+pub(crate) enum RefAttrValue {
+    /**
+    Infer lifetime from the type's single lifetime parameter.
+    */
+    Infer,
+    /**
+    Explicit lifetime with optional bounds (e.g., "'a" or "'c: 'a + 'b").
+    */
+    Explicit(RefLifetimeSpec),
+}
+
+impl RefAttrValue {
+    pub(crate) fn lifetime_spec(&self) -> Option<&RefLifetimeSpec> {
+        let RefAttrValue::Explicit(spec) = self else {
+            return None;
+        };
+
+        Some(spec)
+    }
+}
+
+/**
+A lifetime specification with optional bounds.
+*/
+#[derive(Clone)]
+pub(crate) struct RefLifetimeSpec {
+    pub(crate) lifetime: syn::Lifetime,
+    pub(crate) bounds: Option<syn::WhereClause>,
+}
+
+impl syn::parse::Parse for RefLifetimeSpec {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let lifetime: syn::Lifetime = input.parse()?;
+
+        let bounds = if input.peek(Token![:]) {
+            let _colon: Token![:] = input.parse()?;
+            let bounds: syn::WhereClause = input.parse()?;
+            Some(bounds)
+        } else {
+            None
+        };
+
+        Ok(RefLifetimeSpec { lifetime, bounds })
+    }
+}
+
+/**
+The `outer_ref` attribute for fields.
+*/
+pub(crate) struct OuterRefAttr;
+
+impl SvalAttribute for OuterRefAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(syn::Error::new(
+                lit.span(),
+                "invalid `outer_ref`: expected boolean",
+            )),
+        }
+    }
+}
+
+impl RawAttribute for OuterRefAttr {
+    fn key(&self) -> &str {
+        "outer_ref"
+    }
+}
+
+/**
+The `inner_ref` attribute for fields.
+*/
+pub(crate) struct InnerRefAttr;
+
+impl SvalAttribute for InnerRefAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(syn::Error::new(
+                lit.span(),
+                "invalid `inner_ref`: expected boolean",
+            )),
+        }
+    }
+}
+
+impl RawAttribute for InnerRefAttr {
+    fn key(&self) -> &str {
+        "inner_ref"
+    }
+}
+
+/**
+The `computed` attribute for fields.
+*/
+pub(crate) struct ComputedAttr;
+
+impl SvalAttribute for ComputedAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) => Ok(b.value),
+            _ => Err(syn::Error::new(
+                lit.span(),
+                "invalid `computed`: expected boolean",
+            )),
+        }
+    }
+}
+
+impl RawAttribute for ComputedAttr {
+    fn key(&self) -> &str {
+        "computed"
+    }
+}
+
 pub(crate) trait RawAttribute {
     fn key(&self) -> &str;
 }

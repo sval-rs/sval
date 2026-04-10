@@ -1,5 +1,6 @@
 use syn::{Attribute, Fields, Generics, Ident, Path, Variant};
 
+use crate::codegen::ValueImpl;
 use crate::{
     attr::{self, SvalAttribute},
     bound,
@@ -114,6 +115,9 @@ pub(crate) fn derive_enum<'a>(
     let bound = parse_quote!(sval::Value);
     let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
 
+    // Create the default impl strategy for enum variants
+    let value_impl = ValueImpl::new();
+
     let mut variant_match_arms = Vec::new();
     let mut index_allocator = IndexAllocator::new();
 
@@ -199,6 +203,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_record_tuple(
                     quote!(#ident :: #variant_ident),
                     fields.named.iter(),
+                    &value_impl,
                     RecordTupleTarget::named_fields(),
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident),
@@ -213,6 +218,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_record_tuple(
                     quote!(#ident :: #variant_ident),
                     fields.unnamed.iter(),
+                    &value_impl,
                     RecordTupleTarget::unnamed_fields(),
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident),

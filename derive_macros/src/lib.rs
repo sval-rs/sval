@@ -7,6 +7,7 @@ extern crate core;
 
 mod attr;
 mod bound;
+mod codegen;
 mod derive;
 mod index;
 mod label;
