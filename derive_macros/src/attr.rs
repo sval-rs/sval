@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, Path, UnOp};
-
+use crate::lifetime::RefLifetime;
 use crate::{index::IndexValue, label::LabelValue};
+use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, Path, UnOp};
 
 /**
 The `tag` attribute.
@@ -448,7 +448,7 @@ impl SvalAttribute for RefAttr {
             Lit::Str(s) => {
                 // Use syn's parser to parse lifetime and optional bounds
                 // Format: "'a" or "'c: 'a + 'b"
-                let spec: RefLifetimeSpec = s.parse().map_err(|e| {
+                let spec: RefLifetime = s.parse().map_err(|e| {
                     let mut r = syn::Error::new(
                         s.span(),
                         "invalid `ref`: expected lifetime or lifetime with bounds",
@@ -484,41 +484,16 @@ pub(crate) enum RefAttrValue {
     /**
     Explicit lifetime with optional bounds (e.g., "'a" or "'c: 'a + 'b").
     */
-    Explicit(RefLifetimeSpec),
+    Explicit(RefLifetime),
 }
 
 impl RefAttrValue {
-    pub(crate) fn lifetime_spec(&self) -> Option<&RefLifetimeSpec> {
+    pub(crate) fn lifetime(&self) -> Option<&RefLifetime> {
         let RefAttrValue::Explicit(spec) = self else {
             return None;
         };
 
         Some(spec)
-    }
-}
-
-/**
-A lifetime specification with optional bounds.
-*/
-#[derive(Clone)]
-pub(crate) struct RefLifetimeSpec {
-    pub(crate) lifetime: syn::Lifetime,
-    pub(crate) bounds: Option<syn::WhereClause>,
-}
-
-impl syn::parse::Parse for RefLifetimeSpec {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let lifetime: syn::Lifetime = input.parse()?;
-
-        let bounds = if input.peek(Token![:]) {
-            let _colon: Token![:] = input.parse()?;
-            let bounds: syn::WhereClause = input.parse()?;
-            Some(bounds)
-        } else {
-            None
-        };
-
-        Ok(RefLifetimeSpec { lifetime, bounds })
     }
 }
 

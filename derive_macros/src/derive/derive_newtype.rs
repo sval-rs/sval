@@ -1,8 +1,8 @@
 use syn::{Attribute, Field, Generics, Ident, Path};
 
 use crate::{
-    attr, bound,
-    derive::impl_tokens,
+    attr,
+    derive::{ImplStrategy, ImplValue},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::stream_newtype,
@@ -86,11 +86,6 @@ pub(crate) fn derive_newtype<'a>(
     field: &Field,
     attrs: &NewtypeAttrs,
 ) -> syn::Result<proc_macro2::TokenStream> {
-    let (impl_generics, ty_generics, _) = generics.split_for_impl();
-
-    let bound = parse_quote!(sval::Value);
-    let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
-
     let match_arm = stream_newtype(
         quote!(#ident),
         field,
@@ -102,11 +97,9 @@ pub(crate) fn derive_newtype<'a>(
 
     let tag = quote_optional_tag_owned(attrs.tag());
 
-    Ok(impl_tokens(
-        impl_generics,
+    ImplValue::new(Some(tag)).quote_impl(
         ident,
-        ty_generics,
-        &bounded_where_clause,
+        generics,
         quote!({
             match self {
                 #match_arm
@@ -114,6 +107,5 @@ pub(crate) fn derive_newtype<'a>(
 
             sval::__private::result::Result::Ok(())
         }),
-        Some(tag),
-    ))
+    )
 }

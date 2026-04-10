@@ -3,9 +3,8 @@ use syn::{Attribute, Fields, Generics, Ident, Path};
 use crate::{
     attr,
     attr::RefAttrValue,
-    bound,
-    codegen::{
-        collect_inner_ref_field_types, infer_ref_lifetime, ImplStrategy, ValueImpl, ValueRefImpl,
+    derive::{
+        collect_inner_ref_field_types, infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef,
     },
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
@@ -97,12 +96,13 @@ pub(crate) fn derive_struct<'a>(
         }
     };
 
-    let mut impl_blocks = vec![ValueImpl::new(Some(quote_optional_tag_owned(attrs.tag()))).boxed()];
+    let mut impl_blocks = vec![ImplValue::new(Some(quote_optional_tag_owned(attrs.tag()))).boxed()];
 
+    // Include a derive for `ValueRef` if the type carries a `#[sval(ref)]` attribute
     if let Some(lf) = attrs.value_ref_lifetime() {
         impl_blocks.push(
-            ValueRefImpl::new(
-                match lf.lifetime_spec() {
+            ImplValueRef::new(
+                match lf.lifetime() {
                     Some(lf) => lf.clone(),
                     None => infer_ref_lifetime(generics)?,
                 },
@@ -127,7 +127,7 @@ pub(crate) fn derive_struct<'a>(
             attrs.unindexed_fields(),
         )?;
 
-        impl_tokens.push(block.generate(
+        impl_tokens.push(block.quote_impl(
             ident,
             generics,
             quote!({
@@ -137,7 +137,7 @@ pub(crate) fn derive_struct<'a>(
 
                 sval::__private::result::Result::Ok(())
             }),
-        ));
+        )?);
     }
 
     Ok(quote!(#(#impl_tokens)*))

@@ -1,6 +1,9 @@
 use syn::{Attribute, Generics, Ident};
 
-use crate::{attr, bound, derive::impl_tokens};
+use crate::{
+    attr,
+    derive::{ImplStrategy, ImplValue},
+};
 
 pub(crate) struct VoidAttrs {}
 
@@ -19,17 +22,5 @@ pub(crate) fn derive_void<'a>(
 ) -> syn::Result<proc_macro2::TokenStream> {
     let _ = attrs;
 
-    let (impl_generics, ty_generics, _) = generics.split_for_impl();
-
-    let bound = parse_quote!(sval::Value);
-    let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
-
-    Ok(impl_tokens(
-        impl_generics,
-        ident,
-        ty_generics,
-        &bounded_where_clause,
-        quote!({ match *self {} }),
-        None,
-    ))
+    ImplValue::new(None).quote_impl(ident, generics, quote!({ match *self {} }))
 }

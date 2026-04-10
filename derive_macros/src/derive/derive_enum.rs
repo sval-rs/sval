@@ -1,12 +1,11 @@
 use syn::{Attribute, Fields, Generics, Ident, Path, Variant};
 
-use crate::codegen::ValueImpl;
+use crate::derive::ImplValue;
 use crate::{
     attr::{self, SvalAttribute},
-    bound,
     derive::{
         derive_newtype::NewtypeAttrs, derive_struct::StructAttrs,
-        derive_unit_struct::UnitStructAttrs, impl_tokens,
+        derive_unit_struct::UnitStructAttrs, ImplStrategy,
     },
     index::{quote_optional_index, Index, IndexAllocator, IndexValue},
     label::{label_or_ident, quote_optional_label, LabelValue},
@@ -110,14 +109,6 @@ pub(crate) fn derive_enum<'a>(
     variants: impl Iterator<Item = &'a Variant> + 'a,
     attrs: &EnumAttrs,
 ) -> syn::Result<proc_macro2::TokenStream> {
-    let (impl_generics, ty_generics, _) = generics.split_for_impl();
-
-    let bound = parse_quote!(sval::Value);
-    let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
-
-    // Create the default impl strategy for enum variants
-    let value_impl = ValueImpl::new();
-
     let mut variant_match_arms = Vec::new();
     let mut index_allocator = IndexAllocator::new();
 
@@ -203,7 +194,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_record_tuple(
                     quote!(#ident :: #variant_ident),
                     fields.named.iter(),
-                    &value_impl,
+                    &ImplValue::new(None),
                     RecordTupleTarget::named_fields(),
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident),
@@ -218,7 +209,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_record_tuple(
                     quote!(#ident :: #variant_ident),
                     fields.unnamed.iter(),
-                    &value_impl,
+                    &ImplValue::new(None),
                     RecordTupleTarget::unnamed_fields(),
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident),
@@ -230,12 +221,10 @@ pub(crate) fn derive_enum<'a>(
         });
     }
 
-    Ok(if attrs.dynamic {
-        impl_tokens(
-            impl_generics,
+    if attrs.dynamic {
+        ImplValue::new(None).quote_impl(
             ident,
-            ty_generics,
-            &bounded_where_clause,
+            generics,
             quote!({
                 match self {
                     #(#variant_match_arms)*
@@ -243,7 +232,6 @@ pub(crate) fn derive_enum<'a>(
 
                 sval::__private::result::Result::Ok(())
             }),
-            None,
         )
     } else {
         let tag = quote_optional_tag(attrs.tag());
@@ -251,11 +239,9 @@ pub(crate) fn derive_enum<'a>(
         let label = quote_optional_label(Some(label_or_ident(attrs.label(), ident)));
         let index = quote_optional_index(attrs.index());
 
-        impl_tokens(
-            impl_generics,
+        ImplValue::new(Some(tag_owned)).quote_impl(
             ident,
-            ty_generics,
-            &bounded_where_clause,
+            generics,
             quote!({
                 stream.enum_begin(#tag, #label, #index)?;
 
@@ -265,7 +251,6 @@ pub(crate) fn derive_enum<'a>(
 
                 stream.enum_end(#tag, #label, #index)
             }),
-            Some(tag_owned),
         )
-    })
+    }
 }
