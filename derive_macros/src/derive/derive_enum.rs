@@ -171,6 +171,7 @@ pub(crate) fn derive_enum<'a>(
                 stream_newtype(
                     quote!(#ident :: #variant_ident),
                     &fields.unnamed[0],
+                    &ImplValue::new(None),
                     attrs.tag(),
                     variant_label(attrs.label(), variant_ident),
                     variant_index(attrs.index(), discriminant),
