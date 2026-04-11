@@ -507,10 +507,10 @@ impl SvalAttribute for OuterRefAttr {
 
     fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
         match lit {
-            Lit::Bool(b) => Ok(b.value),
+            Lit::Bool(b) if b.value => Ok(true),
             _ => Err(syn::Error::new(
                 lit.span(),
-                "invalid `outer_ref`: expected boolean",
+                "invalid `outer_ref`: expected boolean value `true`",
             )),
         }
     }
@@ -532,10 +532,10 @@ impl SvalAttribute for InnerRefAttr {
 
     fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
         match lit {
-            Lit::Bool(b) => Ok(b.value),
+            Lit::Bool(b) if b.value => Ok(true),
             _ => Err(syn::Error::new(
                 lit.span(),
-                "invalid `inner_ref`: expected boolean",
+                "invalid `inner_ref`: expected boolean value `true`",
             )),
         }
     }
@@ -557,10 +557,10 @@ impl SvalAttribute for ComputedAttr {
 
     fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
         match lit {
-            Lit::Bool(b) => Ok(b.value),
+            Lit::Bool(b) if b.value => Ok(true),
             _ => Err(syn::Error::new(
                 lit.span(),
-                "invalid `computed`: expected boolean",
+                "invalid `computed`: expected boolean value `true`",
             )),
         }
     }

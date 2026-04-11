@@ -1,8 +1,7 @@
 use syn::{Attribute, Fields, Generics, Ident, Path};
 
 use crate::{
-    attr,
-    attr::RefAttrValue,
+    attr::{self, RefAttrValue},
     derive::{
         collect_inner_ref_field_types, infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef,
     },

@@ -1,11 +1,10 @@
 use syn::{Attribute, Fields, Generics, Ident, Path, Variant};
 
-use crate::derive::ImplValue;
 use crate::{
     attr::{self, SvalAttribute},
     derive::{
         derive_newtype::NewtypeAttrs, derive_struct::StructAttrs,
-        derive_unit_struct::UnitStructAttrs, ImplStrategy,
+        derive_unit_struct::UnitStructAttrs, ImplStrategy, ImplValue,
     },
     index::{quote_optional_index, Index, IndexAllocator, IndexValue},
     label::{label_or_ident, quote_optional_label, LabelValue},

@@ -1,10 +1,9 @@
 use syn::{Field, Path};
 
-use crate::label::Label;
 use crate::{
     attr,
     index::{quote_optional_index, Index},
-    label::quote_optional_label,
+    label::{quote_optional_label, Label},
     tag::quote_optional_tag,
 };
 

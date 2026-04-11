@@ -5,14 +5,18 @@ mod derive_unit_struct;
 mod derive_void;
 
 use proc_macro2::TokenStream;
-use syn::{spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields, Type};
-use syn::{Attribute, Field, Generics, Ident};
-
-use crate::attr;
-use crate::derive::{
-    derive_enum::*, derive_newtype::*, derive_struct::*, derive_unit_struct::*, derive_void::*,
+use syn::{
+    spanned::Spanned, Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Fields, Generics,
+    Ident, Type,
 };
-use crate::lifetime::RefLifetime;
+
+use crate::{
+    attr,
+    derive::{
+        derive_enum::*, derive_newtype::*, derive_struct::*, derive_unit_struct::*, derive_void::*,
+    },
+    lifetime::RefLifetime,
+};
 
 pub(crate) fn derive(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let impl_tokens = match &input.data {

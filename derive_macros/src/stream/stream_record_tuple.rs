@@ -1,12 +1,10 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
-use crate::derive::ImplStrategy;
-use crate::label::{optional_label_or_ident, Label, LabelValue};
 use crate::{
-    attr::{self},
-    derive::quote_stream_value,
+    attr,
+    derive::{quote_stream_value, ImplStrategy},
     index::{quote_index, quote_optional_index, Index, IndexAllocator},
-    label::{quote_label, quote_optional_label},
+    label::{optional_label_or_ident, quote_label, quote_optional_label, Label, LabelValue},
     tag::quote_optional_tag,
 };
 
