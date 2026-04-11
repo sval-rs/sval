@@ -13,6 +13,7 @@ mod label;
 mod lifetime;
 mod stream;
 mod tag;
+mod value_trait;
 
 use proc_macro::TokenStream;
 use syn::DeriveInput;

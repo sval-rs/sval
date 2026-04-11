@@ -2,11 +2,11 @@ use syn::{Attribute, Field, Generics, Ident, Path};
 
 use crate::{
     attr::{self, RefAttrValue},
-    derive::{infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::stream_newtype,
     tag::quote_optional_tag_owned,
+    value_trait::{infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef},
 };
 
 pub(crate) struct NewtypeAttrs {

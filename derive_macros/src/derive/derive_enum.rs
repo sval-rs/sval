@@ -4,13 +4,13 @@ use crate::{
     attr::{self, SvalAttribute},
     derive::{
         derive_newtype::NewtypeAttrs, derive_struct::StructAttrs,
-        derive_unit_struct::UnitStructAttrs, infer_ref_lifetime, ImplStrategy, ImplValue,
-        ImplValueRef,
+        derive_unit_struct::UnitStructAttrs,
     },
     index::{quote_optional_index, Index, IndexAllocator, IndexValue},
     label::{label_or_ident, quote_optional_label, LabelValue},
     stream::{stream_newtype, stream_record_tuple, stream_tag, RecordTupleTarget},
     tag::{quote_optional_tag, quote_optional_tag_owned},
+    value_trait::{infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef},
 };
 
 pub(crate) struct EnumAttrs {

@@ -2,13 +2,13 @@ use syn::{Attribute, Fields, Generics, Ident, Path};
 
 use crate::{
     attr::{self, RefAttrValue},
-    derive::{
-        collect_inner_ref_field_types, infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef,
-    },
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::{stream_record_tuple, RecordTupleTarget},
     tag::quote_optional_tag_owned,
+    value_trait::{
+        collect_inner_ref_field_types, infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef,
+    },
 };
 
 pub(crate) struct StructAttrs {

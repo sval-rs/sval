@@ -2,7 +2,7 @@ use syn::{Attribute, Generics, Ident};
 
 use crate::{
     attr,
-    derive::{ImplStrategy, ImplValue},
+    value_trait::{ImplStrategy, ImplValue},
 };
 
 pub(crate) struct VoidAttrs {}

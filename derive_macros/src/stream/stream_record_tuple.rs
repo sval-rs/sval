@@ -1,12 +1,12 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
-use crate::derive::field_codegen;
+use crate::value_trait::field_codegen;
 use crate::{
     attr,
-    derive::ImplStrategy,
     index::{quote_index, quote_optional_index, Index, IndexAllocator},
     label::{optional_label_or_ident, quote_label, quote_optional_label, Label, LabelValue},
     tag::quote_optional_tag,
+    value_trait::ImplStrategy,
 };
 
 #[derive(Clone, Copy)]

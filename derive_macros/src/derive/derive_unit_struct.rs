@@ -2,11 +2,11 @@ use syn::{Attribute, Generics, Ident, Path};
 
 use crate::{
     attr,
-    derive::{ImplStrategy, ImplValue},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::stream_tag,
     tag::quote_optional_tag_owned,
+    value_trait::{ImplStrategy, ImplValue},
 };
 
 pub(crate) struct UnitStructAttrs {
