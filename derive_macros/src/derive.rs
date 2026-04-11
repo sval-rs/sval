@@ -12,6 +12,7 @@ use syn::{
 
 use crate::{
     attr,
+    bound::where_clause_with_bound,
     derive::{
         derive_enum::*, derive_newtype::*, derive_struct::*, derive_unit_struct::*, derive_void::*,
     },
@@ -76,7 +77,7 @@ pub(crate) enum FieldCodegen {
     Computed,
 }
 
-fn field_codegen(attrs: &[Attribute]) -> syn::Result<Option<FieldCodegen>> {
+pub(crate) fn field_codegen(attrs: &[Attribute]) -> syn::Result<Option<FieldCodegen>> {
     let outer_ref = attr::get("struct field", attr::OuterRefAttr, attrs)?.unwrap_or(false);
     let inner_ref = attr::get("struct field", attr::InnerRefAttr, attrs)?.unwrap_or(false);
     let computed = attr::get("struct field", attr::ComputedAttr, attrs)?.unwrap_or(false);
@@ -104,23 +105,14 @@ fn field_codegen(attrs: &[Attribute]) -> syn::Result<Option<FieldCodegen>> {
     })
 }
 
-pub(crate) fn quote_stream_value(
-    binding: &Ident,
-    attrs: &[Attribute],
-    default: FieldCodegen,
-) -> syn::Result<TokenStream> {
-    Ok(match field_codegen(attrs)?.unwrap_or(default) {
-        FieldCodegen::OuterRef => quote!(stream.value(#binding)),
-        FieldCodegen::InnerRef => quote!(sval_ref::stream_ref(stream, #binding)),
-        FieldCodegen::Computed => quote!(stream.value_computed(#binding)),
-    })
-}
-
 /// Wraps a generated stream body in the correct impl block
 /// and provides the default field codegen strategy
 pub(crate) trait ImplStrategy {
-    /// Return the default field codegen strategy for this trait
-    fn default_field_codegen(&self) -> FieldCodegen;
+    fn quote_stream_value(
+        &self,
+        binding: &Ident,
+        codegen: Option<FieldCodegen>,
+    ) -> syn::Result<TokenStream>;
 
     /// Wrap the stream body in an impl block
     fn quote_impl(
@@ -150,8 +142,16 @@ impl ImplValue {
 }
 
 impl ImplStrategy for ImplValue {
-    fn default_field_codegen(&self) -> FieldCodegen {
-        FieldCodegen::OuterRef
+    fn quote_stream_value(
+        &self,
+        binding: &Ident,
+        codegen: Option<FieldCodegen>,
+    ) -> syn::Result<TokenStream> {
+        Ok(match codegen.unwrap_or(FieldCodegen::OuterRef) {
+            FieldCodegen::OuterRef => quote!(stream.value(#binding)),
+            FieldCodegen::InnerRef => quote!(stream.value(#binding)),
+            FieldCodegen::Computed => quote!(stream.value_computed(#binding)),
+        })
     }
 
     fn quote_impl(
@@ -163,8 +163,7 @@ impl ImplStrategy for ImplValue {
         let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
 
         // Add Value bound to all type parameters
-        let bounded_where_clause =
-            crate::bound::where_clause_with_bound(generics, parse_quote!(sval::Value));
+        let bounded_where_clause = where_clause_with_bound(generics, parse_quote!(sval::Value));
 
         let stream_fn = quote!(
             fn stream<'sval, __SvalStream: sval::Stream<'sval> + ?Sized>(
@@ -210,8 +209,18 @@ impl ImplValueRef {
 }
 
 impl ImplStrategy for ImplValueRef {
-    fn default_field_codegen(&self) -> FieldCodegen {
-        FieldCodegen::Computed
+    fn quote_stream_value(
+        &self,
+        binding: &Ident,
+        codegen: Option<FieldCodegen>,
+    ) -> syn::Result<TokenStream> {
+        Ok(match codegen.unwrap_or(FieldCodegen::Computed) {
+            FieldCodegen::OuterRef => quote!(stream.value(*#binding)),
+            FieldCodegen::InnerRef => {
+                quote!(sval_derive::extensions::r#ref::stream_ref(stream, #binding))
+            }
+            FieldCodegen::Computed => quote!(stream.value_computed(#binding)),
+        })
     }
 
     fn quote_impl(
@@ -221,29 +230,22 @@ impl ImplStrategy for ImplValueRef {
         stream_body: TokenStream,
     ) -> syn::Result<TokenStream> {
         let lifetime = &self.lifetime.lifetime;
-        let bounds = &self.lifetime.bounds;
+
+        // TODO: Add the lifetime and its bounds
 
         // Build impl generics: add the ValueRef lifetime with optional bounds
         let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
 
-        // Construct the impl generics with lifetime
-        let impl_generics = if let Some(bounds) = bounds {
-            // Merge the bounds into the impl generics
-            quote!(#lifetime #bounds #impl_generics)
-        } else {
-            quote!(#lifetime #impl_generics)
-        };
-
         // Merge where clauses
-        let mut bounded_where_clause =
-            crate::bound::where_clause_with_bound(generics, parse_quote!(sval::Value));
+        let mut bounded_where_clause = where_clause_with_bound(generics, parse_quote!(sval::Value));
 
         // Add ValueRef bounds for inner_ref fields
         // We can unconditionally add the full field type to the where clause
         // This works for both concrete types (Inner<'a>: ValueRef<'a>) and generics (T: ValueRef<'a>)
         for field_type in &self.inner_ref_fields {
-            let bound = quote!(#field_type: sval_ref::ValueRef<#lifetime>);
-            bounded_where_clause.predicates.push(parse_quote!(#bound));
+            bounded_where_clause.predicates.push(
+                parse_quote!(#field_type: sval_derive::extensions::r#ref::ValueRef<#lifetime>),
+            );
         }
 
         let stream_fn = quote!(
@@ -256,7 +258,7 @@ impl ImplStrategy for ImplValueRef {
         );
 
         Ok(quote! {
-            impl #impl_generics sval_ref::ValueRef<#lifetime> for #ident #ty_generics #bounded_where_clause {
+            impl #impl_generics sval_derive::extensions::r#ref::ValueRef<#lifetime> for #ident #ty_generics #bounded_where_clause {
                 #stream_fn
             }
         })

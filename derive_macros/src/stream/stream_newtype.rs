@@ -1,8 +1,9 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
+use crate::derive::field_codegen;
 use crate::{
     attr,
-    derive::{quote_stream_value, ImplStrategy},
+    derive::ImplStrategy,
     index::{quote_optional_index, Index},
     label::{quote_optional_label, Label},
     tag::quote_optional_tag,
@@ -32,8 +33,7 @@ where
 
     let ident = Ident::new("field0", field.span());
 
-    let field_value_tokens =
-        quote_stream_value(&ident, &field.attrs, impl_block.default_field_codegen())?;
+    let field_value_tokens = impl_block.quote_stream_value(&ident, field_codegen(&field.attrs)?)?;
 
     Ok(if transparent {
         quote!(#path(ref #ident) => {

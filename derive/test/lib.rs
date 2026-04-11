@@ -47,6 +47,44 @@ mod derive_struct {
     }
 
     #[test]
+    fn basic_ref() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct RecordTuple<'a> {
+            a: &'a i32,
+        }
+
+        assert_tokens(&RecordTuple { a: &42 }, {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        })
+    }
+
+    #[test]
     fn uncooked() {
         #[derive(Value)]
         struct RecordTuple {

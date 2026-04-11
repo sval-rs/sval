@@ -1,8 +1,9 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
+use crate::derive::field_codegen;
 use crate::{
     attr,
-    derive::{quote_stream_value, ImplStrategy},
+    derive::ImplStrategy,
     index::{quote_index, quote_optional_index, Index, IndexAllocator},
     label::{optional_label_or_ident, quote_label, quote_optional_label, Label, LabelValue},
     tag::quote_optional_tag,
@@ -113,8 +114,8 @@ where
 
         const_size = const_size && !flatten;
 
-        let stream_value_tokens =
-            quote_stream_value(&ident, &field.attrs, impl_block.default_field_codegen())?;
+        let field_value_tokens =
+            impl_block.quote_stream_value(&ident, field_codegen(&field.attrs)?)?;
 
         let value =
             if let Some(data_tag) = attr::get("struct field", attr::DataTagAttr, &field.attrs)? {
@@ -124,11 +125,11 @@ where
 
                 quote!({
                     stream.tagged_begin(#data_tag, #data_label, #data_index)?;
-                    #stream_value_tokens?;
+                    #field_value_tokens?;
                     stream.tagged_end(#data_tag, #data_label, #data_index)?
                 })
             } else {
-                quote!(#stream_value_tokens?)
+                quote!(#field_value_tokens?)
             };
 
         match (&label, &index) {

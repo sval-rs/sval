@@ -445,6 +445,7 @@ impl SvalAttribute for RefAttr {
 
     fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
         match lit {
+            Lit::Bool(b) if b.value => Ok(RefAttrValue::Infer),
             Lit::Str(s) => {
                 // Use syn's parser to parse lifetime and optional bounds
                 // Format: "'a" or "'c: 'a + 'b"
