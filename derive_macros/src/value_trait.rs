@@ -177,6 +177,7 @@ impl ImplStrategy for ImplValueRef {
         // We can unconditionally add the full field type to the where clause
         // This works for both concrete types (Inner<'a>: ValueRef<'a>) and generics (T: ValueRef<'a>)
         for field_type in &self.inner_ref_fields {
+            // TODO: This allows compiling `ValueRef<'sval>` for concrete types that don't satisfy the bound, like `i32: ValueRef<'sval>`
             bounded_where_clause.predicates.push(
                 parse_quote!(#field_type: sval_derive::extensions::r#ref::ValueRef<#lifetime>),
             );
