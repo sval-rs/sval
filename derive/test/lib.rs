@@ -104,7 +104,50 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                // TODO: Fill this in
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(3),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                I32(43),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("t"),
+                    sval::Index::new(2),
+                ),
+                I32(100),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("t"),
+                    sval::Index::new(2),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -129,7 +172,28 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                // TODO: Fill this in
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
@@ -158,7 +222,49 @@ mod derive_struct {
             use sval_test::Token::*;
 
             &[
-                // TODO: Fill this in
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Outer")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Inner")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Inner")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("field"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Outer")),
+                    ::std::option::Option::None,
+                ),
             ]
         })
     }
