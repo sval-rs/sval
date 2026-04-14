@@ -433,36 +433,56 @@ impl SvalAttribute for RefAttr {
     type Result = RefAttrValue;
 
     fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
-        match expr {
-            Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
-            Expr::Path(_) => Ok(RefAttrValue::Infer),
-            _ => Err(syn::Error::new(
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
                 expr.span(),
-                "invalid `ref`: expected lifetime or path",
-            )),
+                "the `ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match expr {
+                Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
+                Expr::Path(_) => Ok(RefAttrValue::Infer),
+                _ => Err(syn::Error::new(
+                    expr.span(),
+                    "invalid `ref`: expected lifetime or path",
+                )),
+            }
         }
     }
 
     fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
-        match lit {
-            Lit::Bool(b) if b.value => Ok(RefAttrValue::Infer),
-            Lit::Str(s) => {
-                // Use syn's parser to parse lifetime and optional bounds
-                // Format: "'a" or "'c: 'a + 'b"
-                let spec: RefLifetime = s.parse().map_err(|e| {
-                    let mut r = syn::Error::new(
-                        s.span(),
-                        "invalid `ref`: expected lifetime or lifetime with bounds",
-                    );
-                    r.combine(e);
-                    r
-                })?;
-                Ok(RefAttrValue::Explicit(spec))
-            }
-            _ => Err(syn::Error::new(
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
                 lit.span(),
-                "invalid `ref`: expected string literal",
-            )),
+                "the `ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match lit {
+                Lit::Bool(b) if b.value => Ok(RefAttrValue::Infer),
+                Lit::Str(s) => {
+                    // Use syn's parser to parse lifetime and optional bounds
+                    // Format: "'a" or "'c: 'a + 'b"
+                    let spec: RefLifetime = s.parse().map_err(|e| {
+                        let mut r = syn::Error::new(
+                            s.span(),
+                            "invalid `ref`: expected lifetime or lifetime with bounds",
+                        );
+                        r.combine(e);
+                        r
+                    })?;
+                    Ok(RefAttrValue::Explicit(spec))
+                }
+                _ => Err(syn::Error::new(
+                    lit.span(),
+                    "invalid `ref`: expected string literal",
+                )),
+            }
         }
     }
 }
@@ -507,12 +527,22 @@ impl SvalAttribute for OuterRefAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
-        match lit {
-            Lit::Bool(b) if b.value => Ok(true),
-            _ => Err(syn::Error::new(
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
                 lit.span(),
-                "invalid `outer_ref`: expected boolean value `true`",
-            )),
+                "the `outer_ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match lit {
+                Lit::Bool(b) if b.value => Ok(true),
+                _ => Err(syn::Error::new(
+                    lit.span(),
+                    "invalid `outer_ref`: expected boolean value `true`",
+                )),
+            }
         }
     }
 }
@@ -532,12 +562,22 @@ impl SvalAttribute for InnerRefAttr {
     type Result = bool;
 
     fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
-        match lit {
-            Lit::Bool(b) if b.value => Ok(true),
-            _ => Err(syn::Error::new(
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
                 lit.span(),
-                "invalid `inner_ref`: expected boolean value `true`",
-            )),
+                "the `inner_ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match lit {
+                Lit::Bool(b) if b.value => Ok(true),
+                _ => Err(syn::Error::new(
+                    lit.span(),
+                    "invalid `inner_ref`: expected boolean value `true`",
+                )),
+            }
         }
     }
 }
