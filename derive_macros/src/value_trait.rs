@@ -1,7 +1,11 @@
 use proc_macro2::TokenStream;
 use syn::{Attribute, Field, Generics, Ident};
 
-use crate::{attr, bound::where_clause_with_bound, lifetime::RefLifetime};
+use crate::{
+    attr,
+    bound::{build_impl_generics_for_ref, is_generic_type_param, where_clause_with_bound},
+    lifetime::RefLifetime,
+};
 
 /// Controls how a field is streamed based on attributes and trait context
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -165,23 +169,34 @@ impl ImplStrategy for ImplValueRef {
     ) -> syn::Result<TokenStream> {
         let lifetime = &self.lifetime.lifetime;
 
-        // TODO: Add the lifetime and its bounds
+        // Build impl_generics with the ValueRef lifetime added
+        let mut impl_generics = build_impl_generics_for_ref(generics, &self.lifetime);
 
-        // Build impl generics: add the ValueRef lifetime with optional bounds
-        let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
+        // Use split_for_impl just to get ty_generics (the angle-bracketed part)
+        let (_, ty_generics, _) = generics.split_for_impl();
 
-        // Merge where clauses
+        // Build where clause with Value bounds for type parameters
         let mut bounded_where_clause = where_clause_with_bound(generics, parse_quote!(sval::Value));
 
-        // Add ValueRef bounds for inner_ref fields
-        // We can unconditionally add the full field type to the where clause
-        // This works for both concrete types (Inner<'a>: ValueRef<'a>) and generics (T: ValueRef<'a>)
-        for field_type in &self.inner_ref_fields {
-            // TODO: This allows compiling `ValueRef<'sval>` for concrete types that don't satisfy the bound, like `i32: ValueRef<'sval>`
-            bounded_where_clause.predicates.push(
-                parse_quote!(#field_type: sval_derive::extensions::r#ref::ValueRef<#lifetime>),
-            );
+        // Merge any existing where clause from impl_generics (lifetime bounds)
+        if let Some(ref existing_where) = impl_generics.where_clause {
+            bounded_where_clause
+                .predicates
+                .extend(existing_where.predicates.iter().cloned());
         }
+
+        // Add ValueRef bounds only for inner_ref fields that are exactly generic parameters
+        for field_type in &self.inner_ref_fields {
+            if is_generic_type_param(field_type, generics) {
+                bounded_where_clause.predicates.push(
+                    parse_quote!(#field_type: sval_derive::extensions::r#ref::ValueRef<#lifetime>),
+                );
+            }
+            // Skip non-generic types (e.g., Box<i32>, Box<T>)
+        }
+
+        // Remove the where clause from impl_generics since we're using bounded_where_clause
+        impl_generics.where_clause = None;
 
         let stream_fn = quote!(
             fn stream_ref<__SvalStream: sval::Stream<#lifetime> + ?Sized>(

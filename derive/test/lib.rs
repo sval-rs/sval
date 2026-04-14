@@ -85,6 +85,85 @@ mod derive_struct {
     }
 
     #[test]
+    fn ref_with_explicit_lifetime_and_generics() {
+        #[derive(Value)]
+        #[sval(ref = "'b")]
+        struct RecordTuple<'a, 'b, T> {
+            a: &'a i32,
+            b: &'b i32,
+            t: T,
+        }
+
+        let foo = RecordTuple {
+            a: &42,
+            b: &43,
+            t: 100,
+        };
+
+        assert_tokens(&foo, {
+            use sval_test::Token::*;
+
+            &[
+                // TODO: Fill this in
+            ]
+        })
+    }
+
+    #[test]
+    fn ref_with_inner_ref_generic_field() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct RecordTuple<'a, T> {
+            #[sval(inner_ref)]
+            field: T,
+            #[sval(skip)]
+            _marker: ::std::marker::PhantomData<&'a ()>,
+        }
+
+        let foo = RecordTuple {
+            field: &42,
+            _marker: ::std::marker::PhantomData,
+        };
+
+        assert_tokens(&foo, {
+            use sval_test::Token::*;
+
+            &[
+                // TODO: Fill this in
+            ]
+        })
+    }
+
+    #[test]
+    fn ref_with_inner_ref_concrete_field() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Outer<'a> {
+            #[sval(inner_ref)]
+            field: Inner<'a>,
+        }
+
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Inner<'a> {
+            #[sval(outer_ref)]
+            field: &'a i32,
+        }
+
+        let foo = Outer {
+            field: Inner { field: &42 },
+        };
+
+        assert_tokens(&foo, {
+            use sval_test::Token::*;
+
+            &[
+                // TODO: Fill this in
+            ]
+        })
+    }
+
+    #[test]
     fn uncooked() {
         #[derive(Value)]
         struct RecordTuple {
