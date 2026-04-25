@@ -8,9 +8,9 @@
 
 ## What is it?
 
-`sval` is a serialization-only framework for Rust. It has a simple, but expressive design that can express any Rust data structure, plus some it can't yet. It was originally designed as a niche framework for structured logging, targeting serialization to [JSON](https://www.json.org), [protobuf](https://protobuf.dev), and Rust's [Debug-style formatting](https://doc.rust-lang.org/std/fmt/trait.Debug.html). The project has evolved beyond this point into a fully general and capable framework for introspecting runtime data.
+`sval` is a serialization-only framework for Rust. It has a simple, but capable design that can express any Rust data structure, plus some it can't yet. It was originally designed as a niche framework for structured logging, targeting serialization to [JSON](https://www.json.org), [protobuf](https://protobuf.dev), and Rust's [Debug-style formatting](https://doc.rust-lang.org/std/fmt/trait.Debug.html). The project has evolved beyond this point into a fully general framework for introspecting runtime data.
 
-The core of `sval` is the [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) trait. It defines the data model and features of the framework. `sval` makes a few different API design decisions compared to [`serde`](https://serde.rs), the de-facto choice, to better accommodate the needs of Rust diagnostic frameworks:
+The core of `sval` is the [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) trait. It defines the data model and features of the framework. `sval` has made a few different API design decisions compared to [`serde`](https://serde.rs) to better accommodate the needs of Rust diagnostic frameworks:
 
 1. **Simple API.** The [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) trait has only a few required members that all values are forwarded to. This makes it easy to write bespoke handling for specific data types without needing to implement unrelated methods.
 2. **`dyn`-friendly.** The [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) trait is internally mutable, so is trivial to make `dyn`-compatible without intermediate boxing, making it possible to use in no-std environments.
@@ -130,7 +130,7 @@ The [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) trait has a sin
 
 ### The `Stream` trait
 
-Something to notice about the [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) API in the expanded `MyRecord` example is that it is _flat_. The call to `record_tuple_begin` doesn't return a new type like `serde`'s `serialize_struct` does. The implementor of [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) is responsible for issuing the correct sequence of [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) calls as it works through its structure. The [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) can then rely on markers like `record_tuple_value_begin` and `record_tuple_value_end` to know what position within a value it is without needing to track that state itself. The flat API makes dyn-compatibility and buffering simpler, but makes implementing non-trivial streams more difficult, because you can't rely on recursive to manage state.
+Something to notice about the [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) API in the expanded `MyRecord` example is that it is _flat_. The call to `record_tuple_begin` doesn't return a new type like `serde`'s `serialize_struct` does. The implementor of [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) is responsible for issuing the correct sequence of [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) calls as it works through its structure. The [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) can then rely on markers like `record_tuple_value_begin` and `record_tuple_value_end` to know what position within a value it is without needing to track that state itself. The flat API makes dyn-compatibility and buffering simpler, but makes implementing non-trivial streams more difficult, because you can't rely on recursion to manage state.
 
 Recall the way `MyRecord` was converted into JSON earlier:
 
@@ -1109,11 +1109,11 @@ These rules may be better formalized in the future.
 
 `sval` is a general framework with specific serialization formats and utilities provided as external libraries:
 
-- [`sval_fmt`](https://docs.rs/sval_json/2.18.0/sval_fmt/index.html): Colorized Rust-style debug formatting.
+- [`sval_fmt`](https://docs.rs/sval_fmt/2.18.0/sval_fmt/index.html): Colorized Rust-style debug formatting.
 - [`sval_json`](https://docs.rs/sval_json/2.18.0/sval_json/index.html): Serialize values as JSON in a `serde`-compatible format.
 - [`sval_protobuf`](https://docs.rs/sval_protobuf/latest/sval_protobuf/): Serialize values as protobuf messages.
-- [`sval_serde`](https://docs.rs/sval_json/2.18.0/sval_serde/index.html): Convert between `serde` and `sval`.
-- [`sval_buffer`](https://docs.rs/sval_json/2.18.0/sval_buffer/index.html): Losslessly buffers any [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) into an owned, thread-safe variant.
-- [`sval_flatten`](https://docs.rs/sval_json/2.18.0/sval_flatten/index.html): Flatten the fields of a value onto its parent, like `#[serde(flatten)]`.
-- [`sval_nested`](https://docs.rs/sval_json/2.18.0/sval_nested/index.html): Buffer `sval`'s flat [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) API into a recursive one like `serde`'s. For types that `#[derive(Value)]`, the translation is non-allocating.
-- [`sval_ref`](https://docs.rs/sval_json/2.18.0/sval_ref/index.html): A variant of [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) for types that are internally borrowed (like `MyType<'a>`) instead of externally (like `&'a MyType`).
+- [`sval_serde`](https://docs.rs/sval_serde/2.18.0/sval_serde/index.html): Convert between `serde` and `sval`.
+- [`sval_buffer`](https://docs.rs/sval_buffer/2.18.0/sval_buffer/index.html): Losslessly buffers any [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) into an owned, thread-safe variant.
+- [`sval_flatten`](https://docs.rs/sval_flatten/2.18.0/sval_flatten/index.html): Flatten the fields of a value onto its parent, like `#[serde(flatten)]`.
+- [`sval_nested`](https://docs.rs/sval_nested/2.18.0/sval_nested/index.html): Buffer `sval`'s flat [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) API into a recursive one like `serde`'s. For types that `#[derive(Value)]`, the translation is non-allocating.
+- [`sval_ref`](https://docs.rs/sval_ref/2.18.0/sval_ref/index.html): A variant of [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) for types that are internally borrowed (like `MyType<'a>`) instead of externally (like `&'a MyType`).
