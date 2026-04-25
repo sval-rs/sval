@@ -1112,7 +1112,7 @@ These rules may be better formalized in the future.
 - [`sval_fmt`](https://docs.rs/sval_fmt/2.18.0/sval_fmt/index.html): Colorized Rust-style debug formatting.
 - [`sval_json`](https://docs.rs/sval_json/2.18.0/sval_json/index.html): Serialize values as JSON in a `serde`-compatible format.
 - [`sval_protobuf`](https://docs.rs/sval_protobuf/latest/sval_protobuf/): Serialize values as protobuf messages.
-- [`sval_serde`](https://docs.rs/sval_serve/2.18.0/sval_serde/index.html): Convert between `serde` and `sval`.
+- [`sval_serde`](https://docs.rs/sval_serde/2.18.0/sval_serde/index.html): Convert between `serde` and `sval`.
 - [`sval_buffer`](https://docs.rs/sval_buffer/2.18.0/sval_buffer/index.html): Losslessly buffers any [`Value`](https://docs.rs/sval/2.18.0/sval/trait.Value.html) into an owned, thread-safe variant.
 - [`sval_flatten`](https://docs.rs/sval_flatten/2.18.0/sval_flatten/index.html): Flatten the fields of a value onto its parent, like `#[serde(flatten)]`.
 - [`sval_nested`](https://docs.rs/sval_nested/2.18.0/sval_nested/index.html): Buffer `sval`'s flat [`Stream`](https://docs.rs/sval/2.18.0/sval/trait.Stream.html) API into a recursive one like `serde`'s. For types that `#[derive(Value)]`, the translation is non-allocating.
