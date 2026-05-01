@@ -3,6 +3,16 @@
 use sval_derive::Value;
 use sval_test::assert_tokens;
 
+fn assert_tokens_ref<'sval>(
+    value: impl sval_ref::ValueRef<'sval>,
+    tokens: &[sval_test::Token<'sval>],
+) {
+    let mut actual = sval_test::TokenBuf::new();
+    value.stream_ref(&mut actual).unwrap();
+
+    assert_eq!(tokens, actual.as_tokens());
+}
+
 mod derive_struct {
     use super::*;
 
@@ -54,7 +64,8 @@ mod derive_struct {
             a: &'a i32,
         }
 
-        assert_tokens(&RecordTuple { a: &42 }, {
+        let value = RecordTuple { a: &42 };
+        let tokens: &[sval_test::Token] = {
             use sval_test::Token::*;
 
             &[
@@ -81,7 +92,9 @@ mod derive_struct {
                     ::std::option::Option::None,
                 ),
             ]
-        })
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
     }
 
     #[test]
@@ -94,13 +107,12 @@ mod derive_struct {
             t: T,
         }
 
-        let foo = RecordTuple {
+        let value = RecordTuple {
             a: &42,
             b: &43,
             t: 100,
         };
-
-        assert_tokens(&foo, {
+        let tokens: &[sval_test::Token] = {
             use sval_test::Token::*;
 
             &[
@@ -149,7 +161,9 @@ mod derive_struct {
                     ::std::option::Option::None,
                 ),
             ]
-        })
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
     }
 
     #[test]
@@ -163,12 +177,16 @@ mod derive_struct {
             _marker: ::std::marker::PhantomData<&'a ()>,
         }
 
-        let foo = RecordTuple {
-            field: &42,
+        #[derive(Value)]
+        #[sval(transparent, ref)]
+        struct Inner<'a>(#[sval(outer_ref)] &'a i32);
+
+        let value = RecordTuple {
+            field: Inner(&42),
             _marker: ::std::marker::PhantomData,
         };
 
-        assert_tokens(&foo, {
+        assert_tokens(&value, {
             use sval_test::Token::*;
 
             &[
@@ -195,7 +213,10 @@ mod derive_struct {
                     ::std::option::Option::None,
                 ),
             ]
-        })
+        });
+        // Note: assert_tokens_ref is not applicable here because `#[sval(inner_ref)]`
+        // delegates to `T: ValueRef<'sval>`, but `&i32` doesn't implement `ValueRef`
+        // since `i32` is a primitive type without a `ValueRef` implementation.
     }
 
     #[test]
@@ -214,11 +235,10 @@ mod derive_struct {
             field: &'a i32,
         }
 
-        let foo = Outer {
+        let value = Outer {
             field: Inner { field: &42 },
         };
-
-        assert_tokens(&foo, {
+        let tokens: &[sval_test::Token] = {
             use sval_test::Token::*;
 
             &[
@@ -266,7 +286,322 @@ mod derive_struct {
                     ::std::option::Option::None,
                 ),
             ]
-        })
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_tagged() {
+        const CONTAINER: sval::Tag = sval::Tag::new("container");
+        const FIELD: sval::Tag = sval::Tag::new("field");
+
+        #[derive(Value)]
+        #[sval(ref, tag = CONTAINER, label = "record")]
+        struct Record<'a> {
+            #[sval(tag = FIELD)]
+            a: &'a i32,
+        }
+
+        let value = Record { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::Some(FIELD),
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::Some(FIELD),
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("record")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_unlabeled_fields() {
+        #[derive(Value)]
+        #[sval(ref, unlabeled_fields)]
+        struct Tuple<'a> {
+            a: &'a i32,
+        }
+
+        let value = Tuple { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_unindexed_fields() {
+        #[derive(Value)]
+        #[sval(ref, unindexed_fields)]
+        struct Record<'a> {
+            a: &'a i32,
+        }
+
+        let value = Record { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordValueBegin(::std::option::Option::None, sval::Label::new("a")),
+                I32(42),
+                RecordValueEnd(::std::option::Option::None, sval::Label::new("a")),
+                RecordEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_unlabeled_unindexed_fields() {
+        #[derive(Value)]
+        #[sval(ref, unlabeled_fields, unindexed_fields)]
+        struct Seq<'a> {
+            a: &'a i32,
+        }
+
+        let value = Seq { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+                SeqBegin(::std::option::Option::Some(1)),
+                SeqValueBegin,
+                I32(42),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_data_tag() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct RecordTuple<'a> {
+            #[sval(data_tag = sval::tags::NUMBER)]
+            a: &'a i32,
+        }
+
+        let value = RecordTuple { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                TaggedBegin(
+                    ::std::option::Option::Some(sval::tags::NUMBER),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::Some(sval::tags::NUMBER),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_skip() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Record<'a> {
+            #[sval(skip)]
+            _skipped: &'a i32,
+            a: &'a i32,
+        }
+
+        let value = Record {
+            _skipped: &1,
+            a: &42,
+        };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_computed() {
+        struct Double<'a> {
+            inner: &'a i32,
+        }
+
+        impl<'a> sval::Value for Double<'a> {
+            fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
+                &'sval self,
+                stream: &mut S,
+            ) -> sval::Result {
+                stream.i32(self.inner * 2)
+            }
+        }
+
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Record<'a> {
+            #[sval(computed)]
+            doubled: Double<'a>,
+            a: &'a i32,
+        }
+
+        let value = Record {
+            doubled: Double { inner: &21 },
+            a: &42,
+        };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("doubled"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("doubled"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(1),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(1),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
     }
 
     #[test]
@@ -1085,6 +1420,157 @@ mod derive_tuple {
             ]
         })
     }
+
+    #[test]
+    fn ref_basic() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Tuple<'a>(&'a i32, &'a i32);
+
+        let value = Tuple(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_labeled_fields() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct RecordTuple<'a>(#[sval(label = "A")] &'a i32, #[sval(label = "B")] &'a i32);
+
+        let value = RecordTuple(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("A"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("A"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("B"),
+                    sval::Index::new(1),
+                ),
+                I32(43),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("B"),
+                    sval::Index::new(1),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_unindexed_fields() {
+        #[derive(Value)]
+        #[sval(ref, unindexed_fields)]
+        struct Seq<'a>(&'a i32, &'a i32);
+
+        let value = Seq(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+                SeqBegin(::std::option::Option::Some(2)),
+                SeqValueBegin,
+                I32(42),
+                SeqValueEnd,
+                SeqValueBegin,
+                I32(43),
+                SeqValueEnd,
+                SeqEnd,
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Seq")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_skip() {
+        #[allow(dead_code)]
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Tuple<'a>(#[sval(skip)] &'a i32, &'a i32);
+
+        let value = Tuple(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
+                I32(43),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
 }
 
 mod derive_newtype {
@@ -1155,6 +1641,136 @@ mod derive_newtype {
                 ),
             ]
         })
+    }
+
+    #[test]
+    fn ref_basic() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Tagged<'a>(&'a i32);
+
+        let value = Tagged(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_tagged() {
+        const CONTAINER: sval::Tag = sval::Tag::new("container");
+
+        #[derive(Value)]
+        #[sval(ref, tag = "CONTAINER", label = "tagged", index = 0)]
+        struct Tagged<'a>(&'a i32);
+
+        let value = Tagged(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_transparent() {
+        #[derive(Value)]
+        #[sval(ref, transparent)]
+        struct Newtype<'a>(&'a i32);
+
+        let value = Newtype(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[I32(42)]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_inner_ref() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Inner<'a> {
+            #[sval(outer_ref)]
+            value: &'a i32,
+        }
+
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Newtype<'a>(#[sval(inner_ref)] Inner<'a>);
+
+        let value = Newtype(Inner { value: &42 });
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Newtype")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Inner")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("value"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("value"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Inner")),
+                    ::std::option::Option::None,
+                ),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Newtype")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
     }
 }
 
@@ -2187,6 +2803,693 @@ mod derive_enum {
                 ),
             ]
         });
+    }
+
+    #[test]
+    fn ref_basic() {
+        #[derive(Value)]
+        #[sval(ref)]
+        enum Enum<'a> {
+            Tag,
+            Tagged(&'a i32),
+            Record { a: &'a i32 },
+            Tuple(&'a i32, &'a i32),
+        }
+
+        let value = Enum::Tag;
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tag")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Tagged(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Record { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Tuple(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::Some(sval::Index::new(3)),
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::Some(sval::Index::new(3)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_dynamic() {
+        #[derive(Value)]
+        #[sval(ref, dynamic)]
+        enum Dynamic<'a> {
+            Tag,
+            I32(&'a i32),
+            Bool(&'a bool),
+            Record { a: &'a i32 },
+            Tuple(&'a i32, &'a i32),
+        }
+
+        let value = Dynamic::Tag;
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[Tag(
+                ::std::option::Option::None,
+                ::std::option::Option::Some(sval::Label::new("Tag")),
+                ::std::option::Option::None,
+            )]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Dynamic::Bool(&true);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[Bool(true)]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Dynamic::I32(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[I32(42)]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Dynamic::Record { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Dynamic::Tuple(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_unlabeled_variants() {
+        #[derive(Value)]
+        #[sval(ref, unlabeled_variants)]
+        enum Enum<'a> {
+            Tag,
+            Tagged(&'a i32),
+            Record { a: &'a i32 },
+            Tuple(&'a i32, &'a i32),
+        }
+
+        let value = Enum::Tag;
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Tagged(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Record { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(2)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Tuple(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(3)),
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Index::new(3)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_unindexed_variants() {
+        #[derive(Value)]
+        #[sval(ref, unindexed_variants)]
+        enum Enum<'a> {
+            Tag,
+            Tagged(&'a i32),
+            Record { a: &'a i32 },
+            Tuple(&'a i32, &'a i32),
+        }
+
+        let value = Enum::Tag;
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                Tag(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tag")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Tagged(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tagged")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Record { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Record")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Tuple(&42, &43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(2),
+                ),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(0)),
+                I32(42),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(0)),
+                TupleValueBegin(::std::option::Option::None, sval::Index::new(1)),
+                I32(43),
+                TupleValueEnd(::std::option::Option::None, sval::Index::new(1)),
+                TupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Tuple")),
+                    ::std::option::Option::None,
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_tagged() {
+        const CONTAINER: sval::Tag = sval::Tag::new("container");
+        const VARIANT: sval::Tag = sval::Tag::new("variant");
+
+        #[derive(Value)]
+        #[sval(ref, tag = "CONTAINER", label = "enum")]
+        enum Enum<'a> {
+            #[sval(tag = "VARIANT", label = "tag")]
+            Tag,
+            #[sval(tag = "VARIANT", label = "tagged")]
+            Tagged(&'a i32),
+        }
+
+        let value = Enum::Tag;
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::None,
+                ),
+                Tag(
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tag")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::Tagged(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::Some(VARIANT),
+                    ::std::option::Option::Some(sval::Label::new("tagged")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::Some(CONTAINER),
+                    ::std::option::Option::Some(sval::Label::new("enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_explicit_lifetime() {
+        #[derive(Value)]
+        #[sval(ref = "'b")]
+        enum Enum<'a, 'b> {
+            A(&'a i32),
+            B(&'b i32),
+        }
+
+        let value = Enum::A(&42);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("A")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                I32(42),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("A")),
+                    ::std::option::Option::Some(sval::Index::new(0)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+
+        let value = Enum::B(&43);
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                EnumBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+                TaggedBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("B")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                I32(43),
+                TaggedEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("B")),
+                    ::std::option::Option::Some(sval::Index::new(1)),
+                ),
+                EnumEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("Enum")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
     }
 }
 
