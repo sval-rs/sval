@@ -1152,12 +1152,11 @@ mod derive_struct {
         #[derive(Value)]
         struct Record {
             #[sval(skip)]
-            #[allow(dead_code)]
-            skipped: i32,
+            _skipped: i32,
             a: i32,
         }
 
-        assert_tokens(&Record { skipped: 1, a: 42 }, {
+        assert_tokens(&Record { _skipped: 1, a: 42 }, {
             use sval_test::Token::*;
 
             &[
@@ -2625,18 +2624,16 @@ mod derive_enum {
     #[test]
     fn skip() {
         #[derive(Value)]
-        #[allow(dead_code)]
         enum Enum {
             Record {
                 #[sval(skip)]
-                #[allow(dead_code)]
-                skipped: i32,
+                _skipped: i32,
                 a: i32,
             },
             Tuple(#[sval(skip)] i32, i32),
         }
 
-        assert_tokens(&Enum::Record { skipped: 1, a: 42 }, {
+        assert_tokens(&Enum::Record { _skipped: 1, a: 42 }, {
             use sval_test::Token::*;
 
             &[

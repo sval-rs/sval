@@ -242,11 +242,13 @@ pub(crate) fn infer_ref_lifetime(generics: &Generics) -> syn::Result<RefLifetime
         }),
         0 => Err(syn::Error::new(
             proc_macro2::Span::call_site(),
-            "no lifetime parameter to infer",
+            "cannot infer an appropriate lifetime for ValueRef: there are no lifetime parameters \
+             — specify one with #[sval(ref = \"'lifetime\")]",
         )),
         _ => Err(syn::Error::new(
             proc_macro2::Span::call_site(),
-            "multiple lifetime parameters: specify which to use with #[sval(ref = \"'lifetime\")]",
+            "cannot infer an appropriate lifetime for ValueRef: there are multiple lifetime \
+             parameters — specify which to use with #[sval(ref = \"'lifetime\")]",
         )),
     }
 }

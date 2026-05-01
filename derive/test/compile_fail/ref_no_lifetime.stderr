@@ -1,0 +1,7 @@
+error: cannot infer an appropriate lifetime for ValueRef: there are no lifetime parameters — specify one with #[sval(ref = "'lifetime")]
+ --> compile_fail/ref_no_lifetime.rs:3:10
+  |
+3 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = note: this error originates in the derive macro `Value` (in Nightly builds, run with -Z macro-backtrace for more info)
