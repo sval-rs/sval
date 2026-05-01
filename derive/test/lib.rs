@@ -61,6 +61,7 @@ mod derive_struct {
         #[derive(Value)]
         #[sval(ref)]
         struct RecordTuple<'a> {
+            #[sval(outer_ref)]
             a: &'a i32,
         }
 
@@ -102,6 +103,7 @@ mod derive_struct {
         #[derive(Value)]
         #[sval(ref = "'b where 'a: 'b")]
         struct RecordTuple<'a> {
+            #[sval(outer_ref)]
             a: &'a i32,
         }
 
@@ -183,7 +185,8 @@ mod derive_struct {
     fn ref_with_explicit_lifetime_and_generics() {
         #[derive(Value)]
         #[sval(ref = "'b")]
-        struct RecordTuple<'a, 'b, T> {
+        struct RecordTuple<'a: 'b, 'b, T> {
+            #[sval(outer_ref)]
             a: &'a i32,
             #[sval(outer_ref)]
             b: &'b i32,
@@ -382,7 +385,7 @@ mod derive_struct {
         #[derive(Value)]
         #[sval(ref, tag = CONTAINER, label = "record")]
         struct Record<'a> {
-            #[sval(tag = FIELD)]
+            #[sval(outer_ref, tag = FIELD)]
             a: &'a i32,
         }
 
@@ -424,6 +427,7 @@ mod derive_struct {
         #[derive(Value)]
         #[sval(ref, unlabeled_fields)]
         struct Tuple<'a> {
+            #[sval(outer_ref)]
             a: &'a i32,
         }
 
@@ -457,6 +461,7 @@ mod derive_struct {
         #[derive(Value)]
         #[sval(ref, unindexed_fields)]
         struct Record<'a> {
+            #[sval(outer_ref)]
             a: &'a i32,
         }
 
@@ -490,6 +495,7 @@ mod derive_struct {
         #[derive(Value)]
         #[sval(ref, unlabeled_fields, unindexed_fields)]
         struct Seq<'a> {
+            #[sval(outer_ref)]
             a: &'a i32,
         }
 
@@ -524,7 +530,7 @@ mod derive_struct {
         #[derive(Value)]
         #[sval(ref)]
         struct RecordTuple<'a> {
-            #[sval(data_tag = sval::tags::NUMBER)]
+            #[sval(outer_ref, data_tag = sval::tags::NUMBER)]
             a: &'a i32,
         }
 
@@ -578,6 +584,7 @@ mod derive_struct {
         struct Record<'a> {
             #[sval(skip)]
             _skipped: &'a i32,
+            #[sval(outer_ref)]
             a: &'a i32,
         }
 
@@ -637,6 +644,7 @@ mod derive_struct {
         struct Record<'a> {
             #[sval(computed)]
             doubled: Double<'a>,
+            #[sval(outer_ref)]
             a: &'a i32,
         }
 
@@ -1507,7 +1515,7 @@ mod derive_tuple {
     fn ref_basic() {
         #[derive(Value)]
         #[sval(ref)]
-        struct Tuple<'a>(&'a i32, &'a i32);
+        struct Tuple<'a>(#[sval(outer_ref)] &'a i32, #[sval(outer_ref)] &'a i32);
 
         let value = Tuple(&42, &43);
         let tokens: &[sval_test::Token] = {
@@ -1541,7 +1549,10 @@ mod derive_tuple {
     fn ref_with_labeled_fields() {
         #[derive(Value)]
         #[sval(ref)]
-        struct RecordTuple<'a>(#[sval(label = "A")] &'a i32, #[sval(label = "B")] &'a i32);
+        struct RecordTuple<'a>(
+            #[sval(outer_ref, label = "A")] &'a i32,
+            #[sval(outer_ref, label = "B")] &'a i32,
+        );
 
         let value = RecordTuple(&42, &43);
         let tokens: &[sval_test::Token] = {
@@ -1591,7 +1602,7 @@ mod derive_tuple {
     fn ref_with_unindexed_fields() {
         #[derive(Value)]
         #[sval(ref, unindexed_fields)]
-        struct Seq<'a>(&'a i32, &'a i32);
+        struct Seq<'a>(#[sval(outer_ref)] &'a i32, #[sval(outer_ref)] &'a i32);
 
         let value = Seq(&42, &43);
         let tokens: &[sval_test::Token] = {
@@ -1627,7 +1638,7 @@ mod derive_tuple {
         #[allow(dead_code)]
         #[derive(Value)]
         #[sval(ref)]
-        struct Tuple<'a>(#[sval(skip)] &'a i32, &'a i32);
+        struct Tuple<'a>(#[sval(skip)] &'a i32, #[sval(outer_ref)] &'a i32);
 
         let value = Tuple(&42, &43);
         let tokens: &[sval_test::Token] = {
@@ -1729,7 +1740,7 @@ mod derive_newtype {
     fn ref_basic() {
         #[derive(Value)]
         #[sval(ref)]
-        struct Tagged<'a>(&'a i32);
+        struct Tagged<'a>(#[sval(outer_ref)] &'a i32);
 
         let value = Tagged(&42);
         let tokens: &[sval_test::Token] = {
@@ -2891,9 +2902,12 @@ mod derive_enum {
         #[sval(ref)]
         enum Enum<'a> {
             Tag,
-            Tagged(&'a i32),
-            Record { a: &'a i32 },
-            Tuple(&'a i32, &'a i32),
+            Tagged(#[sval(outer_ref)] &'a i32),
+            Record {
+                #[sval(outer_ref)]
+                a: &'a i32,
+            },
+            Tuple(#[sval(outer_ref)] &'a i32, #[sval(outer_ref)] &'a i32),
         }
 
         let value = Enum::Tag;
@@ -3038,10 +3052,13 @@ mod derive_enum {
         #[sval(ref, dynamic)]
         enum Dynamic<'a> {
             Tag,
-            I32(&'a i32),
+            I32(#[sval(outer_ref)] &'a i32),
             Bool(&'a bool),
-            Record { a: &'a i32 },
-            Tuple(&'a i32, &'a i32),
+            Record {
+                #[sval(outer_ref)]
+                a: &'a i32,
+            },
+            Tuple(#[sval(outer_ref)] &'a i32, #[sval(outer_ref)] &'a i32),
         }
 
         let value = Dynamic::Tag;
@@ -3141,9 +3158,12 @@ mod derive_enum {
         #[sval(ref, unlabeled_variants)]
         enum Enum<'a> {
             Tag,
-            Tagged(&'a i32),
-            Record { a: &'a i32 },
-            Tuple(&'a i32, &'a i32),
+            Tagged(#[sval(outer_ref)] &'a i32),
+            Record {
+                #[sval(outer_ref)]
+                a: &'a i32,
+            },
+            Tuple(#[sval(outer_ref)] &'a i32, #[sval(outer_ref)] &'a i32),
         }
 
         let value = Enum::Tag;
@@ -3288,9 +3308,12 @@ mod derive_enum {
         #[sval(ref, unindexed_variants)]
         enum Enum<'a> {
             Tag,
-            Tagged(&'a i32),
-            Record { a: &'a i32 },
-            Tuple(&'a i32, &'a i32),
+            Tagged(#[sval(outer_ref)] &'a i32),
+            Record {
+                #[sval(outer_ref)]
+                a: &'a i32,
+            },
+            Tuple(#[sval(outer_ref)] &'a i32, #[sval(outer_ref)] &'a i32),
         }
 
         let value = Enum::Tag;
@@ -3440,7 +3463,7 @@ mod derive_enum {
             #[sval(tag = "VARIANT", label = "tag")]
             Tag,
             #[sval(tag = "VARIANT", label = "tagged")]
-            Tagged(&'a i32),
+            Tagged(#[sval(outer_ref)] &'a i32),
         }
 
         let value = Enum::Tag;
@@ -3504,8 +3527,8 @@ mod derive_enum {
     fn ref_with_explicit_lifetime() {
         #[derive(Value)]
         #[sval(ref = "'b")]
-        enum Enum<'a, 'b> {
-            A(&'a i32),
+        enum Enum<'a: 'b, 'b> {
+            A(#[sval(outer_ref)] &'a i32),
             B(&'b i32),
         }
 
