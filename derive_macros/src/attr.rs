@@ -466,12 +466,12 @@ impl SvalAttribute for RefAttr {
             match lit {
                 Lit::Bool(b) if b.value => Ok(RefAttrValue::Infer),
                 Lit::Str(s) => {
-                    // Use syn's parser to parse lifetime and optional bounds
-                    // Format: "'a" or "'c: 'a + 'b"
+                    // Use syn's parser to parse lifetime and optional where clause
+                    // Format: "'a" or "'b where 'a: 'b"
                     let spec: RefLifetime = s.parse().map_err(|e| {
                         let mut r = syn::Error::new(
                             s.span(),
-                            "invalid `ref`: expected lifetime or lifetime with bounds",
+                            "invalid `ref`: expected lifetime like \"'a\" or \"'b where 'a: 'b\"",
                         );
                         r.combine(e);
                         r

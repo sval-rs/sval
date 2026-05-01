@@ -43,7 +43,10 @@ pub(crate) fn build_impl_generics_for_ref(
     // Check if the ValueRef lifetime already exists in generics
     let lifetime_exists = generics.lifetimes().any(|lt| lt.lifetime == *lifetime);
 
-    if !lifetime_exists {
+    // 'static is a built-in lifetime — don't add it as a generic parameter
+    let is_static = lifetime.ident == "static";
+
+    if !lifetime_exists && !is_static {
         // Add the ValueRef lifetime to impl_generics params
         let lifetime_param: syn::LifetimeParam = parse_quote!(#lifetime);
         impl_generics

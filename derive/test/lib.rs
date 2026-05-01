@@ -98,11 +98,94 @@ mod derive_struct {
     }
 
     #[test]
+    fn ref_with_lifetime_bound() {
+        #[derive(Value)]
+        #[sval(ref = "'b where 'a: 'b")]
+        struct RecordTuple<'a> {
+            a: &'a i32,
+        }
+
+        let value = RecordTuple { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_static_lifetime() {
+        #[derive(Value)]
+        #[sval(ref = "'static")]
+        struct RecordTuple<'a> {
+            a: &'a i32,
+        }
+
+        let value = RecordTuple { a: &42 };
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(42),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
     fn ref_with_explicit_lifetime_and_generics() {
         #[derive(Value)]
         #[sval(ref = "'b")]
         struct RecordTuple<'a, 'b, T> {
             a: &'a i32,
+            #[sval(outer_ref)]
             b: &'b i32,
             t: T,
         }
@@ -186,7 +269,7 @@ mod derive_struct {
             _marker: ::std::marker::PhantomData,
         };
 
-        assert_tokens(&value, {
+        let tokens: &[sval_test::Token] = {
             use sval_test::Token::*;
 
             &[
@@ -213,10 +296,10 @@ mod derive_struct {
                     ::std::option::Option::None,
                 ),
             ]
-        });
-        // Note: assert_tokens_ref is not applicable here because `#[sval(inner_ref)]`
-        // delegates to `T: ValueRef<'sval>`, but `&i32` doesn't implement `ValueRef`
-        // since `i32` is a primitive type without a `ValueRef` implementation.
+        };
+
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
     }
 
     #[test]

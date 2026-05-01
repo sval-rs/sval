@@ -14,8 +14,7 @@ impl Parse for RefLifetime {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lifetime: syn::Lifetime = input.parse()?;
 
-        let bounds = if input.peek(Token![:]) {
-            let _colon: Token![:] = input.parse()?;
+        let bounds = if input.peek(Token![where]) {
             let bounds: syn::WhereClause = input.parse()?;
             Some(bounds)
         } else {
