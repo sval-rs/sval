@@ -48,6 +48,20 @@ Variant attributes:
 - `#[sval(tag = "path::to::TAG")]`: Set a tag on the enum variant itself. No tag is used by default.
 - `#[sval(label = "text")]`: Set a label on the enum variant. The identifier of the variant is used by default.
 - `#[sval(index = 1)]`: Set an index on the enum variant. The zero-based offset of the variant is used by default.
+
+# `sval_ref::ValueRef`
+
+Add the `#[sval(ref)]` attribute alongside `#[derive(sval::Value)]` to generate a `sval_ref::ValueRef` impl in addition to `sval::Value`.
+The lifetime is inferred from the type's single lifetime parameter.
+Use `#[sval(ref = "'a")]` to specify an explicit lifetime, or `#[sval(ref = "'b where 'b: 'a")]` to add bounds.
+
+Field attributes (requires the `ref` Cargo feature):
+
+- `#[sval(outer_ref)]`: Stream an external reference type, like `&'sval T`, by dereferencing its binding (`stream.value(*field)`).
+- `#[sval(inner_ref)]`: Stream an internal reference type, like `T<'sval>`, via its `ValueRef::stream_ref()` implementation.
+- `#[sval(computed)]`: Stream the field by value via `stream.value_computed(field)`.
+
+Fields are streamed in `sval_ref::ValueRef` **as computed** by default. Use either the `#[sval(outer_ref)]` or `#[sval(inner_ref)]` attributes to pick a borrowing strategy.
 */
 
 #![doc(html_logo_url = "https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg")]
