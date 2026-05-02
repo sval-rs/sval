@@ -16,6 +16,7 @@ proc-macro = true
 
 [features]
 flatten = []
+ref = []
 
 [dependencies.syn]
 version = "2"

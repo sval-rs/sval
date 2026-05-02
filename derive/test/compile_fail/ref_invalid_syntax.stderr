@@ -1,0 +1,11 @@
+error: invalid `ref`: expected lifetime like "'a" or "'b where 'a: 'b"
+ --> compile_fail/ref_invalid_syntax.rs:4:14
+  |
+4 | #[sval(ref = "invalid")]
+  |              ^^^^^^^^^
+
+error: expected lifetime
+ --> compile_fail/ref_invalid_syntax.rs:4:14
+  |
+4 | #[sval(ref = "invalid")]
+  |              ^^^^^^^^^

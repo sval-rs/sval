@@ -1,15 +1,24 @@
+/*!
+Parsing and validation of `#[sval(...)]` attributes.
+
+Each attribute key (e.g. `tag`, `label`, `index`, `skip`) has a dedicated unit struct implementing the `SvalAttribute` trait.
+The trait provides `from_expr()` and `from_lit()` to parse a `syn::Expr` or `syn::Lit` into a typed result.
+
+## Parsing flow
+
+1. `sval_attr()` checks if an attribute's path is `sval`, then iterates its nested meta items, collecting `(Path, Expr)` pairs. Missing values default to `true` (for boolean flags like `#[sval(skip)]`).
+2. `check()` validates all keys against a context-specific allowlist and detects duplicates.
+3. `get()` retrieves a specific attribute value by key.
+
+Feature-gated attributes (`flatten`, `ref`) return compile errors if used without the corresponding Cargo feature enabled.
+*/
+
 use std::collections::HashSet;
 
+use crate::lifetime::RefLifetime;
+use crate::{index::IndexValue, label::LabelValue};
 use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, Path, UnOp};
 
-use crate::{index::IndexValue, label::LabelValue};
-
-/**
-The `tag` attribute.
-
-This attribute specifies a path to an `sval::Tag` to use
-for the annotated item.
-*/
 pub(crate) struct TagAttr;
 
 impl SvalAttribute for TagAttr {
@@ -424,6 +433,195 @@ impl RawAttribute for FlattenAttr {
     }
 }
 
+/**
+The `ref` attribute for enabling ValueRef derive.
+*/
+pub(crate) struct RefAttr;
+
+impl SvalAttribute for RefAttr {
+    type Result = RefAttrValue;
+
+    fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
+                expr.span(),
+                "the `ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match expr {
+                Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
+                Expr::Path(_) => Ok(RefAttrValue::Infer),
+                _ => Err(syn::Error::new(
+                    expr.span(),
+                    "invalid `ref`: expected lifetime or path",
+                )),
+            }
+        }
+    }
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
+                lit.span(),
+                "the `ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match lit {
+                Lit::Bool(b) if b.value => Ok(RefAttrValue::Infer),
+                Lit::Str(s) => {
+                    // Use syn's parser to parse lifetime and optional where clause
+                    // Format: "'a" or "'b where 'a: 'b"
+                    let spec: RefLifetime = s.parse().map_err(|e| {
+                        let mut r = syn::Error::new(
+                            s.span(),
+                            "invalid `ref`: expected lifetime like \"'a\" or \"'b where 'a: 'b\"",
+                        );
+                        r.combine(e);
+                        r
+                    })?;
+                    Ok(RefAttrValue::Explicit(spec))
+                }
+                _ => Err(syn::Error::new(
+                    lit.span(),
+                    "invalid `ref`: expected string literal",
+                )),
+            }
+        }
+    }
+}
+
+impl RawAttribute for RefAttr {
+    fn key(&self) -> &str {
+        "ref"
+    }
+}
+
+/**
+Parsed value for the `ref` attribute.
+*/
+#[derive(Clone)]
+pub(crate) enum RefAttrValue {
+    /**
+    Infer lifetime from the type's single lifetime parameter.
+    */
+    Infer,
+    /**
+    Explicit lifetime with optional bounds (e.g., "'a" or "'c: 'a + 'b").
+    */
+    Explicit(RefLifetime),
+}
+
+impl RefAttrValue {
+    pub(crate) fn lifetime(&self) -> Option<&RefLifetime> {
+        let RefAttrValue::Explicit(spec) = self else {
+            return None;
+        };
+
+        Some(spec)
+    }
+}
+
+/**
+The `outer_ref` attribute for fields.
+*/
+pub(crate) struct OuterRefAttr;
+
+impl SvalAttribute for OuterRefAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
+                lit.span(),
+                "the `outer_ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match lit {
+                Lit::Bool(b) if b.value => Ok(true),
+                _ => Err(syn::Error::new(
+                    lit.span(),
+                    "invalid `outer_ref`: expected boolean value `true`",
+                )),
+            }
+        }
+    }
+}
+
+impl RawAttribute for OuterRefAttr {
+    fn key(&self) -> &str {
+        "outer_ref"
+    }
+}
+
+/**
+The `inner_ref` attribute for fields.
+*/
+pub(crate) struct InnerRefAttr;
+
+impl SvalAttribute for InnerRefAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        #[cfg(not(feature = "ref"))]
+        {
+            Err(syn::Error::new(
+                lit.span(),
+                "the `inner_ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+            ))
+        }
+        #[cfg(feature = "ref")]
+        {
+            match lit {
+                Lit::Bool(b) if b.value => Ok(true),
+                _ => Err(syn::Error::new(
+                    lit.span(),
+                    "invalid `inner_ref`: expected boolean value `true`",
+                )),
+            }
+        }
+    }
+}
+
+impl RawAttribute for InnerRefAttr {
+    fn key(&self) -> &str {
+        "inner_ref"
+    }
+}
+
+/**
+The `computed` attribute for fields.
+*/
+pub(crate) struct ComputedAttr;
+
+impl SvalAttribute for ComputedAttr {
+    type Result = bool;
+
+    fn from_lit(&self, lit: &Lit) -> syn::Result<Self::Result> {
+        match lit {
+            Lit::Bool(b) if b.value => Ok(true),
+            _ => Err(syn::Error::new(
+                lit.span(),
+                "invalid `computed`: expected boolean value `true`",
+            )),
+        }
+    }
+}
+
+impl RawAttribute for ComputedAttr {
+    fn key(&self) -> &str {
+        "computed"
+    }
+}
+
 pub(crate) trait RawAttribute {
     fn key(&self) -> &str;
 }
@@ -481,8 +679,7 @@ pub(crate) fn ensure_missing<T: SvalAttribute>(
 }
 
 /**
-Check the set of attributes, failing if any are duplicated, or aren't known or supported by
-the derive context.
+Check the set of attributes, failing if any are duplicated, or aren't known or supported by the derive context.
 */
 pub(crate) fn check(
     ctxt: &str,
@@ -533,8 +730,7 @@ pub(crate) fn check(
 /**
 Get the value of an attribute, without checking the set itself for validity.
 
-This function will still fail if the requested attribute is invalid, but won't
-handle duplicates, which are expected to have been caught by an earlier call to `check`.
+This function will still fail if the requested attribute is invalid, but won't handle duplicates, which are expected to have been caught by an earlier call to `check`.
 */
 pub(crate) fn get<T: SvalAttribute>(
     ctxt: &str,

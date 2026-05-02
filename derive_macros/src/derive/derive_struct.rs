@@ -1,12 +1,14 @@
 use syn::{Attribute, Fields, Generics, Ident, Path};
 
 use crate::{
-    attr, bound,
-    derive::impl_tokens,
+    attr::{self, RefAttrValue},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::{stream_record_tuple, RecordTupleTarget},
     tag::quote_optional_tag_owned,
+    value_trait::{
+        collect_inner_ref_field_types, infer_ref_lifetime, ImplStrategy, ImplValue, ImplValueRef,
+    },
 };
 
 pub(crate) struct StructAttrs {
@@ -15,6 +17,7 @@ pub(crate) struct StructAttrs {
     index: Option<IndexValue>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
+    ref_attr: Option<RefAttrValue>,
 }
 
 impl StructAttrs {
@@ -27,6 +30,7 @@ impl StructAttrs {
                 &attr::IndexAttr,
                 &attr::UnlabeledFieldsAttr,
                 &attr::UnindexedFieldsAttr,
+                &attr::RefAttr,
             ],
             attrs,
         )?;
@@ -39,6 +43,7 @@ impl StructAttrs {
             attr::get("struct", attr::UnlabeledFieldsAttr, attrs)?.unwrap_or(false);
         let unindexed_fields =
             attr::get("struct", attr::UnindexedFieldsAttr, attrs)?.unwrap_or(false);
+        let ref_attr = attr::get("struct", attr::RefAttr, attrs)?;
 
         Ok(StructAttrs {
             tag,
@@ -46,6 +51,7 @@ impl StructAttrs {
             index,
             unlabeled_fields,
             unindexed_fields,
+            ref_attr,
         })
     }
 
@@ -68,6 +74,10 @@ impl StructAttrs {
     pub(crate) fn unindexed_fields(&self) -> bool {
         self.unindexed_fields
     }
+
+    pub(crate) fn value_ref_lifetime(&self) -> Option<&RefAttrValue> {
+        self.ref_attr.as_ref()
+    }
 }
 
 pub(crate) fn derive_struct<'a>(
@@ -76,11 +86,6 @@ pub(crate) fn derive_struct<'a>(
     fields: &Fields,
     attrs: &StructAttrs,
 ) -> syn::Result<proc_macro2::TokenStream> {
-    let (impl_generics, ty_generics, _) = generics.split_for_impl();
-
-    let bound = parse_quote!(sval::Value);
-    let bounded_where_clause = bound::where_clause_with_bound(&generics, bound);
-
     let (fields, target) = match fields {
         Fields::Named(ref fields) => (&fields.named, RecordTupleTarget::named_fields()),
         Fields::Unnamed(ref fields) => (&fields.unnamed, RecordTupleTarget::unnamed_fields()),
@@ -90,31 +95,49 @@ pub(crate) fn derive_struct<'a>(
         }
     };
 
-    let match_arm = stream_record_tuple(
-        quote!(#ident),
-        fields.iter(),
-        target,
-        attrs.tag(),
-        Some(label_or_ident(attrs.label(), ident)),
-        attrs.index(),
-        attrs.unlabeled_fields(),
-        attrs.unindexed_fields(),
-    )?;
+    let mut impl_blocks = vec![ImplValue::new(Some(quote_optional_tag_owned(attrs.tag()))).boxed()];
 
-    let tag = quote_optional_tag_owned(attrs.tag());
+    // Include a derive for `ValueRef` if the type carries a `#[sval(ref)]` attribute
+    if let Some(lf) = attrs.value_ref_lifetime() {
+        impl_blocks.push(
+            ImplValueRef::new(
+                match lf.lifetime() {
+                    Some(lf) => lf.clone(),
+                    None => infer_ref_lifetime(generics)?,
+                },
+                collect_inner_ref_field_types(fields.iter())?,
+            )
+            .boxed(),
+        );
+    };
 
-    Ok(impl_tokens(
-        impl_generics,
-        ident,
-        ty_generics,
-        &bounded_where_clause,
-        quote!({
-            match self {
-                #match_arm
-            }
+    let mut impl_tokens = Vec::new();
 
-            sval::__private::result::Result::Ok(())
-        }),
-        Some(tag),
-    ))
+    for block in impl_blocks {
+        let match_arm = stream_record_tuple(
+            quote!(#ident),
+            fields.iter(),
+            &*block,
+            target,
+            attrs.tag(),
+            Some(label_or_ident(attrs.label(), ident)),
+            attrs.index(),
+            attrs.unlabeled_fields(),
+            attrs.unindexed_fields(),
+        )?;
+
+        impl_tokens.push(block.quote_impl(
+            ident,
+            generics,
+            quote!({
+                match self {
+                    #match_arm
+                }
+
+                sval::__private::result::Result::Ok(())
+            }),
+        )?);
+    }
+
+    Ok(quote!(#(#impl_tokens)*))
 }
