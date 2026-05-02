@@ -1,3 +1,7 @@
+/*!
+Where-clause construction and generic bound manipulation.
+*/
+
 use proc_macro2::TokenStream;
 use syn::{Generics, WhereClause, WherePredicate};
 
@@ -17,7 +21,6 @@ pub(crate) fn where_clause_with_bound(generics: &Generics, bound: TokenStream) -
     generics.where_clause.unwrap()
 }
 
-/// Check if a type is exactly a generic type parameter from the given generics
 pub(crate) fn is_generic_type_param(ty: &syn::Type, generics: &Generics) -> bool {
     if let syn::Type::Path(type_path) = ty {
         if type_path.qself.is_none() && type_path.path.segments.len() == 1 {
@@ -31,8 +34,6 @@ pub(crate) fn is_generic_type_param(ty: &syn::Type, generics: &Generics) -> bool
     }
 }
 
-/// Build impl_generics for ValueRef implementation
-/// Adds the ValueRef lifetime if not already present, and merges lifetime bounds
 pub(crate) fn build_impl_generics_for_ref(
     generics: &Generics,
     ref_lifetime: &RefLifetime,

@@ -1,15 +1,24 @@
+/*!
+Parsing and validation of `#[sval(...)]` attributes.
+
+Each attribute key (e.g. `tag`, `label`, `index`, `skip`) has a dedicated unit struct implementing the `SvalAttribute` trait.
+The trait provides `from_expr()` and `from_lit()` to parse a `syn::Expr` or `syn::Lit` into a typed result.
+
+## Parsing flow
+
+1. `sval_attr()` checks if an attribute's path is `sval`, then iterates its nested meta items, collecting `(Path, Expr)` pairs. Missing values default to `true` (for boolean flags like `#[sval(skip)]`).
+2. `check()` validates all keys against a context-specific allowlist and detects duplicates.
+3. `get()` retrieves a specific attribute value by key.
+
+Feature-gated attributes (`flatten`, `ref`) return compile errors if used without the corresponding Cargo feature enabled.
+*/
+
 use std::collections::HashSet;
 
 use crate::lifetime::RefLifetime;
 use crate::{index::IndexValue, label::LabelValue};
 use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, Path, UnOp};
 
-/**
-The `tag` attribute.
-
-This attribute specifies a path to an `sval::Tag` to use
-for the annotated item.
-*/
 pub(crate) struct TagAttr;
 
 impl SvalAttribute for TagAttr {
@@ -670,8 +679,7 @@ pub(crate) fn ensure_missing<T: SvalAttribute>(
 }
 
 /**
-Check the set of attributes, failing if any are duplicated, or aren't known or supported by
-the derive context.
+Check the set of attributes, failing if any are duplicated, or aren't known or supported by the derive context.
 */
 pub(crate) fn check(
     ctxt: &str,
@@ -722,8 +730,7 @@ pub(crate) fn check(
 /**
 Get the value of an attribute, without checking the set itself for validity.
 
-This function will still fail if the requested attribute is invalid, but won't
-handle duplicates, which are expected to have been caught by an earlier call to `check`.
+This function will still fail if the requested attribute is invalid, but won't handle duplicates, which are expected to have been caught by an earlier call to `check`.
 */
 pub(crate) fn get<T: SvalAttribute>(
     ctxt: &str,

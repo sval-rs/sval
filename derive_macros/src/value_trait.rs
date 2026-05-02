@@ -1,3 +1,23 @@
+/*!
+Impl block generation and field streaming strategies.
+
+The `ImplStrategy` trait abstracts over the two kinds of impl blocks the derive
+can produce: `ImplValue` for `sval::Value` and `ImplValueRef` for
+`sval_derive::extensions::r#ref::ValueRef`. Each strategy controls how field
+values are streamed into the output via `quote_stream_value()`, and how the
+final `impl` block is constructed via `quote_impl()`.
+
+## `FieldCodegen`
+
+The `FieldCodegen` enum selects the streaming strategy for a field:
+- `OuterRef`: the field binding is a reference; `*binding` dereferences it.
+- `InnerRef`: the field holds a `ValueRef`; delegated to `stream_ref()`.
+- `Computed`: the field is streamed by value via `value_computed()`.
+
+For `ImplValue` the default is `OuterRef` (`stream.value(binding)`).
+For `ImplValueRef` the default is `Computed` (`stream.value_computed(binding)`).
+*/
+
 use proc_macro2::TokenStream;
 use syn::{Attribute, Field, Generics, Ident};
 
@@ -7,7 +27,6 @@ use crate::{
     lifetime::RefLifetime,
 };
 
-/// Controls how a field is streamed based on attributes and trait context
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FieldCodegen {
     OuterRef,
@@ -43,8 +62,6 @@ pub(crate) fn field_codegen(attrs: &[Attribute]) -> syn::Result<Option<FieldCode
     })
 }
 
-/// Wraps a generated stream body in the correct impl block
-/// and provides the default field codegen strategy
 pub(crate) trait ImplStrategy {
     fn quote_stream_value(
         &self,
@@ -52,7 +69,6 @@ pub(crate) trait ImplStrategy {
         codegen: Option<FieldCodegen>,
     ) -> syn::Result<TokenStream>;
 
-    /// Wrap the stream body in an impl block
     fn quote_impl(
         &self,
         ident: &Ident,
@@ -68,7 +84,9 @@ pub(crate) trait ImplStrategy {
     }
 }
 
-/// Generates impl block for sval::Value
+/**
+Implement `sval::Value`.
+*/
 pub(crate) struct ImplValue {
     tag_body: Option<TokenStream>,
 }
@@ -131,7 +149,9 @@ impl ImplStrategy for ImplValue {
     }
 }
 
-/// Generates impl block for sval_ref::ValueRef<'sval>
+/**
+Implement `sval_ref::ValueRef`.
+*/
 pub(crate) struct ImplValueRef {
     pub(crate) lifetime: RefLifetime,
     pub(crate) inner_ref_fields: Vec<syn::Type>,
@@ -215,7 +235,6 @@ impl ImplStrategy for ImplValueRef {
     }
 }
 
-/// Collect field types that have the inner_ref attribute
 pub(crate) fn collect_inner_ref_field_types<'a, I>(fields: I) -> syn::Result<Vec<syn::Type>>
 where
     I: Iterator<Item = &'a Field>,
@@ -231,7 +250,6 @@ where
     Ok(inner_ref_types)
 }
 
-/// Infer a lifetime to use as `'sval` in `ValueRef<'sval>`
 pub(crate) fn infer_ref_lifetime(generics: &Generics) -> syn::Result<RefLifetime> {
     let lifetimes: Vec<_> = generics.lifetimes().map(|lt| lt.lifetime.clone()).collect();
 
