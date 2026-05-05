@@ -23,7 +23,7 @@ pub struct MyData<'a> {
 ```
 
 Fields are streamed as computed by default.
-Use the `#[sval(outer_ref)]` attribute for fields with external references like `&'a str`, and the `#[svla(inner_ref)]` attribute for fields with internal references like `Data<'a>`.
+Use the `#[sval(outer_ref)]` attribute for fields with external references like `&'a str`, and the `#[sval(inner_ref)]` attribute for fields with internal references like `Data<'a>`.
 */
 
 #![doc(html_logo_url = "https://raw.githubusercontent.com/sval-rs/sval/main/asset/logo.svg")]
