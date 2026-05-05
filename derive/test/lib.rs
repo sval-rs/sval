@@ -716,15 +716,58 @@ mod derive_struct {
         }
 
         let value = RecordTuple {
-            x: Inner { a: &1, b: &2, },
+            x: Inner { a: &1, b: &2 },
             c: &3,
         };
-        
+
         let tokens: &[sval_test::Token] = {
             use sval_test::Token::*;
 
             &[
-                // TODO: Fill this in
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(1),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                I32(2),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("c"),
+                    sval::Index::new(2),
+                ),
+                I32(3),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("c"),
+                    sval::Index::new(2),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         };
         assert_tokens(&value, tokens);
@@ -751,15 +794,58 @@ mod derive_struct {
         }
 
         let value = RecordTuple {
-            x: &Inner { a: 1, b: 2, },
+            x: &Inner { a: 1, b: 2 },
             c: &3,
         };
-        
+
         let tokens: &[sval_test::Token] = {
             use sval_test::Token::*;
 
             &[
-                // TODO: Fill this in
+                RecordTupleBegin(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                    ::std::option::Option::None,
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                I32(1),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("a"),
+                    sval::Index::new(0),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                I32(2),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("b"),
+                    sval::Index::new(1),
+                ),
+                RecordTupleValueBegin(
+                    ::std::option::Option::None,
+                    sval::Label::new("c"),
+                    sval::Index::new(2),
+                ),
+                I32(3),
+                RecordTupleValueEnd(
+                    ::std::option::Option::None,
+                    sval::Label::new("c"),
+                    sval::Index::new(2),
+                ),
+                RecordTupleEnd(
+                    ::std::option::Option::None,
+                    ::std::option::Option::Some(sval::Label::new("RecordTuple")),
+                    ::std::option::Option::None,
+                ),
             ]
         };
         assert_tokens(&value, tokens);
