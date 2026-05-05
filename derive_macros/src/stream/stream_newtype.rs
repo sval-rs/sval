@@ -33,7 +33,8 @@ where
 
     let ident = Ident::new("field0", field.span());
 
-    let field_value_tokens = impl_block.quote_stream_value(&ident, field_codegen(&field.attrs)?)?;
+    let field_value_tokens =
+        impl_block.quote_stream_value(quote!(stream), &ident, field_codegen(&field.attrs)?)?;
 
     Ok(if transparent {
         quote!(#path(ref #ident) => {

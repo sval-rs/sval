@@ -2641,7 +2641,12 @@ mod derive_enum {
                 _skipped: i32,
                 a: i32,
             },
-            Tuple(#[sval(skip)] i32, i32),
+            Tuple(
+                #[sval(skip)]
+                #[allow(dead_code)]
+                i32,
+                i32,
+            ),
         }
 
         assert_tokens(&Enum::Record { _skipped: 1, a: 42 }, {

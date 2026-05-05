@@ -57,8 +57,8 @@ impl<'sval, S: Flatten<'sval>> Flattener<'sval, S> {
     }
 
     #[inline]
-    pub(crate) fn end(self) -> isize {
-        self.state.index_alloc.current_offset()
+    pub(crate) fn end(self) -> (isize, S) {
+        (self.state.index_alloc.current_offset(), self.stream)
     }
 
     #[inline]

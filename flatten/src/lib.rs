@@ -56,6 +56,9 @@ value is stringified and concatenated together.
 #[cfg(any(test, feature = "alloc"))]
 extern crate alloc;
 
+#[macro_use]
+mod macros;
+
 mod flattener;
 mod index;
 mod label;

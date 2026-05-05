@@ -114,14 +114,17 @@ where
 
         const_size = const_size && !flatten;
 
-        let field_value_tokens =
-            impl_block.quote_stream_value(&ident, field_codegen(&field.attrs)?)?;
-
         let value =
             if let Some(data_tag) = attr::get("struct field", attr::DataTagAttr, &field.attrs)? {
                 let data_tag = quote_optional_tag(Some(&data_tag));
                 let data_label = quote_optional_label(None);
                 let data_index = quote_optional_index(None);
+
+                let field_value_tokens = impl_block.quote_stream_value(
+                    quote!(stream),
+                    &ident,
+                    field_codegen(&field.attrs)?,
+                )?;
 
                 quote!({
                     stream.tagged_begin(#data_tag, #data_label, #data_index)?;
@@ -129,6 +132,12 @@ where
                     stream.tagged_end(#data_tag, #data_label, #data_index)?
                 })
             } else {
+                let field_value_tokens = impl_block.quote_stream_value(
+                    quote!(stream),
+                    &ident,
+                    field_codegen(&field.attrs)?,
+                )?;
+
                 quote!(#field_value_tokens?)
             };
 

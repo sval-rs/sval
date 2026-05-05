@@ -6,25 +6,57 @@ use sval::{Index, Label, Stream, Tag};
 
 /**
 Flatten the fields of a value onto a sequence.
- */
+*/
 pub fn flatten_to_seq<'sval>(
     stream: &mut (impl Stream<'sval> + ?Sized),
     value: &'sval (impl sval::Value + ?Sized),
 ) -> sval::Result {
-    let label_stream = Empty;
-
-    let mut stream = Flattener::begin(
-        SeqFlatten {
-            stream,
-            label_stream,
-        },
-        0,
-    );
+    let mut stream = FlattenToSeq::new(stream, 0);
 
     value.stream(&mut stream)?;
 
     Ok(())
 }
+
+/**
+A stream that flattens the fields of a value onto a sequence.
+*/
+pub struct FlattenToSeq<'sval, S> {
+    inner: Flattener<'sval, SeqFlatten<S>>,
+}
+
+impl<'sval, S: sval::Stream<'sval>> FlattenToSeq<'sval, S> {
+    /**
+    Wrap the given `stream`.
+
+    The `offset` is the current length of the sequence being flattened onto.
+    Call [`FlattenToSeq::end`] after streaming a value to get the new length of the sequence.
+    */
+    pub fn new(stream: S, offset: isize) -> Self {
+        FlattenToSeq {
+            inner: Flattener::begin(
+                SeqFlatten {
+                    stream,
+                    label_stream: Empty,
+                },
+                offset,
+            ),
+        }
+    }
+
+    /**
+    Finish flattening a value.
+
+    This method returns the length of the map after flattening that can be used to reconstruct a `FlattenToSeq` for a future value.
+    */
+    pub fn end(self) -> (isize, S) {
+        let (offset, SeqFlatten { stream, .. }) = self.inner.end();
+
+        (offset, stream)
+    }
+}
+
+impl_stream_forward!({ impl<'sval, S: Stream<'sval>> Stream<'sval> for FlattenToSeq<'sval, S> } => x => { x.inner });
 
 struct SeqFlatten<S> {
     stream: S,

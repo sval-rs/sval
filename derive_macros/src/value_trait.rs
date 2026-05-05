@@ -65,6 +65,7 @@ pub(crate) fn field_codegen(attrs: &[Attribute]) -> syn::Result<Option<FieldCode
 pub(crate) trait ImplStrategy {
     fn quote_stream_value(
         &self,
+        stream: TokenStream,
         binding: &Ident,
         codegen: Option<FieldCodegen>,
     ) -> syn::Result<TokenStream>;
@@ -100,13 +101,14 @@ impl ImplValue {
 impl ImplStrategy for ImplValue {
     fn quote_stream_value(
         &self,
+        stream: TokenStream,
         binding: &Ident,
         codegen: Option<FieldCodegen>,
     ) -> syn::Result<TokenStream> {
         Ok(match codegen.unwrap_or(FieldCodegen::OuterRef) {
-            FieldCodegen::OuterRef => quote!(stream.value(#binding)),
-            FieldCodegen::InnerRef => quote!(stream.value(#binding)),
-            FieldCodegen::Computed => quote!(stream.value_computed(#binding)),
+            FieldCodegen::OuterRef => quote!((#stream).value(#binding)),
+            FieldCodegen::InnerRef => quote!((#stream).value(#binding)),
+            FieldCodegen::Computed => quote!((#stream).value_computed(#binding)),
         })
     }
 
@@ -169,15 +171,16 @@ impl ImplValueRef {
 impl ImplStrategy for ImplValueRef {
     fn quote_stream_value(
         &self,
+        stream: TokenStream,
         binding: &Ident,
         codegen: Option<FieldCodegen>,
     ) -> syn::Result<TokenStream> {
         Ok(match codegen.unwrap_or(FieldCodegen::Computed) {
-            FieldCodegen::OuterRef => quote!(stream.value(*#binding)),
+            FieldCodegen::OuterRef => quote!((#stream).value(*#binding)),
             FieldCodegen::InnerRef => {
-                quote!(sval_derive::extensions::r#ref::stream_ref(stream, #binding))
+                quote!(sval_derive::extensions::r#ref::stream_ref(#stream, #binding))
             }
-            FieldCodegen::Computed => quote!(stream.value_computed(#binding)),
+            FieldCodegen::Computed => quote!((#stream).value_computed(#binding)),
         })
     }
 
