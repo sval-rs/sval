@@ -696,6 +696,77 @@ mod derive_struct {
     }
 
     #[test]
+    fn ref_with_inner_ref_flatten() {
+        #[derive(Value)]
+        #[sval(ref)]
+        struct Inner<'a> {
+            #[sval(outer_ref)]
+            a: &'a i32,
+            #[sval(outer_ref)]
+            b: &'a i32,
+        }
+
+        #[derive(Value)]
+        #[sval(ref)]
+        struct RecordTuple<'a> {
+            #[sval(inner_ref, flatten)]
+            x: Inner<'a>,
+            #[sval(outer_ref)]
+            c: &'a i32,
+        }
+
+        let value = RecordTuple {
+            x: Inner { a: &1, b: &2, },
+            c: &3,
+        };
+        
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                // TODO: Fill this in
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
+    fn ref_with_outer_ref_flatten() {
+        #[derive(Value)]
+        struct Inner {
+            #[sval(outer_ref)]
+            a: i32,
+            #[sval(outer_ref)]
+            b: i32,
+        }
+
+        #[derive(Value)]
+        #[sval(ref)]
+        struct RecordTuple<'a> {
+            #[sval(outer_ref, flatten)]
+            x: &'a Inner,
+            #[sval(outer_ref)]
+            c: &'a i32,
+        }
+
+        let value = RecordTuple {
+            x: &Inner { a: 1, b: 2, },
+            c: &3,
+        };
+        
+        let tokens: &[sval_test::Token] = {
+            use sval_test::Token::*;
+
+            &[
+                // TODO: Fill this in
+            ]
+        };
+        assert_tokens(&value, tokens);
+        assert_tokens_ref(&value, tokens);
+    }
+
+    #[test]
     fn uncooked() {
         #[derive(Value)]
         struct RecordTuple {

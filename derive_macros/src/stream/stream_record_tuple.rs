@@ -114,17 +114,25 @@ where
 
         const_size = const_size && !flatten;
 
+        let field_value_tokens = if flatten {
+            impl_block.quote_stream_value(
+                quote!(&mut stream),
+                &ident,
+                field_codegen(&field.attrs)?,
+            )?
+        } else {
+            impl_block.quote_stream_value(
+                quote!(&mut *stream),
+                &ident,
+                field_codegen(&field.attrs)?,
+            )?
+        };
+
         let value =
             if let Some(data_tag) = attr::get("struct field", attr::DataTagAttr, &field.attrs)? {
                 let data_tag = quote_optional_tag(Some(&data_tag));
                 let data_label = quote_optional_label(None);
                 let data_index = quote_optional_index(None);
-
-                let field_value_tokens = impl_block.quote_stream_value(
-                    quote!(stream),
-                    &ident,
-                    field_codegen(&field.attrs)?,
-                )?;
 
                 quote!({
                     stream.tagged_begin(#data_tag, #data_label, #data_index)?;
@@ -132,19 +140,17 @@ where
                     stream.tagged_end(#data_tag, #data_label, #data_index)?
                 })
             } else {
-                let field_value_tokens = impl_block.quote_stream_value(
-                    quote!(stream),
-                    &ident,
-                    field_codegen(&field.attrs)?,
-                )?;
-
                 quote!(#field_value_tokens?)
             };
 
         match (&label, &index) {
             (Some(label), Some(index)) => {
                 if flatten {
-                    stream_field.push(quote!(#index_ident = sval_derive::extensions::flatten::flatten_to_record_tuple(&mut *stream, #ident, #index_ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToRecordTuple::new(&mut *stream, #index_ident);
+                        #field_value_tokens?;
+                        #index_ident = stream.end().0;
+                    }));
                 } else {
                     stream_field.push(quote!({
                         let #index_ident = #index;
@@ -162,7 +168,11 @@ where
             }
             (None, Some(index)) => {
                 if flatten {
-                    stream_field.push(quote!(#index_ident = sval_derive::extensions::flatten::flatten_to_tuple(&mut *stream, #ident, #index_ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToTuple::new(&mut *stream, #index_ident);
+                        #field_value_tokens?;
+                        #index_ident = stream.end().0;
+                    }));
                 } else {
                     stream_field.push(quote!({
                         let #index_ident = #index;
@@ -178,7 +188,11 @@ where
             }
             (Some(label), None) => {
                 if flatten {
-                    stream_field.push(quote!(#index_ident = sval_derive::extensions::flatten::flatten_to_record(&mut *stream, #ident, #index_ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToRecord::new(&mut *stream, #index_ident);
+                        #field_value_tokens?;
+                        #index_ident = stream.end().0;
+                    }));
                 } else {
                     stream_field.push(quote!({
                         let #label_ident = #label;
@@ -194,7 +208,11 @@ where
             }
             (None, None) => {
                 if flatten {
-                    stream_field.push(quote!(sval_derive::extensions::flatten::flatten_to_seq(&mut *stream, #ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToSeq::new(&mut *stream, 0);
+                        #field_value_tokens?;
+                        stream.end();
+                    }));
                 } else {
                     stream_field.push(quote!({
                         stream.seq_value_begin()?;

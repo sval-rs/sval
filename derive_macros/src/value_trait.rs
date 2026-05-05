@@ -106,9 +106,9 @@ impl ImplStrategy for ImplValue {
         codegen: Option<FieldCodegen>,
     ) -> syn::Result<TokenStream> {
         Ok(match codegen.unwrap_or(FieldCodegen::OuterRef) {
-            FieldCodegen::OuterRef => quote!((#stream).value(#binding)),
-            FieldCodegen::InnerRef => quote!((#stream).value(#binding)),
-            FieldCodegen::Computed => quote!((#stream).value_computed(#binding)),
+            FieldCodegen::OuterRef => quote!(sval::Stream::value(#stream, #binding)),
+            FieldCodegen::InnerRef => quote!(sval::Stream::value(#stream, #binding)),
+            FieldCodegen::Computed => quote!(sval::Stream::value_computed(#stream, #binding)),
         })
     }
 
@@ -176,11 +176,11 @@ impl ImplStrategy for ImplValueRef {
         codegen: Option<FieldCodegen>,
     ) -> syn::Result<TokenStream> {
         Ok(match codegen.unwrap_or(FieldCodegen::Computed) {
-            FieldCodegen::OuterRef => quote!((#stream).value(*#binding)),
+            FieldCodegen::OuterRef => quote!(sval::Stream::value(#stream, *#binding)),
             FieldCodegen::InnerRef => {
                 quote!(sval_derive::extensions::r#ref::stream_ref(#stream, #binding))
             }
-            FieldCodegen::Computed => quote!((#stream).value_computed(#binding)),
+            FieldCodegen::Computed => quote!(sval::Stream::value_computed(#stream, #binding)),
         })
     }
 
