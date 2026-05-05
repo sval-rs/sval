@@ -7,7 +7,7 @@ A stream that writes [`sval::Value`]s using a `Debug`-like format.
 The target for the writer is an implementation of [`TokenWrite`].
 Standard writers can be adapted into a `TokenWrite` by wrapping them in a [`PlainWrite`].
 */
-pub struct Writer<W> {
+pub(crate) struct Writer<W> {
     is_current_depth_empty: bool,
     is_number: bool,
     out: W,
@@ -66,7 +66,7 @@ impl<'a> TokenWrite for fmt::Formatter<'a> {
 /**
 Adapt a standard [`Write`] into a [`TokenWrite`].
 */
-pub struct PlainWrite<W>(W);
+pub(crate) struct PlainWrite<W>(W);
 
 impl<W> PlainWrite<W> {
     /**
@@ -74,13 +74,6 @@ impl<W> PlainWrite<W> {
     */
     pub fn new(inner: W) -> Self {
         PlainWrite(inner)
-    }
-
-    /**
-    Unwrap the writer.
-    */
-    pub fn into_inner(self) -> W {
-        self.0
     }
 }
 
@@ -158,13 +151,6 @@ impl<W> Writer<W> {
             is_number: false,
             out,
         }
-    }
-
-    /**
-    Unwrap the writer.
-    */
-    pub fn into_inner(self) -> W {
-        self.out
     }
 }
 

@@ -22,7 +22,7 @@ mod to_write;
 pub mod tags;
 mod token_write;
 
-pub use self::{to_fmt::*, to_value::*, to_write::*, token_write::*, writer::*};
+pub use self::{to_fmt::*, to_value::*, to_write::*, token_write::*};
 
 #[cfg(feature = "alloc")]
 mod to_string;
