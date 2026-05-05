@@ -1,7 +1,13 @@
 use crate::{tags, TokenWrite};
 use core::fmt::{self, Display, Write};
 
-pub(crate) struct Writer<W> {
+/**
+A stream that writes [`sval::Value`]s using a `Debug`-like format.
+
+The target for the writer is an implementation of [`TokenWrite`].
+Standard writers can be adapted into a `TokenWrite` by wrapping them in a [`PlainWrite`].
+*/
+pub struct Writer<W> {
     is_current_depth_empty: bool,
     is_number: bool,
     out: W,
@@ -57,9 +63,28 @@ impl<'a> TokenWrite for fmt::Formatter<'a> {
     }
 }
 
-pub(crate) struct GenericWriter<W>(pub W);
+/**
+Adapt a standard [`Write`] into a [`TokenWrite`].
+*/
+pub struct PlainWrite<W>(W);
 
-impl<W: Write> Write for GenericWriter<W> {
+impl<W> PlainWrite<W> {
+    /**
+    Wrap the given writer.
+    */
+    pub fn new(inner: W) -> Self {
+        PlainWrite(inner)
+    }
+
+    /**
+    Unwrap the writer.
+    */
+    pub fn into_inner(self) -> W {
+        self.0
+    }
+}
+
+impl<W: Write> Write for PlainWrite<W> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.0.write_str(s)
     }
@@ -73,7 +98,7 @@ impl<W: Write> Write for GenericWriter<W> {
     }
 }
 
-impl<W: Write> TokenWrite for GenericWriter<W> {
+impl<W: Write> TokenWrite for PlainWrite<W> {
     fn write_u8(&mut self, value: u8) -> fmt::Result {
         self.write_str(itoa::Buffer::new().format(value))
     }
@@ -124,12 +149,22 @@ impl<W: Write> TokenWrite for GenericWriter<W> {
 }
 
 impl<W> Writer<W> {
+    /**
+    Wrap the given [`TokenWrite`] into an [`sval::Stream`].
+    */
     pub fn new(out: W) -> Self {
         Writer {
             is_current_depth_empty: true,
             is_number: false,
             out,
         }
+    }
+
+    /**
+    Unwrap the writer.
+    */
+    pub fn into_inner(self) -> W {
+        self.out
     }
 }
 
