@@ -15,6 +15,7 @@ categories = ["encoding", "no-std"]
 alloc = ["sval_flatten?/alloc"]
 std = ["sval_flatten?/std"]
 flatten = ["dep:sval_flatten", "sval_derive_macros/flatten"]
+ref = ["dep:sval_ref", "sval_derive_macros/ref"]
 
 [dependencies.sval_derive_macros]
 version = "2.18.0"
@@ -23,4 +24,9 @@ path = "../derive_macros"
 [dependencies.sval_flatten]
 version = "2.18.0"
 path = "../flatten"
+optional = true
+
+[dependencies.sval_ref]
+version = "2.18.0"
+path = "../ref"
 optional = true

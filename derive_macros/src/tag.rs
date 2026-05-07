@@ -1,3 +1,7 @@
+/*!
+Tag quoting helpers.
+*/
+
 use syn::Path;
 
 pub(crate) fn quote_optional_tag(tag: Option<&Path>) -> proc_macro2::TokenStream {

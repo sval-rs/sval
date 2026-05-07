@@ -1,3 +1,7 @@
+/*!
+Match-arm generation for the `stream` method body.
+*/
+
 mod stream_newtype;
 mod stream_record_tuple;
 mod stream_tag;

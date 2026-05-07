@@ -1,3 +1,16 @@
+/*!
+Index allocation and quoting for struct fields and enum variants.
+
+An `IndexAllocator` tracks the next numeric index as fields are iterated.
+It starts in implicit mode (indexes carry the `VALUE_OFFSET` tag).
+If any field uses an explicit index (from a `#[sval(index)]` attribute or discriminant), all subsequent implicit indexes switch to explicit mode to maintain consistency.
+
+Like labels, indexes can come from three sources: an explicit string literal (`#[sval(index = 1)]`), a path to a label variable (`#[sval(index = MY_INDEX)]`), or the field/variant order within its container as a fallback.
+
+`Index::Implicit` indexes are emitted with `.with_tag(&sval::tags::VALUE_OFFSET)`, signaling they are zero-based offsets.
+`Index::Explicit` indexes are emitted as-is.
+*/
+
 pub(crate) struct IndexAllocator {
     next_const_index: isize,
     explicit: bool,

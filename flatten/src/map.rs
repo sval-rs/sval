@@ -13,14 +13,56 @@ pub fn flatten_to_map<'sval>(
     value: &'sval (impl sval::Value + ?Sized),
     offset: isize,
 ) -> sval::Result<isize> {
-    let stream = PassThru::new(stream);
-
-    let mut stream = Flattener::begin(MapFlatten { stream }, offset);
+    let mut stream = FlattenToMap::new(stream, offset);
 
     value.stream(&mut stream)?;
 
-    Ok(stream.end())
+    Ok(stream.end().0)
 }
+
+/**
+A stream that flattens the fields of a value onto a map.
+*/
+pub struct FlattenToMap<'sval, S> {
+    inner: Flattener<'sval, MapFlatten<S>>,
+}
+
+impl<'sval, S: sval::Stream<'sval>> FlattenToMap<'sval, S> {
+    /**
+    Wrap the given `stream`.
+
+    The `offset` is the current length of the map being flattened onto.
+    Call [`FlattenToMap::end`] after streaming a value to get the new length of the map.
+    */
+    pub fn new(stream: S, offset: isize) -> Self {
+        FlattenToMap {
+            inner: Flattener::begin(
+                MapFlatten {
+                    stream: PassThru::new(stream),
+                },
+                offset,
+            ),
+        }
+    }
+
+    /**
+    Finish flattening a value.
+
+    This method returns the length of the map after flattening that can be used to reconstruct a `FlattenToMap` for a future value.
+    */
+    pub fn end(self) -> (isize, S) {
+        let (
+            offset,
+            MapFlatten {
+                stream: PassThru { stream, .. },
+            },
+        ) = self.inner.end();
+
+        (offset, stream)
+    }
+}
+
+impl_stream_forward!({ impl<'sval, S: Stream<'sval>> Stream<'sval> for FlattenToMap<'sval, S> } => x => { x.inner });
 
 struct MapFlatten<S> {
     stream: PassThru<S>,

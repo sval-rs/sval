@@ -1,3 +1,12 @@
+/*!
+Label resolution and quoting for struct fields and enum variants.
+
+Like indexes, labels can come from three sources: an explicit string literal (`#[sval(label = "text")]`), a path to a label variable (`#[sval(label = MY_LABEL)]`), or the field/variant identifier itself as a fallback.
+
+`Label::Implicit` labels are emitted with `.with_tag(&sval::tags::VALUE_IDENT)`, signaling they are valid Rust identifiers.
+`Label::Const` and `Label::Ident` are emitted without the tag hint.
+*/
+
 use syn::{ext::IdentExt, Ident};
 
 #[derive(Debug, Clone)]

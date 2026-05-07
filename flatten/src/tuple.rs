@@ -15,20 +15,52 @@ pub fn flatten_to_tuple<'sval>(
     value: &'sval (impl sval::Value + ?Sized),
     offset: isize,
 ) -> sval::Result<isize> {
-    let label_stream = Empty;
-
-    let mut stream = Flattener::begin(
-        TupleFlatten {
-            stream,
-            label_stream,
-        },
-        offset,
-    );
+    let mut stream = FlattenToTuple::new(stream, offset);
 
     value.stream(&mut stream)?;
 
-    Ok(stream.end())
+    Ok(stream.end().0)
 }
+
+/**
+A stream that flattens the fields of a value onto a tuple.
+*/
+pub struct FlattenToTuple<'sval, S> {
+    inner: Flattener<'sval, TupleFlatten<S>>,
+}
+
+impl<'sval, S: sval::Stream<'sval>> FlattenToTuple<'sval, S> {
+    /**
+    Wrap the given `stream`.
+
+    The `offset` is the current length of the tuple being flattened onto.
+    Call [`FlattenToTuple::end`] after streaming a value to get the new length of the tuple.
+    */
+    pub fn new(stream: S, offset: isize) -> Self {
+        FlattenToTuple {
+            inner: Flattener::begin(
+                TupleFlatten {
+                    stream,
+                    label_stream: Empty,
+                },
+                offset,
+            ),
+        }
+    }
+
+    /**
+    Finish flattening a value.
+
+    This method returns the length of the map after flattening that can be used to reconstruct a `FlattenToTuple` for a future value.
+    */
+    pub fn end(self) -> (isize, S) {
+        let (offset, TupleFlatten { stream, .. }) = self.inner.end();
+
+        (offset, stream)
+    }
+}
+
+impl_stream_forward!({ impl<'sval, S: Stream<'sval>> Stream<'sval> for FlattenToTuple<'sval, S> } => x => { x.inner });
 
 struct TupleFlatten<S> {
     stream: S,

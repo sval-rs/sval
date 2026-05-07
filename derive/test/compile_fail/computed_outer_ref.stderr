@@ -1,0 +1,7 @@
+error: only one of `outer_ref`, `inner_ref` or `computed` can be specified
+ --> compile_fail/computed_outer_ref.rs:3:10
+  |
+3 | #[derive(Value)]
+  |          ^^^^^
+  |
+  = note: this error originates in the derive macro `Value` (in Nightly builds, run with -Z macro-backtrace for more info)

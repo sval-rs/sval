@@ -15,20 +15,54 @@ pub fn flatten_to_record<'sval>(
     value: &'sval (impl sval::Value + ?Sized),
     offset: isize,
 ) -> sval::Result<isize> {
-    let label_stream = LabelBuf::default();
-
-    let mut stream = Flattener::begin(
-        RecordFlatten {
-            stream,
-            label_stream,
-        },
-        offset,
-    );
+    let mut stream = FlattenToRecord::new(stream, offset);
 
     value.stream(&mut stream)?;
 
-    Ok(stream.end())
+    Ok(stream.end().0)
 }
+
+/**
+A stream that flattens the fields of a value onto a record.
+*/
+pub struct FlattenToRecord<'sval, S> {
+    inner: Flattener<'sval, RecordFlatten<'sval, S>>,
+}
+
+impl<'sval, S: sval::Stream<'sval>> FlattenToRecord<'sval, S> {
+    /**
+    Wrap the given `stream`.
+
+    The `offset` is the current length of the record being flattened onto.
+    Call [`FlattenToRecord::end`] after streaming a value to get the new length of the record.
+    */
+    pub fn new(stream: S, offset: isize) -> Self {
+        let label_stream = LabelBuf::default();
+
+        FlattenToRecord {
+            inner: Flattener::begin(
+                RecordFlatten {
+                    stream,
+                    label_stream,
+                },
+                offset,
+            ),
+        }
+    }
+
+    /**
+    Finish flattening a value.
+
+    This method returns the length of the map after flattening that can be used to reconstruct a `FlattenToRecord` for a future value.
+    */
+    pub fn end(self) -> (isize, S) {
+        let (offset, RecordFlatten { stream, .. }) = self.inner.end();
+
+        (offset, stream)
+    }
+}
+
+impl_stream_forward!({ impl<'sval, S: Stream<'sval>> Stream<'sval> for FlattenToRecord<'sval, S> } => x => { x.inner });
 
 struct RecordFlatten<'sval, S> {
     stream: S,

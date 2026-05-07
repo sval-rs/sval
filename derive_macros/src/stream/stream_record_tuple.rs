@@ -1,13 +1,14 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
-use crate::label::{optional_label_or_ident, Label, LabelValue};
 use crate::{
-    attr::{self},
+    attr,
     index::{quote_index, quote_optional_index, Index, IndexAllocator},
-    label::{quote_label, quote_optional_label},
+    label::{optional_label_or_ident, quote_label, quote_optional_label, Label, LabelValue},
     tag::quote_optional_tag,
+    value_trait::{field_codegen, ImplStrategy},
 };
 
+#[derive(Clone, Copy)]
 pub(crate) enum RecordTupleTarget {
     RecordTuple,
     Record,
@@ -25,16 +26,21 @@ impl RecordTupleTarget {
     }
 }
 
-pub(crate) fn stream_record_tuple<'a>(
+pub(crate) fn stream_record_tuple<'a, I, B>(
     path: proc_macro2::TokenStream,
-    fields: impl Iterator<Item = &'a Field>,
+    fields: I,
+    impl_block: &B,
     mut target: RecordTupleTarget,
     tag: Option<&Path>,
     label: Option<Label>,
     index: Option<Index>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
-) -> syn::Result<proc_macro2::TokenStream> {
+) -> syn::Result<proc_macro2::TokenStream>
+where
+    I: Iterator<Item = &'a Field>,
+    B: ImplStrategy + ?Sized,
+{
     let tag = quote_optional_tag(tag);
     let label = quote_optional_label(label);
     let index = quote_optional_index(index);
@@ -62,6 +68,9 @@ pub(crate) fn stream_record_tuple<'a>(
                 &attr::LabelAttr,
                 &attr::SkipAttr,
                 &attr::FlattenAttr,
+                &attr::OuterRefAttr,
+                &attr::InnerRefAttr,
+                &attr::ComputedAttr,
             ],
             &field.attrs,
         )?;
@@ -104,6 +113,20 @@ pub(crate) fn stream_record_tuple<'a>(
 
         const_size = const_size && !flatten;
 
+        let field_value_tokens = if flatten {
+            impl_block.quote_stream_value(
+                quote!(&mut stream),
+                &ident,
+                field_codegen(&field.attrs)?,
+            )?
+        } else {
+            impl_block.quote_stream_value(
+                quote!(&mut *stream),
+                &ident,
+                field_codegen(&field.attrs)?,
+            )?
+        };
+
         let value =
             if let Some(data_tag) = attr::get("struct field", attr::DataTagAttr, &field.attrs)? {
                 let data_tag = quote_optional_tag(Some(&data_tag));
@@ -112,17 +135,21 @@ pub(crate) fn stream_record_tuple<'a>(
 
                 quote!({
                     stream.tagged_begin(#data_tag, #data_label, #data_index)?;
-                    stream.value(#ident)?;
+                    #field_value_tokens?;
                     stream.tagged_end(#data_tag, #data_label, #data_index)?
                 })
             } else {
-                quote!(stream.value(#ident)?)
+                quote!(#field_value_tokens?)
             };
 
         match (&label, &index) {
             (Some(label), Some(index)) => {
                 if flatten {
-                    stream_field.push(quote!(#index_ident = sval_derive::extensions::flatten::flatten_to_record_tuple(&mut *stream, #ident, #index_ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToRecordTuple::new(&mut *stream, #index_ident);
+                        #field_value_tokens?;
+                        #index_ident = stream.end().0;
+                    }));
                 } else {
                     stream_field.push(quote!({
                         let #index_ident = #index;
@@ -140,7 +167,11 @@ pub(crate) fn stream_record_tuple<'a>(
             }
             (None, Some(index)) => {
                 if flatten {
-                    stream_field.push(quote!(#index_ident = sval_derive::extensions::flatten::flatten_to_tuple(&mut *stream, #ident, #index_ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToTuple::new(&mut *stream, #index_ident);
+                        #field_value_tokens?;
+                        #index_ident = stream.end().0;
+                    }));
                 } else {
                     stream_field.push(quote!({
                         let #index_ident = #index;
@@ -156,7 +187,11 @@ pub(crate) fn stream_record_tuple<'a>(
             }
             (Some(label), None) => {
                 if flatten {
-                    stream_field.push(quote!(#index_ident = sval_derive::extensions::flatten::flatten_to_record(&mut *stream, #ident, #index_ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToRecord::new(&mut *stream, #index_ident);
+                        #field_value_tokens?;
+                        #index_ident = stream.end().0;
+                    }));
                 } else {
                     stream_field.push(quote!({
                         let #label_ident = #label;
@@ -172,7 +207,11 @@ pub(crate) fn stream_record_tuple<'a>(
             }
             (None, None) => {
                 if flatten {
-                    stream_field.push(quote!(sval_derive::extensions::flatten::flatten_to_seq(&mut *stream, #ident)?;));
+                    stream_field.push(quote!({
+                        let mut stream = sval_derive::extensions::flatten::FlattenToSeq::new(&mut *stream, 0);
+                        #field_value_tokens?;
+                        stream.end();
+                    }));
                 } else {
                     stream_field.push(quote!({
                         stream.seq_value_begin()?;
