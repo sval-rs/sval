@@ -4,8 +4,10 @@ Lifetime parsing for `#[sval(ref)]` attribute values.
 `RefLifetime` is parsed from the string literal in `#[sval(ref = "'a")]` or `#[sval(ref = "'b where 'b: 'a")]`.
 */
 
-use syn::parse::{Parse, ParseStream};
-use syn::{Lifetime, WhereClause};
+use syn::{
+    parse::{Parse, ParseStream},
+    Lifetime, WhereClause,
+};
 
 #[derive(Clone)]
 pub(crate) struct RefLifetime {

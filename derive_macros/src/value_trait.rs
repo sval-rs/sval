@@ -47,7 +47,7 @@ pub(crate) fn field_codegen(attrs: &[Attribute]) -> syn::Result<Option<FieldCode
     if specified_count > 1 {
         return Err(syn::Error::new(
             proc_macro2::Span::call_site(),
-            "only one of `outer_ref`, `inner_ref`, or `computed` can be specified",
+            "only one of `outer_ref`, `inner_ref` or `computed` can be specified",
         ));
     }
 
@@ -263,13 +263,13 @@ pub(crate) fn infer_ref_lifetime(generics: &Generics) -> syn::Result<RefLifetime
         }),
         0 => Err(syn::Error::new(
             proc_macro2::Span::call_site(),
-            "cannot infer an appropriate lifetime for ValueRef: there are no lifetime parameters \
-             — specify one with #[sval(ref = \"'lifetime\")]",
+            "cannot infer a lifetime for `ValueRef`, there are no lifetime parameters \
+             . specify one with `#[sval(ref = \"'lifetime\")]`",
         )),
         _ => Err(syn::Error::new(
             proc_macro2::Span::call_site(),
-            "cannot infer an appropriate lifetime for ValueRef: there are multiple lifetime \
-             parameters — specify which to use with #[sval(ref = \"'lifetime\")]",
+            "cannot infer a lifetime for `ValueRef`, there are multiple lifetime parameters \
+             . specify which to use with `#[sval(ref = \"'lifetime\")]`",
         )),
     }
 }

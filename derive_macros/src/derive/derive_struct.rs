@@ -1,7 +1,7 @@
 use syn::{Attribute, Fields, Generics, Ident, Path};
 
 use crate::{
-    attr::{self, RefAttrValue},
+    attr::{self, RefValue},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::{stream_record_tuple, RecordTupleTarget},
@@ -17,7 +17,7 @@ pub(crate) struct StructAttrs {
     index: Option<IndexValue>,
     unlabeled_fields: bool,
     unindexed_fields: bool,
-    ref_attr: Option<RefAttrValue>,
+    r#ref: Option<RefValue>,
 }
 
 impl StructAttrs {
@@ -43,7 +43,7 @@ impl StructAttrs {
             attr::get("struct", attr::UnlabeledFieldsAttr, attrs)?.unwrap_or(false);
         let unindexed_fields =
             attr::get("struct", attr::UnindexedFieldsAttr, attrs)?.unwrap_or(false);
-        let ref_attr = attr::get("struct", attr::RefAttr, attrs)?;
+        let r#ref = attr::get("struct", attr::RefAttr, attrs)?;
 
         Ok(StructAttrs {
             tag,
@@ -51,7 +51,7 @@ impl StructAttrs {
             index,
             unlabeled_fields,
             unindexed_fields,
-            ref_attr,
+            r#ref,
         })
     }
 
@@ -75,8 +75,8 @@ impl StructAttrs {
         self.unindexed_fields
     }
 
-    pub(crate) fn value_ref_lifetime(&self) -> Option<&RefAttrValue> {
-        self.ref_attr.as_ref()
+    pub(crate) fn r#ref(&self) -> Option<&RefValue> {
+        self.r#ref.as_ref()
     }
 }
 
@@ -98,7 +98,7 @@ pub(crate) fn derive_struct<'a>(
     let mut impl_blocks = vec![ImplValue::new(Some(quote_optional_tag_owned(attrs.tag()))).boxed()];
 
     // Include a derive for `ValueRef` if the type carries a `#[sval(ref)]` attribute
-    if let Some(lf) = attrs.value_ref_lifetime() {
+    if let Some(lf) = attrs.r#ref() {
         impl_blocks.push(
             ImplValueRef::new(
                 match lf.lifetime() {

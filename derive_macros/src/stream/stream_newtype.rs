@@ -1,12 +1,11 @@
 use syn::{spanned::Spanned, Field, Ident, Path};
 
-use crate::value_trait::field_codegen;
 use crate::{
     attr,
     index::{quote_optional_index, Index},
     label::{quote_optional_label, Label},
     tag::quote_optional_tag,
-    value_trait::ImplStrategy,
+    value_trait::{field_codegen, ImplStrategy},
 };
 
 pub(crate) fn stream_newtype<B>(

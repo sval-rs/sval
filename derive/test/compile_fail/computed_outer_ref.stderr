@@ -1,5 +1,5 @@
-error: cannot infer a lifetime for `ValueRef`, there are no lifetime parameters . specify one with `#[sval(ref = "'lifetime")]`
- --> compile_fail/ref_no_lifetime.rs:3:10
+error: only one of `outer_ref`, `inner_ref` or `computed` can be specified
+ --> compile_fail/computed_outer_ref.rs:3:10
   |
 3 | #[derive(Value)]
   |          ^^^^^

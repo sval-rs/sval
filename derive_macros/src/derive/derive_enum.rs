@@ -20,7 +20,7 @@ pub(crate) struct EnumAttrs {
     unlabeled_variants: bool,
     unindexed_variants: bool,
     dynamic: bool,
-    ref_attr: Option<crate::attr::RefAttrValue>,
+    r#ref: Option<attr::RefValue>,
 }
 
 impl EnumAttrs {
@@ -47,7 +47,7 @@ impl EnumAttrs {
         let unindexed_variants =
             attr::get("enum", attr::UnindexedVariantsAttr, attrs)?.unwrap_or(false);
         let dynamic = attr::get("enum", attr::DynamicAttr, attrs)?.unwrap_or(false);
-        let ref_attr = attr::get("enum", attr::RefAttr, attrs)?;
+        let r#ref = attr::get("enum", attr::RefAttr, attrs)?;
 
         if dynamic {
             if tag.is_some() {
@@ -90,7 +90,7 @@ impl EnumAttrs {
             unlabeled_variants,
             unindexed_variants,
             dynamic,
-            ref_attr,
+            r#ref,
         })
     }
 
@@ -106,8 +106,8 @@ impl EnumAttrs {
         self.index.clone().map(IndexAllocator::const_index_of)
     }
 
-    pub(crate) fn value_ref_lifetime(&self) -> Option<&crate::attr::RefAttrValue> {
-        self.ref_attr.as_ref()
+    pub(crate) fn r#ref(&self) -> Option<&attr::RefValue> {
+        self.r#ref.as_ref()
     }
 }
 
@@ -122,10 +122,10 @@ pub(crate) fn derive_enum<'a>(
     let mut impl_blocks = vec![ImplValue::new(Some(quote_optional_tag_owned(attrs.tag()))).boxed()];
 
     // Include a derive for `ValueRef` if the type carries a `#[sval(ref)]` attribute
-    if let Some(ref_attr) = attrs.value_ref_lifetime() {
+    if let Some(r#ref) = attrs.r#ref() {
         impl_blocks.push(
             ImplValueRef::new(
-                match ref_attr.lifetime() {
+                match r#ref.lifetime() {
                     Some(lifetime) => lifetime.clone(),
                     None => infer_ref_lifetime(generics)?,
                 },

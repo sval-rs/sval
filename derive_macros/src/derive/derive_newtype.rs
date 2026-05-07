@@ -1,7 +1,7 @@
 use syn::{Attribute, Field, Generics, Ident, Path};
 
 use crate::{
-    attr::{self, RefAttrValue},
+    attr::{self, RefValue},
     index::{Index, IndexAllocator, IndexValue},
     label::{label_or_ident, LabelValue},
     stream::stream_newtype,
@@ -14,7 +14,7 @@ pub(crate) struct NewtypeAttrs {
     label: Option<LabelValue>,
     index: Option<IndexValue>,
     transparent: bool,
-    ref_attr: Option<RefAttrValue>,
+    r#ref: Option<RefValue>,
 }
 
 impl NewtypeAttrs {
@@ -35,7 +35,7 @@ impl NewtypeAttrs {
         let label = attr::get("newtype", attr::LabelAttr, attrs)?;
         let index = attr::get("newtype", attr::IndexAttr, attrs)?;
         let transparent = attr::get("newtype", attr::TransparentAttr, attrs)?.unwrap_or(false);
-        let ref_attr = attr::get("newtype", attr::RefAttr, attrs)?;
+        let r#ref = attr::get("newtype", attr::RefAttr, attrs)?;
 
         if transparent {
             if tag.is_some() {
@@ -63,7 +63,7 @@ impl NewtypeAttrs {
             label,
             index,
             transparent,
-            ref_attr,
+            r#ref,
         })
     }
 
@@ -83,8 +83,8 @@ impl NewtypeAttrs {
         self.transparent
     }
 
-    pub(crate) fn value_ref_lifetime(&self) -> Option<&RefAttrValue> {
-        self.ref_attr.as_ref()
+    pub(crate) fn r#ref(&self) -> Option<&RefValue> {
+        self.r#ref.as_ref()
     }
 }
 
@@ -96,10 +96,10 @@ pub(crate) fn derive_newtype<'a>(
 ) -> syn::Result<proc_macro2::TokenStream> {
     let mut impl_blocks = vec![ImplValue::new(Some(quote_optional_tag_owned(attrs.tag()))).boxed()];
 
-    if let Some(ref_attr) = attrs.value_ref_lifetime() {
+    if let Some(r#ref) = attrs.r#ref() {
         impl_blocks.push(
             ImplValueRef::new(
-                match ref_attr.lifetime() {
+                match r#ref.lifetime() {
                     Some(lt) => lt.clone(),
                     None => infer_ref_lifetime(generics)?,
                 },

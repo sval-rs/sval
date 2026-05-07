@@ -15,8 +15,7 @@ Feature-gated attributes (`flatten`, `ref`) return compile errors if used withou
 
 use std::collections::HashSet;
 
-use crate::lifetime::RefLifetime;
-use crate::{index::IndexValue, label::LabelValue};
+use crate::{index::IndexValue, label::LabelValue, lifetime::RefLifetime};
 use syn::{spanned::Spanned, Attribute, Expr, ExprUnary, Lit, Path, UnOp};
 
 pub(crate) struct TagAttr;
@@ -439,24 +438,24 @@ The `ref` attribute for enabling ValueRef derive.
 pub(crate) struct RefAttr;
 
 impl SvalAttribute for RefAttr {
-    type Result = RefAttrValue;
+    type Result = RefValue;
 
     fn from_expr(&self, expr: &Expr) -> syn::Result<Self::Result> {
         #[cfg(not(feature = "ref"))]
         {
             Err(syn::Error::new(
                 expr.span(),
-                "the `ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+                "the `ref` attribute requires the `ref` feature of `sval_derive`",
             ))
         }
         #[cfg(feature = "ref")]
         {
             match expr {
                 Expr::Lit(lit) => Ok(self.from_lit(&lit.lit)?),
-                Expr::Path(_) => Ok(RefAttrValue::Infer),
+                Expr::Path(_) => Ok(RefValue::Infer),
                 _ => Err(syn::Error::new(
                     expr.span(),
-                    "invalid `ref`: expected lifetime or path",
+                    "invalid `ref`, expected a lifetime or path",
                 )),
             }
         }
@@ -467,29 +466,29 @@ impl SvalAttribute for RefAttr {
         {
             Err(syn::Error::new(
                 lit.span(),
-                "the `ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+                "the `ref` attribute requires the `ref` feature of `sval_derive`",
             ))
         }
         #[cfg(feature = "ref")]
         {
             match lit {
-                Lit::Bool(b) if b.value => Ok(RefAttrValue::Infer),
+                Lit::Bool(b) if b.value => Ok(RefValue::Infer),
                 Lit::Str(s) => {
                     // Use syn's parser to parse lifetime and optional where clause
                     // Format: "'a" or "'b where 'a: 'b"
                     let spec: RefLifetime = s.parse().map_err(|e| {
                         let mut r = syn::Error::new(
                             s.span(),
-                            "invalid `ref`: expected lifetime like \"'a\" or \"'b where 'a: 'b\"",
+                            "invalid `ref`, expected a lifetime such as `'a` or `'b where 'a: 'b`",
                         );
                         r.combine(e);
                         r
                     })?;
-                    Ok(RefAttrValue::Explicit(spec))
+                    Ok(RefValue::Explicit(spec))
                 }
                 _ => Err(syn::Error::new(
                     lit.span(),
-                    "invalid `ref`: expected string literal",
+                    "invalid `ref`, expected a string literal",
                 )),
             }
         }
@@ -506,7 +505,8 @@ impl RawAttribute for RefAttr {
 Parsed value for the `ref` attribute.
 */
 #[derive(Clone)]
-pub(crate) enum RefAttrValue {
+#[allow(dead_code)]
+pub(crate) enum RefValue {
     /**
     Infer lifetime from the type's single lifetime parameter.
     */
@@ -517,9 +517,9 @@ pub(crate) enum RefAttrValue {
     Explicit(RefLifetime),
 }
 
-impl RefAttrValue {
+impl RefValue {
     pub(crate) fn lifetime(&self) -> Option<&RefLifetime> {
-        let RefAttrValue::Explicit(spec) = self else {
+        let RefValue::Explicit(spec) = self else {
             return None;
         };
 
@@ -540,7 +540,7 @@ impl SvalAttribute for OuterRefAttr {
         {
             Err(syn::Error::new(
                 lit.span(),
-                "the `outer_ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+                "the `outer_ref` attribute requires the `ref` feature of `sval_derive`",
             ))
         }
         #[cfg(feature = "ref")]
@@ -549,7 +549,7 @@ impl SvalAttribute for OuterRefAttr {
                 Lit::Bool(b) if b.value => Ok(true),
                 _ => Err(syn::Error::new(
                     lit.span(),
-                    "invalid `outer_ref`: expected boolean value `true`",
+                    "invalid `outer_ref`, expected the boolean value `true`",
                 )),
             }
         }
@@ -575,7 +575,7 @@ impl SvalAttribute for InnerRefAttr {
         {
             Err(syn::Error::new(
                 lit.span(),
-                "the `inner_ref` attribute can only be used when the `ref` Cargo feature of `sval_derive` is enabled",
+                "the `inner_ref` attribute requires the `ref` feature of `sval_derive`",
             ))
         }
         #[cfg(feature = "ref")]
@@ -584,7 +584,7 @@ impl SvalAttribute for InnerRefAttr {
                 Lit::Bool(b) if b.value => Ok(true),
                 _ => Err(syn::Error::new(
                     lit.span(),
-                    "invalid `inner_ref`: expected boolean value `true`",
+                    "invalid `inner_ref`, expected the boolean value `true`",
                 )),
             }
         }

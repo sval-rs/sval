@@ -1,4 +1,4 @@
-error: cannot infer an appropriate lifetime for ValueRef: there are multiple lifetime parameters — specify which to use with #[sval(ref = "'lifetime")]
+error: cannot infer a lifetime for `ValueRef`, there are multiple lifetime parameters . specify which to use with `#[sval(ref = "'lifetime")]`
  --> compile_fail/ref_multiple_lifetimes.rs:3:10
   |
 3 | #[derive(Value)]
