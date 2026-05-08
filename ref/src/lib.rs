@@ -7,7 +7,7 @@ Add the `ref` feature to `sval_derive`:
 
 ```toml
 [dependencies.sval_derive]
-version = "2.18.0"
+version = "2.19.0"
 features = ["ref"]
 ```
 
