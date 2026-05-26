@@ -856,7 +856,7 @@ mod tests {
     use super::*;
 
     use std::{
-        collections::{BTreeMap, HashMap},
+        collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, LinkedList, VecDeque},
         fmt,
     };
 
@@ -1070,6 +1070,137 @@ mod tests {
                 Token::I32(3),
                 Token::TupleValueEnd(None, sval::Index::new(2)),
                 Token::TupleEnd(None, None, None),
+            ],
+        );
+    }
+
+    #[test]
+    fn stream_set_empty() {
+        assert_tokens(
+            &BTreeSet::<u8>::new(),
+            &[Token::SeqBegin(Some(0)), Token::SeqEnd],
+        );
+        assert_tokens(
+            &HashSet::<u8>::new(),
+            &[Token::SeqBegin(Some(0)), Token::SeqEnd],
+        );
+    }
+
+    #[test]
+    fn stream_set() {
+        let set = {
+            let mut set = BTreeSet::new();
+            set.insert(1);
+            set.insert(2);
+            set
+        };
+        assert_tokens(
+            &set,
+            &[
+                Token::SeqBegin(Some(2)),
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqValueBegin,
+                Token::I32(2),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
+            ],
+        );
+
+        let set = {
+            let mut set = HashSet::new();
+            set.insert(1);
+            set
+        };
+        assert_tokens(
+            &set,
+            &[
+                Token::SeqBegin(Some(1)),
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
+            ],
+        );
+    }
+
+    #[test]
+    fn stream_seq_collection_empty() {
+        assert_tokens(
+            &VecDeque::<u8>::new(),
+            &[Token::SeqBegin(Some(0)), Token::SeqEnd],
+        );
+        assert_tokens(
+            &LinkedList::<u8>::new(),
+            &[Token::SeqBegin(Some(0)), Token::SeqEnd],
+        );
+        assert_tokens(
+            &BinaryHeap::<u8>::new(),
+            &[Token::SeqBegin(Some(0)), Token::SeqEnd],
+        );
+    }
+
+    #[test]
+    fn stream_seq_collection() {
+        let deque = {
+            let mut deque = VecDeque::new();
+            deque.push_back(1);
+            deque.push_back(2);
+            deque
+        };
+        assert_tokens(
+            &deque,
+            &[
+                Token::SeqBegin(Some(2)),
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqValueBegin,
+                Token::I32(2),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
+            ],
+        );
+
+        let list = {
+            let mut list = LinkedList::new();
+            list.push_back(1);
+            list.push_back(2);
+            list
+        };
+        assert_tokens(
+            &list,
+            &[
+                Token::SeqBegin(Some(2)),
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqValueBegin,
+                Token::I32(2),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
+            ],
+        );
+
+        let heap = {
+            let mut heap = BinaryHeap::new();
+            heap.push(1);
+            heap.push(2);
+            heap
+        };
+        assert_tokens(
+            &heap,
+            &[
+                Token::SeqBegin(Some(2)),
+                Token::SeqValueBegin,
+                // BinaryHeap iterates in reverse-sorted order (max first)
+                Token::I32(2),
+                Token::SeqValueEnd,
+                Token::SeqValueBegin,
+                Token::I32(1),
+                Token::SeqValueEnd,
+                Token::SeqEnd,
             ],
         );
     }
