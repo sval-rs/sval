@@ -11,9 +11,8 @@ path = "lib.rs"
 path = "../../"
 features = ["std"]
 
-[dependencies.sval_derive]
-path = "../../derive"
-features = ["std"]
+[dependencies.sval_derive_macros]
+path = "../../derive_macros"
 
 [dependencies.sval_json]
 path = "../"
@@ -44,3 +43,11 @@ version = "0.4"
 
 [dependencies.miniserde]
 version = "0.1"
+
+[dependencies.criterion]
+version = "0.8"
+
+[[bench]]
+name = "value"
+path = "value.rs"
+harness = false

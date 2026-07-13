@@ -1,5 +1,5 @@
 [package]
-name = "sval_flatten_bench"
+name = "sval_buffer_bench"
 version = "0.0.0"
 publish = false
 edition = "2021"
@@ -8,13 +8,12 @@ edition = "2021"
 path = "../../"
 features = ["std"]
 
-[dependencies.sval_flatten]
+[dependencies.sval_buffer]
 path = "../"
 features = ["std"]
 
-[dependencies.sval_json]
-path = "../../json"
-features = ["std"]
+[dependencies.sval_derive_macros]
+path = "../../derive_macros"
 
 [dependencies.criterion]
 version = "0.8"

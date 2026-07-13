@@ -15,7 +15,7 @@ out functionality when an allocator isn't available.
 
 mod error;
 
-#[cfg(feature = "std")]
+#[cfg(any(test, feature = "std"))]
 #[macro_use]
 #[allow(unused_imports)]
 extern crate std as libstd;
@@ -44,8 +44,5 @@ mod std {
 
 mod fragments;
 mod value;
-
-#[cfg(feature = "alloc")]
-fn assert_static<T: 'static>(_: &mut T) {}
 
 pub use self::{error::*, fragments::*, value::*};

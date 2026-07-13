@@ -1,7 +1,6 @@
-#![cfg(test)]
-#![feature(test)]
+use std::hint::black_box;
 
-extern crate test;
+use criterion::{criterion_group, criterion_main, Criterion};
 
 struct RecordTuple {
     before: u8,
@@ -119,48 +118,52 @@ impl<'sval> sval::Stream<'sval> for NullStream {
     }
 }
 
-#[bench]
-fn unflatten_60(b: &mut test::Bencher) {
+fn unflatten(c: &mut Criterion) {
     let record = RecordTuple {
         before: 30,
         flatten: None,
         after: 30,
     };
 
-    b.iter(|| sval::stream(&mut NullStream, &record))
+    c.bench_function("unflatten_60", |b| {
+        b.iter(|| black_box(sval::stream(&mut NullStream, &record)))
+    });
 }
 
-#[bench]
-fn flatten_60(b: &mut test::Bencher) {
+fn flatten(c: &mut Criterion) {
     let record = RecordTuple {
         before: 20,
         flatten: Some(FlattenRecordTuple { flatten: 20 }),
         after: 20,
     };
 
-    b.iter(|| sval::stream(&mut NullStream, &record))
+    c.bench_function("flatten_60", |b| {
+        b.iter(|| black_box(sval::stream(&mut NullStream, &record)))
+    });
 }
 
-#[bench]
-fn json_unflatten_60(b: &mut test::Bencher) {
+fn json_unflatten(c: &mut Criterion) {
     let record = RecordTuple {
         before: 30,
         flatten: None,
         after: 30,
     };
 
-    b.iter(|| sval_json::stream_to_string(&record))
+    c.bench_function("json_unflatten_60", |b| {
+        b.iter(|| black_box(sval_json::stream_to_string(&record).unwrap()))
+    });
 }
 
-#[bench]
-fn json_flatten_60(b: &mut test::Bencher) {
+fn json_flatten(c: &mut Criterion) {
     let record = RecordTuple {
         before: 20,
         flatten: Some(FlattenRecordTuple { flatten: 20 }),
         after: 20,
     };
 
-    b.iter(|| sval_json::stream_to_string(&record))
+    c.bench_function("json_flatten_60", |b| {
+        b.iter(|| black_box(sval_json::stream_to_string(&record).unwrap()))
+    });
 }
 
 const FIELD_NAMES: &[&'static str] = &[
@@ -184,3 +187,6 @@ const FIELD_NAMES: &[&'static str] = &[
     "241", "242", "243", "244", "245", "246", "247", "248", "249", "250", "251", "252", "253",
     "254",
 ];
+
+criterion_group!(benches, unflatten, flatten, json_unflatten, json_flatten);
+criterion_main!(benches);
