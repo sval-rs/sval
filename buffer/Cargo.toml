@@ -24,6 +24,10 @@ no_debug_assertions = []
 version = "2.20.0"
 path = "../"
 
+[dependencies.zerocopy]
+version = "0.8.55"
+features = ["derive"]
+
 [dependencies.sval_ref]
 version = "2.20.0"
 path = "../ref"
@@ -35,3 +39,6 @@ path = "../derive_macros"
 [dev-dependencies.sval_test]
 version = "2.20.0"
 path = "../test"
+
+[dev-dependencies.rand]
+version = "0.10"

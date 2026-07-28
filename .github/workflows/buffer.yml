@@ -41,7 +41,7 @@ jobs:
         run: cargo install cargo-hack
 
       - name: Powerset
-        working-directory: ./buffer
+        working-directory: ./buffer/bench
         run: cargo hack bench --feature-powerset --no-run
 
   msrv:

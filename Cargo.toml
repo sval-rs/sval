@@ -22,6 +22,7 @@ members = [
     "dynamic",
     "ref",
     "buffer",
+    "buffer/bench",
     "fmt",
     "fmt/test",
     "nested",
