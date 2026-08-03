@@ -19,7 +19,7 @@ flatten = []
 ref = []
 
 [dependencies.syn]
-version = "2"
+version = "3"
 features = ["derive", "parsing", "extra-traits"]
 
 [dependencies.quote]
