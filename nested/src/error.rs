@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{error, fmt};
 
 /**
 An error encountered buffering data.
@@ -64,20 +64,13 @@ impl Error {
     }
 }
 
-#[cfg(feature = "std")]
-mod std_support {
-    use super::*;
-
-    use std::error;
-
-    impl error::Error for Error {
-        fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-            match self.0 {
-                ErrorKind::Buffer(ref err) => Some(err),
-                ErrorKind::InvalidValue { .. } => None,
-                #[cfg(not(feature = "alloc"))]
-                ErrorKind::NoAlloc { .. } => None,
-            }
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self.0 {
+            ErrorKind::Buffer(ref err) => Some(err),
+            ErrorKind::InvalidValue { .. } => None,
+            #[cfg(not(feature = "alloc"))]
+            ErrorKind::NoAlloc { .. } => None,
         }
     }
 }

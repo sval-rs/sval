@@ -1,4 +1,4 @@
-use crate::std::fmt;
+use crate::std::{error, fmt};
 
 /**
 An error encountered buffering data.
@@ -80,11 +80,4 @@ impl Error {
     }
 }
 
-#[cfg(feature = "std")]
-mod std_support {
-    use super::*;
-
-    use crate::std::error;
-
-    impl error::Error for Error {}
-}
+impl error::Error for Error {}

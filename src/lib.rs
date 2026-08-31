@@ -91,7 +91,7 @@ mod std {
     #[allow(unused_imports)]
     pub use crate::{
         alloc::{borrow, boxed, collections, string, vec},
-        core::{cmp, convert, fmt, hash, marker, mem, ops, option, result, str, write},
+        core::{cmp, convert, error, fmt, hash, marker, mem, ops, option, result, str, write},
     };
 }
 
