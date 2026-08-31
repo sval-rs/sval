@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{error, fmt};
 
 /**
 An error encountered streaming JSON.
@@ -41,18 +41,12 @@ impl Error {
     }
 }
 
-#[cfg(feature = "std")]
-mod std_support {
-    use super::*;
-
-    use std::error;
-
-    impl error::Error for Error {
-        fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-            match self.kind {
-                ErrorKind::IO(ref err) => Some(err),
-                _ => None,
-            }
+impl error::Error for Error {
+    #[cfg(feature = "std")]
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self.kind {
+            ErrorKind::IO(ref err) => Some(err),
+            _ => None,
         }
     }
 }
