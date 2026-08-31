@@ -1,6 +1,6 @@
 [package]
 name = "sval"
-version = "2.21.1"
+version = "2.22.0"
 authors = ["Ashley Mannix <hey@kodraus.com>"]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
@@ -44,7 +44,7 @@ alloc = []
 derive = ["dep:sval_derive_macros"]
 
 [dependencies.sval_derive_macros]
-version = "2.21.1"
+version = "2.22.0"
 path = "derive_macros"
 optional = true
 
